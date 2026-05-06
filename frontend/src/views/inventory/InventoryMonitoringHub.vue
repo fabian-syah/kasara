@@ -33,14 +33,19 @@ const toast = useToast();
 const router = useRouter();
 
 // Tab State
-const activeTab = ref("history_in"); // history_in, history_out, incoming_otw, outgoing_otw, failed_otw
-const tabs = [
-    { id: "history_in", name: "Riwayat Masuk", icon: FileText, color: "text-green-500", bg: "bg-green-500/10" },
-    { id: "history_out", name: "Riwayat Keluar", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { id: "incoming_otw", name: "Konfirmasi Masuk", icon: ArrowDownRight, color: "text-blue-500", bg: "bg-blue-500/10" },
-    { id: "outgoing_otw", name: "Pantau Kiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10" },
-    { id: "failed_otw", name: "Gagal Kirim", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
+const activeTab = ref("incoming_otw"); // Default to incoming_otw
+const lastOtwTab = ref("incoming_otw");
+
+const topCards = [
+    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/30", activeBorder: "border-blue-500/80 shadow-blue-500/10" },
+    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/30", activeBorder: "border-purple-500/80 shadow-purple-500/10" },
+    { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/30", activeBorder: "border-red-500/80 shadow-red-500/10" },
 ];
+
+function selectTopCard(id) {
+    activeTab.value = id;
+    lastOtwTab.value = id;
+}
 
 // Global Loading State
 const isLoading = ref(false);
@@ -115,6 +120,49 @@ function formatCapacity(ram, storage) {
     const r = ram ? (typeof ram === 'string' ? ram.replace(/GB/gi, '') : ram) : '';
     const s = storage ? (typeof storage === 'string' ? storage.replace(/GB/gi, '') : storage) : '';
     return (r && s) ? `${r}/${s}GB` : `${r || s}GB`;
+}
+
+function getTransferItemsSummary(transfer) {
+    const parts = [];
+    const items = transfer.items || [];
+    const nonHp = transfer.non_hp_items || [];
+    
+    if (items.length > 0) {
+        if (items.length <= 2) {
+            items.forEach(i => parts.push(`${getBrandName(i)} ${i.product?.name || ''}`));
+        } else {
+            parts.push(`${items.length} Unit HP`);
+        }
+    }
+    if (nonHp.length > 0) {
+        if (nonHp.length <= 2) {
+            nonHp.forEach(i => parts.push(`${i.product?.name || i.product_name || ''} (${i.quantity} Qty)`));
+        } else {
+            const totalQty = nonHp.reduce((sum, i) => sum + (i.quantity || 0), 0);
+            parts.push(`${totalQty} Pcs Aksesoris`);
+        }
+    }
+    return parts.join(', ') || 'Tidak ada barang';
+}
+
+function getStatusBadgeClass(status, tab) {
+    if (tab === 'failed_otw' || status === 'failed') {
+        return 'bg-red-500/10 text-red-500 border-red-500/20';
+    }
+    if (status === 'confirmed' || status === 'received') {
+        return 'bg-green-500/10 text-green-500 border-green-500/20';
+    }
+    if (tab === 'incoming_otw') {
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+    }
+    return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+}
+
+function getStatusLabel(status, tab) {
+    if (tab === 'failed_otw' || status === 'failed') return 'Gagal';
+    if (status === 'confirmed' || status === 'received') return 'Selesai';
+    if (tab === 'incoming_otw') return 'Menunggu Konfirmasi';
+    return 'OTW';
 }
 
 // --- API Calls ---
@@ -375,15 +423,45 @@ onMounted(() => {
                     </button>
                 </div>
  
-                <!-- Responsive Tab Bar -->
-                <div class="mt-8 flex flex-wrap gap-3">
-                    <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
-                        class="flex items-center gap-3 px-6 py-3 rounded-2xl whitespace-nowrap transition-all duration-300 border cursor-pointer"
-                        :class="activeTab === tab.id
-                            ? `${tab.bg} ${tab.color} border-${tab.color.split('-')[1]}-500/30 font-black shadow-lg shadow-${tab.color.split('-')[1]}-500/10`
-                            : 'bg-surface-800 text-text-secondary border-surface-700 hover:bg-surface-700 font-bold'">
-                        <component :is="tab.icon" :size="18" />
-                        <span>{{ tab.name }}</span>
+                <!-- 3 Big Cards at the Top (Interactive & Fully Premium) -->
+                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
+                        class="p-6 md:p-8 rounded-[2rem] border transition-all duration-300 flex items-start gap-5 cursor-pointer text-left w-full relative overflow-hidden group"
+                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
+                            ? `${card.bg} ${card.activeBorder}`
+                            : 'bg-surface-800/60 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600'">
+                        <div class="p-4 rounded-2xl flex items-center justify-center shrink-0"
+                            :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
+                                ? 'bg-white/10 text-white'
+                                : 'bg-surface-700 text-text-secondary group-hover:text-white transition-all'">
+                            <component :is="card.icon" :size="24" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <h3 class="text-lg font-black text-white tracking-tight leading-none">{{ card.name }}</h3>
+                            <p class="text-xs text-text-secondary font-medium tracking-normal leading-snug">{{ card.description }}</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Sub Tabs Line Navigation (Matching User Screenshot Perfectly) -->
+                <div class="mt-10 flex gap-8 border-b border-surface-700/30 pb-px">
+                    <button @click="activeTab = lastOtwTab"
+                        class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
+                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        <span>Sedang Diproses</span>
+                        <div v-if="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab)" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                    </button>
+                    <button @click="activeTab = 'history_in'"
+                        class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
+                        :class="activeTab === 'history_in' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        <span>Riwayat Masuk</span>
+                        <div v-if="activeTab === 'history_in'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                    </button>
+                    <button @click="activeTab = 'history_out'"
+                        class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
+                        :class="activeTab === 'history_out' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        <span>Riwayat Keluar</span>
+                        <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
                     </button>
                 </div>
             </div>
@@ -410,136 +488,72 @@ onMounted(() => {
                     untuk kategori ini saat ini.</p>
             </div>
 
-            <!-- Content Grid (OTW Tabs) -->
-            <div v-else-if="!activeTab.includes('history')"
-                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in duration-500">
-                <div v-for="transfer in transfers" :key="transfer.id" @click="openModal(transfer)"
-                    class="card group cursor-pointer hover:bg-surface-700 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl hover:-translate-y-1"
-                    :class="{
-                        'border-l-blue-500 hover:shadow-blue-500/5': activeTab === 'incoming_otw',
-                        'border-l-purple-500 hover:shadow-purple-500/5': activeTab === 'outgoing_otw',
-                        'border-l-red-500 hover:shadow-red-500/5': activeTab === 'failed_otw'
-                    }">
-                    <div class="p-6 sm:p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <div
-                                class="px-4 py-1.5 rounded-xl bg-surface-700/50 border border-surface-600/30 text-xs font-black text-white tracking-widest uppercase">
-                                {{ transfer.receipt_id }}
-                            </div>
-                            <div class="text-right">
-                                <span
-                                    class="text-[10px] uppercase font-black tracking-widest opacity-40 block mb-0.5">Muatan</span>
-                                <span class="text-lg font-black text-white">
-                                    {{(transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc +
-                                        i.quantity, 0) || 0)}} Unit
-                                </span>
-                            </div>
-                        </div>
 
-                        <div class="flex items-center gap-4 py-4 border-t border-surface-700/30">
-                            <div
-                                class="w-12 h-12 rounded-2xl bg-surface-700 flex items-center justify-center text-text-secondary group-hover:bg-primary-500 group-hover:text-white transition-all">
-                                <Store v-if="activeTab !== 'incoming_otw'" :size="20" />
-                                <Building2 v-else :size="20" />
-                            </div>
-                            <div>
-                                <p class="text-[10px] uppercase font-black tracking-widest opacity-40 mb-0.5">
-                                    {{ activeTab === 'incoming_otw' ? 'Dari Cabang' : 'Tujuan Cabang' }}
-                                </p>
-                                <p class="font-bold text-white text-lg">
-                                    {{ activeTab === 'incoming_otw' ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') :
-                                        (transfer.destination?.name || transfer.receiver_name || 'Unknown') }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="mt-6 flex items-center justify-between pt-6 border-t border-surface-700/30">
-                            <div class="flex items-center gap-2 text-text-secondary">
-                                <Calendar :size="14" />
-                                <span class="text-xs font-bold">{{ formatDate(transfer.created_at) }}</span>
-                            </div>
-                            
-                            <div class="flex items-center gap-3">
-                                <!-- Action Buttons -->
-                                <button v-if="activeTab === 'outgoing_otw'" 
-                                    @click.stop="openExpeditionModal(transfer)"
-                                    class="p-2 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all group/btn flex items-center gap-2">
-                                    <Truck :size="14" />
-                                    <span class="text-[10px] font-black uppercase">Ekspedisi</span>
-                                </button>
-
-                                <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
-                                    @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
-                                    class="p-2 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all group/btn flex items-center gap-2">
-                                    <Search :size="14" />
-                                    <span class="text-[10px] font-black uppercase tracking-wider">Lacak</span>
-                                </button>
-
-                                <ChevronRight :size="18"
-                                    class="text-text-secondary opacity-20 group-hover:translate-x-1 group-hover:opacity-100 transition-all" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Content Grid (History Tabs) -->
-            <div v-else class="space-y-8 animate-in duration-500">
+            <!-- Unified Table Section -->
+            <div v-else class="space-y-8 animate-in duration-500 mt-6">
                 <!-- Desktop Table -->
                 <div class="hidden md:block overflow-hidden rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-surface-700/70 bg-surface-800/80">
-                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nota</th>
+                            <tr class="border-b border-surface-700/70 bg-surface-800/85">
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
-                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
-                                    {{ activeTab === 'history_in' ? 'Cabang Asal' : 'Cabang Tujuan' }}
-                                </th>
-                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Konfirmasi</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Update</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-surface-700/30">
-                            <tr v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
+                            <tr v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                                 class="group cursor-pointer hover:bg-surface-700/40 transition-colors duration-200">
                                 <td class="px-8 py-5 whitespace-nowrap">
                                     <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
                                         {{ transfer.receipt_id }}
                                     </span>
                                 </td>
-                                <td class="px-8 py-5 whitespace-nowrap">
-                                    <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
-                                        :class="transfer.status === 'confirmed' || transfer.status === 'received' 
-                                            ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
-                                        <span class="w-1.5 h-1.5 rounded-full" 
-                                            :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500' : 'bg-amber-500'"></span>
-                                        {{ transfer.status }}
-                                    </span>
-                                </td>
                                 <td class="px-8 py-5">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700">
-                                            <Building2 :size="16" />
-                                        </div>
-                                        <span class="font-bold text-white text-base">
-                                            {{ activeTab === 'history_in' 
-                                                ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') 
-                                                : (transfer.destination?.name || 'Unknown') }}
+                                        <span class="font-bold text-white text-base max-w-md truncate">
+                                            {{ getTransferItemsSummary(transfer) }}
                                         </span>
                                     </div>
                                 </td>
                                 <td class="px-8 py-5 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
+                                        :class="getStatusBadgeClass(transfer.status, activeTab)">
+                                        <span class="w-1.5 h-1.5 rounded-full" 
+                                            :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
+                                        {{ getStatusLabel(transfer.status, activeTab) }}
+                                    </span>
+                                </td>
+                                <td class="px-8 py-5 whitespace-nowrap">
                                     <div class="flex items-center gap-2 text-text-secondary text-sm font-bold">
                                         <Calendar :size="14" class="opacity-50" />
-                                        <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at) }}</span>
+                                        <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at || transfer.created_at) }}</span>
                                     </div>
                                 </td>
                                 <td class="px-8 py-5 whitespace-nowrap text-right">
-                                    <button class="px-4 py-2 bg-surface-750 group-hover:bg-primary-500 border border-surface-700 group-hover:border-primary-500 text-xs font-black uppercase tracking-widest rounded-xl transition-all inline-flex items-center gap-1.5 text-text-secondary group-hover:text-white">
-                                        <span>Detail</span>
-                                        <ChevronRight :size="14" class="group-hover:translate-x-0.5 transition-transform" />
-                                    </button>
+                                    <div class="inline-flex items-center gap-3">
+                                        <!-- Action Buttons inside Row -->
+                                        <button v-if="activeTab === 'outgoing_otw'" 
+                                            @click.stop="openExpeditionModal(transfer)"
+                                            class="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
+                                            <Truck :size="12" />
+                                            <span>Ekspedisi</span>
+                                        </button>
+
+                                        <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
+                                            @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
+                                            class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
+                                            <Search :size="12" />
+                                            <span>Lacak</span>
+                                        </button>
+
+                                        <button class="px-4 py-2 bg-surface-750 group-hover:bg-primary-500 border border-surface-700 group-hover:border-primary-500 text-xs font-black uppercase tracking-widest rounded-xl transition-all inline-flex items-center gap-1.5 text-text-secondary group-hover:text-white">
+                                            <span>Detail</span>
+                                            <ChevronRight :size="14" class="group-hover:translate-x-0.5 transition-transform" />
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -548,19 +562,17 @@ onMounted(() => {
 
                 <!-- Mobile Stacked Cards (No Scrolling Needed!) -->
                 <div class="block md:hidden space-y-4">
-                    <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
+                    <div v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                         class="p-6 bg-surface-800/50 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer">
                         <div class="flex items-center justify-between">
                             <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
                                 {{ transfer.receipt_id }}
                             </span>
                             <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
-                                :class="transfer.status === 'confirmed' || transfer.status === 'received' 
-                                    ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                                :class="getStatusBadgeClass(transfer.status, activeTab)">
                                 <span class="w-1.5 h-1.5 rounded-full" 
-                                    :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500' : 'bg-amber-500'"></span>
-                                {{ transfer.status }}
+                                    :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
+                                {{ getStatusLabel(transfer.status, activeTab) }}
                             </span>
                         </div>
                         <div class="flex items-center gap-3">
@@ -568,25 +580,33 @@ onMounted(() => {
                                 <Building2 :size="16" />
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">
-                                    {{ activeTab === 'history_in' ? 'Cabang Asal' : 'Cabang Tujuan' }}
-                                </span>
-                                <span class="font-bold text-white text-base">
-                                    {{ activeTab === 'history_in' 
-                                        ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') 
-                                        : (transfer.destination?.name || 'Unknown') }}
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Nama Barang</span>
+                                <span class="font-bold text-white text-base truncate max-w-xs">
+                                    {{ getTransferItemsSummary(transfer) }}
                                 </span>
                             </div>
                         </div>
                         <div class="flex justify-between items-center pt-4 border-t border-surface-700/30">
                             <div class="flex items-center gap-2 text-text-secondary text-xs font-bold">
                                 <Calendar :size="14" class="opacity-50" />
-                                <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at) }}</span>
+                                <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at || transfer.created_at) }}</span>
                             </div>
-                            <span class="text-xs font-black uppercase tracking-widest text-primary-500 flex items-center gap-1">
-                                <span>Detail</span>
-                                <ChevronRight :size="14" />
-                            </span>
+                            <div class="flex items-center gap-2">
+                                <button v-if="activeTab === 'outgoing_otw'" 
+                                    @click.stop="openExpeditionModal(transfer)"
+                                    class="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
+                                    Exp
+                                </button>
+                                <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
+                                    @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
+                                    class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
+                                    Lacak
+                                </button>
+                                <span class="text-xs font-black uppercase tracking-widest text-primary-500 flex items-center gap-1">
+                                    <span>Detail</span>
+                                    <ChevronRight :size="14" />
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
