@@ -226,6 +226,28 @@ function toggleFilter(filterSet, value) {
   loadInventory(1); // Trigger reload
 }
 
+function selectAllFilter(filterName) {
+  if (filterName === 'brand') {
+    filterBrand.value = [...computedBrands.value];
+  } else if (filterName === 'product') {
+    filterProduct.value = [...computedProducts.value];
+  } else if (filterName === 'capacity') {
+    filterCapacity.value = [...computedCapacities.value];
+  }
+  loadInventory(1);
+}
+
+function clearFilter(filterName) {
+  if (filterName === 'brand') {
+    filterBrand.value = [];
+  } else if (filterName === 'product') {
+    filterProduct.value = [];
+  } else if (filterName === 'capacity') {
+    filterCapacity.value = [];
+  }
+  loadInventory(1);
+}
+
 // Fetch Filter Options
 async function fetchFilterOptions() {
   try {
@@ -649,10 +671,18 @@ const isSomeSelected = computed(() => {
 });
 
 const toggleSelectAll = () => {
-  if (selectedItems.value.length === filteredProducts.value.length) {
-    selectedItems.value = [];
+  if (isAllSelected.value) {
+    selectedItems.value = selectedItems.value.filter(i => i.type !== activeTab.value);
   } else {
-    selectedItems.value = [...filteredProducts.value];
+    const itemsToAdd = filteredProducts.value.map(item => {
+      const copy = { ...item };
+      if (!copy.type) copy.type = activeTab.value;
+      if (copy.type === 'non-hp' && !copy.out_quantity) copy.out_quantity = 1;
+      copy.selling_price = copy.selling_price || 0;
+      return copy;
+    });
+    const existingOther = selectedItems.value.filter(i => i.type !== activeTab.value);
+    selectedItems.value = [...existingOther, ...itemsToAdd];
   }
 };
 
@@ -1056,6 +1086,10 @@ async function exportInventory() {
                       <label for="brand-search" class="sr-only">Cari Merek</label>
                       <input id="brand-search" v-model="filterSearchQuery.brand" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
+                    <div class="flex items-center justify-between px-1 pb-2 border-b border-surface-700 mb-1.5 text-[10px] font-bold">
+                      <button @click.stop="selectAllFilter('brand')" class="text-primary-400 hover:text-primary-300">Pilih Semua</button>
+                      <button @click.stop="clearFilter('brand')" class="text-red-400 hover:text-red-300">Hapus Semua</button>
+                    </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedBrands" :key="option"
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
@@ -1084,6 +1118,10 @@ async function exportInventory() {
                       <label for="product-search" class="sr-only">Cari Produk</label>
                       <input id="product-search" v-model="filterSearchQuery.product" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
                     </div>
+                    <div class="flex items-center justify-between px-1 pb-2 border-b border-surface-700 mb-1.5 text-[10px] font-bold">
+                      <button @click.stop="selectAllFilter('product')" class="text-primary-400 hover:text-primary-300">Pilih Semua</button>
+                      <button @click.stop="clearFilter('product')" class="text-red-400 hover:text-red-300">Hapus Semua</button>
+                    </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedProducts" :key="option"
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
@@ -1111,6 +1149,10 @@ async function exportInventory() {
                     <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
                       <label for="capacity-search" class="sr-only">Cari Kapasitas</label>
                       <input id="capacity-search" v-model="filterSearchQuery.capacity" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                    </div>
+                    <div class="flex items-center justify-between px-1 pb-2 border-b border-surface-700 mb-1.5 text-[10px] font-bold">
+                      <button @click.stop="selectAllFilter('capacity')" class="text-primary-400 hover:text-primary-300">Pilih Semua</button>
+                      <button @click.stop="clearFilter('capacity')" class="text-red-400 hover:text-red-300">Hapus Semua</button>
                     </div>
                     <div class="max-h-52 overflow-y-auto custom-scrollbar">
                       <div v-for="option in computedCapacities" :key="option"
