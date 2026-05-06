@@ -165,6 +165,27 @@ function getStatusLabel(status, tab) {
     return 'OTW';
 }
 
+function getSenderDetails(transfer) {
+    const parts = [];
+    
+    const source = transfer.branch_relation || transfer.branchRelation || transfer.branch ||
+                   transfer.online_shop_relation || transfer.onlineShopRelation || transfer.online_shop || transfer.onlineShop ||
+                   transfer.warehouse_relation || transfer.warehouseRelation || transfer.warehouse ||
+                   transfer.source;
+                   
+    const sourceName = source && typeof source === 'object' ? source.name : source;
+    if (sourceName) {
+        parts.push(sourceName);
+    }
+    
+    const accountName = transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name;
+    if (accountName) {
+        parts.push(accountName);
+    }
+    
+    return parts.join(' - ') || 'Unknown Sender';
+}
+
 // --- API Calls ---
 
 async function fetchInventoryAccounts() {
@@ -491,9 +512,9 @@ onMounted(() => {
 
             <!-- Unified Table Section -->
             <div v-else class="space-y-8 animate-in duration-500 mt-6">
-                <!-- Desktop Table -->
-                <div class="hidden md:block overflow-hidden rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl">
-                    <table class="w-full text-left border-collapse">
+                <!-- Desktop Table (With Horizontal Scroll for No Cut-offs!) -->
+                <div class="hidden md:block overflow-x-auto rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl custom-scrollbar">
+                    <table class="w-full text-left border-collapse min-w-[1250px]">
                         <thead>
                             <tr class="border-b border-surface-700/70 bg-surface-800/85">
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
@@ -521,7 +542,7 @@ onMounted(() => {
                                             <Building2 :size="14" />
                                         </div>
                                         <span class="font-bold text-white text-sm">
-                                            {{ transfer.inventory_user?.name || transfer.user?.name || 'Unknown' }}
+                                            {{ getSenderDetails(transfer) }}
                                         </span>
                                     </div>
                                 </td>
@@ -633,7 +654,7 @@ onMounted(() => {
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Cabang Pengirim</span>
                                 <span class="font-bold text-white text-base truncate max-w-xs">
-                                    {{ transfer.inventory_user?.name || transfer.user?.name || 'Unknown' }}
+                                    {{ getSenderDetails(transfer) }}
                                 </span>
                             </div>
                         </div>
