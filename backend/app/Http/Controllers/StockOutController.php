@@ -1858,7 +1858,7 @@ class StockOutController extends Controller
 
         $type = $request->query('type'); // 'outgoing' or 'incoming'
 
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy', 'branch', 'onlineShop', 'warehouse'])
             ->where('category', 'pindah_cabang');
 
         if ($type === 'outgoing') {
