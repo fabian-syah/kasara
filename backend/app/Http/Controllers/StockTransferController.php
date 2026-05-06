@@ -25,12 +25,12 @@ class StockTransferController extends Controller
         $accessibleWarehouseIds = $user->getAccessibleWarehouseIds();
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
 
-        $query = StockOut::with(['user', 'items.product.brandRelation', 'nonHpItems.product.brandRelation', 'destination'])
+        $query = StockOut::with(['user', 'items.product.brandRelation', 'nonHpItems.product.brandRelation', 'destination', 'branch', 'onlineShop', 'warehouse'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
         if (!$user->hasRole('super_admin')) {
-            $query->where(function($q) use ($accessibleBranchIds, $accessibleWarehouseIds, $accessibleOnlineShopIds) {
+            $query->where(function ($q) use ($accessibleBranchIds, $accessibleWarehouseIds, $accessibleOnlineShopIds) {
                 if (!empty($accessibleBranchIds)) {
                     $q->orWhere(fn($sub) => $sub->where('destination_type', 'branch')->whereIn('destination_id', $accessibleBranchIds));
                 }
@@ -40,7 +40,7 @@ class StockTransferController extends Controller
                 if (!empty($accessibleOnlineShopIds)) {
                     $q->orWhere(fn($sub) => $sub->where('destination_type', 'online_shop')->whereIn('destination_id', $accessibleOnlineShopIds));
                 }
-                
+
                 if (empty($accessibleBranchIds) && empty($accessibleWarehouseIds) && empty($accessibleOnlineShopIds)) {
                     $q->whereRaw('1=0');
                 }
@@ -92,13 +92,14 @@ class StockTransferController extends Controller
 
         // PIN Verification using Trait
         $pinError = $this->verifyPin($request);
-        if ($pinError) return $pinError;
+        if ($pinError)
+            return $pinError;
 
         DB::beginTransaction();
         try {
             // Refresh relation to be sure
             $stockOut->load(['items', 'nonHpItems']);
-            
+
             $acceptedImeiIds = $request->accepted_items ?? [];
             $nonHpQuantities = $request->non_hp_quantities ?? [];
 
@@ -128,7 +129,7 @@ class StockTransferController extends Controller
                         'quantity' => 1,
                         'balance_after' => 1, // Optional for HP
                         'description' => "Pindah Cabang Masuk dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
-                        'reference_id' => (string)$item->id, // Store ProductDetail ID as reference
+                        'reference_id' => (string) $item->id, // Store ProductDetail ID as reference
                     ]);
                 } else {
                     // REJECTED / RETURNED
@@ -157,7 +158,7 @@ class StockTransferController extends Controller
                         'type' => 'in', // Returned back
                         'quantity' => 1,
                         'description' => "Transfer Ditolak/Retur dari #{$stockOut->receipt_id} (" . ($item->imei ?? $item->p_code) . ")",
-                        'reference_id' => (string)$item->id,
+                        'reference_id' => (string) $item->id,
                     ]);
                 }
                 $item->save();

@@ -168,12 +168,20 @@ function getStatusLabel(status, tab) {
 function getSenderDetails(transfer) {
     const parts = [];
     
-    const source = transfer.branch_relation || transfer.branchRelation || transfer.branch ||
-                   transfer.online_shop_relation || transfer.onlineShopRelation || transfer.online_shop || transfer.onlineShop ||
-                   transfer.warehouse_relation || transfer.warehouseRelation || transfer.warehouse ||
+    const source = transfer.branch || transfer.branch_relation || transfer.branchRelation ||
+                   transfer.online_shop || transfer.online_shop_relation || transfer.onlineShopRelation || transfer.onlineShop ||
+                   transfer.warehouse || transfer.warehouse_relation || transfer.warehouseRelation ||
                    transfer.source;
                    
-    const sourceName = source && typeof source === 'object' ? source.name : source;
+    let sourceName = source && typeof source === 'object' ? source.name : source;
+    
+    // Fallback to distributor from items or nonHpItems
+    if (!sourceName) {
+        sourceName = transfer.items?.[0]?.distributor?.name || 
+                     transfer.non_hp_items?.[0]?.distributor?.name || 
+                     transfer.nonHpItems?.[0]?.distributor?.name;
+    }
+    
     if (sourceName) {
         parts.push(sourceName);
     }
@@ -522,7 +530,7 @@ onMounted(() => {
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
                                 <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
-                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Update</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Kirim</th>
                                 <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
                             </tr>
