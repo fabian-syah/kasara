@@ -1001,7 +1001,46 @@ onMounted(() => {
                         </select>
                     </div>
 
-                    <p class="text-text-secondary font-medium px-4">
+                    <!-- Who Rejected Card -->
+                    <div v-if="selectedTransfer.confirmed_by || selectedTransfer.confirmedBy" class="px-4">
+                        <div class="p-6 bg-red-500/5 border border-red-500/10 rounded-2xl flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                                    <User :size="18" />
+                                </div>
+                                <div>
+                                    <p class="text-xs text-text-secondary font-bold uppercase tracking-wider">Ditolak Oleh</p>
+                                    <p class="text-sm font-black text-white">
+                                        {{ (selectedTransfer.confirmed_by || selectedTransfer.confirmedBy).full_name }} 
+                                        <span class="text-xs font-mono text-text-secondary">({{ (selectedTransfer.confirmed_by || selectedTransfer.confirmedBy).username }})</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rejected Items List with Notes -->
+                    <div v-if="selectedTransfer.items?.filter(item => item.pivot?.status === 'rejected').length" class="space-y-3">
+                        <h4 class="text-xs font-black text-text-secondary uppercase tracking-[0.2em] px-4">Detail Barang Ditolak</h4>
+                        <div class="space-y-3 px-4">
+                            <div v-for="item in selectedTransfer.items.filter(item => item.pivot?.status === 'rejected')" :key="item.id" 
+                                 class="p-5 bg-surface-800 border border-surface-700/50 rounded-2xl space-y-3 animate-in">
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <p class="font-black text-white text-sm">{{ item.product?.name || item.product_name }}</p>
+                                        <p class="text-[11px] font-mono text-text-secondary mt-0.5">IMEI: {{ item.imei || '-' }}</p>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded bg-red-500/10 text-red-500 text-[10px] font-black uppercase">Ditolak</span>
+                                </div>
+                                <div class="p-3.5 bg-red-500/5 border border-red-500/10 rounded-xl">
+                                    <p class="text-[10px] font-black text-red-400 uppercase tracking-wider">Alasan Penolakan:</p>
+                                    <p class="text-xs text-text-primary font-medium mt-1">{{ item.pivot?.notes || 'Tidak ada alasan ditulis' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-text-secondary font-medium px-4 leading-relaxed">
                         Konfirmasi ini akan memasukkan kembali unit yang ditolak dari nota <span
                             class="text-white font-black">{{ selectedTransfer.receipt_id }}</span> kembali ke stok aktif
                         Anda.

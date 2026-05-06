@@ -1544,33 +1544,19 @@ class StockOutController extends Controller
                     
                     \Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 } else {
-                    // Rejected: Set back to 'available' at SENDER's location
+                    // Rejected: Set to 'returning' (not active stock yet)
                     $sender = $stockOut->user;
                     $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id ?? $sender->distributor_id;
                     $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : ($sender->online_shop_id ? 'online_shop' : 'distributor'));
                     
                     $item->update([
-                        'status' => 'available',
+                        'status' => 'returning',
                         'placement_type' => $senderType,
                         'placement_id' => $senderLocationId,
                         'user_id' => $sender->id
                     ]);
-
-                    // Create log for Return to Sender
-                    InventoryLog::create([
-                        'product_id' => $item->product_id,
-                        'user_id' => $sender->id,
-                        'branch_id' => $sender->branch_id ?? null,
-                        'warehouse_id' => $sender->warehouse_id ?? null,
-                        'online_shop_id' => $sender->online_shop_id ?? null,
-                        'distributor_id' => $sender->distributor_id ?? null,
-                        'type' => 'in', 
-                        'quantity' => 1,
-                        'description' => "Transfer Ditolak/Retur (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
-                        'reference_id' => (string)$item->id,
-                    ]);
                     
-                    \Log::info("DEBUG: PHP Log created for rejected HP #{$item->id} in Resi {$stockOut->receipt_id}");
+                    \Log::info("DEBUG: HP #{$item->id} marked as returning in Resi {$stockOut->receipt_id}");
                 }
             }
 

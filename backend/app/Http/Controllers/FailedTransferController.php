@@ -25,7 +25,7 @@ class FailedTransferController extends Controller
 
         // Find transfers where items are rejected in the pivot table
         // AND the user is the sender
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destination', 'items' => function($q) {
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destination', 'confirmedBy', 'items' => function($q) {
                 $q->withPivot('status', 'notes');
             }])
             ->where('category', 'pindah_cabang')
@@ -134,6 +134,20 @@ class FailedTransferController extends Controller
                         'placement_type' => $placementType,
                         'placement_id' => $placementId,
                         'user_id' => $confirmingUserId
+                    ]);
+
+                    // Create log for Return to Sender (Only when confirmed return)
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $confirmingUserId,
+                        'branch_id' => ($placementType == 'branch') ? $placementId : null,
+                        'warehouse_id' => ($placementType == 'warehouse') ? $placementId : null,
+                        'online_shop_id' => ($placementType == 'online_shop') ? $placementId : null,
+                        'distributor_id' => ($placementType == 'distributor') ? $placementId : null,
+                        'type' => 'in', 
+                        'quantity' => 1,
+                        'description' => "Terima Balik Transfer (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => (string)$item->id,
                     ]);
 
                     // Update pivot to 'returned' so it's not processed twice
