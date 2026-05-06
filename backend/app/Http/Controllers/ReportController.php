@@ -44,7 +44,7 @@ class ReportController extends Controller
             // HP Items (ProductDetail) - Only if filter is 'all' or 'hp'
             if ($filterType === 'all' || $filterType === 'hp') {
                 $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                    ->where('products.brand', 'ilike', $brand->name)
+                    ->where('products.brand', 'ilike', '%' . trim($brand->name) . '%')
                     ->where('product_details.status', 'available')
                     ->whereNull('products.deleted_at')
                     ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
@@ -84,7 +84,7 @@ class ReportController extends Controller
             // Non-HP Items (Inventory) - Only if filter is 'all' or 'non-hp'
             if ($filterType === 'all' || $filterType === 'non-hp') {
                 $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                    ->where('products.brand', 'ilike', $brand->name)
+                    ->where('products.brand', 'ilike', '%' . trim($brand->name) . '%')
                     ->whereNull('products.deleted_at')
                     ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
                         foreach ($excludedKeywords as $kw) {
