@@ -1067,7 +1067,7 @@ async function exportInventory() {
               <th class="w-12">
                 <label for="select-all-checkbox" class="flex items-center cursor-pointer">
                   <span class="sr-only">Pilih Semua</span>
-                  <input id="select-all-checkbox" type="checkbox" :checked="isAllSelected" :indeterminate.prop="isSomeSelected"
+                  <input id="select-all-checkbox" type="checkbox" :checked="isAllSelected"
                     @change="toggleSelectAll" class="checkbox border-surface-400" />
                 </label>
               </th>
