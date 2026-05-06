@@ -946,7 +946,7 @@ class AuditController extends Controller
                         // Fetch transactions with notes and sales_account for correct classification
                         $rawStatsQuery = DB::table('stock_outs');
                         $applyLocalScope($rawStatsQuery);
-                        $rawStats = $rawStatsQuery->whereIn('stock_outs.category', $omsetCategories)
+                        $rawStats = $rawStatsQuery->whereIn('stock_outs.category', $salesCategories)
                             ->select(
                                 'payment_method_id',
                                 'category',
