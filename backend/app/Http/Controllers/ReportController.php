@@ -35,7 +35,7 @@ class ReportController extends Controller
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
 
-        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType, $accessibleBranchIds, $accessibleOnlineShopIds, $isRestricted, $isAnalistOnly, $excludedKeywords) {
+        $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType, $accessibleBranchIds, $accessibleOnlineShopIds, $isRestricted, $isAnalistOnly, $excludedKeywords, $request) {
             $hpNew = 0;
             $hpSecond = 0;
             $hpExIbox = 0;
@@ -70,6 +70,19 @@ class ReportController extends Controller
                     } else {
                         $hpQuery->whereRaw('1=0');
                     }
+                }
+
+                if ($request->filled('branch_id')) {
+                    $hpQuery->where('product_details.placement_type', 'branch')->where('product_details.placement_id', $request->branch_id);
+                }
+                if ($request->filled('online_shop_id')) {
+                    $hpQuery->where('product_details.placement_type', 'online_shop')->where('product_details.placement_id', $request->online_shop_id);
+                }
+                if ($request->filled('warehouse_id')) {
+                    $hpQuery->where('product_details.placement_type', 'warehouse')->where('product_details.placement_id', $request->warehouse_id);
+                }
+                if ($request->filled('placement_type')) {
+                    $hpQuery->where('product_details.placement_type', $request->placement_type);
                 }
 
                 $hpStats = $hpQuery->select('product_details.condition', DB::raw('count(*) as count'))
@@ -109,6 +122,19 @@ class ReportController extends Controller
                     } else {
                         $nonHpQuery->whereRaw('1=0');
                     }
+                }
+
+                if ($request->filled('branch_id')) {
+                    $nonHpQuery->where('inventories.placement_type', 'branch')->where('inventories.placement_id', $request->branch_id);
+                }
+                if ($request->filled('online_shop_id')) {
+                    $nonHpQuery->where('inventories.placement_type', 'online_shop')->where('inventories.placement_id', $request->online_shop_id);
+                }
+                if ($request->filled('warehouse_id')) {
+                    $nonHpQuery->where('inventories.placement_type', 'warehouse')->where('inventories.placement_id', $request->warehouse_id);
+                }
+                if ($request->filled('placement_type')) {
+                    $nonHpQuery->where('inventories.placement_type', $request->placement_type);
                 }
 
                 $nonHpCount = $nonHpQuery->sum('inventories.quantity');
