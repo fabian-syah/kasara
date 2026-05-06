@@ -1193,19 +1193,80 @@ async function exportInventory() {
             </tr>
           </thead>
           <tbody>
-            <tr v-if="isLoading">
-              <td colspan="15" class="p-0">
-                <div v-for="i in 5" :key="i" class="flex items-center border-b border-surface-700/50 p-4 gap-4">
-                  <div class="w-10 h-10 bg-surface-700 rounded-lg animate-pulse"></div>
-                  <div class="flex-1 space-y-2">
-                    <div class="h-4 bg-surface-700 rounded animate-pulse w-1/4"></div>
-                    <div class="h-3 bg-surface-800 rounded animate-pulse w-1/2"></div>
+            <template v-if="isLoading">
+              <tr v-for="i in 5" :key="'loading-' + i" class="border-b border-surface-700/50">
+                <td class="w-12">
+                  <div class="w-4 h-4 bg-surface-700 rounded animate-pulse"></div>
+                </td>
+                <td class="text-sm">
+                  <div class="h-4 bg-surface-700 rounded animate-pulse w-16"></div>
+                </td>
+                <td class="min-w-[200px]">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-surface-700 rounded-lg animate-pulse"></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 bg-surface-700 rounded animate-pulse w-3/4"></div>
+                      <div class="h-3 bg-surface-800 rounded animate-pulse w-1/2"></div>
+                    </div>
                   </div>
-                  <div class="w-24 h-4 bg-surface-700 rounded animate-pulse"></div>
-                  <div class="w-24 h-4 bg-surface-700 rounded animate-pulse"></div>
-                </div>
-              </td>
-            </tr>
+                </td>
+
+                <template v-if="activeTab === 'hp'">
+                  <td class="hidden lg:table-cell">
+                    <div class="h-6 bg-surface-700 rounded-lg animate-pulse w-16"></div>
+                  </td>
+                  <td class="hidden lg:table-cell">
+                    <div class="h-6 bg-surface-700 rounded-lg animate-pulse w-16"></div>
+                  </td>
+                  <td>
+                    <div class="h-5 bg-surface-700 rounded animate-pulse w-28 mb-1"></div>
+                    <div class="h-3 bg-surface-800 rounded animate-pulse w-20"></div>
+                  </td>
+                  <td class="hidden md:table-cell">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-24 mb-1"></div>
+                    <div class="h-3 bg-surface-800 rounded animate-pulse w-16"></div>
+                  </td>
+                  <td class="hidden xl:table-cell">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-28"></div>
+                  </td>
+                  <td class="text-right">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-24 ml-auto"></div>
+                  </td>
+                  <td>
+                    <div class="h-6 bg-surface-700 rounded-lg animate-pulse w-20"></div>
+                  </td>
+                </template>
+
+                <template v-else>
+                  <td>
+                    <div class="h-6 bg-surface-700 rounded-lg animate-pulse w-24"></div>
+                  </td>
+                  <td class="hidden md:table-cell">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-24 mb-1"></div>
+                    <div class="h-3 bg-surface-800 rounded animate-pulse w-16"></div>
+                  </td>
+                  <td>
+                    <div class="h-6 bg-surface-700 rounded animate-pulse w-12"></div>
+                  </td>
+                  <td class="text-right">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-24 ml-auto"></div>
+                  </td>
+                  <td class="hidden xl:table-cell">
+                    <div class="h-4 bg-surface-700 rounded animate-pulse w-28"></div>
+                  </td>
+                </template>
+
+                <td class="hidden xl:table-cell">
+                  <div class="h-4 bg-surface-700 rounded animate-pulse w-20"></div>
+                </td>
+                <td>
+                  <div class="flex items-center justify-center gap-2">
+                    <div class="w-8 h-8 bg-surface-700 rounded-lg animate-pulse"></div>
+                    <div class="w-8 h-8 bg-surface-700 rounded-lg animate-pulse"></div>
+                  </div>
+                </td>
+              </tr>
+            </template>
             <tr v-else-if="filteredProducts.length === 0">
               <td colspan="15" class="text-center py-12">
                 <div class="flex flex-col items-center justify-center w-full h-full">
