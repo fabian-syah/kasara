@@ -236,6 +236,11 @@ class StockOut extends Model
         return $this->belongsTo(OnlineShop::class);
     }
 
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
     public function destinationBranch()
     {
         return $this->belongsTo(Branch::class, 'destination_branch_id');

@@ -175,18 +175,23 @@ function getSenderDetails(transfer) {
                    
     let sourceName = source && typeof source === 'object' ? source.name : source;
     
-    // Fallback to distributor from items or nonHpItems
+    // Fallback to distributor or supplier from items or nonHpItems
     if (!sourceName) {
         sourceName = transfer.items?.[0]?.distributor?.name || 
+                     transfer.items?.[0]?.supplier_name ||
                      transfer.non_hp_items?.[0]?.distributor?.name || 
-                     transfer.nonHpItems?.[0]?.distributor?.name;
+                     transfer.nonHpItems?.[0]?.distributor?.name ||
+                     transfer.nonHpItems?.[0]?.supplier_name;
     }
     
     if (sourceName) {
         parts.push(sourceName);
     }
     
-    const accountName = transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name;
+    const accountName = transfer.inventory_user?.name || transfer.inventoryUser?.name || 
+                        transfer.inventory_user?.username || transfer.inventoryUser?.username ||
+                        transfer.user?.name || transfer.user?.username || transfer.user?.email;
+                        
     if (accountName) {
         parts.push(accountName);
     }
