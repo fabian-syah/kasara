@@ -168,14 +168,31 @@ function getStatusLabel(status, tab) {
 function getSenderDetails(transfer) {
     const parts = [];
     
-    const source = transfer.branch || transfer.branch_relation || transfer.branchRelation ||
-                   transfer.online_shop || transfer.online_shop_relation || transfer.onlineShopRelation || transfer.onlineShop ||
-                   transfer.warehouse || transfer.warehouse_relation || transfer.warehouseRelation ||
-                   transfer.source;
+    // 1. Direct Transfer Location
+    let source = transfer.branch || transfer.branch_relation || transfer.branchRelation ||
+                 transfer.online_shop || transfer.online_shop_relation || transfer.onlineShopRelation || transfer.onlineShop ||
+                 transfer.warehouse || transfer.warehouse_relation || transfer.warehouseRelation;
+                 
+    // 2. Creator User's Location
+    if (!source) {
+        const u = transfer.user;
+        source = u?.branch || u?.warehouse || u?.online_shop || u?.onlineShop;
+    }
+    
+    // 3. Inventory Sub-Account User's Location
+    if (!source) {
+        const iu = transfer.inventory_user || transfer.inventoryUser;
+        source = iu?.branch || iu?.warehouse || iu?.online_shop || iu?.onlineShop;
+    }
+    
+    // 4. String Fallback
+    if (!source) {
+        source = transfer.source;
+    }
                    
     let sourceName = source && typeof source === 'object' ? source.name : source;
     
-    // Fallback to distributor or supplier from items or nonHpItems
+    // 5. Fallback to distributor or supplier from items or nonHpItems
     if (!sourceName) {
         sourceName = transfer.items?.[0]?.distributor?.name || 
                      transfer.items?.[0]?.supplier_name ||

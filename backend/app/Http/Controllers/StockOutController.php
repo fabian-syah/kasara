@@ -1294,7 +1294,7 @@ class StockOutController extends Controller
         if (!$user)
             return response()->json(['data' => []]);
 
-        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user.branch', 'user.warehouse', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.warehouse', 'inventoryUser.onlineShop', 'destinationBranch', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
@@ -1381,7 +1381,7 @@ class StockOutController extends Controller
         if (!$user)
             return response()->json(['data' => []]);
 
-        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user.branch', 'user.warehouse', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.warehouse', 'inventoryUser.onlineShop', 'destinationBranch', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
@@ -1858,7 +1858,7 @@ class StockOutController extends Controller
 
         $type = $request->query('type'); // 'outgoing' or 'incoming'
 
-        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy', 'branch', 'onlineShop', 'warehouse'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user.branch', 'user.warehouse', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.warehouse', 'inventoryUser.onlineShop', 'destinationBranch', 'destination', 'confirmedBy', 'branch', 'onlineShop', 'warehouse'])
             ->where('category', 'pindah_cabang');
 
         if ($type === 'outgoing') {
