@@ -33,13 +33,13 @@ const toast = useToast();
 const router = useRouter();
 
 // Tab State
-const activeTab = ref("incoming_otw"); // incoming_otw, outgoing_otw, failed_otw, history_in, history_out
+const activeTab = ref("history_in"); // history_in, history_out, incoming_otw, outgoing_otw, failed_otw
 const tabs = [
+    { id: "history_in", name: "Riwayat Masuk", icon: FileText, color: "text-green-500", bg: "bg-green-500/10" },
+    { id: "history_out", name: "Riwayat Keluar", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
     { id: "incoming_otw", name: "Konfirmasi Masuk", icon: ArrowDownRight, color: "text-blue-500", bg: "bg-blue-500/10" },
     { id: "outgoing_otw", name: "Pantau Kiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10" },
     { id: "failed_otw", name: "Gagal Kirim", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
-    { id: "history_in", name: "Riwayat Masuk", icon: FileText, color: "text-green-500", bg: "bg-green-500/10" },
-    { id: "history_out", name: "Riwayat Keluar", icon: FileText, color: "text-amber-500", bg: "bg-amber-500/10" },
 ];
 
 // Global Loading State
@@ -486,42 +486,64 @@ onMounted(() => {
 
             <!-- Content Grid (History Tabs) -->
             <div v-else class="space-y-8 animate-in duration-500">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
-                        class="card group cursor-pointer hover:bg-surface-700 transition-all border-l-4 p-0 rounded-[2.5rem] shadow-xl overflow-hidden"
-                        :class="activeTab === 'history_in' ? 'border-l-green-500' : 'border-l-amber-500'">
-                        <div class="p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                            <div class="flex items-center gap-5">
-                                <div class="w-14 h-14 rounded-2xl bg-surface-700/50 flex items-center justify-center transition-all border border-surface-600/30"
-                                    :class="activeTab === 'history_in' ? 'text-green-500' : 'text-amber-500'">
-                                    <FileText :size="24" />
-                                </div>
-                                <div>
-                                    <div class="flex items-center gap-3 mb-1">
-                                        <p class="font-black text-xl text-white">{{ transfer.receipt_id }}</p>
-                                        <span
-                                            class="text-[9px] px-2 py-0.5 rounded-lg font-black uppercase tracking-widest border"
-                                            :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
-                                            {{ transfer.status }}
+                <div class="overflow-x-auto rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-surface-700/70 bg-surface-800/80">
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nota</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
+                                    {{ activeTab === 'history_in' ? 'Cabang Asal' : 'Cabang Tujuan' }}
+                                </th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Konfirmasi</th>
+                                <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-700/30">
+                            <tr v-for="transfer in historyData.data" :key="transfer.id" @click="openModal(transfer)"
+                                class="group cursor-pointer hover:bg-surface-700/40 transition-colors duration-200">
+                                <td class="px-8 py-5 whitespace-nowrap">
+                                    <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
+                                        {{ transfer.receipt_id }}
+                                    </span>
+                                </td>
+                                <td class="px-8 py-5 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
+                                        :class="transfer.status === 'confirmed' || transfer.status === 'received' 
+                                            ? 'bg-green-500/10 text-green-500 border-green-500/20' 
+                                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                                        <span class="w-1.5 h-1.5 rounded-full" 
+                                            :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500' : 'bg-amber-500'"></span>
+                                        {{ transfer.status }}
+                                    </span>
+                                </td>
+                                <td class="px-8 py-5">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700">
+                                            <Building2 :size="16" />
+                                        </div>
+                                        <span class="font-bold text-white text-base">
+                                            {{ activeTab === 'history_in' 
+                                                ? ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') 
+                                                : (transfer.destination?.name || 'Unknown') }}
                                         </span>
                                     </div>
-                                    <p class="text-sm font-bold text-text-secondary">
-                                        {{ activeTab === 'history_in' ? 'Dari: ' + ((transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name) || 'Unknown') :
-                                            'Tujuan: ' + (transfer.destination?.name || 'Unknown') }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div
-                                class="flex flex-col items-end gap-1.5 sm:text-right border-t sm:border-t-0 border-surface-700/50 pt-4 sm:pt-0">
-                                <p class="text-[10px] uppercase font-black tracking-widest opacity-40">Tgl Konfirmasi
-                                </p>
-                                <p class="text-sm font-black text-white flex items-center gap-2">
-                                    <Calendar :size="14" class="opacity-50" />
-                                    {{ formatDate(transfer.confirmed_at || transfer.updated_at) }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                                </td>
+                                <td class="px-8 py-5 whitespace-nowrap">
+                                    <div class="flex items-center gap-2 text-text-secondary text-sm font-bold">
+                                        <Calendar :size="14" class="opacity-50" />
+                                        <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at) }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-5 whitespace-nowrap text-right">
+                                    <button class="px-4 py-2 bg-surface-750 group-hover:bg-primary-500 border border-surface-700 group-hover:border-primary-500 text-xs font-black uppercase tracking-widest rounded-xl transition-all inline-flex items-center gap-1.5 text-text-secondary group-hover:text-white">
+                                        <span>Detail</span>
+                                        <ChevronRight :size="14" class="group-hover:translate-x-0.5 transition-transform" />
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
 
                 <!-- Pagination -->
