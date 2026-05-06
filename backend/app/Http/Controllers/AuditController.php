@@ -1264,6 +1264,15 @@ class AuditController extends Controller
                         $totalHpItems = $hpItemsQuery->count();
                         $totalNhpItems = $nhpItems->sum('quantity');
 
+                        // Recalculate omset_bersih using activityDetails item prices for 100% accuracy
+                        $activityDeductions = 0;
+                        foreach (['refund', 'retur', 'angkat_barang', 'downgrade'] as $actCat) {
+                            foreach ($activityDetails[$actCat] ?? [] as $actItem) {
+                                $activityDeductions += (float) ($actItem['price'] ?? 0);
+                            }
+                        }
+                        $omsetBersih = $baseSalesOnly - $activityDeductions;
+
                         return [
                             'payments' => $pSums,
                             'payment_total' => $paymentTotal,
