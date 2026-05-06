@@ -297,10 +297,16 @@
                         </div>
 
                         <div
-                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-4">
+                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-1">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
                                 }}</span>
+                        </div>
+
+                        <div
+                            class="flex justify-between items-center text-sm font-bold text-emerald-800/80 dark:text-emerald-400 mb-6 border-b border-emerald-200/40 dark:border-surface-700/30 pb-4">
+                            <span class="uppercase tracking-wider italic">OMSET BERSIH</span>
+                            <span class="text-lg">{{ formatCurrency(salesData?.report_summary?.omset_bersih || 0) }}</span>
                         </div>
 
 
@@ -1625,6 +1631,7 @@ const getBaseReportText = (isForCopy = false) => {
     }
 
     text += `\n*Total Omset : ${formatCurrency(summary.payment_total)}*\n`;
+    text += `*Omset Bersih : ${formatCurrency(summary.omset_bersih)}*\n`;
 
     text += `__________________\n`;
     text += `__________________\n\n`;
