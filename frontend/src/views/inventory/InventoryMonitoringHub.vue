@@ -548,12 +548,14 @@ onMounted(() => {
                         <thead>
                             <tr class="border-b border-surface-700/70 bg-surface-800/85">
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
-                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Cabang Pengirim</th>
+                                <th v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
+                                    {{ activeTab === 'incoming_otw' ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}
+                                </th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
                                 <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Kirim</th>
-                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
+                                <th v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -565,15 +567,20 @@ onMounted(() => {
                                         {{ transfer.receipt_id }}
                                     </span>
                                 </td>
-                                <!-- Cabang Pengirim -->
-                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5 whitespace-nowrap">
+                                <!-- Cabang Pengirim / Tujuan Penerima -->
+                                <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                                             <Building2 :size="14" />
                                         </div>
-                                        <span class="font-bold text-white text-sm">
-                                            {{ getSenderDetails(transfer) }}
-                                        </span>
+                                        <div class="flex flex-col">
+                                            <span class="font-bold text-white text-sm">
+                                                {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
+                                            </span>
+                                            <span v-if="activeTab === 'outgoing_otw' && transfer.receiver_name" class="text-[10px] font-black text-green-400 uppercase tracking-widest mt-0.5">
+                                                Penerima: {{ transfer.receiver_name }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="px-8 py-5">
@@ -612,7 +619,7 @@ onMounted(() => {
                                     </div>
                                 </td>
                                 <!-- Detail Info -->
-                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5">
+                                <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5">
                                     <div class="flex flex-col gap-1">
                                         <span class="text-xs font-black text-white flex items-center gap-1.5">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -624,8 +631,8 @@ onMounted(() => {
                                         <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
                                             <span>Kondisi: {{ transfer.items?.[0]?.condition || 'Baru/Bekas' }}</span>
                                         </span>
-                                        <span v-if="transfer.notes" class="text-[10px] text-text-secondary line-clamp-1 italic max-w-xs">
-                                            "{{ transfer.notes }}"
+                                        <span v-if="transfer.transfer_notes || transfer.notes" class="text-[10px] text-text-secondary line-clamp-1 italic max-w-xs">
+                                            "{{ transfer.transfer_notes || transfer.notes }}"
                                         </span>
                                     </div>
                                 </td>
@@ -803,6 +810,28 @@ onMounted(() => {
                         </select>
                     </div>
 
+                    <!-- Receiver & Transfer Notes Details -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2">
+                        <div class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 shrink-0">
+                                <User :size="18" />
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-50">Nama Penerima</p>
+                                <p class="text-base font-black text-white mt-0.5">{{ selectedTransfer.receiver_name || '-' }}</p>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                                <FileText :size="18" />
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-50">Catatan Pengirim</p>
+                                <p class="text-sm font-bold text-text-primary italic mt-0.5">"{{ selectedTransfer.transfer_notes || selectedTransfer.notes || 'Tidak ada catatan' }}"</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Items List -->
                     <div class="space-y-10 px-2">
                         <!-- HP Items -->
@@ -900,12 +929,19 @@ onMounted(() => {
                         </div>
                         <div class="detail-card">
                             <p class="label">Tujuan</p>
-                            <p class="value text-white">{{ selectedTransfer.destination?.name ||
-                                selectedTransfer.receiver_name || '-' }}</p>
+                            <p class="value text-white">{{ selectedTransfer.destination?.name || '-' }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Waktu Kirim</p>
                             <p class="value text-white">{{ formatDate(selectedTransfer.created_at) }}</p>
+                        </div>
+                        <div class="detail-card">
+                            <p class="label">Nama Penerima</p>
+                            <p class="value text-white">{{ selectedTransfer.receiver_name || '-' }}</p>
+                        </div>
+                        <div class="detail-card col-span-1 sm:col-span-2 lg:col-span-2">
+                            <p class="label">Catatan Transfer</p>
+                            <p class="text-sm font-bold text-text-primary italic mt-1">"{{ selectedTransfer.transfer_notes || selectedTransfer.notes || 'Tidak ada catatan' }}"</p>
                         </div>
 
                         <!-- Expedition Info -->
