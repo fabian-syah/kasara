@@ -36,6 +36,11 @@ class ReportController extends Controller
         $brands = Brand::orderBy('name')->get();
 
         $report = $brands->map(function ($brand) use ($user, $isOnlineShop, $isBranch, $filterType, $accessibleBranchIds, $accessibleOnlineShopIds, $isRestricted, $isAnalistOnly, $excludedKeywords, $request) {
+            $cleanBrand = trim(preg_replace('/[^\w\s]/u', '', $brand->name));
+            if (empty($cleanBrand)) {
+                $cleanBrand = $brand->name;
+            }
+
             $hpNew = 0;
             $hpSecond = 0;
             $hpExIbox = 0;
@@ -44,7 +49,7 @@ class ReportController extends Controller
             // HP Items (ProductDetail) - Only if filter is 'all' or 'hp'
             if ($filterType === 'all' || $filterType === 'hp') {
                 $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
-                    ->where('products.brand', 'ilike', '%' . trim($brand->name) . '%')
+                    ->where('products.brand', 'ilike', '%' . $cleanBrand . '%')
                     ->where('product_details.status', 'available')
                     ->whereNull('products.deleted_at')
                     ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
@@ -97,7 +102,7 @@ class ReportController extends Controller
             // Non-HP Items (Inventory) - Only if filter is 'all' or 'non-hp'
             if ($filterType === 'all' || $filterType === 'non-hp') {
                 $nonHpQuery = Inventory::join('products', 'inventories.product_id', '=', 'products.id')
-                    ->where('products.brand', 'ilike', '%' . trim($brand->name) . '%')
+                    ->where('products.brand', 'ilike', '%' . $cleanBrand . '%')
                     ->whereNull('products.deleted_at')
                     ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
                         foreach ($excludedKeywords as $kw) {
