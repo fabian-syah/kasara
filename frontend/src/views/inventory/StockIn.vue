@@ -1256,7 +1256,7 @@ onMounted(() => {
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div><label class="label text-[10px] uppercase">Merk <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.brand_id" @change="handleBrandChangeHp(idx)"
                                         class="input bg-surface-900 h-11 !py-0 !px-3 text-sm">
                                         <option :value="null">-- Pilih Merk --</option>
@@ -1266,7 +1266,7 @@ onMounted(() => {
                                 </div>
 
                                 <div><label class="label text-[10px] uppercase">Tipe <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.type_name" @change="handleTypeChangeHp(idx)"
                                         :disabled="!item.brand_id" class="input bg-surface-900 disabled:opacity-30 h-11 !py-0 !px-3 text-sm">
                                         <option value="">-- Pilih Tipe --</option>
@@ -1275,7 +1275,7 @@ onMounted(() => {
                                 </div>
 
                                 <div class="col-span-full"><label class="label text-[10px] uppercase">Kapasitas <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.capacity" @change="handleCapacityChangeHp(idx)"
                                         :disabled="!item.type_name" class="input bg-surface-900 disabled:opacity-30 h-11 !py-0 !px-3 text-sm">
                                         <option value="">-- Semua --</option>
@@ -1286,7 +1286,7 @@ onMounted(() => {
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 <div><label class="label text-[10px] uppercase">Kondisi <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.condition" @change="lookupPriceHp(idx)"
                                         class="input bg-surface-900 h-11 !py-0 !px-3 text-sm">
                                         <option value="new">Baru</option>
@@ -1307,7 +1307,7 @@ onMounted(() => {
                                 </div>
                                 <div class="col-span-full md:col-span-1">
                                     <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span
-                                            class="text-red-500">*</span></label>
+                                            class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <div
                                         class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
                                         <span class="text-text-secondary text-xs mr-2 font-black">Rp</span>
@@ -1320,8 +1320,7 @@ onMounted(() => {
 
                             <div class="space-y-2 mt-4">
                 <label class="label text-sm uppercase font-bold flex justify-between">
-                    <div class="flex items-center gap-2"><span>Input IMEI</span><span
-                            class="text-red-500">*</span></div>
+                    <div class="flex items-center gap-2"><span>Input IMEI</span><span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></div>
                     <span
                         class="text-xs font-normal text-text-secondary bg-surface-800 px-2 py-1 rounded-lg">Total:
                         {{ item.parsedImeis.length }} items</span>
@@ -1368,7 +1367,7 @@ onMounted(() => {
                             </button>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                                 <div class="md:col-span-2">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk <span class="text-red-500">*</span></label>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)"
                                         class="input bg-surface-900 text-[10px] h-10 px-2">
                                         <option :value="null">-- Merk --</option>
@@ -1377,7 +1376,7 @@ onMounted(() => {
                                     </select>
                                 </div>
                                 <div class="md:col-span-3">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang <span class="text-red-500">*</span></label>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <select v-model="item.type_name" :disabled="!item.brand_id"
                                         class="input bg-surface-900 text-[10px] h-10 px-2 disabled:opacity-30 font-bold">
                                         <option value="">-- Pilih Tipe --</option>
@@ -1391,7 +1390,7 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="md:col-span-1">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-center">QTY <span class="text-red-500">*</span></label>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-center">QTY <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <input v-model.number="item.quantity" type="number" min="1"
                                         class="input bg-surface-900 text-[10px] h-10 text-center px-1 font-bold" />
                                 </div>
@@ -1407,7 +1406,7 @@ onMounted(() => {
                                 </div>
                                 <div class="md:col-span-3">
                                     <label
-                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga Jual <span class="text-red-500">*</span></label>
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga Jual <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <div
                                         class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
