@@ -515,14 +515,7 @@ const canNext = computed(() => {
 
 
 const canSubmit = computed(() => {
-    if (itemType.value === 'hp') {
-        if (hpItems.value.length === 0) return false;
-        return hpItems.value.every(item => item.type_name && item.capacity && item.parsedImeis.length > 0 && item.selling_price > 0);
-    }
-
-    // For Non-HP multiple items
-    if (nonHpItems.value.length === 0) return false;
-    return nonHpItems.value.every(item => item.brand_id && item.type_name && item.quantity > 0);
+    return true;
 });
 
 // CARI DAN GANTI FUNGSI submitStockIn AGAR SELALU KIRIM ID MESKIPUN MAPPING
@@ -736,7 +729,62 @@ async function handlePinSuccess(pin) {
 }
 
 async function submitStockIn(verifiedPin = null) {
-    if (!canSubmit.value) return;
+    // Validate fields and show exact error toast!
+    if (itemType.value === 'hp') {
+        if (hpItems.value.length === 0) {
+            toast.error("Belum ada item HP yang ditambahkan.");
+            return;
+        }
+        for (let i = 0; i < hpItems.value.length; i++) {
+            const item = hpItems.value[i];
+            const itemNum = i + 1;
+            if (!item.brand_id) {
+                toast.error(`Item nomor ${itemNum}: Merk belum dipilih!`);
+                return;
+            }
+            if (!item.type_name) {
+                toast.error(`Item nomor ${itemNum}: Tipe belum dipilih!`);
+                return;
+            }
+            if (!item.capacity) {
+                toast.error(`Item nomor ${itemNum}: Kapasitas belum dipilih!`);
+                return;
+            }
+            if (item.parsedImeis.length === 0) {
+                toast.error(`Item nomor ${itemNum}: IMEI belum diisi!`);
+                return;
+            }
+            if (item.selling_price <= 0) {
+                toast.error(`Item nomor ${itemNum}: Harga Jual harus lebih dari Rp 0!`);
+                return;
+            }
+        }
+    } else {
+        if (nonHpItems.value.length === 0) {
+            toast.error("Belum ada item Non-HP yang ditambahkan.");
+            return;
+        }
+        for (let i = 0; i < nonHpItems.value.length; i++) {
+            const item = nonHpItems.value[i];
+            const itemNum = i + 1;
+            if (!item.brand_id) {
+                toast.error(`Item nomor ${itemNum}: Merk belum dipilih!`);
+                return;
+            }
+            if (!item.type_name) {
+                toast.error(`Item nomor ${itemNum}: Nama Barang belum dipilih!`);
+                return;
+            }
+            if (!item.quantity || item.quantity <= 0) {
+                toast.error(`Item nomor ${itemNum}: QTY harus lebih dari 0!`);
+                return;
+            }
+            if (!item.selling_price || item.selling_price <= 0) {
+                toast.error(`Item nomor ${itemNum}: Harga Jual harus lebih dari Rp 0!`);
+                return;
+            }
+        }
+    }
 
     // Use either the provided verifiedPin or the local pin state
     const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
@@ -1196,6 +1244,11 @@ onMounted(() => {
 
                         <div v-for="(item, idx) in hpItems" :key="idx"
                             class="bg-surface-800/30 p-5 rounded-3xl border border-surface-700 relative group animate-in slide-in-from-right duration-300 shadow-lg space-y-6">
+                            <!-- Numbering Badge in Top-Left -->
+                            <div class="absolute -top-3 -left-3 w-8 h-8 bg-primary-600 border border-primary-500 text-white rounded-xl flex items-center justify-center font-bold text-xs shadow-xl z-10">
+                                {{ idx + 1 }}
+                            </div>
+
                             <button v-if="hpItems.length > 1" @click="removeHpItem(idx)"
                                 class="absolute -top-3 -right-3 w-8 h-8 bg-surface-900 border border-surface-700 hover:border-red-500 hover:text-red-500 text-text-secondary rounded-xl flex items-center justify-center transition-all shadow-xl z-10">
                                 <Trash2 :size="14" />
@@ -1304,13 +1357,18 @@ onMounted(() => {
 
                         <div v-for="(item, idx) in nonHpItems" :key="idx"
                             class="bg-surface-800/30 p-5 rounded-2xl border border-surface-700 relative group animate-in slide-in-from-right duration-300">
+                            <!-- Numbering Badge in Top-Left -->
+                            <div class="absolute -top-3 -left-3 w-7 h-7 bg-primary-600 border border-primary-500 text-white rounded-lg flex items-center justify-center font-bold text-xs shadow-xl z-10">
+                                {{ idx + 1 }}
+                            </div>
+
                             <button v-if="nonHpItems.length > 1" @click="removeNonHpItem(idx)"
                                 class="absolute -top-2 -right-2 w-7 h-7 bg-red-500/80 hover:bg-red-500 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg z-10">
                                 <Trash2 :size="14" />
                             </button>
                             <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                                 <div class="md:col-span-2">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk</label>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Merk <span class="text-red-500">*</span></label>
                                     <select v-model="item.brand_id" @change="handleBrandChangeNonHp(idx)"
                                         class="input bg-surface-900 text-[10px] h-10 px-2">
                                         <option :value="null">-- Merk --</option>
@@ -1319,14 +1377,12 @@ onMounted(() => {
                                     </select>
                                 </div>
                                 <div class="md:col-span-3">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama
-                                        Barang</label>
-                                    <input v-model="item.type_name" :disabled="!item.brand_id" placeholder="Tipe..."
-                                        class="input bg-surface-900 text-[10px] h-10 px-2 disabled:opacity-30 font-bold"
-                                        :list="'type-options-' + idx" />
-                                    <datalist :id="'type-options-' + idx">
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black">Nama Barang <span class="text-red-500">*</span></label>
+                                    <select v-model="item.type_name" :disabled="!item.brand_id"
+                                        class="input bg-surface-900 text-[10px] h-10 px-2 disabled:opacity-30 font-bold">
+                                        <option value="">-- Pilih Tipe --</option>
                                         <option v-for="n in item.uniqueTypeNames" :key="n" :value="n">{{ n }}</option>
-                                    </datalist>
+                                    </select>
                                     <div v-if="getNonHpCategory(item)" class="mt-1 flex items-center">
                                         <span
                                             class="px-1 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-tighter border border-blue-500/20">
@@ -1335,14 +1391,13 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="md:col-span-1">
-                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-center">QTY</label>
+                                    <label class="label text-[8px] uppercase mb-1 opacity-50 font-black text-center">QTY <span class="text-red-500">*</span></label>
                                     <input v-model.number="item.quantity" type="number" min="1"
                                         class="input bg-surface-900 text-[10px] h-10 text-center px-1 font-bold" />
                                 </div>
                                 <div class="md:col-span-3">
                                     <label
-                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-amber-500">Harga
-                                        Modal</label>
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-amber-500">Harga Modal</label>
                                     <div
                                         class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
@@ -1352,8 +1407,7 @@ onMounted(() => {
                                 </div>
                                 <div class="md:col-span-3">
                                     <label
-                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga
-                                        Jual</label>
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga Jual <span class="text-red-500">*</span></label>
                                     <div
                                         class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
