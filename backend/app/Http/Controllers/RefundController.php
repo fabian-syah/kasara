@@ -113,27 +113,47 @@ class RefundController extends Controller
 
                 // 3. Add to Inventory
                 if ($isImei) {
-                    // Check duplicate IMEI in inventory
-                    if ($request->imei && \App\Models\ProductDetail::where('imei', $request->imei)->exists()) {
+                    // Check duplicate IMEI in inventory (only throw if active as available or booking)
+                    $existingPd = \App\Models\ProductDetail::where('imei', $request->imei)->first();
+                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
                         throw new \Exception("IMEI " . $request->imei . " sudah ada di inventory.");
                     }
 
-                    $productDetail = ProductDetail::create([
-                        'product_id' => $product->id,
-                        'user_id' => $inventoryUserId,
-                        'imei' => $request->imei,
-                        'storage' => $request->storage,
-                        'condition' => $request->condition,
-                        'status' => 'available',
-                        'placement_type' => $placementType,
-                        'placement_id' => $placementId,
-                        'cost_price' => $request->refund_price,
-                        'selling_price' => $productType->price ?? 0,
-                        'supplier_name' => 'Refund: ' . $request->customer_name,
-                        'distributor_id' => $request->distributor_id,
-                        'refund_id' => $refund->id,
-                        'notes' => $request->notes,
-                    ]);
+                    if ($existingPd) {
+                        $existingPd->update([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'storage' => $request->storage,
+                            'condition' => $request->condition,
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->refund_price,
+                            'selling_price' => $productType->price ?? 0,
+                            'supplier_name' => 'Refund: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'refund_id' => $refund->id,
+                            'notes' => $request->notes,
+                        ]);
+                        $productDetail = $existingPd;
+                    } else {
+                        $productDetail = ProductDetail::create([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'imei' => $request->imei,
+                            'storage' => $request->storage,
+                            'condition' => $request->condition,
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->refund_price,
+                            'selling_price' => $productType->price ?? 0,
+                            'supplier_name' => 'Refund: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'refund_id' => $refund->id,
+                            'notes' => $request->notes,
+                        ]);
+                    }
                 } else {
                     // For non-HP, use Inventory model
                     $inventory = \App\Models\Inventory::firstOrCreate(

@@ -94,8 +94,9 @@ class TradeInController extends Controller
 
                 if ($isImei && $request->has('imeis')) {
                     foreach ($request->imeis as $imei) {
-                        // Check duplicate IMEI in inventory
-                        if ($imei && \App\Models\ProductDetail::where('imei', $imei)->exists()) {
+                        // Check duplicate IMEI in inventory (only throw if active as available or booking)
+                        $existingPd = \App\Models\ProductDetail::where('imei', $imei)->first();
+                        if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
                             throw new \Exception("IMEI $imei sudah ada di inventory.");
                         }
 
@@ -122,23 +123,43 @@ class TradeInController extends Controller
                             'branch_id' => $branchId,
                         ]);
 
-                        $pd = ProductDetail::create([
-                            'product_id' => $product->id,
-                            'user_id' => $inventoryUserId,
-                            'imei' => $imei,
-                            'ram' => $productType->ram,
-                            'storage' => $request->storage,
-                            'condition' => $request->condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->buy_price,
-                            'selling_price' => $productType->price ?? 0,
-                            'supplier_name' => 'Trade-In: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'trade_in_id' => $tradeIn->id,
-                            'notes' => $request->notes,
-                        ]);
+                        if ($existingPd) {
+                            $existingPd->update([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'ram' => $productType->ram,
+                                'storage' => $request->storage,
+                                'condition' => $request->condition ?? 'new',
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $request->buy_price,
+                                'selling_price' => $productType->price ?? 0,
+                                'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                'distributor_id' => $request->distributor_id,
+                                'trade_in_id' => $tradeIn->id,
+                                'notes' => $request->notes,
+                            ]);
+                            $pd = $existingPd;
+                        } else {
+                            $pd = ProductDetail::create([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'imei' => $imei,
+                                'ram' => $productType->ram,
+                                'storage' => $request->storage,
+                                'condition' => $request->condition ?? 'new',
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $request->buy_price,
+                                'selling_price' => $productType->price ?? 0,
+                                'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                'distributor_id' => $request->distributor_id,
+                                'trade_in_id' => $tradeIn->id,
+                                'notes' => $request->notes,
+                            ]);
+                        }
 
                         InventoryLog::create([
                             'product_id' => $product->id,
