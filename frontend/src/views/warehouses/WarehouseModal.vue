@@ -66,7 +66,8 @@ const save = async () => {
         }
         emit('saved');
     } catch (error) {
-        toast.error("Gagal menyimpan data");
+        const msg = error.response?.data?.message || "Gagal menyimpan data";
+        toast.error(msg);
     } finally {
         isLoading.value = false;
     }
