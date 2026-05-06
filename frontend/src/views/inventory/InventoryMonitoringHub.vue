@@ -497,9 +497,12 @@ onMounted(() => {
                         <thead>
                             <tr class="border-b border-surface-700/70 bg-surface-800/85">
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
+                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Cabang Pengirim</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
+                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Update</th>
+                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -511,12 +514,37 @@ onMounted(() => {
                                         {{ transfer.receipt_id }}
                                     </span>
                                 </td>
+                                <!-- Cabang Pengirim -->
+                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                                            <Building2 :size="14" />
+                                        </div>
+                                        <span class="font-bold text-white text-sm">
+                                            {{ transfer.inventory_user?.name || transfer.user?.name || 'Unknown' }}
+                                        </span>
+                                    </div>
+                                </td>
                                 <td class="px-8 py-5">
                                     <div class="flex items-center gap-3">
                                         <span class="font-bold text-white text-base max-w-md truncate">
                                             {{ getTransferItemsSummary(transfer) }}
                                         </span>
                                     </div>
+                                </td>
+                                <!-- Resi Ekspedisi -->
+                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5 whitespace-nowrap">
+                                    <div v-if="transfer.expedition_tracking_no" class="flex flex-col gap-1">
+                                        <span class="text-xs font-black uppercase tracking-widest text-purple-400">
+                                            {{ transfer.expedition_name }}
+                                        </span>
+                                        <button @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
+                                            class="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500 text-purple-400 hover:text-white border border-purple-500/20 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 w-fit">
+                                            <Truck :size="10" />
+                                            <span>Lacak: {{ transfer.expedition_tracking_no }}</span>
+                                        </button>
+                                    </div>
+                                    <span v-else class="text-xs font-medium text-text-secondary opacity-40">-</span>
                                 </td>
                                 <td class="px-8 py-5 whitespace-nowrap">
                                     <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
@@ -530,6 +558,17 @@ onMounted(() => {
                                     <div class="flex items-center gap-2 text-text-secondary text-sm font-bold">
                                         <Calendar :size="14" class="opacity-50" />
                                         <span>{{ formatDate(transfer.confirmed_at || transfer.updated_at || transfer.created_at) }}</span>
+                                    </div>
+                                </td>
+                                <!-- Detail Info -->
+                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5">
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-xs font-bold text-white">
+                                            {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
+                                        </span>
+                                        <span v-if="transfer.notes" class="text-[10px] text-text-secondary line-clamp-1 italic max-w-xs">
+                                            "{{ transfer.notes }}"
+                                        </span>
                                     </div>
                                 </td>
                                 <td class="px-8 py-5 whitespace-nowrap text-right">
@@ -583,6 +622,42 @@ onMounted(() => {
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Nama Barang</span>
                                 <span class="font-bold text-white text-base truncate max-w-xs">
                                     {{ getTransferItemsSummary(transfer) }}
+                                </span>
+                            </div>
+                        </div>
+                        <!-- Cabang Pengirim (Mobile) -->
+                        <div v-if="activeTab === 'incoming_otw'" class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
+                                <Building2 :size="16" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Cabang Pengirim</span>
+                                <span class="font-bold text-white text-base truncate max-w-xs">
+                                    {{ transfer.inventory_user?.name || transfer.user?.name || 'Unknown' }}
+                                </span>
+                            </div>
+                        </div>
+                        <!-- Resi Ekspedisi (Mobile) -->
+                        <div v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
+                                <Truck :size="16" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Resi {{ transfer.expedition_name }}</span>
+                                <span class="font-bold text-purple-400 text-sm">
+                                    {{ transfer.expedition_tracking_no }}
+                                </span>
+                            </div>
+                        </div>
+                        <!-- Detail Info (Mobile) -->
+                        <div v-if="activeTab === 'incoming_otw'" class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
+                                <Package :size="16" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Detail Info</span>
+                                <span class="font-bold text-white text-sm">
+                                    {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
                                 </span>
                             </div>
                         </div>
