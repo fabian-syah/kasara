@@ -1294,7 +1294,7 @@ class StockOutController extends Controller
         if (!$user)
             return response()->json(['data' => []]);
 
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
@@ -1381,7 +1381,7 @@ class StockOutController extends Controller
         if (!$user)
             return response()->json(['data' => []]);
 
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'items.distributor', 'nonHpItems.product.brandRelation', 'nonHpItems.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination'])
             ->where('category', 'pindah_cabang')
             ->where('status', 'pending');
 
