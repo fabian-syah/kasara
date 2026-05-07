@@ -191,7 +191,7 @@ class AuditController extends Controller
                 });
             };
 
-            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'];
+            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling'];
             $activityCategories = ['refund', 'angkat_barang'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
@@ -917,7 +917,7 @@ class AuditController extends Controller
                         $pSums = [];
                         
                         // Categories that count towards Omset (Revenue)
-                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade'];
+                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling'];
 
                         $resolveActualCategory = function ($category, $notes, $salesAccount) {
                             $category = strtolower($category ?? '');
@@ -976,7 +976,7 @@ class AuditController extends Controller
                             $cat = $resolveActualCategory($ps->category, $ps->notes, $ps->sales_account);
                             $price = abs((float)$ps->selling_price);
 
-                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
+                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling']);
                             $isTradeIn = ($cat === 'tukar_tambah');
                             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
@@ -1090,7 +1090,7 @@ class AuditController extends Controller
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                             ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                             ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store']);
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling']);
                         $applyLocalScope($hpItemsQuery);
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
