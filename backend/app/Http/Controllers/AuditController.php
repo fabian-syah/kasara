@@ -1068,14 +1068,6 @@ class AuditController extends Controller
                                             $amt = 0;
                                         }
 
-                                        if ($isBaseSale) {
-                                            $baseSalesOnly += $amt;
-                                        } elseif ($isTradeIn) {
-                                            $tradeSelisih += $amt;
-                                        } elseif ($isDeduction) {
-                                            $deductions += $amt;
-                                        }
-
                                         if ($isBaseSale || $isTradeIn) {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                             $mName = $pm?->name ?? 'Lainnya';
@@ -1084,18 +1076,18 @@ class AuditController extends Controller
                                     }
                                 }
                             } else {
-                                if ($isBaseSale) {
-                                    $baseSalesOnly += $price;
-                                } elseif ($isTradeIn) {
-                                    $tradeSelisih += $price;
-                                } elseif ($isDeduction) {
-                                    $deductions += $price;
-                                }
-
                                 if ($isBaseSale || $isTradeIn) {
                                     $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $price;
                                 }
+                            }
+
+                            if ($isBaseSale) {
+                                $baseSalesOnly += $price;
+                            } elseif ($isTradeIn) {
+                                $tradeSelisih += $price;
+                            } elseif ($isDeduction) {
+                                $deductions += $price;
                             }
                         }
 
