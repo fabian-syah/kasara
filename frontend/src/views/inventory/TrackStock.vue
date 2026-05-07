@@ -159,18 +159,20 @@ function formatCurrency(value) {
                         <!-- STOCK IN / MASUK (Pendaftaran atau Penerimaan) -->
                         <div v-if="result.type === 'stock_in'" :key="'in-' + result.id"
                             class="card p-6 border-l-4 transition-all relative"
-                            :class="result.is_arrival ? 'border-l-indigo-500 bg-indigo-500/5' : 'border-l-green-500'">
+                            :class="result.is_return_transfer ? 'border-l-amber-500 bg-amber-500/5' : (result.is_arrival ? 'border-l-indigo-500 bg-indigo-500/5' : 'border-l-green-500')">
                             <!-- Header -->
                             <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                                        :class="result.is_arrival ? 'bg-indigo-500/20 text-indigo-500' : 'bg-green-500/20 text-green-500'">
-                                        <ArrowUpRight v-if="!result.is_arrival" :size="24" />
+                                        :class="result.is_return_transfer ? 'bg-amber-500/20 text-amber-500' : (result.is_arrival ? 'bg-indigo-500/20 text-indigo-500' : 'bg-green-500/20 text-green-500')">
+                                        <ArrowUpRight v-if="!result.is_arrival && !result.is_return_transfer" :size="24" />
                                         <MapPin v-else :size="24" />
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2 mb-1">
-                                            <span v-if="!result.is_arrival"
+                                            <span v-if="result.is_return_transfer"
+                                                class="text-amber-400 text-[10px] font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded uppercase tracking-wider">TERIMA BALIK TRANSFER</span>
+                                            <span v-else-if="!result.is_arrival"
                                                 class="text-green-400 text-[10px] font-bold bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded uppercase tracking-wider">MASUK
                                                 (STOK)</span>
                                             <span v-else
@@ -232,13 +234,19 @@ function formatCurrency(value) {
                                 </div>
                                 <div>
                                     <p class="text-text-secondary text-xs flex items-center gap-1">
-                                        <User :size="12" /> {{ result.is_arrival ? 'Diterima oleh' : 'Diinput oleh' }}
+                                        <User :size="12" /> {{ result.is_return_transfer ? 'Diterima Balik oleh' : (result.is_arrival ? 'Diterima oleh' : 'Diinput oleh') }}
                                     </p>
                                     <p class="text-text-primary">{{ result.input_by || '-' }}</p>
                                 </div>
-                                <div v-if="result.storage && !result.is_arrival">
+                                <div v-if="result.storage && (!result.is_arrival || result.is_return_transfer)">
                                     <p class="text-text-secondary text-xs">Storage / Kapasitas</p>
                                     <p class="text-text-primary">{{ result.storage || '-' }}</p>
+                                </div>
+                                <div v-if="result.rejected_by">
+                                    <p class="text-text-secondary text-xs flex items-center gap-1">
+                                        <User :size="12" /> Ditolak oleh
+                                    </p>
+                                    <p class="text-text-primary">{{ result.rejected_by || '-' }}</p>
                                 </div>
                             </div>
                         </div>

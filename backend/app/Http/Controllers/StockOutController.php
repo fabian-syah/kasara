@@ -1067,7 +1067,7 @@ class StockOutController extends Controller
             }
 
             // 2. Search STOCK OUT (Execution & Arrival Events)
-            $stockOuts = StockOut::with(['items.product', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
+            $stockOuts = StockOut::with(['items.product', 'items.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
                 ->where('receipt_id', $query)
                 ->orWhere('shopee_tracking_no', $query)
                 ->orWhereHas('items', function ($q) use ($query) {
@@ -1268,6 +1268,55 @@ class StockOutController extends Controller
                         'is_arrival' => true,
                         'is_retur_return' => true,
                     ];
+                }
+
+                // Event 4: RETURN TO SENDER / TERIMA BALIK TRANSFER (if transfer rejected and received back by sender)
+                if ($out->category === 'pindah_cabang') {
+                    $item = $out->items->first(function ($i) use ($query) {
+                        return stripos($i->imei, $query) !== false;
+                    });
+
+                    if ($item) {
+                        $returnLog = \App\Models\InventoryLog::with('user')
+                            ->where('reference_id', (string)$item->id)
+                            ->where('description', 'like', "Terima Balik Transfer (Resi: {$out->receipt_id})%")
+                            ->first();
+
+                        if ($returnLog) {
+                            $placementName = 'Unknown Location';
+                            if ($returnLog->branch_id) {
+                                $placementName = \App\Models\Branch::find($returnLog->branch_id)?->name;
+                            } elseif ($returnLog->warehouse_id) {
+                                $placementName = \App\Models\Warehouse::find($returnLog->warehouse_id)?->name;
+                            } elseif ($returnLog->online_shop_id) {
+                                $placementName = \App\Models\OnlineShop::find($returnLog->online_shop_id)?->name;
+                            } elseif ($returnLog->distributor_id) {
+                                $placementName = \App\Models\Distributor::find($returnLog->distributor_id)?->name;
+                            }
+
+                            $allEvents[] = [
+                                'type' => 'stock_in',
+                                'sub_type' => 'return_transfer_arrival',
+                                'id' => $out->receipt_id,
+                                'imei' => $item->imei,
+                                'product_name' => $item->product?->name ?? 'Unknown',
+                                'status' => 'available',
+                                'placement_type' => $item->placement_type,
+                                'placement_id' => $item->placement_id,
+                                'placement_name' => $placementName ?? 'Original Location',
+                                'created_at' => $returnLog->created_at->toDateTimeString(),
+                                'timestamp' => $returnLog->created_at->timestamp,
+                                'input_by' => $returnLog->user?->name ?? 'Unknown',
+                                'condition' => $item->condition ?? '-',
+                                'selling_price' => $item->selling_price ?? 0,
+                                'distributor' => $item->distributor?->name ?? '-',
+                                'storage' => $item->storage ?? '-',
+                                'rejected_by' => $out->confirmedBy?->name ?? 'Unknown',
+                                'is_arrival' => true,
+                                'is_return_transfer' => true,
+                            ];
+                        }
+                    }
                 }
             }
 
