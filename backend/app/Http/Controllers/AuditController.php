@@ -924,6 +924,17 @@ class AuditController extends Controller
                             $notes = strtolower($notes ?? '');
                             $salesAccount = strtolower($salesAccount ?? '');
 
+                            // If it's a standard sale category, do NOT override with deductions by notes
+                            if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                                    return 'tukar_unit';
+                                }
+                                if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                                    return 'tukar_tambah';
+                                }
+                                return $category;
+                            }
+
                             if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
                                 return 'tukar_unit';
                             }
