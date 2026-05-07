@@ -90,7 +90,7 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang'];
+        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'];
         return $this->getAggregatedStats($user, $categories, 'toko_offline');
     }
 
