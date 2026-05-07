@@ -177,7 +177,7 @@ const isLoading = ref(false);
 const podiumTab = ref('today'); // 'today' | 'this_month' | 'last_month'
 
 const resolveIcon = (name) => {
-  const icons = { Database, Tags, Box, DollarSign, Package, ShoppingCart, Users };
+  const icons = { Database, Tags, Box, DollarSign, Package, ShoppingCart, Users, TrendingUp, TrendingDown };
   return icons[name] || Package;
 };
 
@@ -512,8 +512,10 @@ const currentLocalRank = computed(() => {
                   <div class="text-center mb-2 sm:mb-4 px-1 sm:px-2 min-h-[40px] flex flex-col justify-end">
                     <h4 class="font-black text-[9px] sm:text-xs text-text-primary uppercase truncate w-full tracking-tight mb-0.5"
                       :class="leftPodiumData.podium[0].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[0].name }}</h4>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-slate-400/60 tabular-nums truncate w-full">{{
+                    <span class="text-[8px] sm:text-[10px] font-bold text-slate-400/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[0].omset) }}</span>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-emerald-400/80 tabular-nums truncate w-full">Bersih: {{
+                      formatCurrency(leftPodiumData.podium[0].omset_bersih) }}</span>
                   </div>
                   <div
                     class="w-full h-24 sm:h-32 lg:h-40 bg-gradient-to-b from-slate-800/80 to-slate-900/50 rounded-t-xl sm:rounded-t-2xl border-t sm:border-t-2 border-slate-400 border-x border-slate-400/20 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden group-hover:brightness-110 transition-all">
@@ -543,12 +545,18 @@ const currentLocalRank = computed(() => {
                       <Globe v-else class="w-10 h-10 sm:w-14 sm:h-14 text-primary-500" />
                     </div>
                   </div>
-                  <div class="text-center mb-3 sm:mb-6 px-1 sm:px-2 min-h-[50px] flex flex-col justify-end">
+                  <div class="text-center mb-3 sm:mb-6 px-1 sm:px-2 min-h-[60px] flex flex-col justify-end items-center gap-1">
                     <h4 class="font-black text-xs sm:text-base lg:text-lg text-text-primary uppercase tracking-tighter mb-0.5 sm:mb-1 truncate w-full"
                       :class="leftPodiumData.podium[1].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[1].name }}</h4>
-                    <div class="inline-flex bg-primary-500/10 px-2 sm:px-4 py-0.5 sm:py-1 rounded-full border border-primary-500/20 mx-auto">
-                      <span class="text-[9px] sm:text-xs font-black text-primary-500 tabular-nums">{{
-                        formatCurrency(leftPodiumData.podium[1].omset) }}</span>
+                    <div class="flex flex-col gap-1 items-center">
+                      <div class="inline-flex bg-primary-500/10 px-2 sm:px-4 py-0.5 rounded-full border border-primary-500/20 mx-auto">
+                        <span class="text-[9px] sm:text-xs font-black text-primary-500 tabular-nums">Total: {{
+                          formatCurrency(leftPodiumData.podium[1].omset) }}</span>
+                      </div>
+                      <div class="inline-flex bg-emerald-500/10 px-2 sm:px-4 py-0.5 rounded-full border border-emerald-500/20 mx-auto">
+                        <span class="text-[9px] sm:text-xs font-black text-emerald-400 tabular-nums">Bersih: {{
+                          formatCurrency(leftPodiumData.podium[1].omset_bersih) }}</span>
+                      </div>
                     </div>
                   </div>
                   <div
@@ -580,8 +588,10 @@ const currentLocalRank = computed(() => {
                   <div class="text-center mb-2 sm:mb-4 px-1 sm:px-2 min-h-[40px] flex flex-col justify-end">
                     <h4 class="font-black text-[9px] sm:text-xs text-text-primary uppercase truncate w-full tracking-tight mb-0.5"
                       :class="leftPodiumData.podium[2].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[2].name }}</h4>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-amber-700/60 tabular-nums truncate w-full">{{
+                    <span class="text-[8px] sm:text-[10px] font-bold text-amber-700/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[2].omset) }}</span>
+                    <span class="text-[8px] sm:text-[10px] font-bold text-emerald-400/80 tabular-nums truncate w-full">Bersih: {{
+                      formatCurrency(leftPodiumData.podium[2].omset_bersih) }}</span>
                   </div>
                   <div
                     class="w-full h-20 sm:h-24 lg:h-32 bg-gradient-to-b from-amber-900/30 to-amber-950/20 rounded-t-xl sm:rounded-t-2xl border-t sm:border-t-2 border-amber-700 border-x border-amber-700/20 flex flex-col items-center justify-center shadow-xl relative overflow-hidden group-hover:brightness-110 transition-all">
@@ -636,14 +646,14 @@ const currentLocalRank = computed(() => {
                   </div>
 
                   <div class="flex-1 min-w-0 relative z-10">
-                    <div class="flex items-center gap-2">
-                      <span class="font-black text-xs uppercase truncate"
-                        :class="item.is_me ? 'text-primary-500' : 'text-text-primary'">{{ item.name }}</span>
-                      <span v-if="item.is_me"
-                        class="bg-primary-500 text-black text-[7px] font-black px-2 py-0.5 rounded-full uppercase shadow-sm">YOU</span>
+                    <div class="flex flex-col sm:flex-row sm:gap-3">
+                      <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400/80' : 'text-text-secondary opacity-60'">
+                        Total: {{ formatCurrency(item.omset) }}
+                      </span>
+                      <span class="text-[10px] font-bold tabular-nums text-emerald-400/90">
+                        Bersih: {{ formatCurrency(item.omset_bersih) }}
+                      </span>
                     </div>
-                    <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400/80' : 'text-text-secondary opacity-60'">{{
-                      formatCurrency(item.omset) }}</span>
                   </div>
 
                   <component :is="item.type === 'branch' || item.type === 'Offline' ? Store : Globe"
@@ -716,6 +726,8 @@ const currentLocalRank = computed(() => {
                 <th class="pb-6 w-16">Rank</th>
                 <th class="pb-6">Akun Inventory</th>
                 <th class="pb-6 text-center">Unit Terjual</th>
+                <th class="pb-6 text-center">Total Omset</th>
+                <th class="pb-6 text-center">Omset Bersih</th>
                 <th class="pb-6 text-right">Global Rank</th>
               </tr>
             </thead>
@@ -747,6 +759,12 @@ const currentLocalRank = computed(() => {
                     <span class="text-[9px] font-bold text-text-secondary uppercase tracking-tighter">Unit
                       Terjual</span>
                   </div>
+                </td>
+                <td class="py-4 text-center">
+                  <span class="font-semibold text-slate-400">{{ formatCurrency(user.omset ?? user.revenue ?? 0) }}</span>
+                </td>
+                <td class="py-4 text-center">
+                  <span class="font-bold text-emerald-400">{{ formatCurrency(user.omset_bersih ?? user.revenue ?? 0) }}</span>
                 </td>
                 <td class="py-4 text-right">
                   <div
@@ -923,12 +941,13 @@ const currentLocalRank = computed(() => {
                   <th class="px-4 py-3 rounded-l-lg">Nama CS</th>
                   <th class="px-4 py-3 text-center">Unit HP</th>
                   <th class="px-4 py-3 text-center">Non-HP</th>
-                  <th class="px-4 py-3 rounded-r-lg text-right">Total Nominal</th>
+                  <th class="px-4 py-3 text-right">Total Nominal</th>
+                  <th class="px-4 py-3 rounded-r-lg text-right">Nominal Bersih</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-surface-700">
                 <tr v-if="csPerformance.length === 0">
-                  <td colspan="4" class="px-4 py-8 text-center text-text-secondary italic">
+                  <td colspan="5" class="px-4 py-8 text-center text-text-secondary italic">
                     Belum ada data performa hari ini
                   </td>
                 </tr>
@@ -942,8 +961,11 @@ const currentLocalRank = computed(() => {
                     <span :class="cs.non_hp_count > 0 ? 'text-blue-400 font-bold' : 'text-text-secondary'">{{
                       cs.non_hp_count }}</span>
                   </td>
-                  <td class="px-4 py-3 text-right font-bold text-emerald-400">
+                  <td class="px-4 py-3 text-right font-semibold text-slate-400">
                     {{ formatCurrency(cs.total_sales) }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-bold text-emerald-400">
+                    {{ formatCurrency(cs.net_sales ?? cs.total_sales) }}
                   </td>
                 </tr>
               </tbody>

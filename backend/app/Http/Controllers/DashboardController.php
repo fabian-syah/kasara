@@ -131,6 +131,7 @@ class DashboardController extends Controller
         $todaySales = $todaySalesQuery->get();
 
         $totalRevenue = 0;
+        $totalNetRevenue = 0;
         $productsSold = 0;
         $typeSales = [];
         $brandConditionSales = [];
@@ -151,7 +152,7 @@ class DashboardController extends Controller
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
             if (!isset($csPerformance[$csName])) {
-                $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0];
+                $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0, 'net_sales' => 0];
             }
 
             $origCat = strtolower($sale->category ?? '');
@@ -182,13 +183,18 @@ class DashboardController extends Controller
 
             if ($isBaseSale) {
                 $totalRevenue += $price;
+                $totalNetRevenue += $price;
                 $csPerformance[$csName]['total_sales'] += $price;
+                $csPerformance[$csName]['net_sales'] += $price;
             } elseif ($isTradeIn) {
                 $totalRevenue += $price;
+                $totalNetRevenue += $price;
                 $csPerformance[$csName]['total_sales'] += $price;
+                $csPerformance[$csName]['net_sales'] += $price;
+            } elseif ($isDeduction) {
+                $totalNetRevenue -= $price;
+                $csPerformance[$csName]['net_sales'] -= $price;
             }
-
-            // Pure Total Omset has no deduction subtraction!
 
             // HP Items
             foreach ($sale->items as $item) {
@@ -251,7 +257,8 @@ class DashboardController extends Controller
         return response()->json([
             'role' => $role,
             'stats' => [
-                ['id' => 'revenue', 'label' => 'Pendapatan Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
+                ['id' => 'revenue', 'label' => 'Total Omset Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
+                ['id' => 'net_revenue', 'label' => 'Omset Bersih Hari Ini', 'value' => $totalNetRevenue, 'isCurrency' => true, 'icon' => 'TrendingUp', 'color' => 'teal'],
                 ['id' => 'transactions', 'label' => 'Total Transaksi (Hari Ini)', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
                 ['id' => 'sold', 'label' => 'Produk Terjual (Hari Ini)', 'value' => $productsSold, 'icon' => 'Package', 'color' => 'violet'],
                 ['id' => 'stock', 'label' => 'Total Stok Fisik', 'value' => $hpStock + $nonHpStock, 'sub' => "HP: $hpStock | Acc: $nonHpStock", 'icon' => 'Box', 'color' => 'amber'],
@@ -356,11 +363,57 @@ class DashboardController extends Controller
                     END
                 ) as net_units"))
                 ->first()->net_units ?? 0;
+            // Calculate omset and omset_bersih for each user
+            $sales = StockOut::where('user_id', $u->id)
+                ->where('reporting_date', $currentReportingDate)
+                ->whereNull('deleted_at')
+                ->get();
+
+            $omset = 0;
+            $omsetBersih = 0;
+
+            foreach ($sales as $sale) {
+                $origCat = strtolower($sale->category ?? '');
+                $notes = strtolower($sale->notes ?? '');
+                $sa = strtolower($sale->sales_account ?? '');
+                $cat = strtolower($sale->category ?? '');
+
+                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                    $cat = 'tukar_unit';
+                } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                    $cat = 'angkat_barang';
+                } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                    $cat = 'refund';
+                } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                    $cat = 'downgrade';
+                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                    $cat = 'tukar_tambah';
+                }
+
+                $price = abs((float)($sale->selling_price ?? 0));
+                if ($cat === 'tukar_unit') {
+                    $price = 0;
+                }
+
+                $isBaseSale = in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
+                $isTradeIn = ($origCat === 'tukar_tambah');
+                $isDeduction = in_array($origCat, ['refund', 'angkat_barang', 'downgrade']) || in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+
+                if ($isBaseSale || $isTradeIn) {
+                    $omset += $price;
+                    $omsetBersih += $price;
+                } elseif ($isDeduction) {
+                    $omsetBersih -= $price;
+                }
+            }
+
             return [
                 'id' => $u->id,
                 'name' => $u->name,
                 'photo' => $u->photo_inventory ? asset('storage/' . $u->photo_inventory) : null,
                 'units' => $units,
+                'omset' => $omset,
+                'omset_bersih' => $omsetBersih,
                 'rank' => $globalRanking[$u->id] ?? '-'
             ];
         })->sortByDesc('units')->values();
@@ -433,7 +486,20 @@ class DashboardController extends Controller
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
                         END
-                    ) as total_omset")
+                    ) as total_omset"),
+                    DB::raw("SUM(
+                        CASE 
+                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                                 AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                                 OR (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
+                                 OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
+                                 OR (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            ELSE 0
+                        END
+                    ) as omset_bersih")
                 )
                     ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
                     ->get();
@@ -442,12 +508,14 @@ class DashboardController extends Controller
 
                 foreach ($branches as $b) {
                     $omset = (float) ($stats->where('branch_id', $b->id)->sum('total_omset') ?? 0);
-                    $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset]);
+                    $omsetBersih = (float) ($stats->where('branch_id', $b->id)->sum('omset_bersih') ?? 0);
+                    $ranks->push(['id' => $b->id, 'name' => $b->name, 'type' => 'branch', 'omset' => $omset, 'omset_bersih' => $omsetBersih]);
                 }
 
                 foreach ($shops as $s) {
                     $omset = (float) ($stats->where('online_shop_id', $s->id)->sum('total_omset') ?? 0);
-                    $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset]);
+                    $omsetBersih = (float) ($stats->where('online_shop_id', $s->id)->sum('omset_bersih') ?? 0);
+                    $ranks->push(['id' => $s->id, 'name' => $s->name, 'type' => 'online_shop', 'omset' => $omset, 'omset_bersih' => $omsetBersih]);
                 }
 
                 return $ranks->sortByDesc('omset')->values()->map(function ($item, $idx) {
@@ -498,7 +566,20 @@ class DashboardController extends Controller
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
                         END
-                    ) as omset")
+                    ) as omset"),
+                    DB::raw("SUM(
+                        CASE 
+                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                                 AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                                 OR (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
+                                 OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
+                                 OR (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            ELSE 0
+                        END
+                    ) as omset_bersih")
                 )
                     ->groupBy('users.id', 'users.name')
                     ->orderByDesc('units')
