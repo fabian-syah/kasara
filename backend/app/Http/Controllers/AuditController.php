@@ -875,6 +875,8 @@ class AuditController extends Controller
                                     ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                             });
 
+                            $query->whereNull('stock_outs.deleted_at');
+
                             $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                                 $scoper = function ($qq, $col, $val) {
                                     $qq->where("stock_outs.$col", $val);
