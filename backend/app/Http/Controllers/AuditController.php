@@ -1407,7 +1407,17 @@ class AuditController extends Controller
                                 'is_unrestricted' => $isUnrestricted,
                                 'current_roles' => $currentRoles,
                                 'dist_map_rp' => $mapRp,
-                                'dist_map' => $map
+                                'dist_map' => $map,
+                                '_calc_debug' => [
+                                    'baseSalesOnly' => $baseSalesOnly,
+                                    'tradeSelisih' => $tradeSelisih,
+                                    'productTradeSelisih' => $productTradeSelisih,
+                                    'selisihTT_used' => $selisihTT,
+                                    'deductions' => $deductions,
+                                    'activityDeductions' => $activityDeductions,
+                                    'paymentTotal_formula' => "baseSalesOnly({$baseSalesOnly}) + selisihTT({$selisihTT}) = {$paymentTotal}",
+                                    'omsetBersih_formula' => "baseSalesOnly({$baseSalesOnly}) - deductions({$deductions}) = {$omsetBersih}",
+                                ]
                             ]
                         ];
                     } catch (\Throwable $e) {

@@ -409,9 +409,9 @@ class DashboardController extends Controller
                     $price = 0;
                 }
 
-                $isBaseSale = in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
-                $isTradeIn = ($origCat === 'tukar_tambah');
-                $isDeduction = in_array($origCat, ['refund', 'angkat_barang', 'downgrade']) || in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+                $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
+                $isTradeIn = ($cat === 'tukar_tambah');
+                $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
                 if ($isBaseSale || $isTradeIn) {
                     $omset += $price;
