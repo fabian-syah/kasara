@@ -15,6 +15,7 @@ echo "🛠️ Menjalankan migrasi database..."
 docker exec apex-api-local php artisan migrate --force
 docker exec apex-api-local php artisan optimize:clear
 docker exec apex-api-local php artisan cache:clear
+docker exec apex-api-local php artisan octane:reload
 
 # 4. Frontend: Rakit (Build) project
 echo "🎨 Sedang merakit (Build) project Vue..."
