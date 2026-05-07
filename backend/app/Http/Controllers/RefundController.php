@@ -112,14 +112,13 @@ class RefundController extends Controller
                 ]);
 
                 // 3. Add to Inventory
+                $imeiExisted = false;
+                $imeiStatus = null;
                 if ($isImei) {
-                    // Check duplicate IMEI in inventory (only throw if active as available or booking)
                     $existingPd = \App\Models\ProductDetail::where('imei', $request->imei)->first();
-                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
-                        throw new \Exception("IMEI " . $request->imei . " sudah ada di inventory.");
-                    }
-
                     if ($existingPd) {
+                        $imeiExisted = true;
+                        $imeiStatus = $existingPd->status;
                         $existingPd->update([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
@@ -233,9 +232,13 @@ class RefundController extends Controller
                     ]);
                 }
 
+                $msg = 'Refund berhasil diproses dan barang kembali ke inventory.';
+                if ($imeiExisted) {
+                    $msg .= " (Pemberitahuan: IMEI sudah ada di database sebelumnya dengan status: {$imeiStatus})";
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => 'Refund berhasil diproses dan barang kembali ke inventory.',
+                    'message' => $msg,
                     'data' => $refund->load('productType.brand', 'paymentMethod')
                 ]);
             });

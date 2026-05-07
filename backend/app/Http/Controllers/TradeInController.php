@@ -92,12 +92,12 @@ class TradeInController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
+                $existedImeis = [];
                 if ($isImei && $request->has('imeis')) {
                     foreach ($request->imeis as $imei) {
-                        // Check duplicate IMEI in inventory (only throw if active as available or booking)
                         $existingPd = \App\Models\ProductDetail::where('imei', $imei)->first();
-                        if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
-                            throw new \Exception("IMEI $imei sudah ada di inventory.");
+                        if ($existingPd) {
+                            $existedImeis[] = "$imei ({$existingPd->status})";
                         }
 
                         $tradeIn = TradeIn::create([
@@ -306,9 +306,13 @@ class TradeInController extends Controller
                     $totalQty += ($ti->quantity ?? 1);
                 }
 
+                $msg = 'Barang angkat berhasil diproses dan masuk inventory.';
+                if (!empty($existedImeis)) {
+                    $msg .= " (Pemberitahuan: IMEI berikut sudah ada di database sebelumnya: " . implode(', ', $existedImeis) . ")";
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => 'Barang angkat berhasil diproses dan masuk inventory.',
+                    'message' => $msg,
                     'data' => $processedTradeIns[0]->load('productType.brand', 'paymentMethod', 'distributor'),
                     'count' => $totalQty
                 ]);

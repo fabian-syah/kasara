@@ -129,13 +129,13 @@ class DowngradeController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
+                $imeiExisted = false;
+                $imeiStatus = null;
                 if ($isImei) {
                     $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
-                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
-                        throw new \Exception("IMEI {$request->incoming_imei} sudah ada di inventory.");
-                    }
-
                     if ($existingPd) {
+                        $imeiExisted = true;
+                        $imeiStatus = $existingPd->status;
                         $existingPd->update([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
@@ -269,9 +269,13 @@ class DowngradeController extends Controller
                     'description' => 'Downgrade (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown'),
                 ]);
 
+                $msg = 'Downgrade berhasil diproses.';
+                if ($imeiExisted) {
+                    $msg .= " (Pemberitahuan: IMEI sudah ada di database sebelumnya dengan status: {$imeiStatus})";
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => 'Downgrade berhasil diproses.',
+                    'message' => $msg,
                     'data' => $downgrade->load('incomingProductType.brand', 'distributor')
                 ]);
             });

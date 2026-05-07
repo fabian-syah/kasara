@@ -128,13 +128,13 @@ class TukarTambahController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
+                $imeiExisted = false;
+                $imeiStatus = null;
                 if ($isImei) {
                     $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
-                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
-                        throw new \Exception("IMEI {$request->incoming_imei} sudah ada di inventory.");
-                    }
-
                     if ($existingPd) {
+                        $imeiExisted = true;
+                        $imeiStatus = $existingPd->status;
                         $existingPd->update([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
@@ -270,9 +270,13 @@ class TukarTambahController extends Controller
                     'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown'),
                 ]);
 
+                $msg = 'Tukar tambah berhasil diproses.';
+                if ($imeiExisted) {
+                    $msg .= " (Pemberitahuan: IMEI sudah ada di database sebelumnya dengan status: {$imeiStatus})";
+                }
                 return response()->json([
                     'success' => true,
-                    'message' => 'Tukar tambah berhasil diproses.',
+                    'message' => $msg,
                     'data' => $tukarTambah->load('incomingProductType.brand', 'distributor')
                 ]);
             });
