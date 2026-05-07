@@ -388,7 +388,7 @@ class ReportController extends Controller
             ->select(
                 'users.id',
                 'users.name',
-                DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN stock_outs.selling_price ELSE 0 END) as omset')
+                DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN ABS(stock_outs.selling_price) ELSE 0 END) as omset')
             );
 
         if ($startDate)
@@ -628,7 +628,7 @@ class ReportController extends Controller
                 WHEN LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%'
                 THEN 0
                 WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling')
-                THEN COALESCE(stock_outs.selling_price, 0)
+                THEN ABS(COALESCE(stock_outs.selling_price, 0))
                 ELSE 0
             END) as sales_omset"),
             DB::raw("COUNT(DISTINCT CASE 

@@ -188,9 +188,7 @@ class DashboardController extends Controller
                 $csPerformance[$csName]['net_sales'] += $price;
             } elseif ($isTradeIn) {
                 $totalRevenue += $price;
-                $totalNetRevenue += $price;
                 $csPerformance[$csName]['total_sales'] += $price;
-                $csPerformance[$csName]['net_sales'] += $price;
             } elseif ($isDeduction) {
                 $totalNetRevenue -= $price;
                 $csPerformance[$csName]['net_sales'] -= $price;

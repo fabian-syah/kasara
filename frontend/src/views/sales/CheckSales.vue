@@ -886,7 +886,7 @@ const summaryStats = computed(() => {
         }
 
         // Standard Sales categories
-        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale'].includes(origCat);
+        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling'].includes(origCat);
         const isTradeIn = origCat === 'tukar_tambah';
         const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(origCat) || cat === 'angkat_barang' || cat === 'refund' || cat === 'downgrade';
 
