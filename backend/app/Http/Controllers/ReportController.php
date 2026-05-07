@@ -664,7 +664,7 @@ class ReportController extends Controller
             END) as ab_amount"),
             DB::raw("SUM(
                 CASE 
-                    WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                    WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling'))
                          AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                     THEN ABS(COALESCE(stock_outs.selling_price, 0))
                     WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
