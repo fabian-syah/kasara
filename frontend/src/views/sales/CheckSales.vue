@@ -847,6 +847,17 @@ const summaryStats = computed(() => {
         const n = (notes || '').toLowerCase();
         const sa = (salesAccount || '').toLowerCase();
 
+        // If it's a standard sale category, do NOT override with deductions by notes
+        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
+            if (n.includes('tukar unit') || n.includes('tukar_unit') || sa.includes('tukar unit') || sa.includes('tukar_unit')) {
+                return 'tukar_unit';
+            }
+            if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
+                return 'tukar_tambah';
+            }
+            return cat;
+        }
+
         if (n.includes('tukar unit') || n.includes('tukar_unit') || sa.includes('tukar unit') || sa.includes('tukar_unit')) {
             return 'tukar_unit';
         }
