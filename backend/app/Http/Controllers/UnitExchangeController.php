@@ -124,22 +124,45 @@ class UnitExchangeController extends Controller
 
                 $inQty = $request->incoming_quantity ?? 1;
                 if ($isImei) {
-                    ProductDetail::create([
-                        'product_id' => $product->id,
-                        'user_id' => $inventoryUserId,
-                        'imei' => $request->incoming_imei,
-                        'storage' => $request->incoming_storage,
-                        'condition' => $request->incoming_condition ?? 'new',
-                        'status' => 'available',
-                        'placement_type' => $placementType,
-                        'placement_id' => $placementId,
-                        'cost_price' => $request->incoming_cost_price,
-                        'selling_price' => $incomingProductType->price ?? 0,
-                        'supplier_name' => 'Exchange: ' . $request->customer_name,
-                        'distributor_id' => $request->distributor_id,
-                        'unit_exchange_id' => $exchange->id,
-                        'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
-                    ]);
+                    $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
+                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
+                        throw new \Exception("IMEI {$request->incoming_imei} sudah ada di inventory.");
+                    }
+
+                    if ($existingPd) {
+                        $existingPd->update([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'storage' => $request->incoming_storage,
+                            'condition' => $request->incoming_condition ?? 'new',
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->incoming_cost_price,
+                            'selling_price' => $incomingProductType->price ?? 0,
+                            'supplier_name' => 'Exchange: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'unit_exchange_id' => $exchange->id,
+                            'notes' => 'Masuk dari Tukar Unit (Update): ' . $receiptId,
+                        ]);
+                    } else {
+                        ProductDetail::create([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'imei' => $request->incoming_imei,
+                            'storage' => $request->incoming_storage,
+                            'condition' => $request->incoming_condition ?? 'new',
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->incoming_cost_price,
+                            'selling_price' => $incomingProductType->price ?? 0,
+                            'supplier_name' => 'Exchange: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'unit_exchange_id' => $exchange->id,
+                            'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
+                        ]);
+                    }
                 } else {
                     $inventoryIn = \App\Models\Inventory::firstOrCreate(
                         [

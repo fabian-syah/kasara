@@ -129,22 +129,45 @@ class TukarTambahController extends Controller
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
                 if ($isImei) {
-                    ProductDetail::create([
-                        'product_id' => $product->id,
-                        'user_id' => $inventoryUserId,
-                        'imei' => $request->incoming_imei,
-                        'storage' => $request->incoming_storage,
-                        'condition' => $request->incoming_condition ?? 'new',
-                        'status' => 'available',
-                        'placement_type' => $placementType,
-                        'placement_id' => $placementId,
-                        'cost_price' => $request->incoming_cost_price,
-                        'selling_price' => $incomingProductType->price ?? 0,
-                        'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
-                        'distributor_id' => $request->distributor_id,
-                        'tukar_tambah_id' => $tukarTambah->id,
-                        'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
-                    ]);
+                    $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
+                    if ($existingPd && in_array($existingPd->status, ['available', 'booking'])) {
+                        throw new \Exception("IMEI {$request->incoming_imei} sudah ada di inventory.");
+                    }
+
+                    if ($existingPd) {
+                        $existingPd->update([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'storage' => $request->incoming_storage,
+                            'condition' => $request->incoming_condition ?? 'new',
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->incoming_cost_price,
+                            'selling_price' => $incomingProductType->price ?? 0,
+                            'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'tukar_tambah_id' => $tukarTambah->id,
+                            'notes' => 'Masuk dari Tukar Tambah (Update): ' . $receiptId,
+                        ]);
+                    } else {
+                        ProductDetail::create([
+                            'product_id' => $product->id,
+                            'user_id' => $inventoryUserId,
+                            'imei' => $request->incoming_imei,
+                            'storage' => $request->incoming_storage,
+                            'condition' => $request->incoming_condition ?? 'new',
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'cost_price' => $request->incoming_cost_price,
+                            'selling_price' => $incomingProductType->price ?? 0,
+                            'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                            'distributor_id' => $request->distributor_id,
+                            'tukar_tambah_id' => $tukarTambah->id,
+                            'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
+                        ]);
+                    }
                 } else {
                     $inventoryIn = \App\Models\Inventory::firstOrCreate(
                         [
