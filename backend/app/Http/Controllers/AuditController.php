@@ -1282,7 +1282,8 @@ class AuditController extends Controller
                                 $activityDeductions += (float) ($actItem['price'] ?? 0);
                             }
                         }
-                        $omsetBersih = $baseSalesOnly - $activityDeductions;
+                        $paymentTotal = array_sum($mapRp);
+                        $omsetBersih = $paymentTotal - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
