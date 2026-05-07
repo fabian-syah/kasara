@@ -160,16 +160,24 @@ class DashboardController extends Controller
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower($sale->category ?? '');
 
-            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                $cat = 'tukar_unit';
-            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
-                $cat = 'angkat_barang';
-            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
-                $cat = 'refund';
-            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                $cat = 'downgrade';
-            } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                $cat = 'tukar_tambah';
+            if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                    $cat = 'tukar_unit';
+                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                    $cat = 'tukar_tambah';
+                }
+            } else {
+                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                    $cat = 'tukar_unit';
+                } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                    $cat = 'angkat_barang';
+                } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                    $cat = 'refund';
+                } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                    $cat = 'downgrade';
+                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                    $cat = 'tukar_tambah';
+                }
             }
 
             $price = abs((float)($sale->selling_price ?? 0));
@@ -177,9 +185,9 @@ class DashboardController extends Controller
                 $price = 0;
             }
 
-            $isBaseSale = in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
-            $isTradeIn = ($origCat === 'tukar_tambah');
-            $isDeduction = in_array($origCat, ['refund', 'angkat_barang', 'downgrade']) || in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
+            $isTradeIn = ($cat === 'tukar_tambah');
+            $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
             if ($isBaseSale) {
                 $totalRevenue += $price;
@@ -376,16 +384,24 @@ class DashboardController extends Controller
                 $sa = strtolower($sale->sales_account ?? '');
                 $cat = strtolower($sale->category ?? '');
 
-                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                    $cat = 'tukar_unit';
-                } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
-                    $cat = 'angkat_barang';
-                } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
-                    $cat = 'refund';
-                } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                    $cat = 'downgrade';
-                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                    $cat = 'tukar_tambah';
+                if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                    if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                        $cat = 'tukar_unit';
+                    } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                        $cat = 'tukar_tambah';
+                    }
+                } else {
+                    if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                        $cat = 'tukar_unit';
+                    } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                        $cat = 'angkat_barang';
+                    } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                        $cat = 'refund';
+                    } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                        $cat = 'downgrade';
+                    } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                        $cat = 'tukar_tambah';
+                    }
                 }
 
                 $price = abs((float)($sale->selling_price ?? 0));

@@ -1375,7 +1375,7 @@ class AuditController extends Controller
                         }
                         $selisihTT = $tradeSelisih > 0 ? $tradeSelisih : $productTradeSelisih;
                         $paymentTotal = $baseSalesOnly + $selisihTT;
-                        $omsetBersih = $baseSalesOnly - $activityDeductions;
+                        $omsetBersih = $baseSalesOnly - $deductions;
 
                         return [
                             'payments' => $pSums,
