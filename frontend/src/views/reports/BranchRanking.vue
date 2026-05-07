@@ -169,6 +169,10 @@ const totalOmset = computed(() => {
     return filteredRanking.value.reduce((sum, item) => sum + (item.omset || 0), 0);
 });
 
+const totalOmsetBersih = computed(() => {
+    return filteredRanking.value.reduce((sum, item) => sum + (item.omset_bersih || 0), 0);
+});
+
 
 const top3 = computed(() => {
     return filteredRanking.value.slice(0, 3);
@@ -628,78 +632,95 @@ const exportToPDF = async () => {
 -->
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
-                                        Hasil Omset</th>
+                                        Total Omset</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Omset Bersih</th>
                                 </tr>
-                            </thead>
-                            <tbody :key="exportPart" class="divide-y divide-surface-800/50">
-                                <template v-for="(item, index) in (exportPart === 0 ? displayRanking : (exportPart === 1 ? (displayRanking?.slice(0, 10) || []) : (displayRanking?.slice(10 + (exportPart - 2) * 12, 10 + (exportPart - 1) * 12) || [])))" :key="item.type + '-' + (item.id || index)">
-                                    <tr class="group hover:bg-surface-800/30 transition-all duration-300"
-                                        :class="{'bg-surface-800/80' : item.isSeparator}">
-                                        
-                                        <!-- SEPARATOR TABLE ROW -->
-                                        <template v-if="item.isSeparator">
-                                            <td colspan="5" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
-                                                <div class="flex items-center gap-3 justify-center">
-                                                    <Store class="w-5 h-5 text-primary-500" />
-                                                    <span class="text-sm md:text-base font-black text-text-primary uppercase tracking-[0.2em]">{{ item.name }}</span>
-                                                    <Store class="w-5 h-5 text-primary-500" />
-                                                </div>
-                                            </td>
-                                        </template>
-
-                                        <!-- STANDARD DATA ROW -->
-                                        <template v-else>
-                                            <td class="px-4 md:px-8 py-5 md:py-7">
-                                                <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
-                                                    :class="{
-                                                        'bg-primary-500 text-white shadow-xl shadow-primary-500/20': item.localRank === 1,
-                                                        'bg-slate-400 text-surface-900': item.localRank === 2,
-                                                        'bg-amber-700 text-white': item.localRank === 3,
-                                                        'bg-surface-800 text-text-secondary border border-surface-700': item.localRank > 3
-                                                    }">{{ item.localRank }}</div>
-                                            </td>
-                                            <td class="px-4 md:px-8 py-5 md:py-7">
-                                                <div class="flex items-center gap-3 md:gap-4">
-                                                    <div
-                                                        class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110">
-                                                        <component :is="item.type === 'branch' || item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
-                                                            :class="item.type === 'branch' || item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
-                                                    </div>
-                                                    <div class="flex flex-col min-w-0">
-                                                        <span
-                                                            class="font-black text-text-primary text-xs md:text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight truncate">{{
-                                                            item.name }}</span>
-                                                        <span
-                                                            class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
-                                                            item.type === 'branch' ? 'CABANG' : item.type }} UNIT</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 md:px-8 py-5 md:py-7 text-right">
-                                                <span v-if="item.omset > 0"
-                                                    class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
-                                                    {{ formatCurrency(item.omset) }}
-                                                </span>
-                                                <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
-                                                    Belum ada penjualan
-                                                </span>
-                                            </td>
-                                        </template>
-                                    </tr>
-                                </template>
-                            </tbody>
-                            <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
-                                <tr class="bg-surface-800/50 border-t border-surface-700">
-                                    <td colspan="2" class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">
-                                        TOTAL PERIODE
-                                    </td>
-                                    <td class="px-8 py-6 text-right">
-                                        <span class="text-xl font-black text-primary-500 tabular-nums tracking-tighter drop-shadow-sm">
-                                            {{ formatCurrency(totalOmset) }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tfoot>
+                             </thead>
+                             <tbody :key="exportPart" class="divide-y divide-surface-800/50">
+                                 <template v-for="(item, index) in (exportPart === 0 ? displayRanking : (exportPart === 1 ? (displayRanking?.slice(0, 10) || []) : (displayRanking?.slice(10 + (exportPart - 2) * 12, 10 + (exportPart - 1) * 12) || [])))" :key="item.type + '-' + (item.id || index)">
+                                     <tr class="group hover:bg-surface-800/30 transition-all duration-300"
+                                         :class="{'bg-surface-800/80' : item.isSeparator}">
+                                         
+                                         <!-- SEPARATOR TABLE ROW -->
+                                         <template v-if="item.isSeparator">
+                                             <td colspan="4" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
+                                                 <div class="flex items-center gap-3 justify-center">
+                                                     <Store class="w-5 h-5 text-primary-500" />
+                                                     <span class="text-sm md:text-base font-black text-text-primary uppercase tracking-[0.2em]">{{ item.name }}</span>
+                                                     <Store class="w-5 h-5 text-primary-500" />
+                                                 </div>
+                                             </td>
+                                         </template>
+ 
+                                         <!-- STANDARD DATA ROW -->
+                                         <template v-else>
+                                             <td class="px-4 md:px-8 py-5 md:py-7">
+                                                 <div class="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-xl font-black text-xs md:text-sm"
+                                                     :class="{
+                                                         'bg-primary-500 text-white shadow-xl shadow-primary-500/20': item.localRank === 1,
+                                                         'bg-slate-400 text-surface-900': item.localRank === 2,
+                                                         'bg-amber-700 text-white': item.localRank === 3,
+                                                         'bg-surface-800 text-text-secondary border border-surface-700': item.localRank > 3
+                                                     }">{{ item.localRank }}</div>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7">
+                                                 <div class="flex items-center gap-3 md:gap-4">
+                                                     <div
+                                                         class="w-9 h-9 md:w-10 md:h-10 rounded-2xl flex items-center justify-center shrink-0 transition-transform bg-surface-800 border border-surface-700 shadow-inner group-hover:scale-110">
+                                                         <component :is="item.type === 'branch' || item.type === 'Offline' ? Store : Globe" class="w-4 h-4 md:w-5 md:h-5"
+                                                             :class="item.type === 'branch' || item.type === 'Offline' ? 'text-primary-500' : 'text-blue-400'" />
+                                                     </div>
+                                                     <div class="flex flex-col min-w-0">
+                                                         <span
+                                                             class="font-black text-text-primary text-xs md:text-sm uppercase group-hover:text-primary-400 transition-colors tracking-tight truncate">{{
+                                                             item.name }}</span>
+                                                         <span
+                                                             class="text-[8px] font-black text-surface-600 uppercase tracking-widest">{{
+                                                             item.type === 'branch' ? 'CABANG' : item.type }} UNIT</span>
+                                                     </div>
+                                                 </div>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.omset > 0"
+                                                     class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
+                                                     {{ formatCurrency(item.omset) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] md:text-sm font-bold text-orange-500 uppercase italic opacity-70">
+                                                     Belum ada penjualan
+                                                 </span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.omset_bersih !== undefined"
+                                                     class="text-base md:text-lg font-black text-emerald-500 tabular-nums tracking-tight">
+                                                     {{ formatCurrency(item.omset_bersih) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] md:text-sm font-bold text-text-secondary uppercase italic opacity-70">
+                                                     -
+                                                 </span>
+                                             </td>
+                                         </template>
+                                     </tr>
+                                 </template>
+                             </tbody>
+                             <tfoot v-if="filteredRanking.length > 0 && (exportPart === 0 || exportPart === (displayRanking.length > 10 ? 1 + Math.ceil((displayRanking.length - 10) / 12) : 1))">
+                                 <tr class="bg-surface-800/50 border-t border-surface-700">
+                                     <td colspan="2" class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">
+                                         TOTAL PERIODE
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-xl font-black text-primary-500 tabular-nums tracking-tighter drop-shadow-sm">
+                                             {{ formatCurrency(totalOmset) }}
+                                         </span>
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-xl font-black text-emerald-500 tabular-nums tracking-tighter drop-shadow-sm">
+                                             {{ formatCurrency(totalOmsetBersih) }}
+                                         </span>
+                                     </td>
+                                 </tr>
+                             </tfoot>
                         </table>
                     </div>
                 </div>

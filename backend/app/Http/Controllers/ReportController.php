@@ -661,7 +661,20 @@ class ReportController extends Controller
                      OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
                 THEN COALESCE(stock_outs.selling_price, 0) 
                 ELSE 0 
-            END) as ab_amount")
+            END) as ab_amount"),
+            DB::raw("SUM(
+                CASE 
+                    WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                         AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                    THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                    WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                         OR (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
+                         OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
+                         OR (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                    THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                    ELSE 0
+                END
+            ) as omset_bersih")
         )
         ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
         ->get();
@@ -730,12 +743,14 @@ class ReportController extends Controller
             
             // Total Omset = Sales (Consistent with Dashboard Ranking)
             $omset = $branchBase->sum('sales_omset');
+            $omsetBersih = $branchBase->sum('omset_bersih');
 
             return (object) [
                 'id' => $b->id,
                 'name' => $b->name,
                 'type' => 'Offline',
                 'omset' => (float) $omset,
+                'omset_bersih' => (float) $omsetBersih,
                 'transaction_count' => (int) $branchBase->sum('transaction_count'),
                 'refund_count' => (int) $branchBase->sum('refund_count'),
                 'refund_amount' => (float) $branchBase->sum('refund_amount'),
@@ -761,12 +776,14 @@ class ReportController extends Controller
             $topModels = $androidModels->where('online_shop_id', $s->id)->take(3)->pluck('model_name')->toArray();
             
             $omset = $shopBase->sum('sales_omset');
+            $omsetBersih = $shopBase->sum('omset_bersih');
 
             return (object) [
                 'id' => $s->id,
                 'name' => $s->name,
                 'type' => 'Online',
                 'omset' => (float) $omset,
+                'omset_bersih' => (float) $omsetBersih,
                 'transaction_count' => (int) $shopBase->sum('transaction_count'),
                 'refund_count' => (int) $shopBase->sum('refund_count'),
                 'refund_amount' => (float) $shopBase->sum('refund_amount'),
