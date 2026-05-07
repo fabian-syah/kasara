@@ -1030,6 +1030,7 @@ class AuditController extends Controller
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                        $productTradeSelisih = 0;
                         $soldDetails = [];
                         $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
                         $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'others' => []];
@@ -1112,11 +1113,15 @@ class AuditController extends Controller
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
                             $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
 
-                            if ($isStandardSale || $catLower === 'tukar_tambah') {
+                             if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 // For Tukar Tambah, use absolute price difference from the record itself, not the item price
                                 $price = ($catLower === 'tukar_tambah') 
                                     ? abs((float)$hp->total_diff) 
                                     : (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                                    
+                                if ($catLower === 'tukar_tambah') {
+                                    $productTradeSelisih += abs((float)$hp->total_diff);
+                                }
                                     
                                 if (!isset($mapRp[$itemCat])) $mapRp[$itemCat] = 0;
                                 $mapRp[$itemCat] += $price;
@@ -1204,6 +1209,10 @@ class AuditController extends Controller
                                     ? abs((float)$item->selling_price)
                                     : (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
                                 
+                                if ($catLower === 'tukar_tambah') {
+                                    $productTradeSelisih += abs((float)$item->selling_price) * $qty;
+                                }
+                                
                                 $mapRp[$cat] += $pricePerItem * $qty;
                                 
                                 $soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] ?? 0) + $qty;
@@ -1282,8 +1291,9 @@ class AuditController extends Controller
                                 $activityDeductions += (float) ($actItem['price'] ?? 0);
                             }
                         }
-                        $paymentTotal = array_sum($mapRp);
-                        $omsetBersih = $paymentTotal - $activityDeductions;
+                        $penjualanStore = array_sum($mapRp) - $productTradeSelisih;
+                        $paymentTotal = $penjualanStore + $productTradeSelisih;
+                        $omsetBersih = $penjualanStore - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
