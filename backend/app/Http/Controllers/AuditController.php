@@ -39,7 +39,7 @@ class AuditController extends Controller
             // Global exclusion for super_admin and analist roles
             if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
                 $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
-                
+
                 if (!empty($branchIds)) {
                     $branchIds = Branch::whereIn('id', $branchIds)
                         ->where(function ($q) use ($excludedTerms) {
@@ -242,7 +242,7 @@ class AuditController extends Controller
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                             $q->whereBetween('reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                ->orWhereBetween('created_at', [$startTS, $endTS]);
                         })
                         ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
                             if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee')
@@ -301,59 +301,65 @@ class AuditController extends Controller
                     $hpQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $successCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         })
                         ->when($requestedCondition, fn($q) => $q->where('product_details.condition', $requestedCondition))->when($requestedProductTypeId, fn($q) => $q->where('products.id', $requestedProductTypeId))->when($requestedCapacity, fn($q) => $q->where('product_details.storage', $requestedCapacity))->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId))->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        $userCheck = function($sq, $col, $ids) {
-                            $sq->orWhereIn("stock_outs.$col", $ids)
-                               ->orWhereExists(function($sub) use ($col, $ids) {
-                                   $sub->select(DB::raw(1))->from('users')
-                                       ->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")
-                                       ->whereIn("users.$col", $ids);
-                               });
-                        };
+                            $userCheck = function ($sq, $col, $ids) {
+                                $sq->orWhereIn("stock_outs.$col", $ids)
+                                    ->orWhereExists(function ($sub) use ($col, $ids) {
+                                        $sub->select(DB::raw(1))->from('users')
+                                            ->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")
+                                            ->whereIn("users.$col", $ids);
+                                    });
+                            };
 
-                        if ($requestedBranchId) {
-                            $q->where('stock_outs.branch_id', $requestedBranchId);
-                        } elseif ($requestedOnlineShopId) {
-                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-                        } elseif ($requestedWarehouseId) {
-                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
-                        } elseif ($requestedDistributorId) {
-                            $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
-                        } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                                if (!empty($warehouseIds)) $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                                if (!empty($distributorIds)) {
-                                    $sub->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.distributor_id', $distributorIds));
-                                }
-                            });
-                        }
-                    })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as qty'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
+                            if ($requestedBranchId) {
+                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                            } elseif ($requestedOnlineShopId) {
+                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                            } elseif ($requestedWarehouseId) {
+                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                            } elseif ($requestedDistributorId) {
+                                $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
+                            } else {
+                                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds))
+                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds);
+                                    if (!empty($onlineShopIds))
+                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                                    if (!empty($warehouseIds))
+                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                                    if (!empty($distributorIds)) {
+                                        $sub->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.distributor_id', $distributorIds));
+                                    }
+                                });
+                            }
+                        })->select('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name as distributor_name', DB::raw('count(*) as qty'))->groupBy('products.brand', 'products.name', 'product_details.condition', 'product_details.storage', 'distributors.name')->get();
                     $nhpQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) {
-                            $q->where('stock_outs.branch_id', $requestedBranchId);
-                        } elseif ($requestedOnlineShopId) {
-                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-                        } elseif ($requestedWarehouseId) {
-                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
-                        } elseif ($requestedDistributorId) {
-                            $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
-                        } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                                if (!empty($warehouseIds)) $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            });
-                        }
-                    })->select('products.brand', 'products.name', DB::raw('sum(quantity) as qty'))->groupBy('products.brand', 'products.name')->get();
+                            if ($requestedBranchId) {
+                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                            } elseif ($requestedOnlineShopId) {
+                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                            } elseif ($requestedWarehouseId) {
+                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                            } elseif ($requestedDistributorId) {
+                                $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
+                            } else {
+                                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds))
+                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds);
+                                    if (!empty($onlineShopIds))
+                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                                    if (!empty($warehouseIds))
+                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                                });
+                            }
+                        })->select('products.brand', 'products.name', DB::raw('sum(quantity) as qty'))->groupBy('products.brand', 'products.name')->get();
                     return ['hp' => $hpQuery, 'nhp' => $nhpQuery];
                 },
 
@@ -364,39 +370,39 @@ class AuditController extends Controller
                     // AUTO-REPAIR: If inventory_user_id is missing or same as user_id but sales_account string exists, sync it
                     // This fixes existing transactions that were misattributed to the main account
                     DB::table('stock_outs')
-                        ->where(function($q) {
-                            $q->whereNull('inventory_user_id')
-                              ->orWhereRaw('inventory_user_id = user_id');
-                        })
+                        ->where(function ($q) {
+                        $q->whereNull('inventory_user_id')
+                            ->orWhereRaw('inventory_user_id = user_id');
+                    })
                         ->whereNotNull('sales_account')
                         ->whereBetween('reporting_date', [$startDate, $endDate])
                         ->get()
-                        ->each(function($trx) {
-                            $user = \App\Models\User::where('name', $trx->sales_account)->first();
-                            if ($user && $user->id != $trx->inventory_user_id) {
-                                DB::table('stock_outs')->where('id', $trx->id)->update(['inventory_user_id' => $user->id]);
-                            }
-                        });
-                    
+                        ->each(function ($trx) {
+                        $user = \App\Models\User::where('name', $trx->sales_account)->first();
+                        if ($user && $user->id != $trx->inventory_user_id) {
+                            DB::table('stock_outs')->where('id', $trx->id)->update(['inventory_user_id' => $user->id]);
+                        }
+                    });
+
                     // Unified date logic with created_at fallback
                     $startTS = $startDate . ' 05:00:00';
                     $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                     $baseQuery->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                         $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                          ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                            ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                     });
 
                     $baseQuery->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
-                        $userCheck = function($sq, $col, $ids) {
+                        $userCheck = function ($sq, $col, $ids) {
                             $sq->orWhereIn("stock_outs.$col", $ids)
-                               ->orWhere(function ($ssq) use ($col, $ids) {
-                                   $ssq->whereNull("stock_outs.$col")
-                                       ->whereExists(function($sub) use ($col, $ids) {
-                                           $sub->select(DB::raw(1))->from('users')
-                                               ->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")
-                                               ->whereIn("users.$col", $ids);
-                                       });
-                               });
+                                ->orWhere(function ($ssq) use ($col, $ids) {
+                                    $ssq->whereNull("stock_outs.$col")
+                                        ->whereExists(function ($sub) use ($col, $ids) {
+                                            $sub->select(DB::raw(1))->from('users')
+                                                ->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")
+                                                ->whereIn("users.$col", $ids);
+                                        });
+                                });
                         };
 
                         if ($requestedBranchId) {
@@ -409,9 +415,12 @@ class AuditController extends Controller
                             $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
                         } else {
                             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                                if (!empty($warehouseIds)) $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                                if (!empty($branchIds))
+                                    $sub->orWhereIn('stock_outs.branch_id', $branchIds);
+                                if (!empty($onlineShopIds))
+                                    $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                                if (!empty($warehouseIds))
+                                    $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
                                 if (!empty($distributorIds)) {
                                     $sub->orWhereExists(fn($ssq) => $ssq->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->whereIn('users.distributor_id', $distributorIds));
                                 }
@@ -458,18 +467,19 @@ class AuditController extends Controller
                     $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
 
                     // Sales Stats Query (Only standard sales)
-                    $salesBase = (clone $baseQuery)->where(function($q) use ($stdSalesCats) {
+                    $salesBase = (clone $baseQuery)->where(function ($q) use ($stdSalesCats) {
                         $q->whereIn('stock_outs.category', $stdSalesCats)
-                          ->orWhereNull('stock_outs.category');
+                            ->orWhereNull('stock_outs.category');
                     });
-                    
+
                     $itemStatsQuery = (clone $salesBase)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('products', 'product_details.product_id', '=', 'products.id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(case when UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' then 1 else 0 end) as iphone_units"), DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
                     $nhpStatsQuery = (clone $salesBase)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
 
                     // Activity Unit breakdown (IMEI + Non-HP)
                     $activityItemQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
                         ->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
-                        ->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), 
+                        ->select(
+                            DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
                             DB::raw("sum(case when stock_outs.category = 'tukar_unit' then 1 else 0 end) as tu_imei"),
                             DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then 1 else 0 end) as tt_imei"),
                             DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as dw_imei"),
@@ -480,7 +490,8 @@ class AuditController extends Controller
 
                     $activityNhpQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
                         ->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
-                        ->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), 
+                        ->select(
+                            DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
                             DB::raw("sum(case when stock_outs.category = 'tukar_unit' then stock_out_non_hp_items.quantity else 0 end) as tu_nhp"),
                             DB::raw("sum(case when stock_outs.category = 'tukar_tambah' then stock_out_non_hp_items.quantity else 0 end) as tt_nhp"),
                             DB::raw("sum(case when stock_outs.category = 'downgrade' then stock_out_non_hp_items.quantity else 0 end) as dw_nhp"),
@@ -488,11 +499,16 @@ class AuditController extends Controller
                             DB::raw("sum(case when stock_outs.category = 'refund' then stock_out_non_hp_items.quantity else 0 end) as rf_nhp"),
                             DB::raw("sum(case when stock_outs.category = 'retur' then stock_out_non_hp_items.quantity else 0 end) as rt_nhp")
                         )->groupBy('owner_id')->get()->keyBy('owner_id');
-                    
+
                     $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
-                    })->select('owners.id as owner_id', 'owners.name as cs_name', 'owners.full_name as full_name', 'owners.photo as photo', 'owners.photo_inventory as photo_inv', 
-                        DB::raw("sum(CASE 
+                    })->select(
+                            'owners.id as owner_id',
+                            'owners.name as cs_name',
+                            'owners.full_name as full_name',
+                            'owners.photo as photo',
+                            'owners.photo_inventory as photo_inv',
+                            DB::raw("sum(CASE 
                             WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
                                  OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
                                  OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
@@ -502,52 +518,53 @@ class AuditController extends Controller
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
-                        END) as grand_total"), 
-                        DB::raw("sum(case 
+                        END) as grand_total"),
+                            DB::raw("sum(case 
                             when stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
                                  OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
                                  OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
                                  OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
                             then ABS(COALESCE(stock_outs.selling_price, 0)) 
                             else 0 
-                        end) as total_activity_rp"))
+                        end) as total_activity_rp")
+                        )
                         ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
-                    
+
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $activityItemQuery, $activityNhpQuery, $hpBreakdown, $nhpBreakdown) {
                         $items = $itemStatsQuery->get($stat->owner_id);
                         $nhp = $nhpStatsQuery->get($stat->owner_id);
                         $actItems = $activityItemQuery->get($stat->owner_id);
                         $actNhp = $activityNhpQuery->get($stat->owner_id);
 
-                        $stat->total_tu = (int)($actItems->tu_imei ?? 0) + (int)($actNhp->tu_nhp ?? 0);
-                        $stat->total_tt = (int)($actItems->tt_imei ?? 0) + (int)($actNhp->tt_nhp ?? 0);
-                        $stat->total_dw = (int)($actItems->dw_imei ?? 0) + (int)($actNhp->dw_nhp ?? 0);
-                        $stat->total_ab = (int)($actItems->ab_imei ?? 0) + (int)($actNhp->ab_nhp ?? 0);
-                        $stat->total_refund = (int)($actItems->rf_imei ?? 0) + (int)($actNhp->rf_nhp ?? 0);
-                        $stat->total_retur = (int)($actItems->rt_imei ?? 0) + (int)($actNhp->rt_nhp ?? 0);
+                        $stat->total_tu = (int) ($actItems->tu_imei ?? 0) + (int) ($actNhp->tu_nhp ?? 0);
+                        $stat->total_tt = (int) ($actItems->tt_imei ?? 0) + (int) ($actNhp->tt_nhp ?? 0);
+                        $stat->total_dw = (int) ($actItems->dw_imei ?? 0) + (int) ($actNhp->dw_nhp ?? 0);
+                        $stat->total_ab = (int) ($actItems->ab_imei ?? 0) + (int) ($actNhp->ab_nhp ?? 0);
+                        $stat->total_refund = (int) ($actItems->rf_imei ?? 0) + (int) ($actNhp->rf_nhp ?? 0);
+                        $stat->total_retur = (int) ($actItems->rt_imei ?? 0) + (int) ($actNhp->rt_nhp ?? 0);
                         $iphone = (int) ($items->iphone_units ?? 0);
                         $android = (int) ($items->android_units ?? 0);
                         $nonHp = (int) ($nhp->non_hp_units ?? 0);
 
-                        $breakdown = ($hpBreakdown->get($stat->owner_id) ?? collect())->map(function($b) {
+                        $breakdown = ($hpBreakdown->get($stat->owner_id) ?? collect())->map(function ($b) {
                             return [
                                 'brand' => $b->brand,
                                 'name' => $b->name,
                                 'condition' => $b->condition,
                                 'storage' => $b->storage,
                                 'distributor' => $b->distributor,
-                                'qty' => (int)$b->qty,
+                                'qty' => (int) $b->qty,
                                 'category' => $b->category,
                                 'is_hp' => true
                             ];
-                        })->concat(($nhpBreakdown->get($stat->owner_id) ?? collect())->map(function($b) {
+                        })->concat(($nhpBreakdown->get($stat->owner_id) ?? collect())->map(function ($b) {
                             return [
                                 'brand' => $b->brand,
                                 'name' => $b->name,
                                 'condition' => 'new',
                                 'storage' => null,
                                 'distributor' => $b->distributor,
-                                'qty' => (int)$b->qty,
+                                'qty' => (int) $b->qty,
                                 'category' => $b->category,
                                 'is_hp' => false
                             ];
@@ -578,37 +595,42 @@ class AuditController extends Controller
                 function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $startTS = $startDate . ' 05:00:00';
                     $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
-                    
+
                     $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
-                        if ($requestedBranchId) {
-                            $q->where('stock_outs.branch_id', $requestedBranchId);
-                        } elseif ($requestedOnlineShopId) {
-                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-                        } elseif ($requestedWarehouseId) {
-                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
-                        } elseif ($requestedDistributorId) {
-                            $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
-                        } else {
-                            $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                                if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                                if (!empty($warehouseIds)) $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            });
-                        }
-                    });
+                            if ($requestedBranchId) {
+                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                            } elseif ($requestedOnlineShopId) {
+                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                            } elseif ($requestedWarehouseId) {
+                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                            } elseif ($requestedDistributorId) {
+                                $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
+                            } else {
+                                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds))
+                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds);
+                                    if (!empty($onlineShopIds))
+                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                                    if (!empty($warehouseIds))
+                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                                });
+                            }
+                        });
 
                     $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                         ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                         ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
                         ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
-                        ->select('reporting_date', 
-                            DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"), 
-                            DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units"))
+                        ->select(
+                            'reporting_date',
+                            DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"),
+                            DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units")
+                        )
                         ->groupBy('reporting_date')->get()->keyBy('reporting_date');
 
                     $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
@@ -616,7 +638,8 @@ class AuditController extends Controller
                         ->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))
                         ->groupBy('reporting_date')->get()->keyBy('reporting_date');
 
-                    $mainStats = (clone $baseQuery)->select('reporting_date', 
+                    $mainStats = (clone $baseQuery)->select(
+                        'reporting_date',
                         DB::raw("sum(
                             CASE 
                                 WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
@@ -624,7 +647,8 @@ class AuditController extends Controller
                                 THEN ABS(COALESCE(selling_price, 0))
                                 ELSE 0
                             END
-                        ) as total_omset"))
+                        ) as total_omset")
+                    )
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 
                     return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
@@ -647,99 +671,147 @@ class AuditController extends Controller
                 // 5. Type Stats
                 function () use ($successCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $hp = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select('products.name', 'products.brand', DB::raw('count(*) as qty'))->groupBy('products.name', 'products.brand');
 
                     $nhp = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select('products.name', 'products.brand', DB::raw('sum(quantity) as qty'))->groupBy('products.name', 'products.brand');
 
-                    return $hp->get()->concat($nhp->get())->groupBy(fn($i) => $i->brand . '|' . $i->name)->map(function($group) {
-                        return (object)[ 'brand' => $group[0]->brand, 'name' => $group[0]->name, 'qty' => $group->sum('qty') ];
+                    return $hp->get()->concat($nhp->get())->groupBy(fn($i) => $i->brand . '|' . $i->name)->map(function ($group) {
+                        return (object) ['brand' => $group[0]->brand, 'name' => $group[0]->name, 'qty' => $group->sum('qty')];
                     })->values();
                 },
 
                 // 6. Condition Stats
                 function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $hp = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select('product_details.condition', DB::raw('count(*) as qty'))->groupBy('product_details.condition');
 
                     $nhp = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select(DB::raw("'new' as condition"), DB::raw('sum(quantity) as qty'))->groupBy('condition');
 
-                    return $hp->get()->concat($nhp->get())->groupBy('condition')->map(function($group) {
-                        return (object)[ 'condition' => $group[0]->condition, 'qty' => $group->sum('qty') ];
+                    return $hp->get()->concat($nhp->get())->groupBy('condition')->map(function ($group) {
+                        return (object) ['condition' => $group[0]->condition, 'qty' => $group->sum('qty')];
                     })->values();
                 },
 
                 // 7. Distributor Stats
                 function () use ($successCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $hp = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), DB::raw('count(*) as qty'))->groupBy('distributor');
 
                     $nhp = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                        if ($requestedBranchId) { $q->where('stock_outs.branch_id', $requestedBranchId); }
-                        elseif ($requestedOnlineShopId) { $q->where('stock_outs.online_shop_id', $requestedOnlineShopId); }
-                        elseif ($requestedWarehouseId) { $q->where('stock_outs.warehouse_id', $requestedWarehouseId); }
-                        elseif ($requestedDistributorId) { $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId)); }
-                        else {
-                            if (!empty($branchIds)) $q->orWhereIn('stock_outs.branch_id', $branchIds);
-                            if (!empty($onlineShopIds)) $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                            if (!empty($warehouseIds)) $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
-                            if (!empty($distributorIds)) $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
+                        if ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId);
+                        } elseif ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        } elseif ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                        } elseif ($requestedDistributorId) {
+                            $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                        } else {
+                            if (!empty($branchIds))
+                                $q->orWhereIn('stock_outs.branch_id', $branchIds);
+                            if (!empty($onlineShopIds))
+                                $q->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                            if (!empty($warehouseIds))
+                                $q->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                            if (!empty($distributorIds))
+                                $q->whereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
                         }
                     })->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), DB::raw('sum(quantity) as qty'))->groupBy('distributor');
 
-                    return $hp->get()->concat($nhp->get())->groupBy('distributor')->map(function($group) {
-                        return (object)[ 'distributor' => $group[0]->distributor, 'qty' => $group->sum('qty') ];
+                    return $hp->get()->concat($nhp->get())->groupBy('distributor')->map(function ($group) {
+                        return (object) ['distributor' => $group[0]->distributor, 'qty' => $group->sum('qty')];
                     })->values();
                 },
 
@@ -797,7 +869,7 @@ class AuditController extends Controller
                         $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isUnrestricted, $isAnalist, $isSuperAdmin) {
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
-                            
+
                             $query->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                                 $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                     ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
@@ -913,9 +985,9 @@ class AuditController extends Controller
                         // 1. Total Omset & Payments (Memory-efficient aggregation)
                         $pQuery = DB::table('stock_outs');
                         $applyLocalScope($pQuery);
-                        
+
                         $pSums = [];
-                        
+
                         // Categories that count towards Omset (Revenue)
                         $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling'];
 
@@ -974,7 +1046,7 @@ class AuditController extends Controller
 
                         foreach ($rawStats as $ps) {
                             $cat = $resolveActualCategory($ps->category, $ps->notes, $ps->sales_account);
-                            $price = abs((float)$ps->selling_price);
+                            $price = abs((float) $ps->selling_price);
 
                             $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling']);
                             $isTradeIn = ($cat === 'tukar_tambah');
@@ -993,7 +1065,7 @@ class AuditController extends Controller
                                         if ($cat === 'tukar_unit') {
                                             $amt = 0;
                                         }
-                                        
+
                                         if ($isBaseSale) {
                                             $baseSalesOnly += $amt;
                                         } elseif ($isTradeIn) {
@@ -1037,12 +1109,12 @@ class AuditController extends Controller
 
                         $getCategoryByItem = function ($did, $isHp = false) {
                             $did = (int) $did;
-                            
+
                             $idMap = [
-                                6  => 'apple_lux',      // Apple Luxury
-                                7  => 'hp',              // Android New
-                                8  => 'hp',              // Apple Merakyat
-                                9  => 'hp',              // Android Second
+                                6 => 'apple_lux',      // Apple Luxury
+                                7 => 'hp',              // Android New
+                                8 => 'hp',              // Apple Merakyat
+                                9 => 'hp',              // Android Second
                                 10 => 'accessories',     // Pstore Accesories
                                 11 => 'apply',           // Apply
                                 13 => 'debs',            // Debs
@@ -1080,7 +1152,8 @@ class AuditController extends Controller
                                         $map['android']++;
                                     }
 
-                                    if (!isset($map[$itemCategory])) $map[$itemCategory] = 0;
+                                    if (!isset($map[$itemCategory]))
+                                        $map[$itemCategory] = 0;
                                     $map[$itemCategory]++;
                                 }
                             }
@@ -1096,8 +1169,8 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account')->get() as $hp) {
-                            $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff')->get() as $hp) {
+                            $catLower = strtolower($hp->category ?? '');
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
@@ -1109,21 +1182,22 @@ class AuditController extends Controller
 
                             // Standard sales criteria: Exclude refunds, and downgrades from standard unit/revenue maps
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
-                            
-                            $itemCat = $getCategoryByItem($hp->distributor_id, true);
-                            $addUnitToMap($map, $hp->brand, $itemCat, $catLower);
 
-                             if ($isStandardSale || $catLower === 'tukar_tambah') {
+                            $itemCat = $getCategoryByItem($hp->distributor_id, true);
+                            $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
+
+                            if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 // For Tukar Tambah, use absolute price difference from the record itself, not the item price
-                                $price = ($catLower === 'tukar_tambah') 
-                                    ? abs((float)$hp->total_diff) 
+                                $price = ($catLower === 'tukar_tambah')
+                                    ? abs((float) $hp->total_diff)
                                     : (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
-                                    
+
                                 if ($catLower === 'tukar_tambah') {
-                                    $productTradeSelisih += abs((float)$hp->total_diff);
+                                    $productTradeSelisih += abs((float) $hp->total_diff);
                                 }
-                                    
-                                if (!isset($mapRp[$itemCat])) $mapRp[$itemCat] = 0;
+
+                                if (!isset($mapRp[$itemCat]))
+                                    $mapRp[$itemCat] = 0;
                                 $mapRp[$itemCat] += $price;
                                 $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
                             }
@@ -1132,18 +1206,19 @@ class AuditController extends Controller
                         // 2. Non-IMEI transactions
                         $nhpItems = \App\Models\StockOutNonHpItem::with(['product', 'stockOut'])
                             ->whereHas('stockOut', function ($q) use ($startDate, $endDate, $salesCategories, $applyLocalScope) {
-                                $q->whereIn('category', $salesCategories)
-                                    ->whereBetween('reporting_date', [$startDate, $endDate]);
-                                $applyLocalScope($q);
-                            })
+                            $q->whereIn('category', $salesCategories)
+                                ->whereBetween('reporting_date', [$startDate, $endDate]);
+                            $applyLocalScope($q);
+                        })
                             ->get();
 
                         foreach ($nhpItems as $item) {
                             $trx = $item->stockOut;
-                            if (!$trx) continue;
+                            if (!$trx)
+                                continue;
 
-                            $catLower = $resolveActualCategory($trx->category, $trx->notes, $trx->sales_account);
-                            
+                            $catLower = strtolower($trx->category ?? '');
+
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => ($item->product?->name ?? 'Unknown') . " (Qty: {$item->quantity})",
@@ -1153,7 +1228,7 @@ class AuditController extends Controller
                             }
 
                             $did = $item->distributor_id;
-                            
+
                             // Fallback 1: Product's default distributor
                             if (!$did && $item->product) {
                                 $did = $item->product->distributor_id;
@@ -1182,7 +1257,7 @@ class AuditController extends Controller
 
                             // Breakdown for non-IMEI HP if any
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
-                            
+
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 if ($cat === 'apple_lux') {
                                     $map['apple_lux'] += $qty;
@@ -1192,29 +1267,32 @@ class AuditController extends Controller
                                         $map['iphone'] += $qty;
                                     else
                                         $map['android'] += $qty;
-                                    
-                                    if (!isset($map['hp'])) $map['hp'] = 0;
+
+                                    if (!isset($map['hp']))
+                                        $map['hp'] = 0;
                                     $map['hp'] += $qty;
                                 } else {
-                                    if (!isset($map[$cat])) $map[$cat] = 0;
+                                    if (!isset($map[$cat]))
+                                        $map[$cat] = 0;
                                     $map[$cat] += $qty;
                                 }
                             }
-                            
+
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
-                                if (!isset($mapRp[$cat])) $mapRp[$cat] = 0;
-                                
+                                if (!isset($mapRp[$cat]))
+                                    $mapRp[$cat] = 0;
+
                                 // For Tukar Tambah, use absolute price difference
                                 $pricePerItem = ($catLower === 'tukar_tambah')
-                                    ? abs((float)$item->selling_price)
+                                    ? abs((float) $item->selling_price)
                                     : (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
-                                
+
                                 if ($catLower === 'tukar_tambah') {
-                                    $productTradeSelisih += abs((float)$item->selling_price) * $qty;
+                                    $productTradeSelisih += abs((float) $item->selling_price) * $qty;
                                 }
-                                
+
                                 $mapRp[$cat] += $pricePerItem * $qty;
-                                
+
                                 $soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] = ($soldDetails[$cat][$item->product?->name ?? 'Unknown non-hp'] ?? 0) + $qty;
                             }
                         }
@@ -1234,8 +1312,10 @@ class AuditController extends Controller
                         foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
                             $cat = $getCategoryByItem($s->distributor_id);
                             $cleanName = trim($s->name);
-                            if (!isset($rawStockDetails[$cat])) $rawStockDetails[$cat] = [];
-                            if (!isset($stockReport[$cat])) $stockReport[$cat] = 0;
+                            if (!isset($rawStockDetails[$cat]))
+                                $rawStockDetails[$cat] = [];
+                            if (!isset($stockReport[$cat]))
+                                $stockReport[$cat] = 0;
                             $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $s->qty;
                             $stockReport[$cat] += $s->qty;
                         }
@@ -1274,8 +1354,10 @@ class AuditController extends Controller
                             $cat = $getCategoryByItem($did);
                             $cleanName = trim($s->name);
                             $qty = (int) $s->quantity;
-                            if (!isset($rawStockDetails[$cat])) $rawStockDetails[$cat] = [];
-                            if (!isset($stockReport[$cat])) $stockReport[$cat] = 0;
+                            if (!isset($rawStockDetails[$cat]))
+                                $rawStockDetails[$cat] = [];
+                            if (!isset($stockReport[$cat]))
+                                $stockReport[$cat] = 0;
                             $rawStockDetails[$cat][$cleanName] = ($rawStockDetails[$cat][$cleanName] ?? 0) + $qty;
                             $stockReport[$cat] += $qty;
                         }
@@ -1291,9 +1373,8 @@ class AuditController extends Controller
                                 $activityDeductions += (float) ($actItem['price'] ?? 0);
                             }
                         }
-                        $penjualanStore = array_sum($mapRp) - $productTradeSelisih;
-                        $paymentTotal = $penjualanStore + $productTradeSelisih;
-                        $omsetBersih = $penjualanStore - $activityDeductions;
+                        $paymentTotal = array_sum($mapRp);
+                        $omsetBersih = $paymentTotal - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
@@ -1361,10 +1442,19 @@ class AuditController extends Controller
                 // Pre-identify exchange data
                 $exchangeInfo = null;
                 $exchangeType = '';
-                if ($catLower === 'tukar_tambah') { $exchangeInfo = $ttData->get($receiptId); $exchangeType = 'TUKAR TAMBAH'; }
-                elseif ($catLower === 'downgrade') { $exchangeInfo = $dgData->get($receiptId); $exchangeType = 'DOWNGRADE'; }
-                elseif ($catLower === 'tukar_unit') { $exchangeInfo = $ueData->get($receiptId); $exchangeType = 'TUKAR UNIT'; }
-                elseif ($catLower === 'refund') { $exchangeInfo = $rfData->get($receiptId); $exchangeType = 'REFUND'; }
+                if ($catLower === 'tukar_tambah') {
+                    $exchangeInfo = $ttData->get($receiptId);
+                    $exchangeType = 'TUKAR TAMBAH';
+                } elseif ($catLower === 'downgrade') {
+                    $exchangeInfo = $dgData->get($receiptId);
+                    $exchangeType = 'DOWNGRADE';
+                } elseif ($catLower === 'tukar_unit') {
+                    $exchangeInfo = $ueData->get($receiptId);
+                    $exchangeType = 'TUKAR UNIT';
+                } elseif ($catLower === 'refund') {
+                    $exchangeInfo = $rfData->get($receiptId);
+                    $exchangeType = 'REFUND';
+                }
 
                 foreach ($trx->items as $item) {
                     $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
@@ -1382,13 +1472,13 @@ class AuditController extends Controller
                     if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
                         $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
                         $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        
+
                         // Add a special "Incoming" item to the details array
                         // This makes it show as a second row in CheckSales and Nota
                         $details[] = [
                             'name' => "IN: " . $inProd,
                             'qty' => 1,
-                            'price' => -(float)($exchangeInfo->incoming_cost_price ?? 0),
+                            'price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
                             'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
                             'type' => 'IN',
                             'is_hp' => true,
@@ -1466,18 +1556,18 @@ class AuditController extends Controller
                     $grouped = [];
                     $bundles = [];
                     $fallbackBundleName = $trx->bundle_description ?: 'Paket Bundling';
-                    
+
                     // Prepare bundle components for smarter matching (historical data)
                     $bundleComponents = [];
                     if ($fallbackBundleName) {
                         $descPart = str_replace('Paket Bundling:', '', $fallbackBundleName);
                         $bundleComponents = array_map('trim', explode(',', $descPart));
                     }
-                    
+
                     foreach ($details as $d) {
                         $bundleTag = $d['notes'] ?? null;
                         $cleanName = str_replace('📦 ', '', $d['name']);
-                        
+
                         $isPartOfBundle = false;
                         $groupKey = $bundleTag;
 
@@ -1494,7 +1584,7 @@ class AuditController extends Controller
                                 }
                             }
                         }
-                        
+
                         if ($isPartOfBundle && $groupKey) {
                             if (!isset($bundles[$groupKey])) {
                                 $bundles[$groupKey] = [
@@ -1524,13 +1614,13 @@ class AuditController extends Controller
                             $grouped[] = $d;
                         }
                     }
-                    
+
                     foreach ($bundles as $bName => $bData) {
                         $bData['imei'] = implode(', ', array_unique($bData['imei'])) ?: '-';
                         $bData['distributor_name'] = implode(', ', array_unique($bData['distributor_name'])) ?: 'KOSONG';
                         $grouped[] = $bData;
                     }
-                    
+
                     if (!empty($bundles)) {
                         $details = $grouped;
                     }
@@ -1557,9 +1647,9 @@ class AuditController extends Controller
                 }
                 $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function($sp) use ($isNeg) {
+                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function ($sp) use ($isNeg) {
                     if ($isNeg) {
-                        $sp['amount'] = -abs((float)($sp['amount'] ?? 0));
+                        $sp['amount'] = -abs((float) ($sp['amount'] ?? 0));
                     }
                     return $sp;
                 })->toArray();
@@ -1570,9 +1660,10 @@ class AuditController extends Controller
                 $rawSellingPrice = (float) $trx->selling_price;
                 $priceOut = $rawSellingPrice;
                 if ($exchangeInfo) {
-                    $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
-                    $pOut = (float)($exchangeInfo->outgoing_price ?? 0);
-                    if ($pOut == 0) $pOut = (float) $trx->selling_price; // Fallback
+                    $pIn = (float) ($exchangeInfo->incoming_cost_price ?? 0);
+                    $pOut = (float) ($exchangeInfo->outgoing_price ?? 0);
+                    if ($pOut == 0)
+                        $pOut = (float) $trx->selling_price; // Fallback
                     $rawSellingPrice = $pOut - $pIn;
                     $priceOut = $pOut;
                 }
@@ -1604,14 +1695,14 @@ class AuditController extends Controller
                         $exchangeInfo->photo_unit ?? null,
                         $exchangeInfo->photo_customer ?? null
                     ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray(),
-                    'proof_image' => $trx->proof_image 
-                        ? asset('storage/' . $trx->proof_image) 
-                        : ($exchangeInfo && $exchangeInfo->photo_unit 
-                            ? asset('storage/' . $exchangeInfo->photo_unit) 
+                    'proof_image' => $trx->proof_image
+                        ? asset('storage/' . $trx->proof_image)
+                        : ($exchangeInfo && $exchangeInfo->photo_unit
+                            ? asset('storage/' . $exchangeInfo->photo_unit)
                             : null),
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
-                    'price_in' => $exchangeInfo ? (float)($exchangeInfo->incoming_cost_price ?? 0) : null,
+                    'price_in' => $exchangeInfo ? (float) ($exchangeInfo->incoming_cost_price ?? 0) : null,
                     'price_diff' => $finalPrice,
                 ];
             });
@@ -1640,16 +1731,17 @@ class AuditController extends Controller
             ], 500);
         }
     }
-    
+
     public function downloadProof(Request $request)
     {
         $url = $request->url;
-        if (!$url) return response()->json(['message' => 'URL is required'], 400);
+        if (!$url)
+            return response()->json(['message' => 'URL is required'], 400);
 
         // Convert URL to local path relative to storage/app/public
         $baseUrl = asset('storage/');
         $path = str_replace($baseUrl . '/', '', $url);
-        
+
         if ($path === $url) {
             $path = str_replace($baseUrl, '', $url);
         }
@@ -2745,11 +2837,13 @@ class AuditController extends Controller
 
         try {
             $export = new \App\Exports\SalesExport($branchId, $onlineShopId, $startDate, $endDate, $user);
-            
+
             $locationName = 'ALL';
-            if ($branchId) $locationName = \App\Models\Branch::find($branchId)?->name ?? 'CABANG';
-            elseif ($onlineShopId) $locationName = \App\Models\OnlineShop::find($onlineShopId)?->name ?? 'ONLINE';
-            
+            if ($branchId)
+                $locationName = \App\Models\Branch::find($branchId)?->name ?? 'CABANG';
+            elseif ($onlineShopId)
+                $locationName = \App\Models\OnlineShop::find($onlineShopId)?->name ?? 'ONLINE';
+
             $filename = "LAPORAN_PENJUALAN_" . strtoupper(str_replace(' ', '_', $locationName)) . "_{$startDate}_SD_{$endDate}.xlsx";
 
             // Log Export
@@ -2767,7 +2861,7 @@ class AuditController extends Controller
             foreach ($rows as $row) {
                 $cat = strtolower($row['category'] ?? '');
                 $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
-                
+
                 $xlsxRow = [
                     $row['waktu'] ?? '',
                     $row['order_no'] ?? '',
@@ -2814,7 +2908,7 @@ class AuditController extends Controller
                 ]
             ]);
 
-            return response((string)\App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
+            return response((string) \App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
                 'Cache-Control' => 'max-age=0',
