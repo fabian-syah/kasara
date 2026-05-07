@@ -1169,8 +1169,8 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff')->get() as $hp) {
-                            $catLower = strtolower($hp->category ?? '');
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account')->get() as $hp) {
+                            $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
@@ -1184,7 +1184,7 @@ class AuditController extends Controller
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
 
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
-                            $addUnitToMap($map, $hp->brand, $itemCat, $hp->category);
+                            $addUnitToMap($map, $hp->brand, $itemCat, $catLower);
 
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 // For Tukar Tambah, use absolute price difference from the record itself, not the item price
@@ -1217,7 +1217,7 @@ class AuditController extends Controller
                             if (!$trx)
                                 continue;
 
-                            $catLower = strtolower($trx->category ?? '');
+                            $catLower = $resolveActualCategory($trx->category, $trx->notes, $trx->sales_account);
 
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $activityDetails[$catLower][] = [
@@ -1373,8 +1373,9 @@ class AuditController extends Controller
                                 $activityDeductions += (float) ($actItem['price'] ?? 0);
                             }
                         }
-                        $paymentTotal = array_sum($mapRp);
-                        $omsetBersih = $paymentTotal - $activityDeductions;
+                        $selisihTT = $tradeSelisih > 0 ? $tradeSelisih : $productTradeSelisih;
+                        $paymentTotal = $baseSalesOnly + $selisihTT;
+                        $omsetBersih = $baseSalesOnly - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
