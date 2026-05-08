@@ -680,7 +680,7 @@ async function fetchInventoryUsers() {
                 id: currentUser.id,
                 name: currentUser.name,
                 full_name: currentUser.full_name,
-                pin_enabled: currentUser.pin_enabled || !!currentUser.transaction_pin_exists
+                pin_enabled: !!currentUser.pin_enabled
             });
         }
 
@@ -688,8 +688,8 @@ async function fetchInventoryUsers() {
         const normalizedAccounts = accounts.map(u => ({
             ...u,
             id: Number(u.id),
-            // Explicitly mandatory if the account HAS a PIN set up
-            pin_enabled: Boolean(u.pin_enabled || u.has_pin || u.transaction_pin_exists)
+            // Strictly check if PIN is enabled
+            pin_enabled: Boolean(u.pin_enabled)
         }));
 
         inventoryUsers.value = normalizedAccounts;
@@ -714,7 +714,7 @@ function handleStartSubmit() {
     const selectedId = form.value.inventory_user_id;
     const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
 
-    if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists)) {
+    if (target && target.pin_enabled) {
         accountNeedingPin.value = target;
         showPinModal.value = true;
     } else {
@@ -1010,7 +1010,7 @@ onMounted(() => {
                     </div>
                     <select v-else v-model="form.inventory_user_id" class="input bg-surface-800">
                         <option v-for="user in inventoryUsers" :key="user.id" :value="user.id">
-                            {{ user.name }} {{ (user.pin_enabled || user.transaction_pin_exists) ? '(Wajib PIN)' : '' }}
+                            {{ user.name }} {{ user.pin_enabled ? '(Wajib PIN)' : '' }}
                         </option>
                     </select>
                 </div>

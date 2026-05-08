@@ -475,7 +475,7 @@ async function submitStockOut(pin = null) {
     // Check if the selected inventory user requires a PIN
     const target = selectedInventoryUser.value;
     
-    if (target && (target.pin_enabled || target.has_pin || target.transaction_pin_exists) && !pin) {
+    if (target && target.pin_enabled && !pin) {
         console.info("[DEBUG MODAL] PIN Required for", target.name);
         showPinModal.value = true;
         return;

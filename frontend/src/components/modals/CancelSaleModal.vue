@@ -40,11 +40,14 @@ async function fetchInventoryUsers() {
                 id: currentUser.id,
                 name: currentUser.name,
                 full_name: currentUser.full_name,
-                pin_enabled: currentUser.pin_enabled || !!currentUser.transaction_pin_exists
+                pin_enabled: !!currentUser.pin_enabled
             });
         }
         
-        inventoryUsers.value = accounts;
+        inventoryUsers.value = accounts.map(u => ({
+            ...u,
+            pin_enabled: !!u.pin_enabled
+        }));
         
         // Auto select creator if present in the list
         if (props.sale?.inventory_user_id && inventoryUsers.value.length > 0) {
@@ -70,13 +73,12 @@ const selectedUser = computed(() => {
 });
 
 const hasSelectedUserPin = computed(() => {
-    return !!selectedUser.value?.pin_enabled || !!selectedUser.value?.transaction_pin_exists;
+    return !!selectedUser.value?.pin_enabled;
 });
 
 const canSubmitInternal = computed(() => {
     return form.value.inventory_user_id && 
-           hasSelectedUserPin.value && 
-           form.value.transaction_pin.length === 4 && 
+           (!hasSelectedUserPin.value || form.value.transaction_pin.length === 4) && 
            form.value.reason.length >= 5;
 });
 
