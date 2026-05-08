@@ -644,7 +644,7 @@ class AuditController extends Controller
                     $hpStats = (clone $baseQuery)->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                         ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                         ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                        ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
+                        ->whereNotIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
                         ->select(
                             DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
                             DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"),
@@ -653,7 +653,7 @@ class AuditController extends Controller
                         ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))->get()->keyBy('reporting_date');
 
                     $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
-                        ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
+                        ->whereNotIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
                         ->select(
                             DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
                             DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units")
@@ -664,7 +664,7 @@ class AuditController extends Controller
                         DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
                         DB::raw("sum(
                             CASE 
-                                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
+                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
                                      AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                                 THEN ABS(COALESCE(stock_outs.selling_price, 0))
                                 ELSE 0
@@ -672,11 +672,11 @@ class AuditController extends Controller
                         ) as total_omset"),
                         DB::raw("sum(
                             CASE 
-                                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
+                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
                                      AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                                 THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                                WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade')
-                                     OR (stock_outs.category NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
+                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade')
+                                     OR (LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
                                          AND (
                                              LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
                                              OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
