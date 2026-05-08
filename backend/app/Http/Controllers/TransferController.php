@@ -101,6 +101,7 @@ class TransferController extends Controller
                     'status' => 'available',
                     'placement_type' => 'branch',
                     'placement_id' => $branchId,
+                    'created_at' => now(),
                 ]);
             }
 

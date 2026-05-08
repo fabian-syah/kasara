@@ -114,6 +114,7 @@ class StockTransferController extends Controller
                 if (in_array($item->id, $acceptedImeiIds)) {
                     // ACCEPTED
                     $item->status = 'available';
+                    $item->created_at = now();
 
                     Log::info("DEBUG TRANSFER: Accepting HP item {$item->id}");
 
