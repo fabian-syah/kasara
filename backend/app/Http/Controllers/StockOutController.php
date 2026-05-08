@@ -1272,14 +1272,18 @@ class StockOutController extends Controller
 
                 // Event 4: RETURN TO SENDER / TERIMA BALIK TRANSFER (if transfer rejected and received back by sender)
                 if ($out->category === 'pindah_cabang') {
-                    $item = $out->items->first(function ($i) use ($query) {
+                    $item = $out->items->first(function ($i) use ($query, $out) {
+                        if ($query === $out->receipt_id) return true;
                         return stripos($i->imei, $query) !== false;
                     });
 
                     if ($item) {
                         $returnLog = \App\Models\InventoryLog::with('user')
                             ->where('reference_id', (string)$item->id)
-                            ->where('description', 'like', "Terima Balik Transfer (Resi: {$out->receipt_id})%")
+                            ->where(function ($q) use ($out) {
+                                $q->where('description', 'like', "Terima Balik Transfer (Resi: {$out->receipt_id})%")
+                                  ->orWhere('description', 'like', "Transfer Ditolak/Retur dari #{$out->receipt_id}%");
+                            })
                             ->first();
 
                         if ($returnLog) {

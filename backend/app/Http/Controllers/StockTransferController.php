@@ -135,6 +135,7 @@ class StockTransferController extends Controller
                 } else {
                     // REJECTED / RETURNED
                     $item->status = 'available';
+                    $item->created_at = now();
                     Log::info("DEBUG TRANSFER: Rejecting HP item {$item->id}");
                     // Return to SENDER
                     $sender = $stockOut->user;
