@@ -90,12 +90,16 @@ function cancelCreateAccount() {
 // Custom Cover Photo States
 const isUploadingCover = ref(false);
 const coverInputRef = ref(null);
+const localCoverPreview = ref(null);
 
 const coverPhotoUrl = computed(() => {
+    if (localCoverPreview.value) {
+        return localCoverPreview.value;
+    }
     if (user.value?.cover_photo) {
         return user.value.cover_photo.startsWith('http')
             ? user.value.cover_photo
-            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}`;
+            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}?t=${new Date().getTime()}`;
     }
     return null;
 });
@@ -113,6 +117,9 @@ async function handleCoverChange(event) {
         return;
     }
 
+    // Set local preview instantly
+    localCoverPreview.value = URL.createObjectURL(file);
+
     isUploadingCover.value = true;
     const formData = new FormData();
     formData.append("cover_photo", file);
@@ -129,6 +136,9 @@ async function handleCoverChange(event) {
         const freshRes = await usersApi.get(user.value.id);
         user.value = freshRes.data.data;
         authStore.updateUserData(user.value);
+        
+        // Clear local preview to fallback to database URL with cache-busting timestamp
+        localCoverPreview.value = null;
     } catch (error) {
         console.error("Upload cover error", error);
         toast.error(error.response?.data?.message || "Gagal mengupload foto cover.");
@@ -437,8 +447,8 @@ async function handlePinSuccess(pin) {
         <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/50 shadow-xl h-56 sm:h-64 md:h-76 group/cover">
             <!-- Customizable Cover Photo Background -->
             <div v-if="coverPhotoUrl" class="absolute inset-0 bg-cover bg-center transition-all duration-500" :style="{ backgroundImage: 'url(' + coverPhotoUrl + ')' }"></div>
-            <!-- Blank Empty State default matching theme -->
-            <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-900 dark:via-zinc-850 dark:to-zinc-950"></div>
+            <!-- Blank Empty State default matching theme (glare-free dark slate) -->
+            <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950"></div>
 
 
 
@@ -494,10 +504,6 @@ async function handlePinSuccess(pin) {
 
             <!-- Header Action Buttons -->
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <button type="button" class="btn bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex-1 md:flex-none py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest gap-2 border-zinc-200 dark:border-zinc-700 transition-all shadow-md">
-                    <Clock :size="14" />
-                    View Logs
-                </button>
                 <button @click="saveProfile" type="button" :disabled="isSaving" class="btn btn-primary flex-1 md:flex-none py-2.5 px-5 rounded-xl text-xs font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary-500/20 transition-all">
                     <Loader2 v-if="isSaving" class="animate-spin" :size="14" />
                     <Save v-else :size="14" />
@@ -562,27 +568,27 @@ async function handlePinSuccess(pin) {
                         Buat akun khusus untuk operasional gudang. Akun ini memiliki akses terbatas hanya untuk pencatatan logistik dan pergerakan stok barang.
                     </p>
 
-                    <form @submit.prevent="createInventoryAccount" class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
                         <div class="space-y-1.5">
                             <label class="label">NAMA AKUN / BAGIAN</label>
                             <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">PIN TRANSAKSI (OPSIONAL)</label>
-                            <input v-model="newAccountPin" type="password" maxlength="4" class="input tracking-[0.5em] font-mono" placeholder="••••" autocomplete="new-password" />
+                            <input v-model="newAccountPin" type="text" maxlength="4" style="-webkit-text-security: disc; -moz-text-security: disc; text-security: disc;" class="input tracking-[0.5em] font-mono" placeholder="••••" autocomplete="off" />
                         </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
                             <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white px-3 py-2 transition-all">
                                 Batal
                             </button>
-                            <button type="submit" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
+                            <button @click="createInventoryAccount" type="button" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
                                 <Loader2 v-if="isCreatingAccount" class="animate-spin" :size="14" />
                                 <PlusCircle v-else :size="14" />
                                 Daftarkan Akun
                             </button>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
