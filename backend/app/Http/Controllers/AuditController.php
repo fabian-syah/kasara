@@ -596,7 +596,10 @@ class AuditController extends Controller
                     $startTS = $startDate . ' 05:00:00';
                     $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
 
-                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)
+                    $normalizedCategories = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $salesCategories));
+                    $baseQuery = DB::table('stock_outs')
+                        ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                        ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedCategories)
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
@@ -660,53 +663,104 @@ class AuditController extends Controller
                         )
                         ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))->get()->keyBy('reporting_date');
 
-                    $mainStats = (clone $baseQuery)->select(
-                        DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
-                        DB::raw("sum(
-                            CASE 
-                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
-                                     AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                                THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                                ELSE 0
-                            END
-                        ) as total_omset"),
-                        DB::raw("sum(
-                            CASE 
-                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
-                                     AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                                THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade')
-                                     OR (LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
-                                         AND (
-                                             LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                             OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                             OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
-                                         ))
-                                THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                                ELSE 0
-                            END
-                        ) as omset_bersih")
-                    )
-                        ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))
-                        ->orderByDesc(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))
-                        ->get();
+                    $transactions = (clone $baseQuery)->select(
+                        'stock_outs.id', 
+                        'stock_outs.category', 
+                        'stock_outs.reporting_date', 
+                        'stock_outs.created_at', 
+                        'stock_outs.selling_price', 
+                        'stock_outs.notes', 
+                        'stock_outs.sales_account'
+                    )->get();
 
-                    return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
-                        $hp = $hpStats->get($stat->reporting_date);
-                        $nhp = $nhpStats->get($stat->reporting_date);
+                    $resolveActualCategory = function ($category, $notes, $salesAccount) {
+                        $category = strtolower($category ?? '');
+                        $notes = strtolower($notes ?? '');
+                        $salesAccount = strtolower($salesAccount ?? '');
+
+                        if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                                return 'tukar_unit';
+                            }
+                            if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                                return 'tukar_tambah';
+                            }
+                            return $category;
+                        }
+
+                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                            return 'tukar_unit';
+                        }
+                        if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
+                            return 'angkat_barang';
+                        }
+                        if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
+                            return 'refund';
+                        }
+                        if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
+                            return 'downgrade';
+                        }
+                        if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                            return 'tukar_tambah';
+                        }
+
+                        return $category;
+                    };
+
+                    $dailyStats = [];
+
+                    foreach ($transactions as $tx) {
+                        $date = $tx->reporting_date;
+                        if (!$date) {
+                            $date = date('Y-m-d', strtotime($tx->created_at . ' -5 hours'));
+                        }
+
+                        if (!isset($dailyStats[$date])) {
+                            $dailyStats[$date] = [
+                                'total_omset' => 0.0,
+                                'omset_bersih' => 0.0,
+                            ];
+                        }
+
+                        $cat = $resolveActualCategory($tx->category, $tx->notes, $tx->sales_account);
+                        $price = abs((float) $tx->selling_price);
+
+                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling']);
+                        $isTradeIn = ($cat === 'tukar_tambah');
+                        $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+
+                        if ($isBaseSale) {
+                            $dailyStats[$date]['total_omset'] += $price;
+                            $dailyStats[$date]['omset_bersih'] += $price;
+                        } elseif ($isTradeIn) {
+                            $dailyStats[$date]['total_omset'] += $price;
+                        } elseif ($isDeduction) {
+                            $dailyStats[$date]['omset_bersih'] -= $price;
+                        }
+                    }
+
+                    krsort($dailyStats);
+
+                    $mappedStats = [];
+                    foreach ($dailyStats as $date => $stats) {
+                        $hp = $hpStats->get($date);
+                        $nhp = $nhpStats->get($date);
                         $iphone = (int) ($hp->iphone_units ?? 0);
                         $android = (int) ($hp->android_units ?? 0);
                         $nonHp = (int) ($nhp->non_hp_units ?? 0);
-                        return [
-                            'reporting_date' => $stat->reporting_date,
-                            'total_omset' => (float) $stat->total_omset,
-                            'omset_bersih' => (float) $stat->omset_bersih,
+
+                        $mappedStats[] = [
+                            'reporting_date' => $date,
+                            'total_omset' => $stats['total_omset'],
+                            'omset_bersih' => $stats['omset_bersih'],
                             'iphone_units' => $iphone,
                             'android_units' => $android,
                             'non_hp_units' => $nonHp,
                             'total_units' => $iphone + $android + $nonHp
                         ];
-                    });
+                    }
+
+                    return collect($mappedStats);
                 },
 
                 // 5. Type Stats
