@@ -1007,15 +1007,11 @@ onMounted(() => {
 
                 <div v-else-if="targetUsers.length === 0" class="text-center py-10">
                     <div
-                        class="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl max-w-lg mx-auto mb-6">
+                        class="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl max-w-lg mx-auto">
                         <h3 class="font-bold text-lg mb-2">Belum Ada Akun Inventory</h3>
                         <p class="text-sm opacity-80">Anda belum memiliki akun khusus inventory untuk cabang/lokasi ini.
-                            Silahkan buat terlebih dahulu untuk melanjutkan stok in.</p>
+                            Silakan buat terlebih dahulu melalui menu **Pengaturan Profil** Anda.</p>
                     </div>
-                    <button @click="showCreateAccountModal = true"
-                        class="btn btn-primary px-8 py-4 rounded-xl shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
-                        <Plus :size="20" class="mr-2" /> Buat Akun Inventory Baru
-                    </button>
                 </div>
 
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1073,49 +1069,6 @@ onMounted(() => {
                         </div>
                     </div>
 
-                    <!-- Always Allow Creating New Account -->
-                    <button @click="showCreateAccountModal = true"
-                        class="p-5 rounded-2xl border-2 border-dashed border-surface-700 hover:border-primary-500 bg-surface-900/50 hover:bg-surface-800 transition-all flex flex-col items-center justify-center gap-2 group min-h-[88px]">
-                        <div
-                            class="h-10 w-10 rounded-full bg-surface-800 group-hover:bg-primary-500/20 flex items-center justify-center transition-colors">
-                            <Plus :size="24" class="text-text-secondary group-hover:text-primary-500" />
-                        </div>
-                        <span class="font-bold text-text-secondary group-hover:text-primary-500 text-sm">Buat Akun
-                            Baru</span>
-                    </button>
-                </div>
-
-                <!-- Modal Create Account -->
-                <div v-if="showCreateAccountModal"
-                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div
-                        class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
-                        <h3 class="text-lg md:text-xl font-bold text-white mb-4">Buat Akun Inventory</h3>
-                        <p class="text-text-secondary text-sm mb-6">Akun ini akan digunakan khusus untuk pencatatan
-                            keluar masuk barang di lokasi ini.</p>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="label text-xs uppercase">Nama Akun / Bagian</label>
-                                <input v-model="newAccountName" class="input bg-surface-800"
-                                    placeholder="Contoh: Gudang Fisik A" autoFocus />
-                            </div>
-                            <div>
-                                <label class="label text-[10px] uppercase">PIN Transaksi (Opsional)</label>
-                                <input v-model="newAccountPin" type="password" maxlength="4"
-                                    class="input bg-surface-800" placeholder="4 angka (Default: 0000)" />
-                            </div>
-                            <div class="flex justify-end gap-3 mt-6">
-                                <button @click="showCreateAccountModal = false"
-                                    class="btn btn-secondary px-6 rounded-xl">Batal</button>
-                                <button @click="createInventoryAccount" :disabled="!newAccountName || isCreatingAccount"
-                                    class="btn btn-primary px-6 rounded-xl">
-                                    <Loader2 v-if="isCreatingAccount" class="animate-spin mr-2" :size="16" />
-                                    {{ isCreatingAccount ? 'Membuat...' : 'Buat Akun' }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 

@@ -3,7 +3,11 @@ import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { users as usersApi, inventory as inventoryApi, auth as authApiApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, Edit2, AlertCircle, Clock, RefreshCw } from "lucide-vue-next";
+import { 
+    User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, 
+    Edit2, AlertCircle, Clock, RefreshCw, FileText, Check, PlusCircle, 
+    Download, Info, CheckCircle2 
+} from "lucide-vue-next";
 import { formatDate } from "../../utils/formatters";
 import PinModal from "../../components/modals/PinModal.vue";
 
@@ -41,6 +45,68 @@ const selectedAccountId = ref(null); // ID of the selected sub-account
 const selectedAccount = computed(() => {
     return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || {};
 });
+
+// "Buat Akun Inventory Baru" Form State
+const newAccountName = ref("");
+const newAccountPin = ref("");
+const isCreatingAccount = ref(false);
+
+async function createInventoryAccount() {
+    if (!newAccountName.value) {
+        toast.error("Nama akun harus diisi!");
+        return;
+    }
+    isCreatingAccount.value = true;
+    try {
+        await inventoryApi.createAccount({
+            name: newAccountName.value,
+            transaction_pin: newAccountPin.value || null
+        });
+        toast.success("Akun inventory baru berhasil dibuat!");
+        newAccountName.value = "";
+        newAccountPin.value = "";
+        
+        // Refresh accounts list
+        const invRes = await inventoryApi.myAccounts();
+        inventoryAccounts.value = invRes.data.data || invRes.data;
+        if (inventoryAccounts.value.length > 0 && !selectedAccountId.value) {
+            selectedAccountId.value = inventoryAccounts.value[0].id;
+        }
+    } catch (e) {
+        console.error("Create account error:", e);
+        const errMsg = e.response?.data?.message || "Gagal membuat akun.";
+        toast.error(errMsg);
+    } finally {
+        isCreatingAccount.value = false;
+    }
+}
+
+function cancelCreateAccount() {
+    newAccountName.value = "";
+    newAccountPin.value = "";
+    toast.info("Pendaftaran akun dibatalkan.");
+}
+
+// Track modification state
+const isDirty = computed(() => {
+    if (!user.value) return false;
+    return (form.value.email || "") !== (user.value.email || "") ||
+           (form.value.phone || "") !== (user.value.phone || "") ||
+           (form.value.address || "") !== (user.value.address || "") ||
+           form.value.new_password !== "" ||
+           form.value.confirm_password !== "";
+});
+
+function resetForm() {
+    if (user.value) {
+        form.value.email = user.value.email || "";
+        form.value.phone = user.value.phone || "";
+        form.value.address = user.value.address || "";
+        form.value.new_password = "";
+        form.value.confirm_password = "";
+        toast.info("Perubahan profil dibatalkan!");
+    }
+}
 
 onMounted(async () => {
     isLoading.value = true;
@@ -276,254 +342,262 @@ async function handlePinSuccess(pin) {
 </script>
 
 <template>
-    <div class="space-y-6 animate-in pb-20">
-        <!-- Header -->
-        <div>
-            <h1 class="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
-                <User :size="28" class="text-primary-500" /> Pengaturan Profil
-            </h1>
-            <p class="text-text-secondary mt-1">Kelola informasi profil dan keamanan akun Anda</p>
+    <div class="space-y-6 animate-in pb-24">
+        <!-- Top Banner / Cover Banner with Warehouse and PStore Logo -->
+        <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-zinc-950 to-black border border-surface-700/40 shadow-2xl h-56 sm:h-64 md:h-76 group/cover">
+            <!-- Unsplash Premium Warehouse Image as Background -->
+            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
+            
+            <!-- PStore Logo Overlay Center-Right with Sleek Glassmorphism -->
+            <div class="absolute top-1/2 right-4 sm:right-8 md:right-12 -translate-y-1/2 bg-black/40 backdrop-blur-md border border-white/10 px-6 sm:px-8 py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center shadow-xl max-w-[200px] sm:max-w-[240px] md:max-w-[280px]">
+                <img src="https://api.stokps.com/images/logo-pstore.png" alt="PStore Logo" class="h-12 sm:h-16 md:h-20 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(239,68,68,0.35)]" />
+            </div>
+
+            <!-- Change Cover Button -->
+            <button type="button" class="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-xs font-bold text-white/90 flex items-center gap-1.5 transition-all shadow-lg active:scale-95">
+                <Camera :size="13" />
+                Change Cover
+            </button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column: Photo & Basic Info -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- Photo Card -->
-                <div class="card flex flex-col items-center p-6">
-                    <div class="relative group">
-                        <div
-                            class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-200 dark:border-surface-700 shadow-xl relative">
-                            <!-- Uploading Loader -->
-                            <div v-if="isUploadingPhoto"
-                                class="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                                <Loader2 class="animate-spin text-white" :size="32" />
-                            </div>
-
-                            <!-- Pending Approval Overlay -->
-                            <div v-if="user.pending_photo" class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center z-[5] group-hover:opacity-0 transition-opacity">
-                                <Clock class="text-amber-500" :size="24" />
-                                <span class="text-[8px] font-black text-amber-600 bg-white/80 px-1 rounded mt-1 uppercase">Pending Audit</span>
-                            </div>
-
-                            <!-- Image Display (Show pending if exists, otherwise actual) -->
-                            <img :src="(user.pending_photo || user.photo)
-                                ? ((user.pending_photo || user.photo).startsWith('http') ? (user.pending_photo || user.photo) : `${authStore.storageBaseUrl}/storage/${user.pending_photo || user.photo}`)
-                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`"
-                                class="w-full h-full object-cover" 
-                                :class="{ 'opacity-50 grayscale-[0.5]': user.pending_photo }"
-                                alt="Profile Photo"
-                                @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random&color=fff&size=512`" />
-                            
-                            <!-- Status Badge -->
-                            <div v-if="user.pending_photo" class="absolute top-0 right-0 p-1.5 bg-amber-500 rounded-full border-2 border-white dark:border-surface-900 shadow-lg z-10">
-                                <Clock class="text-white" :size="10" />
-                            </div>
-                        </div>
-                        <label
-                            class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full z-20"
-                            :class="{ 'pointer-events-none': isUploadingPhoto }">
-                            <Camera class="text-white" :size="32" />
-                            <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange"
-                                :disabled="isUploadingPhoto" />
-                        </label>
+        <!-- Profile Info Section Overlay -->
+        <div class="relative px-4 sm:px-8 -mt-12 sm:-mt-16 mb-6 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-5">
+                <!-- Profile Avatar -->
+                <div class="relative group/avatar">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 bg-gradient-to-tr from-[#ef4444] to-[#f59e0b] rounded-[1.8rem] md:rounded-[2.5rem] border-4 border-[#121214] shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl md:text-5xl font-black tracking-wider overflow-hidden">
+                        <span v-if="!(user.pending_photo || user.photo)">{{ user.username ? user.username.slice(0, 2).toUpperCase() : 'GU' }}</span>
+                        <img v-else :src="(user.pending_photo || user.photo).startsWith('http') ? (user.pending_photo || user.photo) : `${authStore.storageBaseUrl}/storage/${user.pending_photo || user.photo}`" class="w-full h-full object-cover" />
                     </div>
-                    <p class="mt-4 text-xs text-text-secondary">Klik foto untuk mengubah</p>
+                    <label class="absolute bottom-1 right-1 bg-emerald-500 hover:bg-emerald-400 border-4 border-[#121214] p-2 rounded-full cursor-pointer shadow-lg transition-all active:scale-90 flex items-center justify-center">
+                        <Edit2 class="text-black" :size="13" />
+                        <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange" />
+                    </label>
+                </div>
 
-                    <div class="mt-6 text-center w-full">
-                        <h3 class="text-lg font-bold text-text-primary">{{ user.full_name }}</h3>
-                        <p class="text-primary-500 text-sm font-medium uppercase">{{ user.roles?.[0]?.name || 'User' }}
-                        </p>
-
-                        <div class="mt-4 pt-4 border-t border-surface-700/50 w-full text-left space-y-2">
-                            <div class="flex items-center gap-2 text-sm text-text-secondary">
-                                <Mail :size="14" />
-                                <span class="truncate">{{ user.email || '-' }}</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm text-text-secondary">
-                                <Phone :size="14" />
-                                <span>{{ user.phone || '-' }}</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm text-text-secondary">
-                                <MapPin :size="14" />
-                                <span class="truncate">{{ user.address || '-' }}</span>
-                            </div>
-                        </div>
+                <!-- Profile details text -->
+                <div class="mb-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">{{ user.username || 'gudangtrial' }}</h2>
+                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                            {{ user.roles?.[0]?.name || 'GUDANG MASTER' }}
+                        </span>
+                    </div>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 mt-1 text-xs text-text-secondary font-medium">
+                        <span class="flex items-center gap-1.5">
+                            <Mail :size="12" class="text-primary-500" />
+                            {{ user.email || 'adminproduk1@apexpos.com' }}
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <MapPin :size="12" class="text-primary-500" />
+                            Jakarta, ID
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column: Edit Form -->
-            <div class="lg:col-span-2">
-                <form @submit.prevent="saveProfile" class="card overflow-hidden">
-                    <div class="px-6 py-4 bg-surface-900/50 border-b border-surface-700">
-                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                            <User :size="20" class="text-primary-500" /> Pengaturan Akun
-                        </h3>
+            <!-- Header Action Buttons -->
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <button type="button" class="btn bg-[#18181b] hover:bg-surface-800 text-text-secondary flex-1 md:flex-none py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest gap-2 border-surface-700/50 transition-all shadow-md">
+                    <Clock :size="14" />
+                    View Logs
+                </button>
+                <button @click="saveProfile" type="button" :disabled="isSaving" class="btn btn-primary flex-1 md:flex-none py-2.5 px-5 rounded-xl text-xs font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary-500/20 transition-all">
+                    <Loader2 v-if="isSaving" class="animate-spin" :size="14" />
+                    <Save v-else :size="14" />
+                    Save Profile
+                </button>
+            </div>
+        </div>
+
+        <!-- Multi-column Responsive Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Left Side: Personal Info & Create Sub-Account Form -->
+            <div class="lg:col-span-8 space-y-6">
+                <!-- Personal Info Card -->
+                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-surface-700/30">
+                        <div class="flex items-center gap-2.5">
+                            <User :size="18" class="text-primary-500" />
+                            <h3 class="text-sm font-black text-white uppercase tracking-wider">Informasi Pribadi</h3>
+                        </div>
+                        <span class="text-[9px] font-black text-primary-500 tracking-widest uppercase">DETAIL AKUN</span>
                     </div>
 
-                    <div class="p-6 space-y-8">
-                        <!-- Personal Info -->
-                        <div class="space-y-4">
-                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
-                                Informasi Pribadi
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div class="space-y-1.5">
-                                    <label class="label">Nama Lengkap</label>
-                                    <div class="relative group">
-                                        <User class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.full_name" type="text" class="input !pl-10 opacity-70" disabled />
-                                    </div>
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="label">Username</label>
-                                    <div class="relative group">
-                                        <Shield class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.username" type="text" class="input !pl-10 opacity-70" disabled />
-                                    </div>
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="label">Email</label>
-                                    <div class="relative group">
-                                        <Mail class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.email" type="email" class="input !pl-10" placeholder="your@email.com" />
-                                    </div>
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="label">No. Telepon</label>
-                                    <div class="relative group">
-                                        <Phone class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.phone" type="tel" class="input !pl-10" placeholder="08xx-xxxx-xxxx" />
-                                    </div>
-                                </div>
-                                <div class="md:col-span-2 space-y-1.5">
-                                    <label class="label">Alamat</label>
-                                    <div class="relative group">
-                                        <MapPin class="absolute left-3 top-3 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <textarea v-model="form.address" class="input !pl-10 min-h-[100px] resize-none" placeholder="Alamat lengkap Anda..."></textarea>
-                                    </div>
-                                </div>
-                            </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div class="space-y-1.5">
+                            <label class="label">Nama Lengkap</label>
+                            <input v-model="form.full_name" type="text" class="input !bg-[#18181b] opacity-60" disabled />
                         </div>
-
-                        <div class="h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent"></div>
-
-                        <!-- Security -->
-                        <div class="space-y-4">
-                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
-                                Keamanan Akun
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                <div class="space-y-1.5">
-                                    <label class="label">Password Baru</label>
-                                    <div class="relative group">
-                                        <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.new_password" type="password" class="input !pl-10"
-                                            placeholder="••••••••" />
-                                    </div>
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="label">Konfirmasi Password</label>
-                                    <div class="relative group">
-                                        <Lock class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" :size="16" />
-                                        <input v-model="form.confirm_password" type="password" class="input !pl-10"
-                                            placeholder="••••••••" />
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="space-y-1.5">
+                            <label class="label">Username</label>
+                            <input v-model="form.username" type="text" class="input !bg-[#18181b] opacity-60" disabled />
                         </div>
+                        <div class="space-y-1.5">
+                            <label class="label">Email Address</label>
+                            <input v-model="form.email" type="email" class="input !bg-[#18181b]" placeholder="adminproduk1@apexpos.com" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">Nomor Telepon</label>
+                            <input v-model="form.phone" type="text" class="input !bg-[#18181b]" placeholder="08xx-xxxx-xxxx" />
+                        </div>
+                        <div class="sm:col-span-2 space-y-1.5">
+                            <label class="label">Alamat Lengkap</label>
+                            <textarea v-model="form.address" class="input !bg-[#18181b] min-h-[100px] resize-none" placeholder="Masukkan alamat lengkap..."></textarea>
+                        </div>
+                    </div>
+                </div>
 
-                        <div class="pt-4 flex justify-end">
-                            <button type="submit" class="btn btn-primary min-w-[160px] shadow-lg shadow-primary-500/20" :disabled="isSaving">
-                                <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="18" />
-                                <Save v-else class="mr-2" :size="18" />
-                                {{ isSaving ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                <!-- Create Inventory Account (Special Feature Card) -->
+                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-surface-700/30">
+                        <div class="flex items-center gap-2.5">
+                            <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                                <FileText :size="16" />
+                            </div>
+                            <h3 class="text-sm font-black text-white uppercase tracking-wider">Buat Akun Inventory Baru</h3>
+                        </div>
+                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                            FITUR SPESIAL
+                        </span>
+                    </div>
+
+                    <p class="text-xs text-text-secondary leading-relaxed font-semibold">
+                        Buat akun khusus untuk operasional gudang. Akun ini memiliki akses terbatas hanya untuk pencatatan logistik dan pergerakan stok barang.
+                    </p>
+
+                    <form @submit.prevent="createInventoryAccount" class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
+                        <div class="space-y-1.5">
+                            <label class="label">NAMA AKUN / BAGIAN</label>
+                            <input v-model="newAccountName" type="text" class="input !bg-[#18181b]" placeholder="Contoh: Admin Gudang 1" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">PIN TRANSAKSI (OPSIONAL)</label>
+                            <input v-model="newAccountPin" type="password" maxlength="4" class="input !bg-[#18181b] tracking-[0.5em] font-mono" placeholder="••••" />
+                        </div>
+                        
+                        <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
+                            <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-text-secondary hover:text-white px-3 py-2 transition-all">
+                                Batal
+                            </button>
+                            <button type="submit" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
+                                <Loader2 v-if="isCreatingAccount" class="animate-spin" :size="14" />
+                                <PlusCircle v-else :size="14" />
+                                Daftarkan Akun
                             </button>
                         </div>
+                    </form>
+                </div>
+            </div>
 
-                        <div class="h-px bg-gradient-to-r from-transparent via-surface-700 to-transparent"></div>
+            <!-- Right Side: Security & Account Info -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Security Card -->
+                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-6">
+                    <div class="flex items-center gap-2.5 pb-4 border-b border-surface-700/30">
+                        <Shield :size="18" class="text-primary-500" />
+                        <h3 class="text-sm font-black text-white uppercase tracking-wider">Keamanan</h3>
+                    </div>
 
-                        <!-- PIN Management - ONLY FOR SALES -->
-                        <div class="space-y-4">
-                            <h4 class="text-xs font-black uppercase tracking-widest text-primary-500/80 mb-4 border-l-2 border-primary-500 pl-3">
-                                Keamanan Transaksi (PIN)
-                            </h4>
-                            
-                            <div class="mb-6 p-4 bg-surface-900 border border-surface-700 rounded-2xl" v-if="inventoryAccounts.length > 0">
-                               <label class="text-[10px] uppercase font-black tracking-widest text-primary-500 block mb-2">Pilih Akun Staff Untuk Dikelola</label>
-                               <div class="relative">
-                                   <User class="absolute left-3 top-1/2 -translate-y-1/2 text-primary-500" :size="18" />
-                                   <select v-model="selectedAccountId" class="input pl-10 font-bold border-primary-500/30 focus:border-primary-500">
-                                       <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                                   </select>
-                               </div>
+                    <div class="space-y-4">
+                        <div class="space-y-1.5">
+                            <label class="label">PASSWORD BARU</label>
+                            <input v-model="form.new_password" type="password" class="input !bg-[#18181b]" placeholder="•••••••••" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">KONFIRMASI PASSWORD</label>
+                            <input v-model="form.confirm_password" type="password" class="input !bg-[#18181b]" placeholder="•••••••••" />
+                        </div>
+
+                        <div class="pt-2 border-t border-surface-700/20 space-y-4">
+                            <div class="space-y-1.5">
+                                <label class="label">PIN TRANSAKSI</label>
+                                <div v-if="inventoryAccounts.length > 0" class="relative">
+                                    <select v-model="selectedAccountId" class="input !bg-[#18181b] font-bold text-xs uppercase tracking-wider">
+                                        <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">Staff: {{ acc.name }}</option>
+                                    </select>
+                                </div>
+                                <div v-else class="text-xs text-text-secondary font-bold p-3 bg-surface-900 rounded-xl border border-surface-700/40 text-center">
+                                    Belum ada akun staff inventory.
+                                </div>
                             </div>
 
-                            <div class="bg-gradient-to-br from-surface-900 to-surface-800 border border-surface-700 rounded-3xl p-6 shadow-xl relative overflow-hidden group">
-                                <div class="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-                                    <Shield :size="120" />
-                                </div>
-
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
-                                    <div class="flex items-center gap-4">
-                                        <div
-                                            class="w-14 h-14 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-500 shadow-inner">
-                                            <Key :size="28" />
-                                        </div>
-                                        <div>
-                                            <p class="font-black text-white text-lg tracking-tight">Status PIN: {{ selectedAccountId === 'main' ? 'Akun Utama' : selectedAccount.name }}</p>
-                                            <div class="flex items-center gap-2 mt-1">
-                                                <div class="w-2 h-2 rounded-full" :class="selectedAccount.pin_enabled ? 'bg-emerald-500 animate-pulse' : 'bg-surface-600'"></div>
-                                                <p class="text-xs font-medium text-text-secondary uppercase tracking-wider">
-                                                    {{ selectedAccount.pin_enabled ? 'Aktif - Keamanan Terjamin' : 'Nonaktif - Tidak Disarankan' }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button @click="handlePinToggle" type="button"
-                                        class="relative inline-flex h-8 w-14 items-center rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/50 bg-surface-700 shadow-inner group/toggle"
-                                        :class="{ 'bg-emerald-500/20 ring-1 ring-emerald-500/30': selectedAccount.pin_enabled }">
-                                        <span
-                                            class="inline-block h-6 w-6 transform rounded-full bg-white transition-all shadow-xl"
-                                            :class="{ 'translate-x-7 bg-emerald-500': selectedAccount.pin_enabled, 'translate-x-1': !selectedAccount.pin_enabled }" />
-                                    </button>
-                                </div>
-
-                                <!-- PIN Information -->
-                                <div v-if="!selectedAccount.transaction_pin_exists && !selectedAccount.pin_enabled" class="mt-8 p-4 bg-primary-500/10 border border-primary-500/20 rounded-2xl flex items-center gap-3 animate-in slide-in-from-bottom-2 duration-300">
-                                    <AlertCircle class="text-primary-500 shrink-0" :size="20" />
-                                    <p class="text-xs font-bold text-text-secondary leading-relaxed">
-                                        Akun ini <span class="text-primary-500">belum memiliki PIN</span>. Klik toggle di atas untuk memasang PIN baru demi keamanan transaksi.
-                                    </p>
-                                </div>
-
-                                <!-- Pending Reset Info -->
-                                <div v-if="selectedAccount.pin_reset_requested_at"
-                                    class="mt-8 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 flex items-start gap-4 animate-pulse">
-                                    <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                                        <Clock class="text-amber-500" :size="20" />
+                            <!-- PIN Status Card -->
+                            <div v-if="inventoryAccounts.length > 0" class="bg-[#18181b] border border-surface-700/50 rounded-2xl p-4 flex items-center justify-between shadow-inner">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                        <Key :size="14" />
                                     </div>
                                     <div>
-                                        <p class="text-sm font-black text-amber-500 uppercase tracking-widest mb-1">Permintaan Reset Pending</p>
-                                        <p class="text-xs text-text-secondary leading-relaxed font-bold">
-                                            Diajukan pada <span class="text-white">{{ formatDate(selectedAccount.pin_reset_requested_at, 'datetime') }}</span>. 
-                                            Silakan hubungi Audit/Super Admin untuk persetujuan.
+                                        <p class="text-[9px] font-black text-text-secondary uppercase">Status PIN</p>
+                                        <p class="text-xs font-black uppercase" :class="selectedAccount.pin_enabled ? 'text-emerald-400' : 'text-text-secondary'">
+                                            {{ selectedAccount.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
                                         </p>
                                     </div>
                                 </div>
 
-                                <div class="mt-8 flex flex-wrap gap-4 pt-4 border-t border-surface-700/50">
-                                    <button @click="requestPinReset" :disabled="isRequestingReset"
-                                        type="button" class="btn bg-surface-800 hover:bg-surface-700 text-white px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest gap-2 border-surface-700 shadow-lg transition-all active:scale-95 group/reset">
-                                        <RefreshCw v-if="isRequestingReset" :size="14" class="animate-spin" />
-                                        <AlertCircle v-else :size="14" class="group-hover/reset:rotate-12 transition-transform" />
-                                        {{ selectedAccount.pin_reset_requested_at ? 'Kirim Ulang Permintaan' : 'Ajukan Reset PIN' }}
-                                    </button>
-                                </div>
+                                <button @click="handlePinToggle" type="button" class="text-[10px] font-black uppercase tracking-wider text-primary-500 hover:text-primary-400 transition-colors">
+                                    {{ selectedAccount.pin_enabled ? 'MATIKAN' : 'AKTIFKAN SEKARANG' }}
+                                </button>
                             </div>
                         </div>
+
+                        <!-- Update Security Settings Button -->
+                        <button @click="saveProfile" type="button" :disabled="isSaving" class="btn bg-surface-900 hover:bg-[#18181b] text-white border border-surface-700/40 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest mt-2">
+                            <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="14" />
+                            Update Security Settings
+                        </button>
                     </div>
-                </form>
+                </div>
+
+                <!-- Account Info Card -->
+                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-4">
+                    <div class="flex items-center gap-2.5 pb-4 border-b border-surface-700/30">
+                        <Info :size="18" class="text-primary-500" />
+                        <h3 class="text-sm font-black text-white uppercase tracking-wider">Informasi Akun</h3>
+                    </div>
+
+                    <div class="space-y-3 text-xs font-semibold">
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-text-secondary">Status:</span>
+                            <span class="text-emerald-400 font-bold uppercase tracking-wide">Aktif</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-text-secondary">Terakhir Login:</span>
+                            <span class="text-white">Hari Ini, 08:45</span>
+                        </div>
+                        <div class="flex justify-between items-center py-1">
+                            <span class="text-text-secondary">Diperbarui:</span>
+                            <span class="text-white">{{ formatDate(user.updated_at || new Date(), 'date') }}</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn bg-[#18181b] hover:bg-surface-800 text-white w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-surface-700/50 shadow-md">
+                        <Download :size="14" class="mr-2 text-primary-500" />
+                        Unduh Data Akun
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sticky Bottom Bar (Shows when form is dirty) -->
+        <div v-if="isDirty" class="fixed bottom-0 left-0 right-0 z-50 bg-[#121214]/95 backdrop-blur-md border-t border-surface-700/60 py-4 px-6 md:px-12 flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div class="flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span class="text-xs font-black tracking-widest text-emerald-400 uppercase">PERUBAHAN BELUM DISIMPAN</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button @click="resetForm" type="button" class="btn bg-surface-800 hover:bg-surface-700 text-text-secondary py-2.5 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                    Reset
+                </button>
+                <button @click="saveProfile" type="button" :disabled="isSaving" class="btn btn-primary py-2.5 px-6 rounded-xl text-xs font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary-500/25 transition-all">
+                    <Loader2 v-if="isSaving" class="animate-spin" :size="14" />
+                    Simpan Perubahan
+                </button>
             </div>
         </div>
     </div>
@@ -539,11 +613,11 @@ async function handlePinSuccess(pin) {
 @reference "../../style.css";
 
 .label {
-    @apply block text-xs font-medium text-text-secondary mb-1.5 uppercase tracking-wide;
+    @apply block text-[10px] font-black text-text-secondary mb-1.5 uppercase tracking-wider;
 }
 
 .input {
-    @apply w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary;
+    @apply w-full bg-surface-900 border border-surface-700/70 rounded-xl px-4 py-2.5 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary font-bold;
 }
 
 .animate-in {
