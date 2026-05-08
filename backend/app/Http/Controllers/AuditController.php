@@ -464,11 +464,12 @@ class AuditController extends Controller
 
                     // Define specific categories
                     $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling'];
+                    $normalizedStdSalesCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $stdSalesCats));
                     $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
 
                     // Sales Stats Query (Only standard sales)
-                    $salesBase = (clone $baseQuery)->where(function ($q) use ($stdSalesCats) {
-                        $q->whereIn('stock_outs.category', $stdSalesCats)
+                    $salesBase = (clone $baseQuery)->where(function ($q) use ($normalizedStdSalesCats) {
+                        $q->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedStdSalesCats)
                             ->orWhereNull('stock_outs.category');
                     });
 
@@ -500,35 +501,91 @@ class AuditController extends Controller
                             DB::raw("sum(case when stock_outs.category = 'retur' then stock_out_non_hp_items.quantity else 0 end) as rt_nhp")
                         )->groupBy('owner_id')->get()->keyBy('owner_id');
 
-                    $mainStats = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
+                    $transactions = (clone $baseQuery)->leftJoin('users as owners', function ($join) {
                         $join->on('owners.id', '=', DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id)'));
                     })->select(
-                            'owners.id as owner_id',
-                            'owners.name as cs_name',
-                            'owners.full_name as full_name',
-                            'owners.photo as photo',
-                            'owners.photo_inventory as photo_inv',
-                            DB::raw("sum(CASE 
-                            WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
-                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
-                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN (stock_outs.category IS NULL OR stock_outs.category IN ('" . implode("','", array_merge($stdSalesCats, ['tukar_tambah'])) . "'))
-                                 AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                            ELSE 0
-                        END) as grand_total"),
-                            DB::raw("sum(case 
-                            when stock_outs.category IN ('refund', 'angkat_barang', 'downgrade') 
-                                 OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                                 OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                                 OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
-                            then ABS(COALESCE(stock_outs.selling_price, 0)) 
-                            else 0 
-                        end) as total_activity_rp")
-                        )
-                        ->groupBy('owners.id', 'owners.name', 'owners.full_name', 'owners.photo', 'owners.photo_inventory')->get();
+                        'owners.id as owner_id',
+                        'owners.name as cs_name',
+                        'owners.full_name as full_name',
+                        'owners.photo as photo',
+                        'owners.photo_inventory as photo_inv',
+                        'stock_outs.category',
+                        'stock_outs.selling_price',
+                        'stock_outs.notes',
+                        'stock_outs.sales_account'
+                    )->get();
+
+                    $resolveActualCategory = function ($category, $notes, $salesAccount) {
+                        $category = strtolower($category ?? '');
+                        $notes = strtolower($notes ?? '');
+                        $salesAccount = strtolower($salesAccount ?? '');
+
+                        if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                                return 'tukar_unit';
+                            }
+                            if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                                return 'tukar_tambah';
+                            }
+                            return $category;
+                        }
+
+                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
+                            return 'tukar_unit';
+                        }
+                        if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
+                            return 'angkat_barang';
+                        }
+                        if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
+                            return 'refund';
+                        }
+                        if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
+                            return 'downgrade';
+                        }
+                        if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
+                            return 'tukar_tambah';
+                        }
+
+                        return $category;
+                    };
+
+                    $ownerGroups = [];
+
+                    foreach ($transactions as $tx) {
+                        $ownerId = $tx->owner_id ?? 0;
+                        if (!$ownerId) continue;
+                        if (!isset($ownerGroups[$ownerId])) {
+                            $ownerGroups[$ownerId] = [
+                                'owner_id' => $ownerId,
+                                'cs_name' => $tx->cs_name ?? 'Unknown',
+                                'full_name' => $tx->full_name,
+                                'photo' => $tx->photo,
+                                'photo_inv' => $tx->photo_inv,
+                                'grand_total' => 0.0,
+                                'total_activity_rp' => 0.0,
+                            ];
+                        }
+
+                        $cat = $resolveActualCategory($tx->category, $tx->notes, $tx->sales_account);
+                        $price = abs((float) $tx->selling_price);
+
+                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling']);
+                        $isTradeIn = ($cat === 'tukar_tambah');
+                        $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+
+                        if ($isBaseSale) {
+                            $ownerGroups[$ownerId]['grand_total'] += $price;
+                        } elseif ($isTradeIn) {
+                            $ownerGroups[$ownerId]['grand_total'] += $price;
+                        } elseif ($isDeduction) {
+                            $ownerGroups[$ownerId]['grand_total'] -= $price;
+                            $ownerGroups[$ownerId]['total_activity_rp'] += $price;
+                        }
+                    }
+
+                    $mainStats = collect(array_map(function ($g) {
+                        return (object) $g;
+                    }, array_values($ownerGroups)));
 
                     return $mainStats->map(function ($stat) use ($itemStatsQuery, $nhpStatsQuery, $activityItemQuery, $activityNhpQuery, $hpBreakdown, $nhpBreakdown) {
                         $items = $itemStatsQuery->get($stat->owner_id);
