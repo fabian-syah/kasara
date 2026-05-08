@@ -317,6 +317,12 @@ async function submitRefund(pin = null) {
         return;
     }
 
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== refundForm.value.refund_price) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan nominal refund (${formatCurrency(refundForm.value.refund_price)}).`);
+        return;
+    }
+
     if (!refundPhotos.value.unit) {
         alert("Foto unit wajib diupload.");
         return;

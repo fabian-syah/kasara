@@ -413,6 +413,12 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== tukarTambahPriceDiff.value) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan sisa bayar (${formatCurrency(tukarTambahPriceDiff.value)}).`);
+        return;
+    }
+
     if (!tukarTambahPhotos.value.unit) {
         alert("Foto unit wajib diupload.");
         return;

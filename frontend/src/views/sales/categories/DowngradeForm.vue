@@ -391,6 +391,13 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
+    const targetAmount = Math.abs(downgradePriceDiff.value);
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== targetAmount) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan selisih downgrade (${formatCurrency(targetAmount)}).`);
+        return;
+    }
+
     if (!downgradePhotos.value.unit && !downgradePhotos.value.customer) {
         alert("Minimal pilih salah satu foto.");
         return;

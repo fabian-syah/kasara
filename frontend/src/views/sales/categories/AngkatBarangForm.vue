@@ -375,7 +375,17 @@ async function submitTradeIn(pin = null) {
     const hasSpecificFields = !isImei || (tradeInForm.value.storage && tradeInForm.value.condition);
 
     if (!hasRequiredFields || !hasSpecificFields) {
-        alert("Mohon lengkapi semua data wajib.");
+         alert("Mohon lengkapi semua data wajib.");
+         return;
+     }
+
+    const count = isImeiTradeIn.value 
+        ? tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length 
+        : (tradeInForm.value.quantity || 1);
+    const targetAmount = (tradeInForm.value.buy_price || 0) * count;
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== targetAmount) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan harga angkat (${formatCurrency(targetAmount)}).`);
         return;
     }
 

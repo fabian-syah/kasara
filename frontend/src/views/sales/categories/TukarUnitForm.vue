@@ -400,6 +400,12 @@ async function submitUnitExchange(pin = null) {
         return;
     }
 
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== 0) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) harus senilai Rp 0 karena transaksi Tukar Unit seimbang.`);
+        return;
+    }
+
     if (!unitExchangePhotos.value.unit) {
         alert("Foto unit wajib diupload.");
         return;
