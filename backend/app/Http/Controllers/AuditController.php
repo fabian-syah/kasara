@@ -592,11 +592,11 @@ class AuditController extends Controller
                 },
 
                 // 4. Daily History
-                function () use ($startDate, $endDate, $successCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
+                function () use ($startDate, $endDate, $salesCategories, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $startTS = $startDate . ' 05:00:00';
                     $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
 
-                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)
+                    $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                 ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
@@ -647,7 +647,23 @@ class AuditController extends Controller
                                 THEN ABS(COALESCE(selling_price, 0))
                                 ELSE 0
                             END
-                        ) as total_omset")
+                        ) as total_omset"),
+                        DB::raw("sum(
+                            CASE 
+                                WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
+                                     AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
+                                THEN ABS(COALESCE(selling_price, 0))
+                                WHEN category IN ('refund', 'angkat_barang', 'downgrade')
+                                     OR (category NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
+                                         AND (
+                                             LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
+                                             OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
+                                             OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
+                                         ))
+                                THEN -ABS(COALESCE(selling_price, 0))
+                                ELSE 0
+                            END
+                        ) as omset_bersih")
                     )
                         ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
 
@@ -660,6 +676,7 @@ class AuditController extends Controller
                         return [
                             'reporting_date' => $stat->reporting_date,
                             'total_omset' => (float) $stat->total_omset,
+                            'omset_bersih' => (float) $stat->omset_bersih,
                             'iphone_units' => $iphone,
                             'android_units' => $android,
                             'non_hp_units' => $nonHp,

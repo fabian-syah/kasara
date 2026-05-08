@@ -664,6 +664,7 @@
                                     <th class="px-6 py-4 text-center">Non-HP</th>
                                     <th class="px-6 py-4 text-center">Total Unit</th>
                                     <th class="px-6 py-4 text-right">Total Omset</th>
+                                    <th class="px-6 py-4 text-right">Omset Bersih</th>
                                 </template>
                                 <template v-else-if="currentView === 'brand'">
                                     <th class="px-6 py-4">Brand</th>
@@ -862,6 +863,9 @@
                                         <td
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                             {{ formatCurrency(item.total_omset) }}</td>
+                                        <td
+                                            class="px-6 py-4 text-right font-black text-emerald-500 font-mono whitespace-nowrap">
+                                            {{ formatCurrency(item.omset_bersih) }}</td>
                                     </template>
 
                                     <!-- CS Related Data -->
@@ -990,6 +994,8 @@
                                     <td class="px-6 py-4 text-center text-amber-500">{{ totals.units }}</td>
                                     <td class="px-6 py-4 text-right text-primary-500 font-mono">{{
                                         formatCurrency(totals.revenue) }}</td>
+                                    <td class="px-6 py-4 text-right text-emerald-500 font-mono">{{
+                                        formatCurrency(totals.omset_bersih) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'brand' || currentView === 'distributor'">
@@ -1773,7 +1779,7 @@ const copyReportToClipboard = async () => {
 
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, omset_bersih = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
 
     if (currentView.value === 'brand' || currentView.value === 'distributor') {
         sortedData.value.forEach(row => units += row.qty);
@@ -1785,6 +1791,7 @@ const totals = computed(() => {
                 android += (item.android_units || 0);
                 nonHp += (item.non_hp_units || 0);
                 revenue += (item.total_omset || 0);
+                omset_bersih += (item.omset_bersih || 0);
             } else if (currentView.value === 'sales' || currentView.value === 'activity') {
                 units += (item.total_sales || 0);
                 iphone += (item.iphone_units || 0);
@@ -1805,7 +1812,7 @@ const totals = computed(() => {
     }
 
     const activity = tu + tt + dw + ab + refund + retur;
-    return { units, iphone, android, nonHp, revenue, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
+    return { units, iphone, android, nonHp, revenue, omset_bersih, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
 });
 
 const handlePeriodChange = () => {
