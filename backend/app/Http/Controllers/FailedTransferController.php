@@ -133,7 +133,8 @@ class FailedTransferController extends Controller
                         'status' => 'available',
                         'placement_type' => $placementType,
                         'placement_id' => $placementId,
-                        'user_id' => $confirmingUserId
+                        'user_id' => $confirmingUserId,
+                        'created_at' => now(),
                     ]);
 
                     // Create log for Return to Sender (Only when confirmed return)

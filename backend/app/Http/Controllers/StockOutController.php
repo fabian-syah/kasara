@@ -1215,7 +1215,7 @@ class StockOutController extends Controller
                     'notes' => $out->notes,
                     'transaction_pin' => $out->transaction_pin,
                     'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                    'status' => $out->status,
+                    'status' => $out->category === 'pindah_cabang' ? 'pending' : $out->status,
                     'created_at' => $out->created_at->toDateTimeString(),
                     'timestamp' => $out->created_at->timestamp,
                 ];
@@ -1238,6 +1238,30 @@ class StockOutController extends Controller
                         'condition' => $out->items->first()?->condition ?? '-',
                         'selling_price' => $out->items->first()?->selling_price ?? 0,
                         'is_arrival' => true,
+                    ];
+                }
+
+                // Event 2b: The REJECTION (if rejected transfer)
+                if ($out->category === 'pindah_cabang' && $out->status === 'rejected' && $out->confirmed_at) {
+                    $allEvents[] = [
+                        'type' => 'stock_out',
+                        'sub_type' => 'rejection',
+                        'id' => $out->receipt_id,
+                        'category' => $out->category,
+                        'items' => $mergedItems,
+                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        'customer_wa' => $out->customer_wa,
+                        'notes' => $out->notes,
+                        'transaction_pin' => $out->transaction_pin,
+                        'processed_by' => $out->confirmedBy?->name ?? 'Unknown',
+                        'status' => 'rejected', // Red "Ditolak" badge
+                        'created_at' => $out->confirmed_at->toDateTimeString(),
+                        'timestamp' => $out->confirmed_at->timestamp,
+                        'is_rejection' => true,
                     ];
                 }
 
