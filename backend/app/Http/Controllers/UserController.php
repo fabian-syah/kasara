@@ -349,6 +349,11 @@ class UserController extends Controller
         if ($request->hasFile('cover_photo')) {
             $coverPath = $request->file('cover_photo')->store('cover-photos', 'public');
             $validated['cover_photo'] = $coverPath;
+            
+            \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update([
+                'cover_photo' => $coverPath
+            ]);
+            $user->cover_photo = $coverPath;
         }
 
         $debugInfo .= "End Status: $photoStatus | Saved Path: $savedPath\n";

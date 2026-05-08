@@ -1,0 +1,2 @@
+<?php
+// Debug script cleaned.
