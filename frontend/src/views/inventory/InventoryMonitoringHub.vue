@@ -146,7 +146,7 @@ function getTransferItemsSummary(transfer) {
 }
 
 function getStatusBadgeClass(status, tab) {
-    if (tab === 'failed_otw' || status === 'failed') {
+    if (tab === 'failed_otw' || tab === 'history_failed' || status === 'failed') {
         return 'bg-red-500/10 text-red-500 border-red-500/20';
     }
     if (status === 'confirmed' || status === 'received') {
@@ -159,7 +159,7 @@ function getStatusBadgeClass(status, tab) {
 }
 
 function getStatusLabel(status, tab) {
-    if (tab === 'failed_otw' || status === 'failed') return 'Gagal';
+    if (tab === 'failed_otw' || tab === 'history_failed' || status === 'failed') return 'Gagal';
     if (status === 'confirmed' || status === 'received') return 'Selesai';
     if (tab === 'incoming_otw') return 'Menunggu Konfirmasi';
     return 'OTW';
@@ -247,6 +247,12 @@ async function fetchData(page = 1) {
         } else if (activeTab.value === "history_out") {
             const response = await api.get('/transfers/history', {
                 params: { page, q: searchQuery.value, type: 'outgoing' }
+            });
+            historyData.value = response.data;
+            currentPage.value = page;
+        } else if (activeTab.value === "history_failed") {
+            const response = await api.get('/transfers/history', {
+                params: { page, q: searchQuery.value, type: 'failed' }
             });
             historyData.value = response.data;
             currentPage.value = page;
@@ -514,6 +520,12 @@ onMounted(() => {
                         <span>Riwayat Keluar</span>
                         <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
                     </button>
+                    <button @click="activeTab = 'history_failed'"
+                        class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
+                        :class="activeTab === 'history_failed' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        <span>Riwayat Gagal Kirim</span>
+                        <div v-if="activeTab === 'history_failed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -548,14 +560,14 @@ onMounted(() => {
                         <thead>
                             <tr class="border-b border-surface-700/70 bg-surface-800/85">
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
-                                <th v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
-                                    {{ activeTab === 'incoming_otw' ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}
+                                <th v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
+                                    {{ ['incoming_otw', 'history_in'].includes(activeTab) ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}
                                 </th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
                                 <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Kirim</th>
-                                <th v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
+                                <th v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -568,16 +580,16 @@ onMounted(() => {
                                     </span>
                                 </td>
                                 <!-- Cabang Pengirim / Tujuan Penerima -->
-                                <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
+                                <td v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                                             <Building2 :size="14" />
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="font-bold text-white text-sm">
-                                                {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
+                                                {{ ['incoming_otw', 'history_in'].includes(activeTab) ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
                                             </span>
-                                            <span v-if="activeTab === 'outgoing_otw' && transfer.receiver_name" class="text-[10px] font-black text-green-400 uppercase tracking-widest mt-0.5">
+                                            <span v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab) && transfer.receiver_name" class="text-[10px] font-black text-green-400 uppercase tracking-widest mt-0.5">
                                                 Penerima: {{ transfer.receiver_name }}
                                             </span>
                                         </div>
@@ -619,7 +631,7 @@ onMounted(() => {
                                     </div>
                                 </td>
                                 <!-- Detail Info -->
-                                <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5">
+                                <td v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5">
                                     <div class="flex flex-col gap-1">
                                         <span class="text-xs font-black text-white flex items-center gap-1.5">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>

@@ -1926,13 +1926,22 @@ class StockOutController extends Controller
 
         if ($type === 'outgoing') {
             $query->where('status', 'pending');
+        } elseif ($type === 'failed') {
+            $query->where(function ($sub) {
+                $sub->whereHas('items', function ($q) {
+                    $q->whereIn('stock_out_items.status', ['rejected', 'returned']);
+                })
+                ->orWhereHas('nonHpItems', function ($q) {
+                    $q->where('received_quantity', '<', \Illuminate\Support\Facades\DB::raw('quantity'));
+                });
+            });
         } else {
             $query->whereIn('status', ['received', 'rejected']);
         }
 
         // Filter by Destination or Source
         $query->where(function ($q) use ($user, $type) {
-            if ($type === 'outgoing') {
+            if ($type === 'outgoing' || $type === 'failed') {
                 $hasFilter = false;
 
                 $branchIds = $user->getAccessibleBranchIds();
