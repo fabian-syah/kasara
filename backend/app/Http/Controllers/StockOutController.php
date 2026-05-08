@@ -1215,7 +1215,7 @@ class StockOutController extends Controller
                     'notes' => $out->notes,
                     'transaction_pin' => $out->transaction_pin,
                     'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                    'status' => $out->category === 'pindah_cabang' ? 'pending' : $out->status,
+                    'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
                     'created_at' => $out->created_at->toDateTimeString(),
                     'timestamp' => $out->created_at->timestamp,
                 ];
@@ -1597,12 +1597,12 @@ class StockOutController extends Controller
 
                 if ($status === 'confirmed') {
                     // Accepted: Status Available, Placement Updated to Receiver's Location
-                    $item->update([
-                        'status' => 'available',
-                        'user_id' => $confirmingUserId,
-                        'placement_type' => $destPlacementType,
-                        'placement_id' => $destPlacementId
-                    ]);
+                    $item->status = 'available';
+                    $item->user_id = $confirmingUserId;
+                    $item->placement_type = $destPlacementType;
+                    $item->placement_id = $destPlacementId;
+                    $item->created_at = now();
+                    $item->save();
 
                     // CREATE INVENTORY LOG AS "IN" FOR THE DESTINATION
                     InventoryLog::create([
