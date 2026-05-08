@@ -91,6 +91,7 @@ function cancelCreateAccount() {
 const isUploadingCover = ref(false);
 const coverInputRef = ref(null);
 const localCoverPreview = ref(null);
+const coverTimestamp = ref(Date.now());
 
 const coverPhotoUrl = computed(() => {
     if (localCoverPreview.value) {
@@ -99,7 +100,7 @@ const coverPhotoUrl = computed(() => {
     if (user.value?.cover_photo) {
         return user.value.cover_photo.startsWith('http')
             ? user.value.cover_photo
-            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}?t=${new Date().getTime()}`;
+            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}?t=${coverTimestamp.value}`;
     }
     return null;
 });
@@ -136,6 +137,9 @@ async function handleCoverChange(event) {
         const freshRes = await usersApi.get(user.value.id);
         user.value = freshRes.data.data;
         authStore.updateUserData(user.value);
+        
+        // Update stable timestamp to bust cache only once on successful upload
+        coverTimestamp.value = Date.now();
         
         // Clear local preview to fallback to database URL with cache-busting timestamp
         localCoverPreview.value = null;
