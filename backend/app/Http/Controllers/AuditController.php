@@ -597,27 +597,46 @@ class AuditController extends Controller
                     $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
 
                     $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $salesCategories)
+                        ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                                 ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
                         })
-                        ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedLocationType, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
+                        ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
-                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                                $q->where(function ($sq) use ($requestedBranchId) {
+                                    $sq->where('stock_outs.branch_id', $requestedBranchId)
+                                        ->orWhere('users.branch_id', $requestedBranchId);
+                                });
                             } elseif ($requestedOnlineShopId) {
-                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                                $q->where(function ($sq) use ($requestedOnlineShopId) {
+                                    $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                        ->orWhere('users.online_shop_id', $requestedOnlineShopId);
+                                });
                             } elseif ($requestedWarehouseId) {
-                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                                $q->where(function ($sq) use ($requestedWarehouseId) {
+                                    $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                        ->orWhere('users.warehouse_id', $requestedWarehouseId);
+                                });
                             } elseif ($requestedDistributorId) {
-                                $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
+                                $q->where('users.distributor_id', $requestedDistributorId);
                             } else {
                                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                                    if (!empty($branchIds))
-                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                                    if (!empty($onlineShopIds))
-                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                                    if (!empty($warehouseIds))
-                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                                    if (!empty($branchIds)) {
+                                        $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                            ->orWhereIn('users.branch_id', $branchIds);
+                                    }
+                                    if (!empty($onlineShopIds)) {
+                                        $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                            ->orWhereIn('users.online_shop_id', $onlineShopIds);
+                                    }
+                                    if (!empty($warehouseIds)) {
+                                        $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
+                                            ->orWhereIn('users.warehouse_id', $warehouseIds);
+                                    }
+                                    if (!empty($distributorIds)) {
+                                        $sub->orWhereIn('users.distributor_id', $distributorIds);
+                                    }
                                 });
                             }
                         });
