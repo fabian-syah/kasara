@@ -129,13 +129,12 @@ class FailedTransferController extends Controller
                     ->exists();
 
                 if ($isRejected || $item->status === 'returning') {
-                    $item->update([
-                        'status' => 'available',
-                        'placement_type' => $placementType,
-                        'placement_id' => $placementId,
-                        'user_id' => $confirmingUserId,
-                        'created_at' => now(),
-                    ]);
+                    $item->status = 'available';
+                    $item->placement_type = $placementType;
+                    $item->placement_id = $placementId;
+                    $item->user_id = $confirmingUserId;
+                    $item->created_at = now();
+                    $item->save();
 
                     // Create log for Return to Sender (Only when confirmed return)
                     InventoryLog::create([

@@ -97,12 +97,11 @@ class TransferController extends Controller
 
             // Update each item's status and placement
             foreach ($stockOut->items as $item) {
-                $item->update([
-                    'status' => 'available',
-                    'placement_type' => 'branch',
-                    'placement_id' => $branchId,
-                    'created_at' => now(),
-                ]);
+                $item->status = 'available';
+                $item->placement_type = 'branch';
+                $item->placement_id = $branchId;
+                $item->created_at = now();
+                $item->save();
             }
 
             DB::commit();
