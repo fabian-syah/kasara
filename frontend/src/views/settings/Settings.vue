@@ -87,6 +87,96 @@ function cancelCreateAccount() {
     toast.info("Pendaftaran akun dibatalkan.");
 }
 
+// Custom Cover Photo States
+const isUploadingCover = ref(false);
+const coverInputRef = ref(null);
+
+const coverPhotoUrl = computed(() => {
+    if (user.value?.cover_photo) {
+        return user.value.cover_photo.startsWith('http')
+            ? user.value.cover_photo
+            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}`;
+    }
+    return null;
+});
+
+function triggerCoverUpload() {
+    coverInputRef.value?.click();
+}
+
+async function handleCoverChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        toast.error("Ukuran foto cover maksimal 10MB");
+        return;
+    }
+
+    isUploadingCover.value = true;
+    const formData = new FormData();
+    formData.append("cover_photo", file);
+    formData.append("_method", "PUT");
+
+    try {
+        const res = await usersApi.updateProfile(user.value.id, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        toast.success("Foto cover berhasil diperbarui!");
+        
+        // Refresh user data from server
+        const freshRes = await usersApi.get(user.value.id);
+        user.value = freshRes.data.data;
+        authStore.updateUserData(user.value);
+    } catch (error) {
+        console.error("Upload cover error", error);
+        toast.error(error.response?.data?.message || "Gagal mengupload foto cover.");
+    } finally {
+        isUploadingCover.value = false;
+        event.target.value = '';
+    }
+}
+
+// Realtime Login Time adjusted to Branch Timezone in 24-hour format
+const lastLoginString = computed(() => {
+    const date = new Date();
+    let tz = 'Asia/Jakarta';
+    let tzName = 'WIB';
+
+    const userTz = user.value?.branch?.timezone || user.value?.warehouse?.timezone;
+    if (userTz) {
+        const utz = userTz.toUpperCase();
+        if (utz === 'WITA' || userTz === 'Asia/Makassar') {
+            tz = 'Asia/Makassar';
+            tzName = 'WITA';
+        } else if (utz === 'WIT' || userTz === 'Asia/Jayapura') {
+            tz = 'Asia/Jayapura';
+            tzName = 'WIT';
+        } else if (utz === 'WIB' || userTz === 'Asia/Jakarta') {
+            tz = 'Asia/Jakarta';
+            tzName = 'WIB';
+        } else {
+            tz = userTz;
+            if (userTz.includes('Makassar')) tzName = 'WITA';
+            else if (userTz.includes('Jayapura')) tzName = 'WIT';
+            else tzName = 'WIB';
+        }
+    }
+
+    try {
+        const timeStr = date.toLocaleTimeString('id-ID', {
+            timeZone: tz,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+        return `Hari Ini, ${timeStr}`;
+    } catch (e) {
+        return `Hari Ini, 08:45`;
+    }
+});
+
 // Track modification state
 const isDirty = computed(() => {
     if (!user.value) return false;
@@ -343,21 +433,30 @@ async function handlePinSuccess(pin) {
 
 <template>
     <div class="space-y-6 animate-in pb-24">
-        <!-- Top Banner / Cover Banner with Warehouse and PStore Logo -->
-        <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-zinc-950 to-black border border-surface-700/40 shadow-2xl h-56 sm:h-64 md:h-76 group/cover">
-            <!-- Unsplash Premium Warehouse Image as Background -->
-            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
-            
+        <!-- Top Banner / Cover Banner with Customizable Background and PSTORE Logo -->
+        <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/50 shadow-xl h-56 sm:h-64 md:h-76 group/cover">
+            <!-- Customizable Cover Photo Background -->
+            <div v-if="coverPhotoUrl" class="absolute inset-0 bg-cover bg-center transition-all duration-500" :style="{ backgroundImage: 'url(' + coverPhotoUrl + ')' }"></div>
+            <!-- Blank Empty State default matching theme -->
+            <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-900 dark:via-zinc-850 dark:to-zinc-950"></div>
+
             <!-- PStore Logo Overlay Center-Right with Sleek Glassmorphism -->
-            <div class="absolute top-1/2 right-4 sm:right-8 md:right-12 -translate-y-1/2 bg-black/40 backdrop-blur-md border border-white/10 px-6 sm:px-8 py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center shadow-xl max-w-[200px] sm:max-w-[240px] md:max-w-[280px]">
-                <img src="https://api.stokps.com/images/logo-pstore.png" alt="PStore Logo" class="h-12 sm:h-16 md:h-20 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(239,68,68,0.35)]" />
+            <div class="absolute top-1/2 right-4 sm:right-8 md:right-12 -translate-y-1/2 bg-white/60 dark:bg-black/40 backdrop-blur-md border border-zinc-200/50 dark:border-white/10 px-6 sm:px-8 py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center shadow-xl max-w-[200px] sm:max-w-[240px] md:max-w-[280px]">
+                <img src="https://api.stokps.com/images/logo-pstore.png" alt="PStore Logo" class="h-12 sm:h-16 md:h-20 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(239,68,68,0.3)]" />
             </div>
 
-            <!-- Change Cover Button -->
-            <button type="button" class="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 backdrop-blur-md border border-white/10 px-3 py-1.5 rounded-xl text-xs font-bold text-white/90 flex items-center gap-1.5 transition-all shadow-lg active:scale-95">
-                <Camera :size="13" />
-                Change Cover
-            </button>
+            <!-- Change Cover Button with Recommended Size Hint -->
+            <div class="absolute bottom-4 right-4 flex flex-col items-end gap-1.5">
+                <button @click="triggerCoverUpload" type="button" :disabled="isUploadingCover" class="bg-white/80 dark:bg-black/60 hover:bg-white dark:hover:bg-black/80 backdrop-blur-md border border-zinc-200 dark:border-white/10 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-zinc-800 dark:text-white/90 flex items-center gap-1.5 transition-all shadow-lg active:scale-95">
+                    <Loader2 v-if="isUploadingCover" class="animate-spin" :size="12" />
+                    <Camera v-else :size="12" />
+                    {{ isUploadingCover ? 'Uploading...' : 'Custom Cover' }}
+                </button>
+                <span class="text-[8px] font-black text-zinc-500 dark:text-zinc-400 bg-white/70 dark:bg-black/40 backdrop-blur-[2px] px-2 py-0.5 rounded-md uppercase tracking-widest">
+                    Rekomendasi: 1200x400 px (3:1), Maks 10MB
+                </span>
+                <input ref="coverInputRef" type="file" class="hidden" accept="image/*" @change="handleCoverChange" :disabled="isUploadingCover" />
+            </div>
         </div>
 
         <!-- Profile Info Section Overlay -->
@@ -365,12 +464,12 @@ async function handlePinSuccess(pin) {
             <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-5">
                 <!-- Profile Avatar -->
                 <div class="relative group/avatar">
-                    <div class="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 bg-gradient-to-tr from-[#ef4444] to-[#f59e0b] rounded-[1.8rem] md:rounded-[2.5rem] border-4 border-[#121214] shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl md:text-5xl font-black tracking-wider overflow-hidden">
+                    <div class="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 bg-gradient-to-tr from-[#ef4444] to-[#f59e0b] rounded-[1.8rem] md:rounded-[2.5rem] border-4 border-white dark:border-zinc-900 shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl md:text-5xl font-black tracking-wider overflow-hidden">
                         <span v-if="!(user.pending_photo || user.photo)">{{ user.username ? user.username.slice(0, 2).toUpperCase() : 'GU' }}</span>
                         <img v-else :src="(user.pending_photo || user.photo).startsWith('http') ? (user.pending_photo || user.photo) : `${authStore.storageBaseUrl}/storage/${user.pending_photo || user.photo}`" class="w-full h-full object-cover" />
                     </div>
-                    <label class="absolute bottom-1 right-1 bg-emerald-500 hover:bg-emerald-400 border-4 border-[#121214] p-2 rounded-full cursor-pointer shadow-lg transition-all active:scale-90 flex items-center justify-center">
-                        <Edit2 class="text-black" :size="13" />
+                    <label class="absolute bottom-1 right-1 bg-emerald-500 hover:bg-emerald-400 border-4 border-white dark:border-zinc-900 p-2 rounded-full cursor-pointer shadow-lg transition-all active:scale-90 flex items-center justify-center">
+                        <Edit2 class="text-white" :size="13" />
                         <input type="file" class="hidden" accept="image/*" @change="handlePhotoChange" />
                     </label>
                 </div>
@@ -378,12 +477,12 @@ async function handlePinSuccess(pin) {
                 <!-- Profile details text -->
                 <div class="mb-1">
                     <div class="flex flex-wrap items-center gap-2">
-                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">{{ user.username || 'gudangtrial' }}</h2>
-                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
+                        <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">{{ user.username || 'gudangtrial' }}</h2>
+                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full">
                             {{ user.roles?.[0]?.name || 'GUDANG MASTER' }}
                         </span>
                     </div>
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 mt-1 text-xs text-text-secondary font-medium">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 mt-1 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
                         <span class="flex items-center gap-1.5">
                             <Mail :size="12" class="text-primary-500" />
                             {{ user.email || 'adminproduk1@apexpos.com' }}
@@ -398,7 +497,7 @@ async function handlePinSuccess(pin) {
 
             <!-- Header Action Buttons -->
             <div class="flex items-center gap-3 w-full md:w-auto">
-                <button type="button" class="btn bg-[#18181b] hover:bg-surface-800 text-text-secondary flex-1 md:flex-none py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest gap-2 border-surface-700/50 transition-all shadow-md">
+                <button type="button" class="btn bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 flex-1 md:flex-none py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest gap-2 border-zinc-200 dark:border-zinc-700 transition-all shadow-md">
                     <Clock :size="14" />
                     View Logs
                 </button>
@@ -415,11 +514,11 @@ async function handlePinSuccess(pin) {
             <!-- Left Side: Personal Info & Create Sub-Account Form -->
             <div class="lg:col-span-8 space-y-6">
                 <!-- Personal Info Card -->
-                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-6">
-                    <div class="flex items-center justify-between pb-4 border-b border-surface-700/30">
+                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
                         <div class="flex items-center gap-2.5">
                             <User :size="18" class="text-primary-500" />
-                            <h3 class="text-sm font-black text-white uppercase tracking-wider">Informasi Pribadi</h3>
+                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Informasi Pribadi</h3>
                         </div>
                         <span class="text-[9px] font-black text-primary-500 tracking-widest uppercase">DETAIL AKUN</span>
                     </div>
@@ -427,57 +526,57 @@ async function handlePinSuccess(pin) {
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div class="space-y-1.5">
                             <label class="label">Nama Lengkap</label>
-                            <input v-model="form.full_name" type="text" class="input !bg-[#18181b] opacity-60" disabled />
+                            <input v-model="form.full_name" type="text" class="input opacity-60" disabled />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">Username</label>
-                            <input v-model="form.username" type="text" class="input !bg-[#18181b] opacity-60" disabled />
+                            <input v-model="form.username" type="text" class="input opacity-60" disabled />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">Email Address</label>
-                            <input v-model="form.email" type="email" class="input !bg-[#18181b]" placeholder="adminproduk1@apexpos.com" />
+                            <input v-model="form.email" type="email" class="input" placeholder="adminproduk1@apexpos.com" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">Nomor Telepon</label>
-                            <input v-model="form.phone" type="text" class="input !bg-[#18181b]" placeholder="08xx-xxxx-xxxx" />
+                            <input v-model="form.phone" type="text" class="input" placeholder="08xx-xxxx-xxxx" autocomplete="off" />
                         </div>
                         <div class="sm:col-span-2 space-y-1.5">
                             <label class="label">Alamat Lengkap</label>
-                            <textarea v-model="form.address" class="input !bg-[#18181b] min-h-[100px] resize-none" placeholder="Masukkan alamat lengkap..."></textarea>
+                            <textarea v-model="form.address" class="input min-h-[100px] resize-none" placeholder="Masukkan alamat lengkap..."></textarea>
                         </div>
                     </div>
                 </div>
 
                 <!-- Create Inventory Account (Special Feature Card) -->
-                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-5">
-                    <div class="flex items-center justify-between pb-3 border-b border-surface-700/30">
+                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
                         <div class="flex items-center gap-2.5">
-                            <div class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+                            <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
                                 <FileText :size="16" />
                             </div>
-                            <h3 class="text-sm font-black text-white uppercase tracking-wider">Buat Akun Inventory Baru</h3>
+                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Buat Akun Inventory Baru</h3>
                         </div>
-                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
+                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
                             FITUR SPESIAL
                         </span>
                     </div>
 
-                    <p class="text-xs text-text-secondary leading-relaxed font-semibold">
+                    <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-semibold">
                         Buat akun khusus untuk operasional gudang. Akun ini memiliki akses terbatas hanya untuk pencatatan logistik dan pergerakan stok barang.
                     </p>
 
                     <form @submit.prevent="createInventoryAccount" class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
                         <div class="space-y-1.5">
                             <label class="label">NAMA AKUN / BAGIAN</label>
-                            <input v-model="newAccountName" type="text" class="input !bg-[#18181b]" placeholder="Contoh: Admin Gudang 1" />
+                            <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">PIN TRANSAKSI (OPSIONAL)</label>
-                            <input v-model="newAccountPin" type="password" maxlength="4" class="input !bg-[#18181b] tracking-[0.5em] font-mono" placeholder="••••" />
+                            <input v-model="newAccountPin" type="password" maxlength="4" class="input tracking-[0.5em] font-mono" placeholder="••••" autocomplete="new-password" />
                         </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
-                            <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-text-secondary hover:text-white px-3 py-2 transition-all">
+                            <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white px-3 py-2 transition-all">
                                 Batal
                             </button>
                             <button type="submit" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
@@ -493,44 +592,44 @@ async function handlePinSuccess(pin) {
             <!-- Right Side: Security & Account Info -->
             <div class="lg:col-span-4 space-y-6">
                 <!-- Security Card -->
-                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-6">
-                    <div class="flex items-center gap-2.5 pb-4 border-b border-surface-700/30">
+                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
+                    <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
                         <Shield :size="18" class="text-primary-500" />
-                        <h3 class="text-sm font-black text-white uppercase tracking-wider">Keamanan</h3>
+                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Keamanan</h3>
                     </div>
 
                     <div class="space-y-4">
                         <div class="space-y-1.5">
                             <label class="label">PASSWORD BARU</label>
-                            <input v-model="form.new_password" type="password" class="input !bg-[#18181b]" placeholder="•••••••••" />
+                            <input v-model="form.new_password" type="password" class="input" placeholder="•••••••••" autocomplete="new-password" />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">KONFIRMASI PASSWORD</label>
-                            <input v-model="form.confirm_password" type="password" class="input !bg-[#18181b]" placeholder="•••••••••" />
+                            <input v-model="form.confirm_password" type="password" class="input" placeholder="•••••••••" autocomplete="new-password" />
                         </div>
 
-                        <div class="pt-2 border-t border-surface-700/20 space-y-4">
+                        <div class="pt-2 border-t border-zinc-100 dark:border-zinc-800/50 space-y-4">
                             <div class="space-y-1.5">
                                 <label class="label">PIN TRANSAKSI</label>
                                 <div v-if="inventoryAccounts.length > 0" class="relative">
-                                    <select v-model="selectedAccountId" class="input !bg-[#18181b] font-bold text-xs uppercase tracking-wider">
+                                    <select v-model="selectedAccountId" class="input font-bold text-xs uppercase tracking-wider">
                                         <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">Staff: {{ acc.name }}</option>
                                     </select>
                                 </div>
-                                <div v-else class="text-xs text-text-secondary font-bold p-3 bg-surface-900 rounded-xl border border-surface-700/40 text-center">
+                                <div v-else class="text-xs text-zinc-500 dark:text-zinc-400 font-bold p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center">
                                     Belum ada akun staff inventory.
                                 </div>
                             </div>
 
                             <!-- PIN Status Card -->
-                            <div v-if="inventoryAccounts.length > 0" class="bg-[#18181b] border border-surface-700/50 rounded-2xl p-4 flex items-center justify-between shadow-inner">
+                            <div v-if="inventoryAccounts.length > 0" class="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 flex items-center justify-between shadow-inner">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                                         <Key :size="14" />
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black text-text-secondary uppercase">Status PIN</p>
-                                        <p class="text-xs font-black uppercase" :class="selectedAccount.pin_enabled ? 'text-emerald-400' : 'text-text-secondary'">
+                                        <p class="text-[9px] font-black text-zinc-400 uppercase">Status PIN</p>
+                                        <p class="text-xs font-black uppercase" :class="selectedAccount.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
                                             {{ selectedAccount.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
                                         </p>
                                     </div>
@@ -543,7 +642,7 @@ async function handlePinSuccess(pin) {
                         </div>
 
                         <!-- Update Security Settings Button -->
-                        <button @click="saveProfile" type="button" :disabled="isSaving" class="btn bg-surface-900 hover:bg-[#18181b] text-white border border-surface-700/40 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest mt-2">
+                        <button @click="saveProfile" type="button" :disabled="isSaving" class="btn bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-white border border-zinc-200 dark:border-zinc-800 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest mt-2">
                             <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="14" />
                             Update Security Settings
                         </button>
@@ -551,28 +650,28 @@ async function handlePinSuccess(pin) {
                 </div>
 
                 <!-- Account Info Card -->
-                <div class="card bg-[#121214] border border-surface-700/50 p-6 rounded-[2rem] shadow-xl space-y-4">
-                    <div class="flex items-center gap-2.5 pb-4 border-b border-surface-700/30">
+                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-4">
+                    <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
                         <Info :size="18" class="text-primary-500" />
-                        <h3 class="text-sm font-black text-white uppercase tracking-wider">Informasi Akun</h3>
+                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Informasi Akun</h3>
                     </div>
 
                     <div class="space-y-3 text-xs font-semibold">
                         <div class="flex justify-between items-center py-1">
-                            <span class="text-text-secondary">Status:</span>
-                            <span class="text-emerald-400 font-bold uppercase tracking-wide">Aktif</span>
+                            <span class="text-zinc-500 dark:text-zinc-400">Status:</span>
+                            <span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wide">Aktif</span>
                         </div>
                         <div class="flex justify-between items-center py-1">
-                            <span class="text-text-secondary">Terakhir Login:</span>
-                            <span class="text-white">Hari Ini, 08:45</span>
+                            <span class="text-zinc-500 dark:text-zinc-400">Terakhir Login:</span>
+                            <span class="text-zinc-800 dark:text-white font-bold">{{ lastLoginString }}</span>
                         </div>
                         <div class="flex justify-between items-center py-1">
-                            <span class="text-text-secondary">Diperbarui:</span>
-                            <span class="text-white">{{ formatDate(user.updated_at || new Date(), 'date') }}</span>
+                            <span class="text-zinc-500 dark:text-zinc-400">Diperbarui:</span>
+                            <span class="text-zinc-800 dark:text-white">{{ formatDate(user.updated_at || new Date(), 'date') }}</span>
                         </div>
                     </div>
 
-                    <button type="button" class="btn bg-[#18181b] hover:bg-surface-800 text-white w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-surface-700/50 shadow-md">
+                    <button type="button" class="btn bg-zinc-50 hover:bg-zinc-100 dark:bg-[#18181b] dark:hover:bg-zinc-800 text-zinc-700 dark:text-white w-full py-3 rounded-2xl text-xs font-black uppercase tracking-wider border-zinc-200 dark:border-zinc-700/60 shadow-md">
                         <Download :size="14" class="mr-2 text-primary-500" />
                         Unduh Data Akun
                     </button>
@@ -581,17 +680,17 @@ async function handlePinSuccess(pin) {
         </div>
 
         <!-- Sticky Bottom Bar (Shows when form is dirty) -->
-        <div v-if="isDirty" class="fixed bottom-0 left-0 right-0 z-50 bg-[#121214]/95 backdrop-blur-md border-t border-surface-700/60 py-4 px-6 md:px-12 flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div v-if="isDirty" class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800/80 py-4 px-6 md:px-12 flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom duration-300">
             <div class="flex items-center gap-2">
                 <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span class="text-xs font-black tracking-widest text-emerald-400 uppercase">PERUBAHAN BELUM DISIMPAN</span>
+                <span class="text-xs font-black tracking-widest text-emerald-600 dark:text-emerald-400 uppercase">PERUBAHAN BELUM DISIMPAN</span>
             </div>
             
             <div class="flex items-center gap-3">
-                <button @click="resetForm" type="button" class="btn bg-surface-800 hover:bg-surface-700 text-text-secondary py-2.5 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
+                <button @click="resetForm" type="button" class="btn bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 py-2.5 px-5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
                     Reset
                 </button>
                 <button @click="saveProfile" type="button" :disabled="isSaving" class="btn btn-primary py-2.5 px-6 rounded-xl text-xs font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary-500/25 transition-all">
@@ -613,11 +712,11 @@ async function handlePinSuccess(pin) {
 @reference "../../style.css";
 
 .label {
-    @apply block text-[10px] font-black text-text-secondary mb-1.5 uppercase tracking-wider;
+    @apply block text-[10px] font-black text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider;
 }
 
 .input {
-    @apply w-full bg-surface-900 border border-surface-700/70 rounded-xl px-4 py-2.5 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary font-bold;
+    @apply w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-zinc-800 dark:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-text-secondary font-bold;
 }
 
 .animate-in {

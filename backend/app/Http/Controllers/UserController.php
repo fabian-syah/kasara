@@ -296,7 +296,7 @@ class UserController extends Controller
         $inputs = $request->all();
         $validated = [];
 
-        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'transaction_pin'];
+        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'transaction_pin', 'cover_photo'];
         foreach ($fields as $field) {
             if ($request->has($field)) {
                 $validated[$field] = $inputs[$field];
@@ -344,6 +344,11 @@ class UserController extends Controller
                     'pending_photo_inventory' => null
                 ]);
             }
+        }
+
+        if ($request->hasFile('cover_photo')) {
+            $coverPath = $request->file('cover_photo')->store('cover-photos', 'public');
+            $validated['cover_photo'] = $coverPath;
         }
 
         $debugInfo .= "End Status: $photoStatus | Saved Path: $savedPath\n";

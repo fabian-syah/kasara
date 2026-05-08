@@ -45,6 +45,7 @@ class User extends Authenticatable
         'pin_enabled',
         'pin_reset_requested_at',
         'font_size',
+        'cover_photo',
     ];
 
     protected $appends = [
