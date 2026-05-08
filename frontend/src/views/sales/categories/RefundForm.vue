@@ -38,6 +38,11 @@ const refundPhotos = ref({
     customerPreview: null
 });
 
+const isSplitInvalid = computed(() => {
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return totalSplit !== (refundForm.value.refund_price || 0);
+});
+
 
 const refundForm = ref({
     customer_name: "",
@@ -695,8 +700,8 @@ async function submitRefund(pin = null) {
                     class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
                     Kembali ke Kategori
                 </button>
-                <button @click="submitRefund()" :disabled="isSubmitting"
-                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3">
+                <button @click="submitRefund()" :disabled="isSubmitting || isSplitInvalid"
+                    class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:bg-surface-300 dark:disabled:bg-surface-600 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Proses Refund & Simpan ke Inventory

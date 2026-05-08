@@ -217,6 +217,11 @@ const downgradePriceDiff = computed(() => {
     return totalOut - totalIn;
 });
 
+const isSplitInvalid = computed(() => {
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return totalSplit !== Math.abs(downgradePriceDiff.value);
+});
+
 // Watchers
 watch(() => downgradeForm.value.distributor_id, (newVal, oldVal) => {
     if (isRestoring.value) return;
@@ -810,7 +815,7 @@ async function submitDowngrade(pin = null) {
             <!-- Submit Section -->
             <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
                 <button @click="emit('back')" class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all active:scale-95">Kembali</button>
-                <button @click="submitDowngrade()" :disabled="isSubmitting || downgradePriceDiff > 0" class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95" :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed': downgradePriceDiff > 0 }">
+                <button @click="submitDowngrade()" :disabled="isSubmitting || downgradePriceDiff > 0 || isSplitInvalid" class="flex-[2] py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all flex items-center justify-center gap-3 active:scale-95" :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed opacity-50': downgradePriceDiff > 0 || isSplitInvalid }">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Simpan Downgrade (Selesai)

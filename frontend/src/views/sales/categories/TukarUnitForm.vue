@@ -46,6 +46,11 @@ const unitExchangePhotos = ref({
 
 const splitPayments = ref([]);
 
+const isSplitInvalid = computed(() => {
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return totalSplit !== 0;
+});
+
 function addSplitPayment() {
     splitPayments.value.push({
         method_id: props.availablePaymentMethods[0]?.id || null,
@@ -873,8 +878,8 @@ async function submitUnitExchange(pin = null) {
                     class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
                     Kembali Pilih Kategori
                 </button>
-                <button @click="submitUnitExchange()" :disabled="isSubmitting"
-                    class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+                <button @click="submitUnitExchange()" :disabled="isSubmitting || isSplitInvalid"
+                    class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:bg-surface-300 dark:disabled:bg-surface-600 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Selesaikan Tukar Unit

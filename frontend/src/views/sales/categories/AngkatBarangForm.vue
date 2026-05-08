@@ -203,6 +203,15 @@ const isImeiTradeIn = computed(() => {
     return cat === 'imei' || cat === 'hp / gadget';
 });
 
+const isSplitInvalid = computed(() => {
+    const count = isImeiTradeIn.value 
+        ? tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length 
+        : (tradeInForm.value.quantity || 1);
+    const targetAmount = (tradeInForm.value.buy_price || 0) * (count || 1);
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    return totalSplit !== targetAmount;
+});
+
 const filteredTradeInCapacities = computed(() => {
     if (!tradeInForm.value.product_type_id) return [];
     const set = new Set();
@@ -800,8 +809,8 @@ async function submitTradeIn(pin = null) {
                 class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
                 Kembali ke Kategori
             </button>
-            <button @click="submitTradeIn()" :disabled="isSubmitting"
-                class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
+            <button @click="submitTradeIn()" :disabled="isSubmitting || isSplitInvalid"
+                class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:bg-surface-300 dark:disabled:bg-surface-600 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3">
                 <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                 <template v-else>
                     <Save :size="24" /> Selesaikan & Simpan ke Inventory
