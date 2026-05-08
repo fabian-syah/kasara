@@ -345,9 +345,9 @@ const currentLocalRank = computed(() => {
     </div>
 
     <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" :class="stats.length === 5 ? 'md:grid-cols-3 lg:grid-cols-5' : 'lg:grid-cols-4'">
       <template v-if="isLoading && stats.length === 0">
-        <div v-for="i in 4" :key="i" class="card h-32 animate-pulse bg-surface-700/50"></div>
+        <div v-for="i in 5" :key="i" class="card h-32 animate-pulse bg-surface-700/50"></div>
       </template>
       <div v-else v-for="stat in stats" :key="stat.id" class="stat-card">
         <div class="flex items-start justify-between mb-4">
