@@ -50,6 +50,27 @@ function selectTopCard(id) {
 // Global Loading State
 const isLoading = ref(false);
 
+const assetInValue = ref(0);
+const assetOutValue = ref(0);
+
+function formatCurrency(val) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(val || 0);
+}
+
+async function fetchAssetValues() {
+    try {
+        const response = await api.get('/transfers/asset-values');
+        assetInValue.value = response.data.in_value || 0;
+        assetOutValue.value = response.data.out_value || 0;
+    } catch (e) {
+        console.error("Gagal memuat nilai aset:", e);
+    }
+}
+
 // Common Data States
 const transfers = ref([]); // For OTW tabs
 const historyData = ref({ data: [], current_page: 1, last_page: 1, total: 0 }); // For History tabs
@@ -229,6 +250,7 @@ async function fetchInventoryAccounts() {
 async function fetchData(page = 1) {
     isLoading.value = true;
     try {
+        fetchAssetValues();
         if (activeTab.value === "incoming_otw") {
             const response = await api.get('/transfers/pending');
             transfers.value = response.data.data || response.data || [];
@@ -480,8 +502,41 @@ onMounted(() => {
                     </button>
                 </div>
  
-                <!-- 3 Big Cards at the Top (Interactive & Fully Premium) -->
-                <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 5 Big Cards at the Top (Interactive & Fully Premium) -->
+                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+                    <!-- ASET PERJALANAN (IN) -->
+                    <div class="p-6 md:p-8 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
+                        <div class="space-y-2">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Perjalanan (IN)</h3>
+                            <p class="text-xl md:text-2xl font-black text-emerald-500 tracking-tight transition-all duration-300">
+                                {{ formatCurrency(assetInValue) }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 font-bold">
+                                Realtime
+                            </span>
+                            <span class="text-[10px] text-text-secondary">dalam perjalanan</span>
+                        </div>
+                    </div>
+
+                    <!-- ASET PENGIRIMAN (OUT) -->
+                    <div class="p-6 md:p-8 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
+                        <div class="space-y-2">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
+                            <p class="text-xl md:text-2xl font-black text-blue-500 tracking-tight transition-all duration-300">
+                                {{ formatCurrency(assetOutValue) }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-bold">
+                                Realtime
+                            </span>
+                            <span class="text-[10px] text-text-secondary">dalam pengiriman</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Action Cards -->
                     <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
                         class="p-6 md:p-8 rounded-[2rem] border transition-all duration-300 flex items-start gap-5 cursor-pointer text-left w-full relative overflow-hidden group"
                         :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id

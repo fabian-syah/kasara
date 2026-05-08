@@ -129,6 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transfers/pending', [\App\Http\Controllers\StockOutController::class, 'indexIncoming']);
     Route::get('/transfers/history', [\App\Http\Controllers\StockOutController::class, 'historyIncoming']);
     Route::get('/transfers/outgoing', [\App\Http\Controllers\StockOutController::class, 'indexOutgoing']); // NEW
+    Route::get('/transfers/asset-values', [\App\Http\Controllers\StockOutController::class, 'getAssetValues']);
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
     Route::post('/transfers/{id}/expedition', [\App\Http\Controllers\StockOutController::class, 'updateExpedition']);
     Route::get('/transfers/track-expedition', [\App\Http\Controllers\StockOutController::class, 'trackExpedition']);

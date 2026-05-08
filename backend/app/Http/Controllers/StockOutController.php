@@ -1517,6 +1517,138 @@ class StockOutController extends Controller
         return response()->json(['data' => $transfers]);
     }
 
+    // Get asset values for in-transit (incoming) and outgoing transfers
+    public function getAssetValues()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json(['in_value' => 0, 'out_value' => 0]);
+        }
+
+        // --- 1. Compute IN (Incoming Transfers Value) ---
+        $inQuery = StockOut::where('category', 'pindah_cabang')
+            ->where('status', 'pending');
+
+        // Filter by Destination
+        $inQuery->where(function ($q) use ($user) {
+            $hasFilter = false;
+
+            // Branch
+            $branchIds = $user->getAccessibleBranchIds();
+            if (!empty($branchIds)) {
+                $q->orWhere(function ($sub) use ($branchIds) {
+                    $sub->where('destination_type', 'branch')
+                        ->whereIn('destination_id', $branchIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Warehouse
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            if (!empty($warehouseIds)) {
+                $q->orWhere(function ($sub) use ($warehouseIds) {
+                    $sub->where('destination_type', 'warehouse')
+                        ->whereIn('destination_id', $warehouseIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Online Shop
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            if (!empty($onlineShopIds)) {
+                $q->orWhere(function ($sub) use ($onlineShopIds) {
+                    $sub->where('destination_type', 'online_shop')
+                        ->whereIn('destination_id', $onlineShopIds);
+                });
+                $hasFilter = true;
+            }
+
+            // Distributor
+            $distributorIds = $user->getAccessibleDistributorIds();
+            if (!empty($distributorIds)) {
+                $q->orWhere(function ($sub) use ($distributorIds) {
+                    $sub->where('destination_type', 'distributor')
+                        ->whereIn('destination_id', $distributorIds);
+                });
+                $hasFilter = true;
+            }
+
+            if (!$hasFilter) {
+                if ($user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
+                    $q->orWhereRaw('1 = 1');
+                } else {
+                    $q->whereRaw('0 = 1');
+                }
+            }
+        });
+
+        $inTransfers = $inQuery->with(['items', 'nonHpItems.product'])->get();
+        $inValue = 0;
+        foreach ($inTransfers as $t) {
+            foreach ($t->items as $item) {
+                $inValue += (float) ($item->selling_price ?? 0);
+            }
+            foreach ($t->nonHpItems as $nh) {
+                $inValue += (int) $nh->quantity * (float) ($nh->product->price ?? 0);
+            }
+        }
+
+        // --- 2. Compute OUT (Outgoing Transfers Value) ---
+        $outQuery = StockOut::where('category', 'pindah_cabang')
+            ->where('status', 'pending');
+
+        // Filter by Source (Created by user in the same location)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
+        if (!$user->hasRole($unrestrictedRoles)) {
+            $outQuery->whereHas('user', function ($q) use ($user) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
+                
+                $hasFilter = false;
+                $q->where(function ($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, &$hasFilter) {
+                    if (!empty($branchIds)) {
+                        $sub->orWhereIn('branch_id', $branchIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($distributorIds)) {
+                        $sub->orWhereIn('distributor_id', $distributorIds);
+                        $hasFilter = true;
+                    }
+                });
+                
+                if (!$hasFilter) {
+                    $q->where('id', $user->id);
+                }
+            });
+        }
+
+        $outTransfers = $outQuery->with(['items', 'nonHpItems.product'])->get();
+        $outValue = 0;
+        foreach ($outTransfers as $t) {
+            foreach ($t->items as $item) {
+                $outValue += (float) ($item->selling_price ?? 0);
+            }
+            foreach ($t->nonHpItems as $nh) {
+                $outValue += (int) $nh->quantity * (float) ($nh->product->price ?? 0);
+            }
+        }
+
+        return response()->json([
+            'in_value' => $inValue,
+            'out_value' => $outValue
+        ]);
+    }
+
     // Confirm Incoming Transfer
     public function confirm(Request $request, $id)
     {
