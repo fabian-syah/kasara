@@ -440,10 +440,7 @@ async function handlePinSuccess(pin) {
             <!-- Blank Empty State default matching theme -->
             <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-900 dark:via-zinc-850 dark:to-zinc-950"></div>
 
-            <!-- PStore Logo Overlay Center-Right with Sleek Glassmorphism -->
-            <div class="absolute top-1/2 right-4 sm:right-8 md:right-12 -translate-y-1/2 bg-white/60 dark:bg-black/40 backdrop-blur-md border border-zinc-200/50 dark:border-white/10 px-6 sm:px-8 py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center shadow-xl max-w-[200px] sm:max-w-[240px] md:max-w-[280px]">
-                <img src="https://api.stokps.com/images/logo-pstore.png" alt="PStore Logo" class="h-12 sm:h-16 md:h-20 w-auto object-contain filter drop-shadow-[0_4px_12px_rgba(239,68,68,0.3)]" />
-            </div>
+
 
             <!-- Change Cover Button with Recommended Size Hint -->
             <div class="absolute bottom-4 right-4 flex flex-col items-end gap-1.5">
