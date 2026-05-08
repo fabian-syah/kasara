@@ -447,8 +447,8 @@ async function handlePinSuccess(pin) {
         <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-950 border border-zinc-200/60 dark:border-zinc-800/50 shadow-xl h-56 sm:h-64 md:h-76 group/cover">
             <!-- Customizable Cover Photo Background -->
             <div v-if="coverPhotoUrl" class="absolute inset-0 bg-cover bg-center transition-all duration-500" :style="{ backgroundImage: 'url(' + coverPhotoUrl + ')' }"></div>
-            <!-- Blank Empty State default matching theme (glare-free dark slate) -->
-            <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-850 via-zinc-900 to-zinc-950"></div>
+            <!-- Blank Empty State default matching theme (light/dark adaptive) -->
+            <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-850 dark:via-zinc-900 dark:to-zinc-950"></div>
 
 
 
