@@ -646,45 +646,50 @@ class AuditController extends Controller
                         ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
                         ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
                         ->select(
-                            'reporting_date',
+                            DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
                             DB::raw("sum(case when (UPPER(products.brand) LIKE '%APPLE%' OR UPPER(products.brand) LIKE '%IPHONE%' OR UPPER(products.name) LIKE '%IPHONE%') then 1 else 0 end) as iphone_units"),
                             DB::raw("sum(case when UPPER(products.brand) NOT LIKE '%APPLE%' AND UPPER(products.brand) NOT LIKE '%IPHONE%' and products.brand is not null then 1 else 0 end) as android_units")
                         )
-                        ->groupBy('reporting_date')->get()->keyBy('reporting_date');
+                        ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))->get()->keyBy('reporting_date');
 
                     $nhpStats = (clone $baseQuery)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
                         ->whereNotIn('stock_outs.category', ['refund', 'angkat_barang', 'tukar_unit', 'downgrade'])
-                        ->select('reporting_date', DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))
-                        ->groupBy('reporting_date')->get()->keyBy('reporting_date');
+                        ->select(
+                            DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
+                            DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units")
+                        )
+                        ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))->get()->keyBy('reporting_date');
 
                     $mainStats = (clone $baseQuery)->select(
-                        'reporting_date',
+                        DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE)) as reporting_date"),
                         DB::raw("sum(
                             CASE 
-                                WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
+                                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling') 
                                      AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                                THEN ABS(COALESCE(selling_price, 0))
+                                THEN ABS(COALESCE(stock_outs.selling_price, 0))
                                 ELSE 0
                             END
                         ) as total_omset"),
                         DB::raw("sum(
                             CASE 
-                                WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
+                                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling') 
                                      AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                                THEN ABS(COALESCE(selling_price, 0))
-                                WHEN category IN ('refund', 'angkat_barang', 'downgrade')
-                                     OR (category NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
+                                THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                                WHEN stock_outs.category IN ('refund', 'angkat_barang', 'downgrade')
+                                     OR (stock_outs.category NOT IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah')
                                          AND (
                                              LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
                                              OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
                                              OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%'
                                          ))
-                                THEN -ABS(COALESCE(selling_price, 0))
+                                THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                                 ELSE 0
                             END
                         ) as omset_bersih")
                     )
-                        ->groupBy('reporting_date')->orderByDesc('reporting_date')->get();
+                        ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))
+                        ->orderByDesc(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))
+                        ->get();
 
                     return $mainStats->map(function ($stat) use ($hpStats, $nhpStats) {
                         $hp = $hpStats->get($stat->reporting_date);
