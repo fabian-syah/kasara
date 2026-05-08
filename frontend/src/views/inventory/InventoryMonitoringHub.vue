@@ -502,57 +502,62 @@ onMounted(() => {
                     </button>
                 </div>
  
-                <!-- 5 Big Cards at the Top (Interactive & Fully Premium) -->
-                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
-                    <!-- ASET PERJALANAN (IN) -->
-                    <div class="p-6 md:p-8 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
-                        <div class="space-y-2">
-                            <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Perjalanan (IN)</h3>
-                            <p class="text-xl md:text-2xl font-black text-emerald-500 tracking-tight transition-all duration-300">
-                                {{ formatCurrency(assetInValue) }}
-                            </p>
+                <!-- 5 Big Cards at the Top (Fully Responsive Grid Layout) -->
+                <div class="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left: Realtime Asset Value Statistics (5 columns on desktop) -->
+                    <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- ASET PERJALANAN (IN) -->
+                        <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Perjalanan (IN)</h3>
+                                <p class="text-xl lg:text-2xl font-black text-emerald-500 tracking-tight transition-all duration-300">
+                                    {{ formatCurrency(assetInValue) }}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 font-bold">
+                                    Realtime
+                                </span>
+                                <span class="text-[10px] text-text-secondary">dalam perjalanan</span>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 font-bold">
-                                Realtime
-                            </span>
-                            <span class="text-[10px] text-text-secondary">dalam perjalanan</span>
+
+                        <!-- ASET PENGIRIMAN (OUT) -->
+                        <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
+                            <div class="space-y-2">
+                                <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
+                                <p class="text-xl lg:text-2xl font-black text-blue-500 tracking-tight transition-all duration-300">
+                                    {{ formatCurrency(assetOutValue) }}
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-bold">
+                                    Realtime
+                                </span>
+                                <span class="text-[10px] text-text-secondary">dalam pengiriman</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- ASET PENGIRIMAN (OUT) -->
-                    <div class="p-6 md:p-8 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
-                        <div class="space-y-2">
-                            <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
-                            <p class="text-xl md:text-2xl font-black text-blue-500 tracking-tight transition-all duration-300">
-                                {{ formatCurrency(assetOutValue) }}
-                            </p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-bold">
-                                Realtime
-                            </span>
-                            <span class="text-[10px] text-text-secondary">dalam pengiriman</span>
-                        </div>
-                    </div>
-
-                    <!-- Interactive Action Cards -->
-                    <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
-                        class="p-6 md:p-8 rounded-[2rem] border transition-all duration-300 flex items-start gap-5 cursor-pointer text-left w-full relative overflow-hidden group"
-                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                            ? `${card.bg} ${card.activeBorder}`
-                            : 'bg-surface-800/60 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600'">
-                        <div class="p-4 rounded-2xl flex items-center justify-center shrink-0"
+                    <!-- Right: Interactive Navigation Buttons (7 columns on desktop) -->
+                    <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
+                            class="p-5 lg:p-6 rounded-[2rem] border transition-all duration-300 flex items-start gap-3.5 cursor-pointer text-left w-full relative overflow-hidden group"
                             :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                                ? 'bg-white/10 text-white'
-                                : 'bg-surface-700 text-text-secondary group-hover:text-white transition-all'">
-                            <component :is="card.icon" :size="24" />
-                        </div>
-                        <div class="space-y-1.5">
-                            <h3 class="text-lg font-black text-white tracking-tight leading-none">{{ card.name }}</h3>
-                            <p class="text-xs text-text-secondary font-medium tracking-normal leading-snug">{{ card.description }}</p>
-                        </div>
-                    </button>
+                                ? `${card.bg} ${card.activeBorder}`
+                                : 'bg-surface-800/60 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600'">
+                            <div class="p-3.5 rounded-2xl flex items-center justify-center shrink-0"
+                                :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
+                                    ? 'bg-white/10 text-white'
+                                    : 'bg-surface-700 text-text-secondary group-hover:text-white transition-all'">
+                                <component :is="card.icon" :size="20" />
+                            </div>
+                            <div class="space-y-1">
+                                <h3 class="text-base lg:text-lg font-black text-white tracking-tight leading-none">{{ card.name }}</h3>
+                                <p class="text-[11px] lg:text-xs text-text-secondary font-medium tracking-normal leading-snug">{{ card.description }}</p>
+                            </div>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Sub Tabs Line Navigation (Matching User Screenshot Perfectly) -->
