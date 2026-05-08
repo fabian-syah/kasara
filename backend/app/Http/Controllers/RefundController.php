@@ -38,6 +38,7 @@ class RefundController extends Controller
             'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string|max:10',
             'inventory_user_id' => 'nullable|exists:users,id',
+            'split_payments' => 'nullable',
         ]);
 
         // PIN Verification using Trait
@@ -89,6 +90,29 @@ class RefundController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
+                $negRefund = -abs((float)$request->refund_price * ($request->quantity ?? 1));
+                $rawSplits = $request->filled('split_payments')
+                    ? (is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments)
+                    : null;
+
+                $processedSplits = null;
+                if ($rawSplits && is_array($rawSplits)) {
+                    $processedSplits = [];
+                    foreach ($rawSplits as $sp) {
+                        $processedSplits[] = [
+                            'payment_method_id' => $sp['payment_method_id'],
+                            'amount' => -abs((float)$sp['amount'])
+                        ];
+                    }
+                } else {
+                    $processedSplits = [
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $negRefund
+                        ]
+                    ];
+                }
+
                 // Create Refund record
                 $refund = Refund::create([
                     'receipt_id' => $receiptId,
@@ -100,6 +124,7 @@ class RefundController extends Controller
                     'condition' => $request->condition,
                     'refund_price' => $request->refund_price,
                     'payment_method_id' => $request->payment_method_id,
+                    'split_payments' => $processedSplits,
                     'reason' => $request->reason,
                     'notes' => $request->notes,
                     'photo_unit' => $photoLog['unit'] ?? null,
@@ -185,7 +210,6 @@ class RefundController extends Controller
                 ]);
 
                 // 5. Create StockOut record to ensure visibility in Cek Penjualan
-                $negRefund = -abs((float)$request->refund_price * $qty);
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'refund',
@@ -207,12 +231,7 @@ class RefundController extends Controller
                     'branch_id' => $branchId,
                     'warehouse_id' => $warehouseId,
                     'online_shop_id' => $onlineShopId,
-                    'split_payments' => json_encode([
-                        [
-                            'payment_method_id' => $request->payment_method_id,
-                            'amount' => $negRefund
-                        ]
-                    ])
+                    'split_payments' => $processedSplits
                 ]);
 
                 if ($isImei) {

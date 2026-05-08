@@ -21,6 +21,7 @@ class Refund extends Model
         'condition',
         'refund_price',
         'payment_method_id',
+        'split_payments',
         'reason',
         'notes',
         'photo_unit',
@@ -28,6 +29,10 @@ class Refund extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+    ];
+
+    protected $casts = [
+        'split_payments' => 'array',
     ];
 
     public function productType()

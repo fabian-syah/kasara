@@ -22,6 +22,7 @@ class UnitExchange extends Model
         'distributor_id',
         'incoming_cost_price',
         'outgoing_product_detail_id',
+        'split_payments',
         'reason',
         'notes',
         'photo_unit',
@@ -29,6 +30,10 @@ class UnitExchange extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+    ];
+
+    protected $casts = [
+        'split_payments' => 'array',
     ];
 
     public function incomingProductType()

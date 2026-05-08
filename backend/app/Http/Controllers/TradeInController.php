@@ -33,7 +33,8 @@ class TradeInController extends Controller
             'storage' => 'nullable|string|max:50',
             'condition' => 'nullable|in:new,second,ex_ibox',
             'buy_price' => 'required|numeric|min:0',
-            'payment_method_id' => 'required|exists:payment_methods,id',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
+            'split_payments' => 'nullable',
             'reason' => 'nullable|string',
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:20480',
@@ -92,6 +93,39 @@ class TradeInController extends Controller
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
+                $rawSplits = $request->filled('split_payments')
+                    ? (is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments)
+                    : null;
+
+                $processedSplits = null;
+                if ($rawSplits && is_array($rawSplits)) {
+                    $processedSplits = [];
+                    foreach ($rawSplits as $sp) {
+                        $processedSplits[] = [
+                            'payment_method_id' => $sp['payment_method_id'],
+                            'amount' => (float)$sp['amount']
+                        ];
+                    }
+                } else if ($request->payment_method_id) {
+                    $processedSplits = [
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $request->buy_price ?? 0
+                        ]
+                    ];
+                }
+
+                $stockOutSplits = null;
+                if ($processedSplits) {
+                    $stockOutSplits = [];
+                    foreach ($processedSplits as $sp) {
+                        $stockOutSplits[] = [
+                            'payment_method_id' => $sp['payment_method_id'],
+                            'amount' => -abs($sp['amount'])
+                        ];
+                    }
+                }
+
                 $existedImeis = [];
                 if ($isImei && $request->has('imeis')) {
                     foreach ($request->imeis as $imei) {
@@ -113,7 +147,8 @@ class TradeInController extends Controller
                             'condition' => $request->condition ?? 'new',
                             'buy_price' => $request->buy_price,
                             'quantity' => 1,
-                            'payment_method_id' => $request->payment_method_id,
+                            'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                            'split_payments' => $processedSplits,
                             'reason' => $request->reason,
                             'notes' => $request->notes,
                             'photo_unit' => $photoLog['unit'] ?? null,
@@ -197,15 +232,10 @@ class TradeInController extends Controller
                             'proof_image' => $photoLog['unit'] ?? null,
                             'selling_price' => $negBuyPrice,
                             'total_amount' => $negBuyPrice,
-                            'paid' => $negBuyPrice,
+                             'paid' => $negBuyPrice,
                             'transaction_pin' => $request->transaction_pin,
-                            'payment_method_id' => $request->payment_method_id,
-                            'split_payments' => json_encode([
-                                [
-                                    'payment_method_id' => $request->payment_method_id,
-                                    'amount' => $negBuyPrice
-                                ]
-                            ])
+                            'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                            'split_payments' => json_encode($stockOutSplits)
                         ])->items()->attach($pd->id, ['selling_price' => $negBuyPrice]);
                     }
                 } else {
@@ -224,7 +254,8 @@ class TradeInController extends Controller
                         'condition' => $request->condition ?? 'new',
                         'buy_price' => $request->buy_price,
                         'quantity' => $quantity,
-                        'payment_method_id' => $request->payment_method_id,
+                        'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                        'split_payments' => $processedSplits,
                         'reason' => $request->reason,
                         'notes' => $request->notes,
                         'photo_unit' => $photoLog['unit'] ?? null,
@@ -255,13 +286,8 @@ class TradeInController extends Controller
                         'total_amount' => $negBuyPriceTotal,
                         'paid' => $negBuyPriceTotal,
                         'transaction_pin' => $request->transaction_pin,
-                        'payment_method_id' => $request->payment_method_id,
-                        'split_payments' => json_encode([
-                            [
-                                'payment_method_id' => $request->payment_method_id,
-                                'amount' => $negBuyPriceTotal
-                            ]
-                        ])
+                        'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                        'split_payments' => json_encode($stockOutSplits)
                     ]);
 
                     \App\Models\StockOutNonHpItem::create([

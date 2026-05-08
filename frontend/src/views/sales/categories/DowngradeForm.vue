@@ -11,7 +11,8 @@ import {
     ArrowLeft,
     User,
     AlertCircle,
-    Camera
+    Camera,
+    X
 } from "lucide-vue-next";
 import { compressImage } from "../../../utils/imageCompressor";
 
@@ -269,10 +270,43 @@ watch(() => downgradeForm.value.outgoing_product_detail_id, (newId) => {
     }
 });
 
+const splitPayments = ref([]);
+
+function addSplitPayment() {
+    splitPayments.value.push({
+        method_id: props.availablePaymentMethods[0]?.id || null,
+        amount: 0
+    });
+}
+
+function removeSplitPayment(index) {
+    if (splitPayments.value.length > 1) {
+        splitPayments.value.splice(index, 1);
+    }
+}
+
+onMounted(() => {
+    if (splitPayments.value.length === 0) {
+        splitPayments.value.push({
+            method_id: downgradeForm.value.payment_method_id || props.availablePaymentMethods[0]?.id || null,
+            amount: Math.abs(downgradePriceDiff.value)
+        });
+    }
+});
+
+watch(() => downgradePriceDiff.value, (newDiff) => {
+    if (splitPayments.value.length === 1) {
+        splitPayments.value[0].amount = Math.abs(newDiff);
+    }
+});
+
 watch(() => props.availablePaymentMethods, (methods) => {
     if (methods?.length > 0 && !downgradeForm.value.payment_method_id) {
         const cashMethod = methods.find(p => p.category?.toLowerCase() === 'cash' || p.name?.toLowerCase() === 'tunai');
         downgradeForm.value.payment_method_id = cashMethod ? cashMethod.id : methods[0].id;
+        if (splitPayments.value.length > 0 && !splitPayments.value[0].method_id) {
+            splitPayments.value[0].method_id = downgradeForm.value.payment_method_id;
+        }
     }
 }, { immediate: true });
 
@@ -352,7 +386,7 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
-    if (!downgradeForm.value.customer_name || !downgradeForm.value.customer_phone || !downgradeForm.value.incoming_brand_id || !downgradeForm.value.incoming_product_type_id || !downgradeForm.value.incoming_storage || !downgradeForm.value.incoming_condition || !downgradeForm.value.incoming_cost_price || !downgradeForm.value.outgoing_product_detail_id || !downgradeForm.value.outgoing_price || !downgradeForm.value.reason || !downgradeForm.value.payment_method_id) {
+    if (!downgradeForm.value.customer_name || !downgradeForm.value.customer_phone || !downgradeForm.value.incoming_brand_id || !downgradeForm.value.incoming_product_type_id || !downgradeForm.value.incoming_storage || !downgradeForm.value.incoming_condition || !downgradeForm.value.incoming_cost_price || !downgradeForm.value.outgoing_product_detail_id || !downgradeForm.value.outgoing_price || !downgradeForm.value.reason) {
         alert("Mohon lengkapi semua data wajib.");
         return;
     }
@@ -390,7 +424,11 @@ async function submitDowngrade(pin = null) {
     formData.append('outgoing_quantity', downgradeForm.value.outgoing_quantity);
     formData.append('outgoing_price', downgradeForm.value.outgoing_price);
     formData.append('price_difference', downgradePriceDiff.value);
-    formData.append('payment_method_id', downgradeForm.value.payment_method_id);
+    formData.append('payment_method_id', splitPayments.value[0]?.method_id || downgradeForm.value.payment_method_id || 1);
+    formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
+        payment_method_id: p.method_id,
+        amount: p.amount
+    }))));
     formData.append('reason', downgradeForm.value.reason);
     formData.append('notes', downgradeForm.value.notes);
     formData.append('category', 'downgrade');
@@ -428,7 +466,11 @@ async function submitDowngrade(pin = null) {
             grand_total: downgradePriceDiff.value,
             total: downgradePriceDiff.value,
             paid: downgradePriceDiff.value,
-            payment_method_name: props.availablePaymentMethods.find(m => m.id === downgradeForm.value.payment_method_id)?.name,
+            payment_method_name: props.availablePaymentMethods.find(m => m.id === (splitPayments.value[0]?.method_id || downgradeForm.value.payment_method_id))?.name,
+            split_payments_data: splitPayments.value.map(p => ({
+                method_name: props.availablePaymentMethods.find(m => m.id === p.method_id)?.name || 'Unknown',
+                amount: p.amount
+            })),
             category: 'downgrade',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
@@ -459,6 +501,12 @@ async function submitDowngrade(pin = null) {
             reason: "",
             notes: "",
         };
+        splitPayments.value = [
+            {
+                method_id: props.availablePaymentMethods[0]?.id || null,
+                amount: 0
+            }
+        ];
         downgradePhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
         localStorage.removeItem(storageKey.value);
     } catch (error) {
@@ -693,11 +741,34 @@ async function submitDowngrade(pin = null) {
                             <textarea v-model="downgradeForm.notes" rows="2" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm" placeholder="Tambahan catatan jika ada..."></textarea>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">METODE PEMBAYARAN <span class="text-red-500">*</span></label>
-                            <select v-model="downgradeForm.payment_method_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
-                                <option :value="null" disabled>Pilih Metode Bayar...</option>
-                                <option v-for="m in availablePaymentMethods" :key="m.id" :value="m.id">{{ m.name }}</option>
-                            </select>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest">METODE PEMBAYARAN <span class="text-red-500">*</span></label>
+                                <button @click="addSplitPayment" type="button" class="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg transition-all active:scale-95">
+                                    <Plus :size="12" stroke-width="3" /> Split Bayar
+                                </button>
+                            </div>
+                            <div class="space-y-3">
+                                <div v-for="(payment, index) in splitPayments" :key="index" class="p-4 bg-white dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative flex flex-col gap-2">
+                                    <button v-if="splitPayments.length > 1" @click="removeSplitPayment(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                                        <X :size="16" />
+                                    </button>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Metode</label>
+                                            <select v-model="payment.method_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-surface-50 dark:bg-surface-900 text-xs font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
+                                                <option v-for="method in availablePaymentMethods" :key="method.id" :value="method.id">{{ method.name }}</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Nominal</label>
+                                            <div class="relative">
+                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-[11px] font-black">Rp</span>
+                                                <input v-money:amount="payment" type="text" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-surface-50 dark:bg-surface-900 text-xs font-black text-text-primary focus:outline-none focus:border-primary-500 transition-all pl-8" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

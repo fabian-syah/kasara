@@ -25,6 +25,7 @@ class TukarTambah extends Model
         'outgoing_price',
         'price_difference',
         'payment_method_id',
+        'split_payments',
         'reason',
         'notes',
         'photo_unit',
@@ -32,6 +33,10 @@ class TukarTambah extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+    ];
+
+    protected $casts = [
+        'split_payments' => 'array',
     ];
 
     public function incomingProductType()

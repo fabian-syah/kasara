@@ -47,6 +47,8 @@ class UnitExchangeController extends Controller
             'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string|max:10',
             'inventory_user_id' => 'nullable|exists:users,id',
+            'split_payments' => 'nullable',
+            'payment_method_id' => 'nullable|exists:payment_methods,id',
         ]);
 
         // PIN Verification using Trait
@@ -80,6 +82,28 @@ class UnitExchangeController extends Controller
 
                 $receiptId = UnitExchange::generateReceiptId();
 
+                $rawSplits = $request->filled('split_payments')
+                    ? (is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments)
+                    : null;
+
+                $processedSplits = null;
+                if ($rawSplits && is_array($rawSplits)) {
+                    $processedSplits = [];
+                    foreach ($rawSplits as $sp) {
+                        $processedSplits[] = [
+                            'payment_method_id' => $sp['payment_method_id'],
+                            'amount' => (float)$sp['amount']
+                        ];
+                    }
+                } else if ($request->payment_method_id) {
+                    $processedSplits = [
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $request->outgoing_price ?? 0
+                        ]
+                    ];
+                }
+
                 // 2. Create Unit Exchange record
                 $exchange = UnitExchange::create([
                     'receipt_id' => $receiptId,
@@ -92,6 +116,7 @@ class UnitExchangeController extends Controller
                     'incoming_condition' => $request->incoming_condition ?? 'new',
                     'incoming_cost_price' => $request->incoming_cost_price,
                     'outgoing_product_detail_id' => $request->outgoing_product_detail_id,
+                    'split_payments' => $processedSplits,
                     'reason' => $request->reason,
                     'notes' => $request->notes,
                     'photo_unit' => $photoPathUnit,
@@ -199,6 +224,8 @@ class UnitExchangeController extends Controller
                     'branch_id' => $branchId,
                     'warehouse_id' => $warehouseId,
                     'online_shop_id' => $targetUser->online_shop_id ?? $user->online_shop_id,
+                    'payment_method_id' => $request->payment_method_id,
+                    'split_payments' => $processedSplits,
                 ]);
 
                 // Attach outgoing unit

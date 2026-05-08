@@ -51,6 +51,7 @@ class TukarTambahController extends Controller
             'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string|max:10',
             'inventory_user_id' => 'nullable|exists:users,id',
+            'split_payments' => 'nullable',
         ]);
 
         // PIN Verification using Trait
@@ -82,6 +83,31 @@ class TukarTambahController extends Controller
                 $branchId = $targetUser->branch_id ?? $user->branch_id;
                 $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
 
+                $diff = (float)$request->price_difference;
+                $negDiff = -abs($diff);
+
+                $rawSplits = $request->filled('split_payments')
+                    ? (is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments)
+                    : null;
+
+                $processedSplits = null;
+                if ($rawSplits && is_array($rawSplits)) {
+                    $processedSplits = [];
+                    foreach ($rawSplits as $sp) {
+                        $processedSplits[] = [
+                            'payment_method_id' => $sp['payment_method_id'],
+                            'amount' => -abs((float)$sp['amount'])
+                        ];
+                    }
+                } else {
+                    $processedSplits = [
+                        [
+                            'payment_method_id' => $request->payment_method_id,
+                            'amount' => $negDiff
+                        ]
+                    ];
+                }
+
                 $receiptId = TukarTambah::generateReceiptId();
 
                 // 2. Create Tukar Tambah record
@@ -99,6 +125,7 @@ class TukarTambahController extends Controller
                     'outgoing_price' => $request->outgoing_price,
                     'price_difference' => $request->price_difference,
                     'payment_method_id' => $request->payment_method_id,
+                    'split_payments' => $processedSplits,
                     'reason' => $request->reason,
                     'notes' => $request->notes,
                     'photo_unit' => $photoPathUnit,
@@ -182,9 +209,6 @@ class TukarTambahController extends Controller
                 }
 
                 // 4. Create StockOut record (This represents the "Omset" part)
-                $diff = (float)$request->price_difference;
-                $negDiff = -abs($diff);
-
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
                     'category' => 'tukar_tambah',
@@ -206,12 +230,7 @@ class TukarTambahController extends Controller
                     'branch_id' => $branchId,
                     'warehouse_id' => $warehouseId,
                     'online_shop_id' => $targetUser->online_shop_id ?? $user->online_shop_id,
-                    'split_payments' => json_encode([
-                        [
-                            'payment_method_id' => $request->payment_method_id,
-                            'amount' => $negDiff
-                        ]
-                    ])
+                    'split_payments' => $processedSplits
                 ]);
 
                 // Attach the outgoing unit to the StockOut record

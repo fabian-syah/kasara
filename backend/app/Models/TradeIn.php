@@ -24,6 +24,7 @@ class TradeIn extends Model
         'buy_price',
         'quantity',
         'payment_method_id',
+        'split_payments',
         'reason',
         'notes',
         'photo_unit',
@@ -31,6 +32,10 @@ class TradeIn extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+    ];
+
+    protected $casts = [
+        'split_payments' => 'array',
     ];
 
     public function productType()
