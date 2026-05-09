@@ -93,6 +93,14 @@ class StockOut extends Model
         'event_receiver',
         'event_phone',
         'event_notes',
+        // Brand Ambassador
+        'ba_name',
+        'ba_phone',
+        'ba_social_media',
+        'ba_notes',
+        // Event Sponsorship
+        'event_name',
+        'event_doc',
         // Shopee per-item data
         'shopee_items_data',
         // Meta

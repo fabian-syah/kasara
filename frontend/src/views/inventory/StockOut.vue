@@ -136,9 +136,16 @@ const form = ref({
     giveaway_postal_code: '',
     giveaway_notes: '',
     // Event fields
+    event_name: '',
     event_receiver: '',
     event_phone: '',
+    event_doc: '',
     event_notes: '',
+    // Brand Ambassador fields
+    ba_name: '',
+    ba_phone: '',
+    ba_social_media: '',
+    ba_notes: '',
 });
 
 // sellingPriceDisplay and newNonHpItemSellingPriceDisplay computed properties removed in favor of v-money sync syntax
@@ -480,9 +487,15 @@ function resetForm() {
         giveaway_village: '',
         giveaway_postal_code: '',
         giveaway_notes: '',
+        event_name: '',
         event_receiver: '',
         event_phone: '',
+        event_doc: '',
         event_notes: '',
+        ba_name: '',
+        ba_phone: '',
+        ba_social_media: '',
+        ba_notes: '',
     };
     selectedRegionIds.value = { province: "", city: "", district: "", village: "" };
     selectedCategory.value = null;
@@ -658,8 +671,10 @@ const canSubmit = computed(() => {
             return form.value.notes && form.value.notes.length >= 5;
         case 'giveaway_customer':
             return form.value.giveaway_receiver && form.value.giveaway_phone && form.value.giveaway_address;
+        case 'brand_ambassador':
+            return form.value.ba_name && form.value.ba_phone && form.value.ba_social_media;
         case 'event_sponsorship':
-            return form.value.event_receiver && form.value.event_phone;
+            return form.value.event_name && form.value.event_receiver && form.value.event_phone;
         case 'hilang':
             return form.value.missing_category && form.value.person_in_charge && form.value.loss_chronology.length >= 10;
         default:
@@ -1208,17 +1223,56 @@ onMounted(() => {
                     </div>
                 </div>
 
+                <!-- Brand Ambassador Details -->
+                <div v-if="selectedCategory === 'brand_ambassador'" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Nama Brand Ambassador *</label>
+                            <input v-model="form.ba_name" class="input"
+                                placeholder="Nama Brand Ambassador" />
+                        </div>
+                        <div>
+                            <label class="label">No. WA *</label>
+                            <input v-model="form.ba_phone" class="input" placeholder="08xxxxxxxxxx" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">Akun Sosial Media (Instagram/TikTok) *</label>
+                            <input v-model="form.ba_social_media" class="input"
+                                placeholder="@username" />
+                        </div>
+                        <div>
+                            <label class="label">Catatan Kerjasama / BA</label>
+                            <input v-model="form.ba_notes" class="input"
+                                placeholder="Keterangan tambahan (opsional)..." />
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Event Details -->
                 <div v-if="selectedCategory === 'event_sponsorship'" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="label">Nama Penerima / Event *</label>
-                            <input v-model="form.event_receiver" class="input"
-                                placeholder="Nama event atau penanggung jawab" />
+                            <label class="label">Nama Event *</label>
+                            <input v-model="form.event_name" class="input"
+                                placeholder="Nama Event" />
                         </div>
+                        <div>
+                            <label class="label">Nama Penanggung Jawab / Penerima *</label>
+                            <input v-model="form.event_receiver" class="input"
+                                placeholder="Nama penanggung jawab" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="label">No. WA *</label>
                             <input v-model="form.event_phone" class="input" placeholder="08xxxxxxxxxx" />
+                        </div>
+                        <div>
+                            <label class="label">Link Dokumen / Proposal Event</label>
+                            <input v-model="form.event_doc" class="input"
+                                placeholder="Link Google Drive, dll (opsional)" />
                         </div>
                     </div>
                     <div>
