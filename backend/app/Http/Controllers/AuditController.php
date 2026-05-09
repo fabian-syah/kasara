@@ -1246,12 +1246,12 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeSelisih;
                         $omsetBersih = $baseSalesOnly - $deductions;
 
-                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'others' => 0];
-                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
+                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'others' => 0];
+                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'others' => 0];
                         $productTradeSelisih = 0;
                         $soldDetails = [];
-                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'others' => 0];
-                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'others' => []];
+                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'others' => 0];
+                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'inventaris_toko' => [], 'others' => []];
 
                         $getCategoryByItem = function ($did, $isHp = false) {
                             $did = (int) $did;
@@ -1271,6 +1271,7 @@ class AuditController extends Controller
                                 18 => 'sim_card',        // Sim Card
                                 19 => 'jaringan',        // network
                                 20 => 'jasa',            // Jasa
+                                21 => 'inventaris_toko',  // Inventaris Toko
                             ];
 
                             if (isset($idMap[$did])) {
@@ -1290,6 +1291,10 @@ class AuditController extends Controller
                             if ($isStandardSale) {
                                 if ($itemCategory === 'apple_lux') {
                                     $map['apple_lux']++;
+                                } elseif ($itemCategory === 'inventaris_toko') {
+                                    if (!isset($map['inventaris_toko']))
+                                        $map['inventaris_toko'] = 0;
+                                    $map['inventaris_toko']++;
                                 } else {
                                     if ($brand === 'apple' || str_contains($brand, 'iphone')) {
                                         $map['iphone']++;
@@ -3572,6 +3577,7 @@ class AuditController extends Controller
             'laptop' => ['label' => 'Penjualan laptop', 'icon' => '⬜️'],
             'tv' => ['label' => 'Penjualan tv', 'icon' => '⬜️'],
             'jasa' => ['label' => 'Penjualan Jasa', 'icon' => '⬜️'],
+            'inventaris_toko' => ['label' => 'Inventaris Toko', 'icon' => '⬜️'],
         ];
 
         foreach ($dispMap as $key => $conf) {
@@ -3605,7 +3611,8 @@ class AuditController extends Controller
             'laptop' => 'stok laptop',
             'tv' => 'stok tv',
             'perdana' => 'stok Sim Card',
-            'jaringan' => 'stok 4G / LTE'
+            'jaringan' => 'stok 4G / LTE',
+            'inventaris_toko' => 'stok inventaris toko'
         ];
 
         foreach ($stkMap as $key => $label) {

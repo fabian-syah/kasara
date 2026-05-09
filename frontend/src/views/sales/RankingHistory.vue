@@ -331,7 +331,8 @@
                                 { key: 'jaringan', label: '4G / LTE', color: 'border border-gray-400 bg-white' },
                                 { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
                                 { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' },
-                                { key: 'jasa', label: 'Penjualan Jasa', color: 'border border-gray-400 bg-white' }
+                                { key: 'jasa', label: 'Penjualan Jasa', color: 'border border-gray-400 bg-white' },
+                                { key: 'inventaris_toko', label: 'Inventaris Toko', color: 'border border-gray-400 bg-white' }
                             ]" :key="'report-cat-' + cat.key">
                                 <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))"
                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
@@ -1600,6 +1601,12 @@ const categoryStocks = computed(() => {
             items: soldDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
+        },
+        {
+            label: 'STOK INVENTARIS TOKO',
+            items: soldDetails.inventaris_toko || {},
+            remaining: stockReport.inventaris_toko || 0,
+            remainingItems: stockDetails.inventaris_toko || {},
         }
     ];
 });
@@ -1653,7 +1660,8 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' },
-        { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' }
+        { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' },
+        { key: 'inventaris_toko', label: 'Inventaris Toko', emoji: '⬜️' }
     ];
 
     categoryConfigs.forEach(cat => {
@@ -1701,7 +1709,8 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'arcis', label: 'STOK ARCIS' },
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' }
+        { key: 'tv', label: 'STOK TVSTORE' },
+        { key: 'inventaris_toko', label: 'STOK INVENTARIS TOKO' }
     ];
 
     stockCats.forEach(cat => {
