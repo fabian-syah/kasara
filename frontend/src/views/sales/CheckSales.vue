@@ -603,7 +603,10 @@ const categoryLabels = {
     'penjualan_store': 'Penjualan Store',
     'tukar_tambah': 'Tukar Tambah',
     'tukar_unit': 'Tukar Unit',
-    'downgrade': 'Downgrade'
+    'downgrade': 'Downgrade',
+    'brand_ambassador': 'Brand Ambassador',
+    'event_/_sponsorship': 'Event / Sponsorship',
+    'event_sponsorship': 'Event / Sponsorship'
 };
 
 const months = [
@@ -886,7 +889,7 @@ const summaryStats = computed(() => {
         }
 
         // Standard Sales categories
-        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling'].includes(cat);
+        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);
         const isTradeIn = cat === 'tukar_tambah';
         const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(cat);
 

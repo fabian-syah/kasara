@@ -191,7 +191,7 @@ class AuditController extends Controller
                 });
             };
 
-            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling'];
+            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
             $activityCategories = ['refund', 'angkat_barang'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
@@ -800,7 +800,7 @@ class AuditController extends Controller
                         $cat = $resolveActualCategory($tx->category, $tx->notes, $tx->sales_account);
                         $price = abs((float) $tx->selling_price);
 
-                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling']);
+                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                         $isTradeIn = ($cat === 'tukar_tambah');
                         $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
@@ -1229,7 +1229,7 @@ class AuditController extends Controller
                             $cat = $resolveActualCategory($ps->category, $ps->notes, $ps->sales_account);
                             $price = abs((float) $ps->selling_price);
 
-                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling']);
+                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                             $isTradeIn = ($cat === 'tukar_tambah');
                             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
