@@ -301,6 +301,7 @@ class StockOutController extends Controller
                     'downgrade',
                     'cancel_penjualan',
                     'hilang',
+                    'keluar',
                 ])
             ],
             'missing_category' => 'required_if:category,hilang|nullable|string',
