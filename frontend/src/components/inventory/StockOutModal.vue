@@ -1012,6 +1012,8 @@ async function submitStockOut(pin = null) {
                                 <option value="Hadiah">Hadiah</option>
                                 <option value="Inventaris">Inventaris</option>
                                 <option value="Promo">Promo</option>
+                                <option value="Brand Ambassador">Brand Ambassador</option>
+                                <option value="Event / Sponsorship">Event / Sponsorship</option>
                             </select>
                         </div>
                         <div class="mt-3"><label class="label">Penerima *</label><input
