@@ -385,6 +385,7 @@ const copyToClipboard = () => {
     text += `Android Second: *${report.stats.android_scd || 0}*\n`;
     text += `Laptop: *${report.stats.laptop || 0}*\n`;
     text += `TV: *${report.stats.tv || 0}*\n`;
+    text += `Inventaris Toko: *${report.stats.inventaris_toko || 0}*\n`;
     text += `--------------------\n`;
     text += `TOTAL HP: *${report.stats.total_hp || 0}*\n\n`;
 
@@ -437,6 +438,14 @@ const copyToClipboard = () => {
         text += `*TV*\n`;
         text += `──────────────────\n`;
         report.details.tv.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
+        text += `\n`;
+    }
+
+    const hasInventarisToko = report.details.inventaris_toko && report.details.inventaris_toko.length > 0;
+    if (hasInventarisToko) {
+        text += `*Inventaris Toko*\n`;
+        text += `──────────────────\n`;
+        report.details.inventaris_toko.forEach(it => { text += `   ${it.name} : *${it.qty}*\n`; });
         text += `\n`;
     }
 
@@ -856,6 +865,7 @@ const newEraReport = computed(() => {
         android_scd: 0,
         laptop: 0,
         tv: 0,
+        inventaris_toko: 0,
         total_hp: 0
     };
 
@@ -866,7 +876,8 @@ const newEraReport = computed(() => {
         android_new: new Map(),
         android_scd: new Map(),
         laptop: new Map(),
-        tv: new Map()
+        tv: new Map(),
+        inventaris_toko: new Map()
     };
 
     rawHpItems.value.forEach(item => {
@@ -883,6 +894,13 @@ const newEraReport = computed(() => {
         const displayName = gb ? `${name} ${gb}` : name;
         const cat = (item.product?.category || '').toLowerCase();
         const spec = (item.product?.non_imei_category || '').toLowerCase();
+
+        const did = Number(item.distributor_id || item.product?.distributor_id || 0);
+        if (did === 21) {
+            stats.inventaris_toko += avail;
+            details.inventaris_toko.set(displayName, (details.inventaris_toko.get(displayName) || 0) + avail);
+            return;
+        }
 
         const isLaptop = cat.includes('laptop') || name.toLowerCase().includes('laptop') || spec.includes('laptop') ||
             ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
@@ -941,6 +959,13 @@ const newEraReport = computed(() => {
         const brand = (item.product?.brand || '').toUpperCase();
         const displayName = brand ? `${brand} ${item.product?.name}` : item.product?.name;
 
+        const did = Number(item.distributor_id || item.product?.distributor_id || 0);
+        if (did === 21) {
+            stats.inventaris_toko += avail;
+            details.inventaris_toko.set(displayName, (details.inventaris_toko.get(displayName) || 0) + avail);
+            return;
+        }
+
         const isLaptop = cat.includes('laptop') || name.includes('laptop') || spec.includes('laptop') ||
             ['thinkpad', 'macbook', 'notebook', 'modern 14', 'ideapad', 'rog', 'tuf'].some(k => name.toLowerCase().includes(k));
 
@@ -969,7 +994,8 @@ const newEraReport = computed(() => {
             android_new: mapToArr(details.android_new),
             android_scd: mapToArr(details.android_scd),
             laptop: mapToArr(details.laptop),
-            tv: mapToArr(details.tv)
+            tv: mapToArr(details.tv),
+            inventaris_toko: mapToArr(details.inventaris_toko)
         }
     };
 });
@@ -2550,6 +2576,11 @@ onMounted(() => {
                                         <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.tv }}</td>
                                     </tr>
+                                    <tr class="border-b border-surface-700/50 print:border-black">
+                                        <td class="py-2.5 text-text-secondary print:text-black">Inventaris Toko</td>
+                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                            newEraReport.stats.inventaris_toko }}</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -2697,6 +2728,25 @@ onMounted(() => {
                                     </div>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
                                         <div v-for="item in newEraReport.details.tv" :key="item.name"
+                                            class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
+                                            <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
+                                                item.name }}</span>
+                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Inventaris Toko Section -->
+                                <div v-if="newEraReport.details.inventaris_toko && newEraReport.details.inventaris_toko.length > 0">
+                                    <div class="flex items-center gap-4 mb-4 print:mb-2">
+                                        <div class="h-px flex-1 bg-gray-400/30 print:bg-black"></div>
+                                        <h4
+                                            class="text-sm font-black text-gray-400 print:text-black uppercase tracking-[0.3em]">
+                                            Inventaris Toko</h4>
+                                        <div class="h-px flex-1 bg-gray-400/30 print:bg-black"></div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
+                                        <div v-for="item in newEraReport.details.inventaris_toko" :key="item.name"
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
