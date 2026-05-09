@@ -646,6 +646,9 @@ const currentLocalRank = computed(() => {
                   </div>
 
                   <div class="flex-1 min-w-0 relative z-10">
+                    <h4 class="font-black text-xs text-text-primary uppercase truncate mb-1" :class="item.is_me ? 'text-primary-500' : ''">
+                      {{ item.name }}
+                    </h4>
                     <div class="flex flex-col sm:flex-row sm:gap-3">
                       <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400/80' : 'text-text-secondary opacity-60'">
                         Total: {{ formatCurrency(item.omset) }}
