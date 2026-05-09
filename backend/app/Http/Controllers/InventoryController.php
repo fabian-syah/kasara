@@ -346,12 +346,14 @@ class InventoryController extends Controller
         $hpSheet = [['No', 'Tanggal Masuk', 'Jam Masuk', 'Sumber Masuk', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor', 'Harga Jual', 'Status', 'Akun Inventory', 'Catatan']];
         $totalHpPrice = 0;
         foreach ($hpItems as $idx => $item) {
-            $price = $item->selling_price !== null ? (float)$item->selling_price : (float)($item->product->price ?? ($item->product->selling_price ?? 0));
+            $price = $item->selling_price !== null ? (float)$item->selling_price : 0.0;
             $totalHpPrice += $price;
 
             $source = 'Masuk Manual';
-            if ($item->trade_in_id || $item->tukar_tambah_id) {
+            if ($item->trade_in_id) {
                 $source = 'Angkat Barang';
+            } elseif ($item->tukar_tambah_id) {
+                $source = 'Tukar Tambah';
             } elseif ($item->refund_id) {
                 $source = 'Refund';
             } elseif ($item->unit_exchange_id) {
@@ -407,6 +409,7 @@ class InventoryController extends Controller
                         if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
                         elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
                         elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
+                        elseif ($item->placement_type === 'distributor') $q->where('distributor_id', $item->placement_id);
                     })
                     ->where('type', 'in')
                     ->latest()
@@ -421,33 +424,39 @@ class InventoryController extends Controller
 
             $distName = $distName ?? '-';
 
-            $price = $item->product->price ?? ($item->product->selling_price ?? 0);
+            $price = $item->product->price !== null ? (float)$item->product->price : 0.0;
             $totalNonHpPrice += ($price * $stok);
 
             $source = 'Masuk Manual';
-            $logToUse = $item->latestLog;
+            $logToUse = \App\Models\InventoryLog::where('product_id', $item->product_id)
+                ->where(function($q) use ($item) {
+                    if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
+                    elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
+                    elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
+                    elseif ($item->placement_type === 'distributor') $q->where('distributor_id', $item->placement_id);
+                })
+                ->where('type', 'in')
+                ->latest()
+                ->first();
+
             if (!$logToUse) {
-                $logToUse = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                    ->where(function($q) use ($item) {
-                        if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                        elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                        elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                    })
-                    ->where('type', 'in')
-                    ->latest()
-                    ->first();
+                $logToUse = $item->latestLog;
             }
 
             if ($logToUse) {
                 $desc = strtolower($logToUse->description ?? '');
                 if (str_contains($desc, 'angkat barang') || ($logToUse->reference_id && str_contains(strtolower($logToUse->reference_id), 'trade-in'))) {
                     $source = 'Angkat Barang';
+                } elseif (str_contains($desc, 'tukar tambah')) {
+                    $source = 'Tukar Tambah';
                 } elseif (str_contains($desc, 'refund')) {
                     $source = 'Refund';
-                } elseif (str_contains($desc, 'tukar unit')) {
+                } elseif (str_contains($desc, 'tukar unit') || str_contains($desc, 'exchange')) {
                     $source = 'Tukar Unit';
                 } elseif (str_contains($desc, 'downgrade')) {
                     $source = 'Downgrade';
+                } elseif (str_contains($desc, 'pindah cabang') || str_contains($desc, 'transfer')) {
+                    $source = 'Pindah Cabang';
                 }
             }
 

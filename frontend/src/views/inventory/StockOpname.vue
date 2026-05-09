@@ -619,24 +619,22 @@ const conditionReport = computed(() => {
         const avail = getAvailable(item);
         entry.available += avail;
 
-        if (isHpMode.value) {
-            const brand = item.product?.brand || 'Lainnya';
-            const type = item.product?.name || 'Unknown';
-            const ram = item.ram || '-';
-            const storage = item.storage || '-';
-            const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+        const brand = item.product?.brand || 'Lainnya';
+        const type = item.product?.name || 'Unknown';
+        const ram = item.ram || '-';
+        const storage = item.storage || '-';
+        const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
 
-            if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
-            const bNode = entry.tree.get(brand);
-            bNode.available += avail;
+        if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
+        const bNode = entry.tree.get(brand);
+        bNode.available += avail;
 
-            if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
-            const tNode = bNode.types.get(type);
-            tNode.available += avail;
+        if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
+        const tNode = bNode.types.get(type);
+        tNode.available += avail;
 
-            if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
-            tNode.gbs.get(gb).available += avail;
-        }
+        if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
+        tNode.gbs.get(gb).available += avail;
 
         // Location Breakdown
         if (!entry.locations) entry.locations = new Map();
@@ -681,24 +679,22 @@ const distributorReport = computed(() => {
         const avail = getAvailable(item);
         entry.available += avail;
 
-        if (isHpMode.value) {
-            const brand = item.product?.brand || 'Lainnya';
-            const type = item.product?.name || 'Unknown';
-            const ram = item.ram || '-';
-            const storage = item.storage || '-';
-            const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
+        const brand = item.product?.brand || 'Lainnya';
+        const type = item.product?.name || 'Unknown';
+        const ram = item.ram || '-';
+        const storage = item.storage || '-';
+        const gb = ram !== '-' && storage !== '-' ? `${ram}/${storage}` : (storage !== '-' ? storage : ram);
 
-            if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
-            const bNode = entry.tree.get(brand);
-            bNode.available += avail;
+        if (!entry.tree.has(brand)) entry.tree.set(brand, { label: brand, available: 0, types: new Map() });
+        const bNode = entry.tree.get(brand);
+        bNode.available += avail;
 
-            if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
-            const tNode = bNode.types.get(type);
-            tNode.available += avail;
+        if (!bNode.types.has(type)) bNode.types.set(type, { label: type, available: 0, gbs: new Map() });
+        const tNode = bNode.types.get(type);
+        tNode.available += avail;
 
-            if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
-            tNode.gbs.get(gb).available += avail;
-        }
+        if (!tNode.gbs.has(gb)) tNode.gbs.set(gb, { label: gb, available: 0 });
+        tNode.gbs.get(gb).available += avail;
 
         // Location Breakdown
         if (!entry.locations) entry.locations = new Map();
