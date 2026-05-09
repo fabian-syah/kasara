@@ -255,7 +255,7 @@ class StockOutController extends Controller
             $stockOut->imeis = collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->implode(', ');
             
             // Unified Recipient Label
-            $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: '-')));
+            $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->ba_name ?: ($stockOut->event_receiver ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: '-')))));
 
             return $stockOut;
         });

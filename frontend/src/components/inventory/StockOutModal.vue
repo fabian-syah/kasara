@@ -543,6 +543,7 @@ async function submitStockOut(pin = null) {
             formData.append('notes', stockOutForm.value.shopee_notes);
         } else if (selectedStockOutCategory.value === 'keluar') {
             formData.append('notes', stockOutForm.value.notes);
+            formData.append('receiver_name', stockOutForm.value.receiver_name);
         } else if (selectedStockOutCategory.value === 'hilang') {
             formData.append('missing_category', stockOutForm.value.missing_category);
             formData.append('person_in_charge', stockOutForm.value.person_in_charge);

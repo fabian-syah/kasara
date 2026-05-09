@@ -43,6 +43,9 @@ const categoryIcons = {
     tukar_tambah: ShoppingBag,
     downgrade: ShoppingBag,
     angkat_barang: Box,
+    brand_ambassador: User,
+    event_sponsorship: Calendar,
+    keluar: Box,
 };
 
 const categoryLabels = {
@@ -58,6 +61,9 @@ const categoryLabels = {
     tukar_tambah: 'Tukar Tambah',
     downgrade: 'Downgrade',
     angkat_barang: 'Angkat Barang',
+    brand_ambassador: 'Brand Ambassador',
+    event_sponsorship: 'Event / Sponsorship',
+    keluar: 'Keluar',
 };
 
 // Search function
@@ -256,7 +262,9 @@ function formatCurrency(value) {
                             class="card p-6 border-l-4 hover:bg-surface-700/30 transition-all" :class="{
                                 'border-l-blue-500': result.category === 'pindah_cabang',
                                 'border-l-amber-500': result.category === 'kesalahan_input',
-                                'border-l-purple-500': result.category === 'retur',
+                                'border-l-purple-500': result.category === 'retur' || result.category === 'keluar',
+                                'border-l-pink-500': result.category === 'brand_ambassador',
+                                'border-l-cyan-500': result.category === 'event_sponsorship',
                                 'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                 'border-l-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
                                 'border-l-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
@@ -267,7 +275,9 @@ function formatCurrency(value) {
                                     <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" :class="{
                                         'bg-blue-500/20 text-blue-500': result.category === 'pindah_cabang',
                                         'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
-                                        'bg-purple-500/20 text-purple-500': result.category === 'retur',
+                                        'bg-purple-500/20 text-purple-500': result.category === 'retur' || result.category === 'keluar',
+                                        'bg-pink-500/20 text-pink-500': result.category === 'brand_ambassador',
+                                        'bg-cyan-500/20 text-cyan-500': result.category === 'event_sponsorship',
                                         'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                         'bg-indigo-500/20 text-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
                                         'bg-emerald-500/20 text-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
@@ -406,6 +416,66 @@ function formatCurrency(value) {
                                             </p>
                                         </div>
                                     </template>
+                                </template>
+
+                                <!-- Brand Ambassador -->
+                                <template v-if="result.category === 'brand_ambassador'">
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Nama BA</p>
+                                        <p class="text-text-primary uppercase">{{ result.ba_name || '-' }}</p>
+                                    </div>
+                                    <div v-if="result.ba_phone">
+                                        <p class="text-text-secondary text-xs">No. WA</p>
+                                        <p class="text-text-primary">{{ result.ba_phone }}</p>
+                                    </div>
+                                    <div v-if="result.ba_social_media">
+                                        <p class="text-text-secondary text-xs">Sosial Media</p>
+                                        <p class="text-text-primary font-mono text-xs">{{ result.ba_social_media }}</p>
+                                    </div>
+                                    <div v-if="result.ba_notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Keterangan / Notes</p>
+                                        <p class="text-text-primary italic">{{ result.ba_notes }}</p>
+                                    </div>
+                                </template>
+
+                                <!-- Event / Sponsorship -->
+                                <template v-if="result.category === 'event_sponsorship'">
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Nama Event</p>
+                                        <p class="text-text-primary">{{ result.event_name || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Penanggung Jawab</p>
+                                        <p class="text-text-primary uppercase">{{ result.event_receiver || '-' }}</p>
+                                    </div>
+                                    <div v-if="result.event_phone">
+                                        <p class="text-text-secondary text-xs">No. WA</p>
+                                        <p class="text-text-primary">{{ result.event_phone }}</p>
+                                    </div>
+                                    <div v-if="result.event_doc" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Link Dokumen</p>
+                                        <a :href="result.event_doc" target="_blank" class="text-primary-500 hover:underline break-all text-xs">{{ result.event_doc }}</a>
+                                    </div>
+                                    <div v-if="result.event_notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Catatan Event</p>
+                                        <p class="text-text-primary italic">{{ result.event_notes }}</p>
+                                    </div>
+                                </template>
+
+                                <!-- Keluar -->
+                                <template v-if="result.category === 'keluar'">
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Sub Kategori</p>
+                                        <p class="text-text-primary uppercase font-bold">{{ result.sub_category || '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Penerima</p>
+                                        <p class="text-text-primary uppercase">{{ result.receiver_name || '-' }}</p>
+                                    </div>
+                                    <div v-if="result.notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Keterangan / Notes</p>
+                                        <p class="text-text-primary italic">{{ result.notes }}</p>
+                                    </div>
                                 </template>
 
                                 <!-- Kesalahan Input -->
