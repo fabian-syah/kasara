@@ -486,18 +486,14 @@ class DashboardController extends Controller
             // Reusable ranking function
             $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $normalizedSalesCategories) {
                 $query = DB::table('stock_outs')
-                    ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
                     ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
                 $actualEndDate = $endDate ?: $startDate;
-                $startTS = $startDate . ' 05:00:00';
-                $endTS = date('Y-m-d', strtotime($actualEndDate . ' +1 day')) . ' 04:59:59';
 
-                $query->where(function ($q) use ($startDate, $actualEndDate, $startTS, $endTS) {
-                    $q->whereBetween('stock_outs.reporting_date', [$startDate, $actualEndDate])
-                      ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
-                });
+                if ($startDate) $query->where('stock_outs.reporting_date', '>=', $startDate);
+                if ($actualEndDate) $query->where('stock_outs.reporting_date', '<=', $actualEndDate);
 
                 $stats = $query->select(
                     DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
@@ -563,7 +559,7 @@ class DashboardController extends Controller
                     return collect();
 
                 $query = DB::table('stock_outs')
-                    ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                    ->join('users', 'stock_outs.user_id', '=', 'users.id')
                     ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
@@ -578,13 +574,9 @@ class DashboardController extends Controller
                 });
 
                 $actualEnd = $end ?: $start;
-                $startTS = $start . ' 05:00:00';
-                $endTS = date('Y-m-d', strtotime($actualEnd . ' +1 day')) . ' 04:59:59';
 
-                $query->where(function ($q) use ($start, $actualEnd, $startTS, $endTS) {
-                    $q->whereBetween('stock_outs.reporting_date', [$start, $actualEnd])
-                      ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
-                });
+                if ($start) $query->where('stock_outs.reporting_date', '>=', $start);
+                if ($actualEnd) $query->where('stock_outs.reporting_date', '<=', $actualEnd);
 
                 return $query->select(
                     'users.id',
