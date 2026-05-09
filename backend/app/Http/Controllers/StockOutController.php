@@ -255,7 +255,7 @@ class StockOutController extends Controller
             $stockOut->imeis = collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->implode(', ');
             
             // Unified Recipient Label
-            $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->ba_name ?: ($stockOut->event_receiver ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: '-')))));
+            $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->ba_name ?: ($stockOut->event_receiver ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: ($stockOut->notes ?: ($stockOut->sub_category ?: '-')))))));
 
             return $stockOut;
         });
@@ -1206,6 +1206,15 @@ class StockOutController extends Controller
                     'sub_type' => 'departure',
                     'id' => $out->receipt_id,
                     'category' => $out->category,
+                    'sub_category' => $out->sub_category,
+                    'ba_name' => $out->ba_name,
+                    'ba_phone' => $out->ba_phone,
+                    'ba_social_media' => $out->ba_social_media,
+                    'ba_notes' => $out->ba_notes,
+                    'event_name' => $out->event_name,
+                    'event_receiver' => $out->event_receiver,
+                    'event_phone' => $out->event_phone,
+                    'event_doc' => $out->event_doc,
                     'items' => $mergedItems,
                     'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                     'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,

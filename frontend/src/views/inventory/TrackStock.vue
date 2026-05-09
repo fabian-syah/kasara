@@ -470,7 +470,7 @@ function formatCurrency(value) {
                                     </div>
                                     <div>
                                         <p class="text-text-secondary text-xs">Penerima</p>
-                                        <p class="text-text-primary uppercase">{{ result.receiver_name || '-' }}</p>
+                                        <p class="text-text-primary uppercase">{{ result.receiver_name || result.notes || '-' }}</p>
                                     </div>
                                     <div v-if="result.notes" class="col-span-full">
                                         <p class="text-text-secondary text-xs">Keterangan / Notes</p>
