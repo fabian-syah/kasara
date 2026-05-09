@@ -103,9 +103,10 @@ class DashboardController extends Controller
     private function getAggregatedStats($user, $categories, $role)
     {
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
+        $normalizedCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $categories));
 
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
-            ->whereIn('category', $categories)
+            ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
             ->where('reporting_date', $currentReportingDate);
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
@@ -288,14 +289,14 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->select('user_id', DB::raw("SUM(
                 CASE 
-                    WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling')
+                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
                          AND NOT (LOWER(notes) LIKE '%tukar unit%' OR LOWER(notes) LIKE '%tukar_unit%' OR LOWER(sales_account) LIKE '%tukar unit%' OR LOWER(sales_account) LIKE '%tukar_unit%')
                     THEN 1
                     ELSE 0
                 END
                 -
                 CASE 
-                    WHEN category IN ('refund', 'angkat_barang', 'downgrade') 
+                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade') 
                          OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                          OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
                          OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
@@ -351,16 +352,16 @@ class DashboardController extends Controller
             $units = StockOut::where('user_id', $u->id)
                 ->where('reporting_date', $currentReportingDate)
                 ->whereNull('deleted_at')
-                ->select(DB::raw("SUM(
+                 ->select(DB::raw("SUM(
                     CASE 
-                        WHEN category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling')
+                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
                              AND NOT (LOWER(notes) LIKE '%tukar unit%' OR LOWER(notes) LIKE '%tukar_unit%' OR LOWER(sales_account) LIKE '%tukar unit%' OR LOWER(sales_account) LIKE '%tukar_unit%')
                         THEN 1
                         ELSE 0
                     END
                     -
                     CASE 
-                        WHEN category IN ('refund', 'angkat_barang', 'downgrade') 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade') 
                              OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                              OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
                              OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
@@ -480,11 +481,13 @@ class DashboardController extends Controller
             $branches = $branchesArr->filter($excludeFilter);
             $shops = $shopsArr->filter($excludeFilter);
 
+            $normalizedSalesCategories = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $salesCategories));
+
             // Reusable ranking function
-            $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $salesCategories) {
+            $getRankingForRange = function ($startDate, $endDate = null) use ($branches, $shops, $normalizedSalesCategories) {
                 $query = DB::table('stock_outs')
                     ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
                 $actualEndDate = $endDate ?: $startDate;
@@ -501,7 +504,7 @@ class DashboardController extends Controller
                     DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship'))
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
@@ -509,12 +512,12 @@ class DashboardController extends Controller
                     ) as total_omset"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship'))
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade'))
                                  OR (
-                                     NOT (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship'))
+                                     NOT (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship'))
                                      AND (
                                          (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
                                          OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
@@ -555,13 +558,13 @@ class DashboardController extends Controller
             $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
             $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
 
-            $getUserRanking = function ($start, $end = null) use ($user, $salesCategories) {
+            $getUserRanking = function ($start, $end = null) use ($user, $normalizedSalesCategories) {
                 if (!$user->branch_id && !$user->online_shop_id)
                     return collect();
 
                 $query = DB::table('stock_outs')
                     ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                    ->whereIn('stock_outs.category', $salesCategories)
+                    ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
                 $query->where(function ($q) use ($user) {
@@ -586,10 +589,10 @@ class DashboardController extends Controller
                 return $query->select(
                     'users.id',
                     'users.name',
-                    DB::raw("COUNT(CASE WHEN stock_outs.category != 'refund' THEN stock_outs.id END) as units"),
+                    DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) != 'refund' THEN stock_outs.id END) as units"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship'))
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             ELSE 0
@@ -597,12 +600,12 @@ class DashboardController extends Controller
                     ) as omset"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship'))
                                  AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade'))
                                  OR (
-                                     NOT (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'))
+                                     NOT (LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship'))
                                      AND (
                                          (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
                                          OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
