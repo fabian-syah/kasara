@@ -161,7 +161,7 @@ class DashboardController extends Controller
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower($sale->category ?? '');
 
-            if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+            if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
                 if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
                     $cat = 'tukar_unit';
                 } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -186,7 +186,7 @@ class DashboardController extends Controller
                 $price = 0;
             }
 
-            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
             $isTradeIn = ($cat === 'tukar_tambah');
             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
@@ -385,7 +385,7 @@ class DashboardController extends Controller
                 $sa = strtolower($sale->sales_account ?? '');
                 $cat = strtolower($sale->category ?? '');
 
-                if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
+                if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
                     if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
                         $cat = 'tukar_unit';
                     } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -410,7 +410,7 @@ class DashboardController extends Controller
                     $price = 0;
                 }
 
-                $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling']);
+                $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                 $isTradeIn = ($cat === 'tukar_tambah');
                 $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
