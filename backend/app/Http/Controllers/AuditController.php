@@ -314,11 +314,20 @@ class AuditController extends Controller
                             };
 
                             if ($requestedBranchId) {
-                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                                $q->where(function ($sq) use ($requestedBranchId) {
+                                    $sq->where('stock_outs.branch_id', $requestedBranchId)
+                                        ->orWhere('users.branch_id', $requestedBranchId);
+                                });
                             } elseif ($requestedOnlineShopId) {
-                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                                $q->where(function ($sq) use ($requestedOnlineShopId) {
+                                    $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                        ->orWhere('users.online_shop_id', $requestedOnlineShopId);
+                                });
                             } elseif ($requestedWarehouseId) {
-                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                                $q->where(function ($sq) use ($requestedWarehouseId) {
+                                    $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                        ->orWhere('users.warehouse_id', $requestedWarehouseId);
+                                });
                             } elseif ($requestedDistributorId) {
                                 $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
                             } else {
@@ -342,11 +351,20 @@ class AuditController extends Controller
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
-                                $q->where('stock_outs.branch_id', $requestedBranchId);
+                                $q->where(function ($sq) use ($requestedBranchId) {
+                                    $sq->where('stock_outs.branch_id', $requestedBranchId)
+                                        ->orWhere('users.branch_id', $requestedBranchId);
+                                });
                             } elseif ($requestedOnlineShopId) {
-                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                                $q->where(function ($sq) use ($requestedOnlineShopId) {
+                                    $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                        ->orWhere('users.online_shop_id', $requestedOnlineShopId);
+                                });
                             } elseif ($requestedWarehouseId) {
-                                $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
+                                $q->where(function ($sq) use ($requestedWarehouseId) {
+                                    $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                        ->orWhere('users.warehouse_id', $requestedWarehouseId);
+                                });
                             } elseif ($requestedDistributorId) {
                                 $q->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw("users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id")->where('users.distributor_id', $requestedDistributorId));
                             } else {
@@ -1035,11 +1053,20 @@ class AuditController extends Controller
                                 };
 
                                 if ($requestedBranchId) {
-                                    $scoper($q, 'branch_id', $requestedBranchId);
+                                    $q->where(function ($sq) use ($requestedBranchId) {
+                                        $sq->where('stock_outs.branch_id', $requestedBranchId)
+                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.branch_id', $requestedBranchId));
+                                    });
                                 } elseif ($requestedOnlineShopId) {
-                                    $scoper($q, 'online_shop_id', $requestedOnlineShopId);
+                                    $q->where(function ($sq) use ($requestedOnlineShopId) {
+                                        $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.online_shop_id', $requestedOnlineShopId));
+                                    });
                                 } elseif ($requestedWarehouseId) {
-                                    $scoper($q, 'warehouse_id', $requestedWarehouseId);
+                                    $q->where(function ($sq) use ($requestedWarehouseId) {
+                                        $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.warehouse_id', $requestedWarehouseId));
+                                    });
                                 } elseif ($requestedDistributorId) {
                                     $q->whereExists(function ($sub) use ($requestedDistributorId) {
                                         $sub->select(DB::raw(1))
