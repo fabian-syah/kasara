@@ -365,8 +365,8 @@ watch(() => route.path, () => {
         <!-- User Section -->
         <div class="border-t border-surface-200/50 dark:border-surface-800/50 p-4">
             <div v-if="isExpanded" class="flex items-center gap-3 mb-4 px-2">
-                <img :src="authStore.user?.photo
-                    ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
+                <img :src="authStore.userPhotoUrl
+                    ? authStore.userPhotoUrl
                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '10b981' : '050505'}&color=fff&size=128`"
                     class="w-10 h-10 rounded-full border-2 border-surface-200 dark:border-surface-700 object-cover shadow-sm transition-transform hover:scale-105"
                     :alt="userName"

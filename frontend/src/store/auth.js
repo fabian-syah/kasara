@@ -203,6 +203,20 @@ export const useAuthStore = defineStore('auth', () => {
         return url.replace(/\/api\/?$/, '');
     });
 
+    const userPhotoUrl = computed(() => {
+        if (!user.value?.photo) return null;
+        const baseUrl = user.value.photo.startsWith('http')
+            ? user.value.photo
+            : `${storageBaseUrl.value}/storage/${user.value.photo}`;
+        
+        // Append timestamp to bust cache based on last update or current execution context
+        const ts = user.value.updated_at 
+            ? new Date(user.value.updated_at).getTime() 
+            : Date.now();
+            
+        return `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}t=${ts}`;
+    });
+
     // Listen for storage changes from other tabs to handle multi-tab session sync
     if (typeof window !== 'undefined') {
         window.addEventListener('storage', (event) => {
@@ -268,6 +282,7 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = enriched;
             localStorage.setItem('user', JSON.stringify(enriched));
         },
-        storageBaseUrl
+        storageBaseUrl,
+        userPhotoUrl
     }
 })

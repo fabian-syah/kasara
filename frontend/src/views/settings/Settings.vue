@@ -92,6 +92,7 @@ const isUploadingCover = ref(false);
 const coverInputRef = ref(null);
 const localCoverPreview = ref(null);
 const coverTimestamp = ref(Date.now());
+const photoTimestamp = ref(Date.now());
 
 const coverPhotoUrl = computed(() => {
     if (localCoverPreview.value) {
@@ -103,6 +104,14 @@ const coverPhotoUrl = computed(() => {
             : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}?t=${coverTimestamp.value}`;
     }
     return null;
+});
+
+const displayPhotoUrl = computed(() => {
+    const rawPhoto = user.value?.pending_photo || user.value?.photo;
+    if (!rawPhoto) return null;
+    return rawPhoto.startsWith('http')
+        ? rawPhoto
+        : `${authStore.storageBaseUrl}/storage/${rawPhoto}?t=${photoTimestamp.value}`;
 });
 
 function triggerCoverUpload() {
@@ -284,6 +293,7 @@ async function handlePhotoChange(event) {
         
         // Update Auth Store
         authStore.updateUserData(user.value);
+        photoTimestamp.value = Date.now();
         photoPreview.value = null;
 
     } catch (error) {
@@ -476,8 +486,8 @@ async function handlePinSuccess(pin) {
                 <!-- Profile Avatar -->
                 <div class="relative group/avatar">
                     <div class="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 bg-gradient-to-tr from-[#ef4444] to-[#f59e0b] rounded-[1.8rem] md:rounded-[2.5rem] border-4 border-white dark:border-zinc-900 shadow-2xl flex items-center justify-center text-white text-2xl sm:text-3xl md:text-5xl font-black tracking-wider overflow-hidden">
-                        <span v-if="!(user.pending_photo || user.photo)">{{ user.username ? user.username.slice(0, 2).toUpperCase() : 'GU' }}</span>
-                        <img v-else :src="(user.pending_photo || user.photo).startsWith('http') ? (user.pending_photo || user.photo) : `${authStore.storageBaseUrl}/storage/${user.pending_photo || user.photo}`" class="w-full h-full object-cover" />
+                        <span v-if="!displayPhotoUrl">{{ user.username ? user.username.slice(0, 2).toUpperCase() : 'GU' }}</span>
+                        <img v-else :src="displayPhotoUrl" class="w-full h-full object-cover" />
                     </div>
                     <label class="absolute bottom-1 right-1 bg-emerald-500 hover:bg-emerald-400 border-4 border-white dark:border-zinc-900 p-2 rounded-full cursor-pointer shadow-lg transition-all active:scale-90 flex items-center justify-center">
                         <Edit2 class="text-white" :size="13" />

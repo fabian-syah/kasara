@@ -100,8 +100,8 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                     class="flex items-center gap-3 hover:bg-surface-100 dark:hover:bg-surface-800 p-1.5 rounded-lg transition-colors focus:outline-none">
                     <div
                         class="w-10 h-10 rounded-full overflow-hidden border-2 border-surface-200 dark:border-surface-700 shadow-sm">
-                        <img :src="authStore.user?.photo
-                            ? (authStore.user.photo.startsWith('http') ? authStore.user.photo : `${authStore.storageBaseUrl}/storage/${authStore.user.photo}`)
+                        <img :src="authStore.userPhotoUrl
+                            ? authStore.userPhotoUrl
                             : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`"
                             class="w-full h-full object-cover" :alt="userName"
                             @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '3b82f6' : '0f172a'}&color=fff&size=128`" />
