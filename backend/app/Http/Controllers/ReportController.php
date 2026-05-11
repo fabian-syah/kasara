@@ -675,13 +675,14 @@ class ReportController extends Controller
                     WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'))
                          AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                     THEN ABS(COALESCE(stock_outs.selling_price, 0))
-                    WHEN (stock_outs.category IN ('refund', 'angkat_barang', 'downgrade'))
+                    WHEN (stock_outs.category = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                    THEN COALESCE((SELECT SUM(dg.outgoing_price - dg.incoming_cost_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                    WHEN (stock_outs.category IN ('refund', 'angkat_barang'))
                          OR (
-                             NOT (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'))
+                             NOT (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'downgrade'))
                              AND (
                                  (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%')
                                  OR (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%')
-                                 OR (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
                              )
                          )
                     THEN -ABS(COALESCE(stock_outs.selling_price, 0))

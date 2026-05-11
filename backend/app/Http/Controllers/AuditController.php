@@ -1387,7 +1387,9 @@ class AuditController extends Controller
                                     'name' => $hp->name,
                                     'imei' => $hp->imei,
                                     'storage' => $hp->storage,
-                                    'price' => (float) ($hp->item_price > 0 ? $hp->item_price : ($hp->cost_price ?? 0))
+                                    'price' => in_array($catLower, ['tukar_tambah', 'downgrade']) 
+                                        ? abs((float) $hp->total_diff) 
+                                        : (float) ($hp->item_price > 0 ? $hp->item_price : ($hp->cost_price ?? 0))
                                 ];
                             }
 

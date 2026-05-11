@@ -103,7 +103,7 @@
                         Omset Bersih
                     </p>
                     <p class="text-2xl font-black text-emerald-600 mt-2">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat + Refund + DG)</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat + Refund + In TT + Selisih DG)</p>
                 </div>
             </div>
 

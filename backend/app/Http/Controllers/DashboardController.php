@@ -528,7 +528,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price - dg.incoming_cost_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             ELSE 0
                         END
                     ) as omset_bersih")
