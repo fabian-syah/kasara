@@ -387,20 +387,40 @@ class AuditController extends Controller
 
                     // AUTO-REPAIR: If inventory_user_id is missing or same as user_id but sales_account string exists, sync it
                     // This fixes existing transactions that were misattributed to the main account
-                    DB::table('stock_outs')
+                    // Optimized Auto-Repair: Use bulk fetch and batch updates instead of iterative sequential queries
+                    $unmappedNames = DB::table('stock_outs')
+                        ->select('sales_account')
                         ->where(function ($q) {
-                        $q->whereNull('inventory_user_id')
-                            ->orWhereRaw('inventory_user_id = user_id');
-                    })
+                            $q->whereNull('inventory_user_id')
+                              ->orWhereRaw('inventory_user_id = user_id');
+                        })
                         ->whereNotNull('sales_account')
                         ->whereBetween('reporting_date', [$startDate, $endDate])
-                        ->get()
-                        ->each(function ($trx) {
-                        $user = \App\Models\User::where('name', $trx->sales_account)->first();
-                        if ($user && $user->id != $trx->inventory_user_id) {
-                            DB::table('stock_outs')->where('id', $trx->id)->update(['inventory_user_id' => $user->id]);
+                        ->distinct()
+                        ->pluck('sales_account');
+
+                    if ($unmappedNames->isNotEmpty()) {
+                        // Order by ID to guarantee stable resolution matching ->first() logic
+                        $usersMap = \App\Models\User::whereIn('name', $unmappedNames)
+                            ->orderBy('id')
+                            ->get()
+                            ->keyBy('name')
+                            ->map(fn($u) => $u->id);
+                            
+                        foreach ($usersMap as $name => $userId) {
+                            DB::table('stock_outs')
+                                ->where(function ($q) {
+                                    $q->whereNull('inventory_user_id')
+                                      ->orWhereRaw('inventory_user_id = user_id');
+                                })
+                                ->where('sales_account', $name)
+                                ->whereBetween('reporting_date', [$startDate, $endDate])
+                                ->where(function ($q) use ($userId) {
+                                     $q->whereNull('inventory_user_id')->orWhere('inventory_user_id', '!=', $userId);
+                                })
+                                ->update(['inventory_user_id' => $userId]);
                         }
-                    });
+                    }
 
                     // Unified date logic with created_at fallback
                     $startTS = $startDate . ' 05:00:00';
@@ -1390,6 +1410,7 @@ class AuditController extends Controller
                         })
                             ->get();
 
+                        $nhpLogMemo = [];
                         foreach ($nhpItems as $item) {
                             $trx = $item->stockOut;
                             if (!$trx)
@@ -1412,22 +1433,31 @@ class AuditController extends Controller
                                 $did = $item->product->distributor_id;
                             }
 
-                            // Fallback for transactions (inventory logs)
+                            // Fallback for transactions (inventory logs) - Memoized to avoid sequential N+1 lookup performance issues
                             if (!$did) {
-                                $lastLog = DB::table('inventory_logs')
-                                    ->where('product_id', $item->product_id)
-                                    ->where('type', 'in')
-                                    ->where(function ($q) use ($trx) {
-                                        if ($trx->branch_id)
-                                            $q->where('branch_id', $trx->branch_id);
-                                        elseif ($trx->warehouse_id)
-                                            $q->where('warehouse_id', $trx->warehouse_id);
-                                        elseif ($trx->online_shop_id)
-                                            $q->where('online_shop_id', $trx->online_shop_id);
-                                    })
-                                    ->latest()
-                                    ->first();
-                                $did = $lastLog->distributor_id ?? null;
+                                $lType = $trx->branch_id ? 'b' : ($trx->warehouse_id ? 'w' : ($trx->online_shop_id ? 'o' : 'n'));
+                                $lId = $trx->branch_id ?: ($trx->warehouse_id ?: ($trx->online_shop_id ?: 0));
+                                $cKey = "{$item->product_id}_{$lType}_{$lId}";
+                                
+                                if (array_key_exists($cKey, $nhpLogMemo)) {
+                                    $did = $nhpLogMemo[$cKey];
+                                } else {
+                                    $lastLog = DB::table('inventory_logs')
+                                        ->where('product_id', $item->product_id)
+                                        ->where('type', 'in')
+                                        ->where(function ($q) use ($trx) {
+                                            if ($trx->branch_id)
+                                                $q->where('branch_id', $trx->branch_id);
+                                            elseif ($trx->warehouse_id)
+                                                $q->where('warehouse_id', $trx->warehouse_id);
+                                            elseif ($trx->online_shop_id)
+                                                $q->where('online_shop_id', $trx->online_shop_id);
+                                        })
+                                        ->latest()
+                                        ->first();
+                                    $did = $lastLog->distributor_id ?? null;
+                                    $nhpLogMemo[$cKey] = $did;
+                                }
                             }
 
                             $qty = (int) $item->quantity;
@@ -1507,26 +1537,36 @@ class AuditController extends Controller
 
                         $oStockItems = $oStock->select('products.name', 'inventories.quantity', 'inventories.distributor_id', 'inventories.product_id', 'inventories.placement_type', 'inventories.placement_id')->get();
 
+                        $oStockLogMemo = [];
                         foreach ($oStockItems as $s) {
                             $did = $s->distributor_id;
 
-                            // Fallback to logs if distributor_id is missing in inventories table
+                            // Fallback to logs if distributor_id is missing in inventories table - Memoized to fix N+1 latency
                             if (!$did) {
-                                $lastLog = DB::table('inventory_logs')
-                                    ->where('product_id', $s->product_id)
-                                    ->where('type', 'in')
-                                    ->where(function ($q) use ($s) {
-                                        $pt = strtolower($s->placement_type ?? '');
-                                        if (str_contains($pt, 'branch'))
-                                            $q->where('branch_id', $s->placement_id);
-                                        elseif (str_contains($pt, 'warehouse'))
-                                            $q->where('warehouse_id', $s->placement_id);
-                                        elseif (str_contains($pt, 'online_shop'))
-                                            $q->where('online_shop_id', $s->placement_id);
-                                    })
-                                    ->latest()
-                                    ->first();
-                                $did = $lastLog->distributor_id ?? null;
+                                $lType = strtolower($s->placement_type ?? '');
+                                $lId = $s->placement_id;
+                                $cKey = "{$s->product_id}_{$lType}_{$lId}";
+
+                                if (array_key_exists($cKey, $oStockLogMemo)) {
+                                    $did = $oStockLogMemo[$cKey];
+                                } else {
+                                    $lastLog = DB::table('inventory_logs')
+                                        ->where('product_id', $s->product_id)
+                                        ->where('type', 'in')
+                                        ->where(function ($q) use ($s) {
+                                            $pt = strtolower($s->placement_type ?? '');
+                                            if (str_contains($pt, 'branch'))
+                                                $q->where('branch_id', $s->placement_id);
+                                            elseif (str_contains($pt, 'warehouse'))
+                                                $q->where('warehouse_id', $s->placement_id);
+                                            elseif (str_contains($pt, 'online_shop'))
+                                                $q->where('online_shop_id', $s->placement_id);
+                                        })
+                                        ->latest()
+                                        ->first();
+                                    $did = $lastLog->distributor_id ?? null;
+                                    $oStockLogMemo[$cKey] = $did;
+                                }
                             }
 
                             $cat = $getCategoryByItem($did);
