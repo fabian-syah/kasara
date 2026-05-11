@@ -288,11 +288,15 @@
 
                         <!-- PENJUALAN ALL -->
                         <div class="space-y-4 mb-2">
-                            <div v-for="(amount, method) in (salesData?.report_summary?.payments || {})" :key="method"
-                                v-show="amount > 0"
+                            <div v-for="[method, amount] in sortedPayments" :key="method"
                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">{{ method }}</span>
                                 <span>{{ formatCurrency(amount) }}</span>
+                            </div>
+                            <div v-if="totalInTt > 0"
+                                class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                                <span class="uppercase tracking-wide">IN TT</span>
+                                <span>{{ formatCurrency(totalInTt) }}</span>
                             </div>
                         </div>
 
@@ -1634,6 +1638,24 @@ const categoryStocks = computed(() => {
     ];
 });
 
+const totalInTt = computed(() => {
+    const details = salesData.value?.report_summary?.activities?.details?.in_tt || [];
+    return details.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+});
+
+const sortedPayments = computed(() => {
+    const p = salesData.value?.report_summary?.payments || {};
+    const entries = Object.entries(p).filter(([method, amt]) => amt > 0);
+    entries.sort(([nameA], [nameB]) => {
+        const isACash = nameA.toUpperCase().includes('CASH TOKO');
+        const isBCash = nameB.toUpperCase().includes('CASH TOKO');
+        if (isACash) return -1;
+        if (isBCash) return 1;
+        return nameA.localeCompare(nameB);
+    });
+    return entries;
+});
+
 const getBaseReportText = (isForCopy = false) => {
     if (!salesData.value || !salesData.value.report_summary) return '';
     const summary = salesData.value.report_summary;
@@ -1659,11 +1681,12 @@ const getBaseReportText = (isForCopy = false) => {
     if (!summary.payments || Object.keys(summary.payments).length === 0) {
         text += `Belum ada transaksi\n`;
     } else {
-        Object.entries(payments).forEach(([method, amount]) => {
-            if (amount !== 0) {
-                text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
-            }
+        sortedPayments.value.forEach(([method, amount]) => {
+            text += `${method.toUpperCase()} : ${formatCurrency(amount)}\n`;
         });
+        if (totalInTt.value > 0) {
+            text += `IN TT : ${formatCurrency(totalInTt.value)}\n`;
+        }
     }
 
     text += `\n*Total Omset : ${formatCurrency(summary.payment_total)}*\n`;
