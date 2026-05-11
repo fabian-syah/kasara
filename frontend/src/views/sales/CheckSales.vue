@@ -576,7 +576,7 @@
 </style>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
@@ -1084,5 +1084,22 @@ onMounted(() => {
     filters.value.end_date = today;
     fetchLocations()
     fetchData()
+
+    // Listen for Real-time sales updates via WebSockets (Laravel Echo/Reverb)
+    if (window.Echo) {
+        window.Echo.channel('stock-out')
+            .listen('.StockOutEvent', (e) => {
+                console.log('[Realtime] Data change detected in Sales history, refetching...', e);
+                // Refetch data silently in the background
+                fetchData();
+            });
+    }
+})
+
+onUnmounted(() => {
+    // Clean up listeners to prevent duplicate triggers/memory leaks
+    if (window.Echo) {
+        window.Echo.leave('stock-out');
+    }
 })
 </script>

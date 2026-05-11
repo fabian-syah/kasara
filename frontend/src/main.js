@@ -5,6 +5,23 @@ import router from './router'
 import axios from 'axios' // TAMBAHKAN INI
 import './style.css'
 
+// --- INTEGRASI REALTIME: Laravel Echo & Reverb ---
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
+window.Pusher = Pusher;
+
+window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: import.meta.env.VITE_REVERB_APP_KEY || 'apexkey',
+    wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
+    wsPort: import.meta.env.VITE_REVERB_PORT || 80,
+    wssPort: import.meta.env.VITE_REVERB_PORT || 443,
+    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    enabledTransports: ['ws', 'wss'],
+});
+// -------------------------------------------------
+
 // Konfigurasi Dasar Axios
 axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
 axios.defaults.withCredentials = true; // Penting untuk Sanctum

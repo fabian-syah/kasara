@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use App\Events\StockOutEvent;
 
 class StockOut extends Model
 {
@@ -42,6 +43,31 @@ class StockOut extends Model
                 if (!$model->reporting_date) {
                     $model->reporting_date = static::calculateReportingDate($model->category, $location);
                 }
+            }
+        });
+
+        // AUTOMATIC REALTIME BROADCAST: Trigger websocket event on ANY state change
+        static::created(function ($model) {
+            try {
+                broadcast(new StockOutEvent($model))->toOthers();
+            } catch (\Throwable $e) {
+                \Log::warning("Reverb broadcast on created failed: " . $e->getMessage());
+            }
+        });
+
+        static::updated(function ($model) {
+            try {
+                broadcast(new StockOutEvent($model))->toOthers();
+            } catch (\Throwable $e) {
+                \Log::warning("Reverb broadcast on updated failed: " . $e->getMessage());
+            }
+        });
+
+        static::deleted(function ($model) {
+            try {
+                broadcast(new StockOutEvent($model))->toOthers();
+            } catch (\Throwable $e) {
+                \Log::warning("Reverb broadcast on deleted failed: " . $e->getMessage());
             }
         });
     }

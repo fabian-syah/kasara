@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { formatCurrency, formatNumber } from "../../utils/formatters";
 import api, { users as usersApi } from "../../api/axios";
@@ -269,6 +269,22 @@ function refreshData() {
 onMounted(() => {
   fetchDashboardData();
   fetchUsers();
+
+  // Enable Real-Time Dashboard auto-refresh on sales activity
+  if (window.Echo) {
+    window.Echo.channel('stock-out')
+      .listen('.StockOutEvent', (e) => {
+        console.log('[Realtime] Sales transaction detected, refreshing dashboard totals...', e);
+        // Intelligently re-pull current statistics without aggressive page flashes
+        fetchDashboardData();
+      });
+  }
+});
+
+onUnmounted(() => {
+  if (window.Echo) {
+    window.Echo.leave('stock-out');
+  }
 });
 
 const getColorClasses = (color) => {
