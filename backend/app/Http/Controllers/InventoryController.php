@@ -638,11 +638,22 @@ class InventoryController extends Controller
         $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
         $hpInItems = $hpInQuery->latest()->get();
 
-        $hpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
+        $hpInSheet = [['No', 'Waktu', 'Sumber Masuk', 'Kategori', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpInItems as $idx => $item) {
+            $source = 'Masuk Manual';
+            if ($item->trade_in_id) $source = 'Angkat Barang';
+            elseif ($item->tukar_tambah_id) $source = 'Tukar Tambah';
+            elseif ($item->refund_id) $source = 'Refund';
+            elseif ($item->unit_exchange_id) $source = 'Tukar Unit';
+            elseif ($item->downgrade_id) $source = 'Downgrade';
+            
+            $category = $item->product->category ?? '-';
+
             $hpInSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
+                $source,
+                $category,
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 implode('/', array_filter([$item->ram, $item->storage])),
@@ -662,16 +673,29 @@ class InventoryController extends Controller
         $this->applyStockHistoryFilters($nonHpInQuery, $request, 'non-hp', 'in');
         $nonHpInItems = $nonHpInQuery->latest()->get();
 
-        $nonHpInSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
+        $nonHpInSheet = [['No', 'Waktu', 'Sumber Masuk', 'Kategori', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($nonHpInItems as $idx => $item) {
             $locationName = '-';
             if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
             elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
             elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
+            $source = 'Masuk Manual';
+            $desc = strtolower($item->description ?? '');
+            if (str_contains($desc, 'angkat barang') || ($item->reference_id && str_contains(strtolower($item->reference_id), 'trade-in'))) $source = 'Angkat Barang';
+            elseif (str_contains($desc, 'tukar tambah')) $source = 'Tukar Tambah';
+            elseif (str_contains($desc, 'refund')) $source = 'Refund';
+            elseif (str_contains($desc, 'tukar unit') || str_contains($desc, 'exchange')) $source = 'Tukar Unit';
+            elseif (str_contains($desc, 'downgrade')) $source = 'Downgrade';
+            elseif (str_contains($desc, 'pindah cabang') || str_contains($desc, 'transfer')) $source = 'Pindah Cabang';
+
+            $category = $item->product->category ?? '-';
+
             $nonHpInSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
+                $source,
+                $category,
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 $locationName,
@@ -689,8 +713,17 @@ class InventoryController extends Controller
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpOutQuery, $request, 'hp', 'out');
         $hpOutItems = $hpOutQuery->latest()->get();
+        
+        // Pre-fetch Product Details for HP Outgoing (to get Specs/GB)
+        $outImeis = [];
+        foreach ($hpOutItems as $itm) {
+            if ($itm->description && preg_match('/\(([\d]+)\)/', $itm->description, $matches)) {
+                $outImeis[] = $matches[1];
+            }
+        }
+        $outDetails = \App\Models\ProductDetail::whereIn('imei', $outImeis)->get()->keyBy('imei');
 
-        $hpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
+        $hpOutSheet = [['No', 'Waktu', 'Sumber / Kategori Keluar', 'Merek', 'Produk', 'Spec', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
         foreach ($hpOutItems as $idx => $item) {
             $locationName = '-';
             if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
@@ -698,13 +731,31 @@ class InventoryController extends Controller
             elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
             $imei = '-';
-            if ($item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) { $imei = $matches[1]; }
+            $spec = '-';
+            if ($item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) { 
+                $imei = $matches[1];
+                $det = $outDetails->get($imei);
+                if ($det) {
+                    $spec = implode('/', array_filter([$det->ram, $det->storage]));
+                }
+            }
+            
+            $outCategory = 'Stock Out';
+            if ($item->description) {
+                $parts = explode('(', $item->description);
+                $trimmedPart = trim($parts[0]);
+                if (!empty($trimmedPart)) {
+                    $outCategory = $trimmedPart;
+                }
+            }
 
             $hpOutSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
+                strtoupper($outCategory),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
+                $spec,
                 str_replace("'", "", $imei),
                 $locationName,
                 $item->description ?? '-',
@@ -719,16 +770,26 @@ class InventoryController extends Controller
         $this->applyStockHistoryFilters($nonHpOutQuery, $request, 'non-hp', 'out');
         $nonHpOutItems = $nonHpOutQuery->latest()->get();
 
-        $nonHpOutSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
+        $nonHpOutSheet = [['No', 'Waktu', 'Sumber / Kategori Keluar', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
         foreach ($nonHpOutItems as $idx => $item) {
             $locationName = '-';
             if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
             elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
             elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
+            $outCategory = 'Stock Out';
+            if ($item->description) {
+                $parts = explode('(', $item->description);
+                $trimmedPart = trim($parts[0]);
+                if (!empty($trimmedPart)) {
+                    $outCategory = $trimmedPart;
+                }
+            }
+
             $nonHpOutSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
+                strtoupper($outCategory),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
                 $locationName,
