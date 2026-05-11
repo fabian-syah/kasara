@@ -190,12 +190,12 @@ watch(() => props.show, (newVal) => {
                                 <option v-for="user in inventoryUsers" :key="user.id" :value="user.id"
                                     class="dark:bg-surface-800">
                                     {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{
-                                        user.transaction_pin_exists || user.pin_enabled ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
+                                        user.pin_enabled ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
                                 </option>
                             </select>
 
-                            <!-- Show warning ONLY if the user has NO pin setup at all -->
-                            <div v-if="selectedUser && !selectedUser.transaction_pin_exists && !selectedUser.pin_enabled"
+                            <!-- Show warning ONLY if the user has NO active pin -->
+                            <div v-if="selectedUser && !selectedUser.pin_enabled"
                                 class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
                                 <AlertCircle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
                                 <p class="text-[10px] text-amber-500 leading-tight">

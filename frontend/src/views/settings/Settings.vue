@@ -370,7 +370,7 @@ async function handlePinToggle() {
         return;
     }
 
-    pinModalMode.value = exists ? 'verify' : 'setup';
+    pinModalMode.value = 'setup'; // Always force setup mode when activating to allow fresh PIN
     pinModalTitle.value = `${action} PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
     pinError.value = "";
     showPinModal.value = true;
