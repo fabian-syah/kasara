@@ -388,7 +388,11 @@ class ReportController extends Controller
             ->select(
                 'users.id',
                 'users.name',
-                DB::raw('SUM(CASE WHEN stock_outs.category NOT IN (\'refund\', \'angkat_barang\') THEN ABS(stock_outs.selling_price) ELSE 0 END) as omset')
+                DB::raw("SUM(CASE 
+                    WHEN stock_outs.category = 'tukar_tambah' THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
+                    WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN ABS(COALESCE(stock_outs.selling_price, 0)) 
+                    ELSE 0 
+                END) as omset")
             );
 
         if ($startDate)
@@ -627,7 +631,9 @@ class ReportController extends Controller
             DB::raw("SUM(CASE 
                 WHEN LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%'
                 THEN 0
-                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
+                WHEN stock_outs.category = 'tukar_tambah'
+                THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
+                WHEN stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                 THEN ABS(COALESCE(stock_outs.selling_price, 0))
                 ELSE 0
             END) as sales_omset"),
@@ -664,6 +670,8 @@ class ReportController extends Controller
             END) as ab_amount"),
             DB::raw("SUM(
                 CASE 
+                    WHEN (stock_outs.category = 'tukar_tambah')
+                    THEN ABS(COALESCE(stock_outs.selling_price, 0))
                     WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'))
                          AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                     THEN ABS(COALESCE(stock_outs.selling_price, 0))

@@ -761,11 +761,13 @@ class AuditController extends Controller
                     $transactions = (clone $baseQuery)->select(
                         'stock_outs.id', 
                         'stock_outs.category', 
+                        'stock_outs.receipt_id',
                         'stock_outs.reporting_date', 
                         'stock_outs.created_at', 
                         'stock_outs.selling_price', 
                         'stock_outs.notes', 
-                        'stock_outs.sales_account'
+                        'stock_outs.sales_account',
+                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price')
                     )->get();
 
                     $resolveActualCategory = function ($category, $notes, $salesAccount) {
@@ -828,7 +830,11 @@ class AuditController extends Controller
                             $dailyStats[$date]['total_omset'] += $price;
                             $dailyStats[$date]['omset_bersih'] += $price;
                         } elseif ($isTradeIn) {
-                            $dailyStats[$date]['total_omset'] += $price;
+                            $outPrice = floatval($tx->tt_outgoing_price ?? 0);
+                            if ($outPrice <= 0) $outPrice = $price;
+                            
+                            $dailyStats[$date]['total_omset'] += $outPrice;
+                            $dailyStats[$date]['omset_bersih'] += $price; // difference is exactly the net impact 
                         } elseif ($isDeduction) {
                             $dailyStats[$date]['omset_bersih'] -= $price;
                         }
@@ -1234,16 +1240,19 @@ class AuditController extends Controller
                             ->select(
                                 'payment_method_id',
                                 'category',
+                                'receipt_id',
                                 'selling_price',
                                 'split_payments',
                                 'notes',
-                                'sales_account'
+                                'sales_account',
+                                DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price')
                             )
                             ->get();
 
                         $baseSalesOnly = 0;
                         $tradeSelisih = 0;
                         $deductions = 0;
+                        $totalTradeOutgoing = 0;
 
                         foreach ($rawStats as $ps) {
                             $cat = $resolveActualCategory($ps->category, $ps->notes, $ps->sales_account);
@@ -1284,6 +1293,10 @@ class AuditController extends Controller
                             if ($isBaseSale) {
                                 $baseSalesOnly += $price;
                             } elseif ($isTradeIn) {
+                                $outPrice = floatval($ps->tt_outgoing_price ?? 0);
+                                if ($outPrice <= 0) $outPrice = $price;
+                                
+                                $totalTradeOutgoing += $outPrice;
                                 $tradeSelisih += $price;
                             } elseif ($isDeduction) {
                                 $deductions += $price;
@@ -1592,8 +1605,10 @@ class AuditController extends Controller
                             }
                         }
                         $selisihTT = $tradeSelisih > 0 ? $tradeSelisih : $productTradeSelisih;
-                        $paymentTotal = $baseSalesOnly + $selisihTT;
-                        $omsetBersih = $baseSalesOnly - $activityDeductions;
+                        
+                        $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
+                        $paymentTotal = $baseSalesOnly + $tradeOutVal;
+                        $omsetBersih = $baseSalesOnly + $selisihTT - $activityDeductions;
 
                         return [
                             'payments' => $pSums,

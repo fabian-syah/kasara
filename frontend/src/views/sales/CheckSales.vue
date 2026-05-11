@@ -90,7 +90,7 @@
                         Total Omset
                     </p>
                     <p class="text-2xl font-black text-text-primary mt-2">{{ formatCurrency(summaryStats.totalOmset) }}</p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + Selisih TT</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + TT Out</p>
                 </div>
             </div>
 
@@ -840,6 +840,7 @@ const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.s
 const summaryStats = computed(() => {
     let baseSales = 0;
     let tradeSelisih = 0;
+    let tradeOutgoingTotal = 0;
     let outlay = 0;
     let hpUnitsIn = 0;
     let hpUnitsOut = 0;
@@ -896,7 +897,11 @@ const summaryStats = computed(() => {
         if (isBaseSale) {
             baseSales += total;
         } else if (isTradeIn) {
-            tradeSelisih += total;
+            tradeSelisih += total; // Net difference
+            
+            // Sum outgoing price for total omset (falls back to difference if null)
+            const outVal = parseFloat(item.price_out) || total;
+            tradeOutgoingTotal += Math.abs(outVal);
         }
 
         if (isDeduction) {
@@ -942,8 +947,8 @@ const summaryStats = computed(() => {
     });
 
     return {
-        totalOmset: baseSales + tradeSelisih,
-        omsetBersih: baseSales - outlay,
+        totalOmset: baseSales + (tradeOutgoingTotal || tradeSelisih),
+        omsetBersih: baseSales + tradeSelisih - outlay,
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits
