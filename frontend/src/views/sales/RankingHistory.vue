@@ -435,6 +435,12 @@
                                 <span class="text-emerald-950 font-black">{{
                                     salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Masuk TT</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.in_tt || 0 }}</span>
+                            </div>
 
                             <!-- Rincian Unit (Refund/Angkat Barang Details) -->
                             <div v-if="salesData?.report_summary?.activities?.details" class="mt-4 mb-8 space-y-6">
@@ -480,6 +486,30 @@
                                                 <div v-if="d.price !== undefined && d.price !== null"
                                                     class="text-[10px] font-black text-blue-600 uppercase tracking-tighter">
                                                     Harga Angkat: {{ formatCurrency(d.price) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="salesData.report_summary.activities.details.in_tt?.length > 0">
+                                    <h4 class="text-[10px] font-black text-emerald-600/70 uppercase tracking-[0.2em] mb-2">
+                                        Rincian Masuk TT:
+                                    </h4>
+                                    <div class="space-y-3 pl-2">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.in_tt"
+                                            :key="'ui-itt-' + idx" class="border-l-2 border-emerald-100 pl-3 py-1">
+                                            <div
+                                                class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                                {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
+                                            </div>
+                                            <div class="flex items-center gap-4 mt-1">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                                                    IMEI: {{ d.imei ||
+                                                        '-' }}</div>
+                                                <div v-if="d.price !== undefined && d.price !== null"
+                                                    class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">
+                                                    Harga Masuk: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
                                         </div>
@@ -1682,7 +1712,8 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Downgrade        : ${activities.downgrade || 0}\n`;
     text += `Refund           : ${activities.refund || 0}\n`;
     text += `Retur            : ${activities.retur || 0}\n`;
-    text += `Angkat barang    : ${activities.angkat_barang || 0}\n\n`;
+    text += `Angkat barang    : ${activities.angkat_barang || 0}\n`;
+    text += `Masuk TT         : ${activities.in_tt || 0}\n\n`;
 
     text += `Laptop        : ${summary.dist_map?.laptop || 0}\n`;
     text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
@@ -1735,7 +1766,11 @@ const getBaseReportText = (isForCopy = false) => {
     });
 
     const actDetails = activities.details || {};
-    if ((actDetails.refund && actDetails.refund.length > 0) || (actDetails.angkat_barang && actDetails.angkat_barang.length > 0)) {
+    const hasDetails = (actDetails.refund && actDetails.refund.length > 0) || 
+                       (actDetails.angkat_barang && actDetails.angkat_barang.length > 0) ||
+                       (actDetails.in_tt && actDetails.in_tt.length > 0);
+
+    if (hasDetails) {
         text += `__________________\n__________________\n\n*Rincian Unit*\n`;
         if (actDetails.refund && actDetails.refund.length > 0) {
             text += `\n*Rincian Refund:*\n`;
@@ -1749,6 +1784,13 @@ const getBaseReportText = (isForCopy = false) => {
             actDetails.angkat_barang.forEach(d => {
                 text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
                 if (d.price !== undefined && d.price !== null) text += `  Harga Angkat Barang: ${formatCurrency(d.price)}\n`;
+            });
+        }
+        if (actDetails.in_tt && actDetails.in_tt.length > 0) {
+            text += `\n*Rincian Masuk TT:*\n`;
+            actDetails.in_tt.forEach(d => {
+                text += `• ${d.name || '-'}${d.storage ? ` (${d.storage})` : ''}\n  IMEI: ${d.imei || '-'}\n`;
+                if (d.price !== undefined && d.price !== null) text += `  Harga Masuk TT: ${formatCurrency(d.price)}\n`;
             });
         }
     }

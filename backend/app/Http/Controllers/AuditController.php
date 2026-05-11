@@ -1378,7 +1378,7 @@ class AuditController extends Controller
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling']);
                         $applyLocalScope($hpItemsQuery);
 
-                        $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => []];
+                        $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
 
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account')->get() as $hp) {
                             $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
@@ -1412,6 +1412,28 @@ class AuditController extends Controller
                                 $mapRp[$itemCat] += $price;
                                 $soldDetails[$itemCat][$hp->name ?? 'Unknown item'] = ($soldDetails[$itemCat][$hp->name ?? 'Unknown item'] ?? 0) + 1;
                             }
+                        }
+
+                        // 1b. Fetch ALL Incoming Trade-In Units (In TT) explicitly for report activity breakdown
+                        $ttIncomingQuery = DB::table('tukar_tambahs')
+                            ->join('stock_outs', 'tukar_tambahs.receipt_id', '=', 'stock_outs.receipt_id')
+                            ->leftJoin('product_types', 'tukar_tambahs.incoming_product_type_id', '=', 'product_types.id')
+                            ->whereNull('stock_outs.deleted_at');
+                        
+                        $applyLocalScope($ttIncomingQuery);
+
+                        foreach ($ttIncomingQuery->select(
+                            'product_types.name as incoming_name', 
+                            'tukar_tambahs.incoming_cost_price',
+                            'tukar_tambahs.incoming_imei',
+                            'tukar_tambahs.incoming_storage'
+                        )->get() as $itt) {
+                            $activityDetails['in_tt'][] = [
+                                'name' => 'IN: ' . ($itt->incoming_name ?? 'Unit Masuk'),
+                                'imei' => $itt->incoming_imei ?? '-',
+                                'storage' => $itt->incoming_storage ?? '-',
+                                'price' => (float) $itt->incoming_cost_price
+                            ];
                         }
 
                         // 2. Non-IMEI transactions
@@ -1599,7 +1621,7 @@ class AuditController extends Controller
 
                         // Recalculate omset_bersih using activityDetails item prices for 100% accuracy
                         $activityDeductions = 0;
-                        foreach (['refund', 'retur', 'angkat_barang', 'downgrade'] as $actCat) {
+                        foreach (['refund', 'retur', 'angkat_barang', 'downgrade', 'in_tt'] as $actCat) {
                             foreach ($activityDetails[$actCat] ?? [] as $actItem) {
                                 $activityDeductions += (float) ($actItem['price'] ?? 0);
                             }
@@ -1608,7 +1630,9 @@ class AuditController extends Controller
                         
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
-                        $omsetBersih = $baseSalesOnly + $selisihTT - $activityDeductions;
+                        
+                        // Correct direct formula: Omset Bersih = Total Sales(Gross) - All Deductions(including InTT)
+                        $omsetBersih = $paymentTotal - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
@@ -1626,6 +1650,7 @@ class AuditController extends Controller
                                 'refund' => count($activityDetails['refund'] ?? []),
                                 'retur' => count($activityDetails['retur'] ?? []),
                                 'angkat_barang' => count($activityDetails['angkat_barang'] ?? []),
+                                'in_tt' => count($activityDetails['in_tt'] ?? []),
                                 'details' => $activityDetails
                             ],
                             'debug' => [

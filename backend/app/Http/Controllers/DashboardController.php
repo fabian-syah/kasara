@@ -520,7 +520,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
@@ -612,7 +612,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')

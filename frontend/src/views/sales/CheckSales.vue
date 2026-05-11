@@ -841,6 +841,7 @@ const summaryStats = computed(() => {
     let baseSales = 0;
     let tradeSelisih = 0;
     let tradeOutgoingTotal = 0;
+    let tradeIncomingTotal = 0;
     let outlay = 0;
     let hpUnitsIn = 0;
     let hpUnitsOut = 0;
@@ -902,6 +903,10 @@ const summaryStats = computed(() => {
             // Sum outgoing price for total omset (falls back to difference if null)
             const outVal = parseFloat(item.price_out) || total;
             tradeOutgoingTotal += Math.abs(outVal);
+
+            // Explicitly track Incoming Price for conceptually aligned deductions
+            const inVal = parseFloat(item.price_in) || 0;
+            tradeIncomingTotal += Math.abs(inVal);
         }
 
         if (isDeduction) {
@@ -948,7 +953,8 @@ const summaryStats = computed(() => {
 
     return {
         totalOmset: baseSales + (tradeOutgoingTotal || tradeSelisih),
-        omsetBersih: baseSales + tradeSelisih - outlay,
+        // Mathematically correct transparent formula: (Sales + TT_Out) - (Refund + AB + DG + InTT)
+        omsetBersih: (baseSales + tradeOutgoingTotal) - (outlay + tradeIncomingTotal),
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits

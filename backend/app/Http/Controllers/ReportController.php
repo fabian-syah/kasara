@@ -671,7 +671,7 @@ class ReportController extends Controller
             DB::raw("SUM(
                 CASE 
                     WHEN (stock_outs.category = 'tukar_tambah')
-                    THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                    THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                     WHEN (stock_outs.category IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'))
                          AND NOT (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                     THEN ABS(COALESCE(stock_outs.selling_price, 0))
