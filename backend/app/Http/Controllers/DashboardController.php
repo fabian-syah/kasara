@@ -149,6 +149,10 @@ class DashboardController extends Controller
             }
         }
         $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
+        
+        $dashboardReceiptIds = $todaySales->pluck('receipt_id')->filter()->toArray();
+        $ttMap = empty($dashboardReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $dashboardReceiptIds)->get()->keyBy('receipt_id');
+        $dgMap = empty($dashboardReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $dashboardReceiptIds)->get()->keyBy('receipt_id');
 
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
@@ -196,11 +200,26 @@ class DashboardController extends Controller
                 $csPerformance[$csName]['total_sales'] += $price;
                 $csPerformance[$csName]['net_sales'] += $price;
             } elseif ($isTradeIn) {
-                $totalRevenue += $price;
-                $csPerformance[$csName]['total_sales'] += $price;
+                $ttRec = $ttMap->get($sale->receipt_id);
+                $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
+                $netVal = $ttRec ? (float)($ttRec->outgoing_price - $ttRec->incoming_cost_price) : $price;
+                
+                $totalRevenue += $outVal;
+                $csPerformance[$csName]['total_sales'] += $outVal;
+                
+                $totalNetRevenue += $netVal;
+                $csPerformance[$csName]['net_sales'] += $netVal;
             } elseif ($isDeduction) {
-                $totalNetRevenue -= $price;
-                $csPerformance[$csName]['net_sales'] -= $price;
+                $effectiveDeduction = $price;
+                if ($cat === 'downgrade') {
+                    $dgRec = $dgMap->get($sale->receipt_id);
+                    if ($dgRec) {
+                        $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
+                    }
+                }
+                
+                $totalNetRevenue -= $effectiveDeduction;
+                $csPerformance[$csName]['net_sales'] -= $effectiveDeduction;
             }
 
             // HP Items
@@ -284,6 +303,10 @@ class DashboardController extends Controller
         // Count units based on user_id (who made the sale) as well for sales leaderboard
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
+        $rankReceiptIds = DB::table('stock_outs')->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->pluck('receipt_id')->filter()->toArray();
+        $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)->get()->keyBy('receipt_id');
+        $rankDGMap = empty($rankReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $rankReceiptIds)->get()->keyBy('receipt_id');
+
         $todayRankingQuery = DB::table('stock_outs')
             ->where('reporting_date', $currentReportingDate)
             ->whereNull('deleted_at')
@@ -346,7 +369,7 @@ class DashboardController extends Controller
             });
         }
 
-        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user) {
+        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap, $rankDGMap) {
             // Count units sold by this user
             $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
             $units = StockOut::where('user_id', $u->id)
@@ -414,14 +437,22 @@ class DashboardController extends Controller
                 $isTradeIn = ($cat === 'tukar_tambah');
                 $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
-                if ($isBaseSale || $isTradeIn) {
-                    $omset += $price;
-                }
-                
                 if ($isBaseSale) {
+                    $omset += $price;
                     $omsetBersih += $price;
+                } elseif ($isTradeIn) {
+                    $ttRec = $rankTTMap->get($sale->receipt_id);
+                    $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
+                    $netVal = $ttRec ? (float)($ttRec->outgoing_price - $ttRec->incoming_cost_price) : $price;
+                    $omset += $outVal;
+                    $omsetBersih += $netVal;
                 } elseif ($isDeduction) {
-                    $omsetBersih -= $price;
+                    $effectiveDeduction = $price;
+                    if ($cat === 'downgrade') {
+                        $dgRec = $rankDGMap->get($sale->receipt_id);
+                        if ($dgRec) $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
+                    }
+                    $omsetBersih -= $effectiveDeduction;
                 }
             }
 
