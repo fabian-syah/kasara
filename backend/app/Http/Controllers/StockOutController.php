@@ -2229,7 +2229,7 @@ class StockOutController extends Controller
         $request->validate([
             'reason' => 'nullable|string|max:500',
             'inventory_user_id' => 'required|exists:users,id',
-            'transaction_pin' => 'required|string|size:4'
+            'transaction_pin' => 'nullable|string'
         ]);
 
         // PIN Verification using Trait

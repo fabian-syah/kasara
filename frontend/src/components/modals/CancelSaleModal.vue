@@ -75,7 +75,7 @@ const selectedUser = computed(() => {
 });
 
 const hasSelectedUserPin = computed(() => {
-    return !!(selectedUser.value?.transaction_pin_exists || selectedUser.value?.pin_enabled);
+    return !!selectedUser.value?.pin_enabled;
 });
 
 const canSubmitInternal = computed(() => {
@@ -110,11 +110,7 @@ async function handleSubmit() {
         toast.error("Pilih akun inventory");
         return;
     }
-    if (!hasSelectedUserPin.value) {
-        toast.error("Akun ini belum memiliki PIN. Pasang PIN dulu atau gunakan akun lain.");
-        return;
-    }
-    if (form.value.transaction_pin.length < 4) {
+    if (hasSelectedUserPin.value && form.value.transaction_pin.length < 4) {
         toast.error("Masukkan 4 digit PIN");
         return;
     }
@@ -198,7 +194,8 @@ watch(() => props.show, (newVal) => {
                                 </option>
                             </select>
 
-                            <div v-if="selectedUser && !hasSelectedUserPin"
+                            <!-- Show warning ONLY if the user has NO pin setup at all -->
+                            <div v-if="selectedUser && !selectedUser.transaction_pin_exists && !selectedUser.pin_enabled"
                                 class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
                                 <AlertCircle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
                                 <p class="text-[10px] text-amber-500 leading-tight">
