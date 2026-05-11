@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     Search, ArrowLeft, RefreshCw, Box, Calendar, User, Truck, ClipboardList, Info, Smartphone, Package, Download, AlertTriangle
@@ -229,6 +229,12 @@ onMounted(() => {
                     toast.info(`Stok keluar (Non-HP) baru: ${out.receipt_id}`);
                 }
             });
+    }
+});
+
+onUnmounted(() => {
+    if (window.Echo) {
+        window.Echo.leave('stock-out');
     }
 });
 

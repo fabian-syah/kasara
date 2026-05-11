@@ -568,6 +568,10 @@ onUnmounted(() => {
     if (html5QrCode) {
         html5QrCode.stop().catch(() => { });
     }
+    if (window.Echo) {
+        window.Echo.leave('inventory');
+        window.Echo.leave('stock-out');
+    }
 });
 
 // Region Logic

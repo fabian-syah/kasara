@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     Search, ArrowLeft, RefreshCw, Smartphone, Box, Calendar, User, FileText, Database, Download, Trash2
@@ -219,6 +219,12 @@ onMounted(() => {
                     toast.success(`History Masuk: ${log.product.name}`);
                 }
             });
+    }
+});
+
+onUnmounted(() => {
+    if (window.Echo) {
+        window.Echo.leave('inventory-log');
     }
 });
 

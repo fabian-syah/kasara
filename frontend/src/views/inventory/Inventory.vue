@@ -570,6 +570,11 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('click', handleGlobalClick);
   document.removeEventListener('mousedown', handleClickOutside);
+
+  if (window.Echo) {
+    window.Echo.leave('inventory');
+    window.Echo.leave('stock-out');
+  }
 });
 
 function handleGlobalClick(e) {
