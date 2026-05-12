@@ -986,8 +986,8 @@ const summaryStats = computed(() => {
 
     return {
         totalOmset: finalOmset,
-        // EXPLICIT UNIFIED FORMULA CONFIRMED PERFECT: Total Omset minus TT Outbound and all Inbounds
-        omsetBersih: finalOmset - tradeOutgoingTT - (outlay + tradeIncomingTotal),
+        // FINAL ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER CALCULATOR
+        omsetBersih: finalOmset - (outlay + tradeIncomingTotal),
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits
