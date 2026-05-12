@@ -44,8 +44,7 @@
                         </span>
                     </div>
                     <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                        @click="$event.target.showPicker()"
-                        :min="getMinDate" :max="getTodayLocal()"
+                        @click="$event.target.showPicker()" :min="getMinDate" :max="getTodayLocal()"
                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 </div>
 
@@ -54,7 +53,8 @@
                     <div class="relative min-w-[140px]">
                         <select v-model="selectedMonth" @change="handleMonthChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value" class="dark:bg-surface-800 dark:text-white">{{ m.name }}</option>
+                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value"
+                                class="dark:bg-surface-800 dark:text-white">{{ m.name }}</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -63,7 +63,8 @@
                     <div class="relative min-w-[100px]">
                         <select v-model="selectedYear" @change="handleMonthChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                            <option v-for="y in years" :key="y" :value="y" class="dark:bg-surface-800 dark:text-white">{{ y }}</option>
+                            <option v-for="y in years" :key="y" :value="y" class="dark:bg-surface-800 dark:text-white">
+                                {{ y }}</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -82,36 +83,51 @@
         <!-- NEW Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Omset -->
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500">
+                </div>
                 <div class="relative">
-                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <p
+                        class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <TrendingUp :size="14" class="text-primary-500" />
                         Total Omset
                     </p>
-                    <p class="text-2xl font-black text-text-primary mt-2">{{ formatCurrency(summaryStats.totalOmset) }}</p>
+                    <p class="text-2xl font-black text-text-primary mt-2">{{ formatCurrency(summaryStats.totalOmset) }}
+                    </p>
                     <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + TT Out</p>
                 </div>
             </div>
 
             <!-- Omset Bersih -->
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500">
+                </div>
                 <div class="relative">
-                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <p
+                        class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <Wallet :size="14" class="text-emerald-500" />
                         Omset Bersih
                     </p>
-                    <p class="text-2xl font-black text-emerald-600 mt-2">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat + Refund + In TT + Selisih DG)</p>
+                    <p class="text-2xl font-black text-emerald-600 mt-2">{{ formatCurrency(summaryStats.omsetBersih) }}
+                    </p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat +
+                        Refund + In TT + Selisih DG)</p>
                 </div>
             </div>
 
             <!-- Total Unit HP -->
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500">
+                </div>
                 <div class="relative">
-                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <p
+                        class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <Smartphone :size="14" class="text-blue-500" />
                         Unit HP
                     </p>
@@ -126,15 +142,20 @@
                             <p class="text-[10px] font-bold text-text-secondary uppercase">In</p>
                         </div>
                     </div>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Unit HP Masuk & Keluar</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Unit HP Masuk &
+                        Keluar</p>
                 </div>
             </div>
 
             <!-- Total Unit Non-HP -->
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
-                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl p-5 border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500">
+                </div>
                 <div class="relative">
-                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    <p
+                        class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <Box :size="14" class="text-purple-500" />
                         Unit Non-HP
                     </p>
@@ -142,7 +163,8 @@
                         <p class="text-2xl font-black text-purple-600">{{ summaryStats.nonHpUnits }}</p>
                         <p class="text-xs font-bold text-text-secondary">Pcs</p>
                     </div>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Aksesoris & Lainnya</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Aksesoris & Lainnya
+                    </p>
                 </div>
             </div>
         </div>
@@ -195,7 +217,9 @@
                             </td>
                         </tr>
                         <template v-else>
-                            <template v-for="(item, index) in (salesRecords.daily_sales?.data || salesRecords.daily_sales)" :key="index">
+                            <template
+                                v-for="(item, index) in (salesRecords.daily_sales?.data || salesRecords.daily_sales)"
+                                :key="index">
                                 <!-- If item has sub-items -->
                                 <tr v-if="item.items && item.items.length > 0" v-for="(detail, idx) in item.items"
                                     :key="`${index}-${idx}`"
@@ -231,14 +255,18 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ detail.imei && detail.imei
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
-                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(detail.price) }}</td>
-                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(detail.price * detail.qty) }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{
+                                        formatCurrency(detail.price) }}</td>
+                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
+                                        formatCurrency(detail.price * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1 items-start">
-                                            <span v-if="item.total_discount > 0" class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
+                                            <span v-if="item.total_discount > 0"
+                                                class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
                                                 Disc: -{{ formatCurrency(item.total_discount) }}
                                             </span>
-                                            <span class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
+                                            <span
+                                                class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
                                                 {{ formatCurrency(item.grand_total) }}
                                             </span>
                                         </div>
@@ -248,7 +276,7 @@
                                             <!-- Account Priority: inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
                                             <div v-if="item.inventory_user_name || item.sales_account"
                                                 class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
-                                                <User :size="12" stroke-width="2.5" /> 
+                                                <User :size="12" stroke-width="2.5" />
                                                 {{ item.inventory_user_name || item.sales_account }}
                                             </div>
                                             <div v-else-if="String(item.transaction_pin) === '9090'"
@@ -260,11 +288,12 @@
                                                 PIN disembunyikan
                                             </div>
 
-                                            <div v-if="item.notes" class="text-xs text-text-primary leading-tight px-0.5"
+                                            <div v-if="item.notes"
+                                                class="text-xs text-text-primary leading-tight px-0.5"
                                                 :title="item.notes">
                                                 {{ item.notes }}
                                             </div>
-                                            <div v-else-if="!item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'" 
+                                            <div v-else-if="!item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
                                                 class="text-text-secondary italic text-xs px-0.5">
                                                 Tanpa Catatan
                                             </div>
@@ -287,13 +316,16 @@
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex items-center gap-2">
-                                            <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
+                                            <div v-if="item.proof_images && item.proof_images.length > 0"
+                                                class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
                                                     @click="viewProof(img)"
                                                     class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
-                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
+                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
+                                                        'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
+                                                        (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
                                             <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
@@ -307,7 +339,9 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
-                                            <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
+                                            <button
+                                                v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
+                                                @click="handleCancelSale(item)"
                                                 class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
@@ -322,7 +356,8 @@
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                    <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone }}</td>
+                                    <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone
+                                        }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -333,27 +368,32 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
-                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(item.grand_total / (item.qty || 1)) }}</td>
-                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(item.grand_total) }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{
+                                        formatCurrency(item.grand_total / (item.qty || 1)) }}</td>
+                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
+                                        formatCurrency(item.grand_total) }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1 items-start">
-                                            <span v-if="item.total_discount > 0" class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
+                                            <span v-if="item.total_discount > 0"
+                                                class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
                                                 Disc: -{{ formatCurrency(item.total_discount) }}
                                             </span>
-                                            <span class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
+                                            <span
+                                                class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
                                                 {{ formatCurrency(item.grand_total) }}
                                             </span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1">
-                                            <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
+                                            <span v-if="String(item.transaction_pin) === '9090'"
+                                                class="text-xs font-bold text-primary-500">
                                                 Akun Inventory
                                             </span>
-                                            <span v-if="item.notes"
-                                                class="text-xs text-text-primary leading-tight"
+                                            <span v-if="item.notes" class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
-                                            <span v-else-if="String(item.transaction_pin) !== '9090'" class="text-text-secondary italic text-xs">
+                                            <span v-else-if="String(item.transaction_pin) !== '9090'"
+                                                class="text-text-secondary italic text-xs">
                                                 Tanpa Catatan
                                             </span>
                                         </div>
@@ -375,13 +415,16 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
-                                            <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
+                                            <div v-if="item.proof_images && item.proof_images.length > 0"
+                                                class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
                                                     @click="viewProof(img)"
                                                     class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
-                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
+                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
+                                                        'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
+                                                        (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
                                             <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
@@ -395,7 +438,9 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
-                                            <button v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)" @click="handleCancelSale(item)"
+                                            <button
+                                                v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
+                                                @click="handleCancelSale(item)"
                                                 class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
@@ -427,32 +472,37 @@
                         'w-full max-w-7xl mx-auto',
                         currentProofImages.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start' : 'flex flex-col gap-10 items-center'
                     ]">
-                        <div v-for="(imgUrl, index) in currentProofImages" :key="index" 
+                        <div v-for="(imgUrl, index) in currentProofImages" :key="index"
                             class="w-full bg-white dark:bg-surface-800 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group">
-                            
+
                             <!-- HD Image Wrapper -->
                             <div class="relative overflow-hidden bg-gray-900 aspect-square sm:aspect-auto">
-                                <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)" 
+                                <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)"
                                     class="w-full h-auto min-h-[400px] max-h-[70vh] object-contain transition-all duration-700 group-hover:scale-105"
                                     style="image-rendering: -webkit-optimize-contrast; filter: contrast(1.05) brightness(1.02) saturate(1.1);" />
-                                
+
                                 <!-- HD Badge -->
-                                <div class="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/20 text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
+                                <div
+                                    class="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/20 text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
                                     <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
                                     HD Processing Active
                                 </div>
                             </div>
-                            
+
                             <!-- Image Info Overlay (Glassmorphism) -->
-                            <div class="p-6 bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border-t border-gray-100 dark:border-surface-700 flex flex-col gap-4">
+                            <div
+                                class="p-6 bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border-t border-gray-100 dark:border-surface-700 flex flex-col gap-4">
                                 <div class="flex justify-between items-start">
                                     <div class="flex flex-col">
-                                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
-                                            FOTO #{{ index + 1 }} 
-                                            <span v-if="index === 0 && currentProofImages.length > 1" class="ml-2 text-gray-400">— UNIT</span>
+                                        <span
+                                            class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
+                                            FOTO #{{ index + 1 }}
+                                            <span v-if="index === 0 && currentProofImages.length > 1"
+                                                class="ml-2 text-gray-400">— UNIT</span>
                                             <span v-else-if="index === 1" class="ml-2 text-gray-400">— CUSTOMER</span>
                                         </span>
-                                        <h4 class="text-lg font-black text-text-primary leading-tight">Bukti CheckSales</h4>
+                                        <h4 class="text-lg font-black text-text-primary leading-tight">Bukti CheckSales
+                                        </h4>
                                     </div>
                                     <div class="flex gap-2">
                                         <a :href="imgUrl" target="_blank"
@@ -473,7 +523,7 @@
                 </div>
 
                 <!-- Footer Hint -->
-                <div v-if="currentProofImages.length > 2" 
+                <div v-if="currentProofImages.length > 2"
                     class="mt-8 px-8 py-3 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-full text-white/60 text-[10px] font-black uppercase tracking-[0.3em] animate-bounce">
                     Scroll untuk lihat {{ currentProofImages.length - 2 }} foto lainnya ↓
                 </div>
@@ -484,7 +534,8 @@
         <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" @close="showReceiptModal = false" />
 
         <!-- Cancel Sale Modal -->
-        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false" @success="fetchData" />
+        <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false"
+            @success="fetchData" />
     </div>
 </template>
 
@@ -746,15 +797,15 @@ const downloadImage = async (url) => {
             params: { url },
             responseType: 'blob'
         });
-        
+
         const blob = new Blob([response.data]);
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        
+
         const filename = url.split('/').pop() || 'bukti-penjualan.jpg';
         link.download = filename;
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -906,7 +957,7 @@ const summaryStats = computed(() => {
     activeRecords.value.forEach(item => {
         const origCat = item.category?.toLowerCase();
         const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
-        
+
         // EXPLICIT FIX: Sum individual visible item totals exactly to match user's required Gross Total (ignoring distributed transaction-level discounts)
         let total = 0;
         if (item.items && item.items.length > 0) {
@@ -929,15 +980,15 @@ const summaryStats = computed(() => {
             // Universal Trade-In Extraction Logic
             const outVal = Math.abs(parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0));
             const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
-            
-            tradeOutgoingTotal += outVal; 
-            
+
+            tradeOutgoingTotal += outVal;
+
             // Segregation rules satisfying user's distinct accounting logic for TT vs DG
             if (cat === 'tukar_tambah') {
                 tradeOutgoingTT += outVal; // Separated here for dedicated subtraction below
             }
-            
-            tradeIncomingTotal += inVal; 
+
+            tradeIncomingTotal += inVal;
         }
 
         if (isDeduction) {
@@ -993,7 +1044,7 @@ const summaryStats = computed(() => {
         nonHpUnits
     };
 });
-
+w
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
@@ -1047,23 +1098,23 @@ const canCancel = (date) => {
     // Roles that can always cancel regardless of date
     const role = (authStore.userRole || '').toLowerCase();
     if (role === 'super_admin' || role === 'owner') return true;
-    
+
     if (!date) return false;
-    
+
     // Normalisasi waktu ke WITA/WIB sesuai zona server (UTC+7/8) atau ke local midnight
     // item.date formatnya adalah "YYYY-MM-DD HH:mm:ss" dari backend
     const itemDate = new Date(date);
     if (isNaN(itemDate.getTime())) return false;
 
     const today = getLogicalDate();
-    
+
     // Reset ke jam 00:00:00 untuk perbandingan hari yang murni
     today.setHours(0, 0, 0, 0);
     itemDate.setHours(0, 0, 0, 0);
-    
+
     const msPerDay = 24 * 60 * 60 * 1000;
     const diffDays = Math.round((today.getTime() - itemDate.getTime()) / msPerDay);
-    
+
     // Jika hari ini tanggal 6, maka:
     // 6 - 6 = 0 (OK)
     // 6 - 1 = 5 (OK)
@@ -1074,7 +1125,7 @@ const canCancel = (date) => {
 const fetchData = async () => {
     loading.value = true
     try {
-        const params = { 
+        const params = {
             ...filters.value,
             branch_id: selectedBranchId.value,
             online_shop_id: selectedOnlineShopId.value
@@ -1097,12 +1148,12 @@ const handleExport = async () => {
             branch_id: selectedBranchId.value,
             online_shop_id: selectedOnlineShopId.value
         };
-        
-        const response = await axios.get('/audit/sales/export', { 
+
+        const response = await axios.get('/audit/sales/export', {
             params,
-            responseType: 'blob' 
+            responseType: 'blob'
         });
-        
+
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -1133,8 +1184,37 @@ onMounted(() => {
     if (window.Echo) {
         window.Echo.channel('stock-out')
             .listen('.StockOutEvent', (e) => {
-                console.log('[Realtime] Data change detected in Sales history, refetching...', e);
-                // Refetch data silently in the background
+                const evt = e?.stockOut;
+                if (!evt) return;
+
+                const targetBranch = evt.branch_id;
+                const targetOnline = evt.online_shop_id;
+
+                // CRITICAL FIX: Implement intelligent filter enforcement to prevent cross-branch reload fatigue
+
+                // 1. Explicit View Filter Check: If user specifically filtered one location, ignore everything else.
+                if (selectedBranchId.value && String(targetBranch) !== String(selectedBranchId.value)) {
+                    return; // Ignore: Doesn't match active branch filter
+                }
+                if (selectedOnlineShopId.value && String(targetOnline) !== String(selectedOnlineShopId.value)) {
+                    return; // Ignore: Doesn't match active online store filter
+                }
+
+                // 2. Generic View Access Check: If viewing "All" (or local implicit view), restrict by user access set
+                if (!selectedBranchId.value && !selectedOnlineShopId.value) {
+                    const hasAccess = (locations.value || []).some(loc => {
+                        if (loc.type === 'branch' && String(loc.id) === String(targetBranch)) return true;
+                        if (loc.type === 'online_shop' && String(loc.id) === String(targetOnline)) return true;
+                        return false;
+                    });
+
+                    if (!hasAccess) {
+                        // Completely unrelated activity (e.g. User is in Palu, event is Gorontalo) -> SILENT IGNORE
+                        return;
+                    }
+                }
+
+                console.log('[Realtime] Verified match for current scope, refetching list...', evt.receipt_id);
                 fetchData();
             });
     }
