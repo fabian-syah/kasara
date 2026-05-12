@@ -862,6 +862,7 @@ const summaryStats = computed(() => {
     let baseSales = 0;
     let tradeSelisih = 0;
     let tradeOutgoingTotal = 0;
+    let tradeOutgoingTT = 0; // Tracks outgoing value specific to TT to satisfy explicit exclusion in Omset Bersih
     let tradeIncomingTotal = 0;
     let outlay = 0;
     let hpUnitsIn = 0;
@@ -925,15 +926,18 @@ const summaryStats = computed(() => {
         if (isBaseSale) {
             baseSales += total;
         } else if (isTradeIn) {
-            tradeSelisih += total; // Net difference
+            // Universal Trade-In Extraction Logic
+            const outVal = Math.abs(parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0));
+            const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
             
-            // Sum outgoing price for total omset
-            const outVal = parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0);
-            tradeOutgoingTotal += Math.abs(outVal);
-
-            // Explicitly track Incoming Price for conceptually aligned deductions
-            const inVal = parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0);
-            tradeIncomingTotal += Math.abs(inVal);
+            tradeOutgoingTotal += outVal; 
+            
+            // Segregation rules satisfying user's distinct accounting logic for TT vs DG
+            if (cat === 'tukar_tambah') {
+                tradeOutgoingTT += outVal; // Separated here for dedicated subtraction below
+            }
+            
+            tradeIncomingTotal += inVal; 
         }
 
         if (isDeduction) {
@@ -978,10 +982,12 @@ const summaryStats = computed(() => {
         }
     });
 
+    const finalOmset = baseSales + tradeOutgoingTotal;
+
     return {
-        totalOmset: baseSales + (tradeOutgoingTotal || tradeSelisih),
-        // User Confirmed Alignment: Omset Bersih = Murni Sales - Deductions
-        omsetBersih: baseSales - (outlay + tradeIncomingTotal),
+        totalOmset: finalOmset,
+        // EXPLICIT UNIFIED FORMULA CONFIRMED PERFECT: Total Omset minus TT Outbound and all Inbounds
+        omsetBersih: finalOmset - tradeOutgoingTT - (outlay + tradeIncomingTotal),
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits
