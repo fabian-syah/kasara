@@ -206,7 +206,7 @@ class SalesExport
             foreach ($this->paymentMethods as $pm) { $payData[$pm->name] = 0; }
             $splitPayments = $so->split_payments_data;
             
-            if ($cat !== 'cancel_penjualan') {
+            if ($cat !== 'cancel_penjualan' && $cat !== 'downgrade' && !$isDeduction) {
                 if (empty($splitPayments)) {
                     $name = $so->paymentMethod->name ?? 'CASH TOKO';
                     $amt = $so->paid_amount ?: $so->selling_price;

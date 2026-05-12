@@ -73,7 +73,7 @@ class SimpleXLSXGen {
 <fill><patternFill patternType="solid"><fgColor rgb="FFD1FAE5"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFFEF2F2"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFEFF6FF"/></patternFill></fill>
-<fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFE2E8F0"/></patternFill></fill>
 </fills>
 <borders count="1"><border><left/><right/><top/><bottom/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
