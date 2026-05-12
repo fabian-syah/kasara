@@ -2030,7 +2030,7 @@ class AuditController extends Controller
             $formattedBrandSales = collect($brandSalesRaw['hp'])->map(fn($i) => [...(array) $i, 'is_hp' => true])->concat(collect($brandSalesRaw['nhp'])->map(fn($i) => [...(array) $i, 'condition' => '-', 'storage' => '-', 'distributor' => '-', 'is_hp' => false]))->toArray();
 
             return response()->json([
-                'daily_sales' => ['data' => $dailySales, 'current_page' => $paginatedSales->currentPage(), 'last_page' => $paginatedSales->lastPage(), 'total' => $paginatedSales->total()],
+                'daily_sales' => ['data' => $dailySales, 'current_page' => $paginatedSales->currentPage(), 'last_page' => $paginatedSales->lastPage(), 'per_page' => $paginatedSales->perPage(), 'total' => $paginatedSales->total()],
                 'brand_sales' => $formattedBrandSales,
                 'type_sales' => $typeStatsRaw,
                 'condition_sales' => $conditionStatsRaw,
