@@ -3270,6 +3270,35 @@ class AuditController extends Controller
                 $xlsxData[] = $xlsxRow;
             }
 
+            // User explicitly requested a final total row at the bottom for Penjualan & Pengeluaran
+            if (count($xlsxData) > 1) {
+                $colCount = count($xlsxData[0]);
+                $footerRow = array_fill(0, $colCount, '');
+                $footerRow[0] = 'TOTAL AKHIR';
+                
+                // Start summation from column index 17 (first payment/money column) 
+                // up to the second-to-last column (Total Pengeluaran). Skip the final Status column.
+                $startSumCol = 17;
+                $endSumCol = $colCount - 2; 
+                
+                if ($endSumCol >= $startSumCol) {
+                    // Initialize numerical slots with zero
+                    for ($col = $startSumCol; $col <= $endSumCol; $col++) {
+                        $footerRow[$col] = 0;
+                    }
+                    // Aggregate numerical sums from all data rows (skipping header row at index 0)
+                    for ($rowIndex = 1; $rowIndex < count($xlsxData); $rowIndex++) {
+                        for ($col = $startSumCol; $col <= $endSumCol; $col++) {
+                            $val = $xlsxData[$rowIndex][$col] ?? 0;
+                            $footerRow[$col] += is_numeric($val) ? (float)$val : 0;
+                        }
+                    }
+                }
+                
+                // Append total summary to the spreadsheet dataset
+                $xlsxData[] = $footerRow;
+            }
+
             // Log Export
             \App\Models\ExportLog::create([
                 'user_id' => $user->id,
