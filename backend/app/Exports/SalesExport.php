@@ -158,33 +158,35 @@ class SalesExport
                 $inDists[] = $dIn;
             }
 
-            // 3. Define Financial Fields according to strict requirements
-            $totalOmset = $sumOutPrices; // Start as sum of out selling prices
-            $totalPengeluaran = 0;
+            // 3. Standardized Financial Aggregation mapping EXACTLY to Unified View logic confirmed earlier today
+            $baseSales = 0;
+            $tradeOutgoingTotal = 0;
+            $tradeIncomingTotal = 0;
+            $outlay = 0;
 
-            if ($exchangeInfo) {
-                // Explicit override for total omset from outgoing_price column if available
-                $outPrice = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $sumOutPrices));
-                $totalOmset = $outPrice;
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
+            $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
+            $isDeduction = in_array($cat, ['refund', 'angkat_barang']);
 
-                if ($cat === 'tukar_tambah') {
-                    $totalPengeluaran = $sumInPrices;
-                } elseif ($cat === 'downgrade') {
-                    // "selisih downgrade" -> difference given back to customer? Or absolute In price?
-                    // Usually selisih downgrade implies: what we refunded. Out - In.
-                    $diff = $outPrice - $sumInPrices;
-                    // If it's a downgrade, In is usually > Out, making negative difference, which is money flow OUT.
-                    if ($diff < 0) {
-                        $totalPengeluaran = abs($diff);
-                    } else {
-                        // If positive difference, customer actually pays us, not an expenditure.
-                        $totalPengeluaran = 0;
-                    }
-                }
-            } elseif (in_array($cat, ['refund', 'angkat_barang'])) {
-                $totalPengeluaran = $sumOutPrices; // Cost paid out to retrieving customer
-                $totalOmset = 0; // Expenditures yield no gross sales revenue
+            $currentSumPrice = abs($sumOutPrices); 
+
+            if ($isBaseSale) {
+                $baseSales = $currentSumPrice;
+            } elseif ($isTradeIn && $exchangeInfo) {
+                $outVal = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0));
+                $tradeOutgoingTotal = abs($outVal);
+
+                $inVal = (float)($exchangeInfo->incoming_cost_price ?? ($cat === 'downgrade' ? $tradeOutgoingTotal + $currentSumPrice : 0));
+                $tradeIncomingTotal = abs($inVal);
             }
+
+            if ($isDeduction) {
+                $outlay = $currentSumPrice;
+            }
+
+            // Absolute Confirmed Unified Metric Math
+            $finalTotalOmset = $baseSales + $tradeOutgoingTotal;
+            $finalOmsetBersih = ($baseSales + $tradeOutgoingTotal) - ($outlay + $tradeIncomingTotal);
 
             // 4. Parse Split Payment detailed mapping
             $payData = [];
@@ -195,9 +197,8 @@ class SalesExport
             $splitPayments = $so->split_payments_data;
             
             if ($cat === 'cancel_penjualan') {
-                // Exclude values for cancelled row purely
-                $totalOmset = 0;
-                $totalPengeluaran = 0;
+                $finalTotalOmset = 0;
+                $finalOmsetBersih = 0;
             } else {
                 if (empty($splitPayments)) {
                     $name = $so->paymentMethod->name ?? 'CASH TOKO';
@@ -236,9 +237,9 @@ class SalesExport
                 'harga_satuan_masuk' => (float)$sumInPrices,
                 'distributor_masuk' => implode(", ", $inDists) ?: '-',
                 'payment_details' => $payData,
-                'total_omset' => (float)$totalOmset,
                 'status' => strtoupper($so->status ?? ($cat === 'cancel_penjualan' ? 'DIBATALKAN' : 'LUNAS')),
-                'total_pengeluaran' => (float)$totalPengeluaran
+                'total_omset' => (float)$finalTotalOmset,
+                'omset_bersih' => (float)$finalOmsetBersih
             ];
         }
 
@@ -272,9 +273,9 @@ class SalesExport
         }
 
         $heads = array_merge($heads, [
-            'Total Penjualan',
             'Status',
-            'Total Pengeluaran'
+            'Total Omset',
+            'Omset Bersih'
         ]);
 
         return $heads;
