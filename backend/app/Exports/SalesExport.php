@@ -122,7 +122,7 @@ class SalesExport
                 if (!in_array($d, $outDists)) $outDists[] = $d;
 
                 $itemBase = (float)($item->pivot->selling_price ?? 0);
-                $netItem = $itemBase - (float)($item->pivot->item_discount ?? 0) - (float)($item->pivot->distributed_discount ?? 0);
+                $netItem = $itemBase - (float)($item->pivot->item_discount ?? 0);
                 $sumOutPrices += $netItem;
             }
 
@@ -135,7 +135,7 @@ class SalesExport
                 if ($d !== '-' && !in_array($d, $outDists)) $outDists[] = $d;
 
                 $baseN = (float)($nItem->selling_price ?? 0);
-                $netN = ($baseN - (float)($nItem->item_discount ?? 0) - (float)($nItem->distributed_discount ?? 0)) * $nItem->quantity;
+                $netN = ($baseN - (float)($nItem->item_discount ?? 0)) * $nItem->quantity;
                 $sumOutPrices += $netN;
             }
 
@@ -169,6 +169,7 @@ class SalesExport
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
             $isDeduction = in_array($cat, ['refund', 'angkat_barang']);
 
+            // EXPLICIT INSTRUCTION: Use raw item sums to match visual dashboard totaling exactly as requested
             $currentSumPrice = abs($sumOutPrices); 
 
             if ($isBaseSale) {
