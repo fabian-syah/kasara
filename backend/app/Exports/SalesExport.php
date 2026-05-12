@@ -113,7 +113,8 @@ class SalesExport
 
             foreach ($so->items as $item) {
                 $qtyOut++;
-                $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
+                $storage = !empty($item->storage) ? " {$item->storage}" : "";
+                $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $storage . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
                 $outProds[] = $prodName;
                 if ($item->imei) $outImeis[] = "'" . $item->imei;
                 
@@ -147,7 +148,8 @@ class SalesExport
 
             if ($exchangeInfo) {
                 $qtyIn = 1;
-                $iName = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
+                $iStorage = !empty($exchangeInfo->incoming_storage) ? " {$exchangeInfo->incoming_storage}" : "";
+                $iName = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . $iStorage . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
                 $inProds[] = $iName;
                 if (!empty($exchangeInfo->incoming_imei)) {
                     $inImeis[] = "'" . $exchangeInfo->incoming_imei;
