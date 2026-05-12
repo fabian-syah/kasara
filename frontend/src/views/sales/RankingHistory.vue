@@ -727,7 +727,10 @@
                                         Grand Total
                                         <span class="block text-[10px] font-medium normal-case text-text-secondary mt-0.5 tracking-tight">(Refund & AB)</span>
                                     </th>
-                                    <th v-else class="px-6 py-4 text-right">Grand Total</th>
+                                    <template v-else>
+                                        <th class="px-6 py-4 text-right">Total Omset</th>
+                                        <th class="px-6 py-4 text-right">Omset Bersih</th>
+                                    </template>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
                                     <th class="px-6 py-4">Brand</th>
@@ -942,10 +945,15 @@
                                                 (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur ||
                                                 0) }}</td>
                                         </template>
-                                        <td
+                                        <template v-if="currentView === 'sales'">
+                                            <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
+                                                {{ formatCurrency(item.total_omset) }}</td>
+                                            <td class="px-6 py-4 text-right font-black text-emerald-500 font-mono whitespace-nowrap">
+                                                {{ formatCurrency(item.grand_total) }}</td>
+                                        </template>
+                                        <td v-else
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
-                                            {{ formatCurrency(currentView === 'activity' ? Math.abs(item.total_activity_rp) :
-                                            item.grand_total) }}
+                                            {{ formatCurrency(Math.abs(item.total_activity_rp)) }}
                                         </td>
                                     </template>
 
@@ -1042,7 +1050,8 @@
                                     <td class="px-6 py-4 text-center">{{ totals.android }}</td>
                                     <td class="px-6 py-4 text-center">{{ totals.nonHp }}</td>
                                     <td class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
-                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.revenue) }}</td>
+                                    <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.totOmset) }}</td>
+                                    <td class="px-6 py-4 text-right text-emerald-500 font-mono">{{ formatCurrency(totals.revenue) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'activity'">
@@ -1844,7 +1853,7 @@ const copyReportToClipboard = async () => {
 
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, omset_bersih = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, totOmset = 0, omset_bersih = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
 
     if (currentView.value === 'brand' || currentView.value === 'distributor') {
         sortedData.value.forEach(row => units += row.qty);
@@ -1869,6 +1878,7 @@ const totals = computed(() => {
                 refund += (item.total_refund || 0);
                 retur += (item.total_retur || 0);
                 revenue += (item.grand_total || 0);
+                totOmset += (item.total_omset || 0);
                 activity_revenue += (item.total_activity_rp || 0);
             } else {
                 units += (item.qty || 0);
@@ -1877,7 +1887,7 @@ const totals = computed(() => {
     }
 
     const activity = tu + tt + dw + ab + refund + retur;
-    return { units, iphone, android, nonHp, revenue, omset_bersih, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
+    return { units, iphone, android, nonHp, revenue, totOmset, omset_bersih, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
 });
 
 const handlePeriodChange = () => {

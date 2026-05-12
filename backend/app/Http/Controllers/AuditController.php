@@ -547,10 +547,13 @@ class AuditController extends Controller
                         'owners.full_name as full_name',
                         'owners.photo as photo',
                         'owners.photo_inventory as photo_inv',
+                        'stock_outs.receipt_id',
                         'stock_outs.category',
                         'stock_outs.selling_price',
                         'stock_outs.notes',
-                        'stock_outs.sales_account'
+                        'stock_outs.sales_account',
+                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
                     )->get();
 
                     $resolveActualCategory = function ($category, $notes, $salesAccount) {
@@ -600,6 +603,7 @@ class AuditController extends Controller
                                 'photo' => $tx->photo,
                                 'photo_inv' => $tx->photo_inv,
                                 'grand_total' => 0.0,
+                                'total_omset' => 0.0,
                                 'total_activity_rp' => 0.0,
                             ];
                         }
@@ -607,14 +611,27 @@ class AuditController extends Controller
                         $cat = $resolveActualCategory($tx->category, $tx->notes, $tx->sales_account);
                         $price = abs((float) $tx->selling_price);
 
-                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling']);
+                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                         $isTradeIn = ($cat === 'tukar_tambah');
                         $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
+                        if ($cat === 'tukar_unit') {
+                            $price = 0;
+                        }
+
                         if ($isBaseSale) {
+                            $ownerGroups[$ownerId]['total_omset'] += $price;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
                         } elseif ($isTradeIn) {
+                            $outPrice = floatval($tx->tt_outgoing_price ?? 0);
+                            if ($outPrice <= 0) $outPrice = $price;
+                            $ownerGroups[$ownerId]['total_omset'] += $outPrice;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
+                        } elseif ($cat === 'downgrade') {
+                            $outPrice = floatval($tx->dg_outgoing_price ?? 0);
+                            $ownerGroups[$ownerId]['total_omset'] += $outPrice;
+                            $ownerGroups[$ownerId]['grand_total'] -= $price;
+                            $ownerGroups[$ownerId]['total_activity_rp'] += $price;
                         } elseif ($isDeduction) {
                             $ownerGroups[$ownerId]['grand_total'] -= $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
@@ -670,6 +687,7 @@ class AuditController extends Controller
                             'cs_name' => $stat->cs_name ?? 'Unknown',
                             'photo' => $stat->photo ?? $stat->photo_inv,
                             'grand_total' => (float) $stat->grand_total,
+                            'total_omset' => (float) ($stat->total_omset ?? 0),
                             'total_activity_rp' => (float) $stat->total_activity_rp,
                             'total_tu' => (int) $stat->total_tu,
                             'total_tt' => (int) $stat->total_tt,
