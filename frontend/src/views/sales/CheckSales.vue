@@ -985,10 +985,10 @@ const summaryStats = computed(() => {
 
             // Segregation rules satisfying user's distinct accounting logic for TT vs DG
             if (cat === 'tukar_tambah') {
-                tradeOutgoingTT += outVal; // Separated here for dedicated subtraction below
+                tradeIncomingTotal += inVal;
+            } else if (cat === 'downgrade') {
+                tradeIncomingTotal += Math.max(0, inVal - outVal);
             }
-
-            tradeIncomingTotal += inVal;
         }
 
         if (isDeduction) {

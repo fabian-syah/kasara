@@ -176,10 +176,15 @@ class SalesExport
                 // Case: Penjualan Store -> Mapped to Total Penjualan
                 $finalTotalPenjualan = $currentSumPrice;
             } elseif ($isTradeIn && $exchangeInfo) {
-                // Case: Trade Items Out (TT Out / DG Out) -> User demands these map to Total Penjualan (yields 3.5M)
-                $finalTotalPenjualan = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
-                // Case: In TT / Selisih Downgrade -> User demands these map to Total Pengeluaran (yields 16.799M)
-                $finalTotalPengeluaran = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
+                $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
+                $inVal = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
+
+                $finalTotalPenjualan = $outVal;
+                if ($cat === 'tukar_tambah') {
+                    $finalTotalPengeluaran = $inVal;
+                } elseif ($cat === 'downgrade') {
+                    $finalTotalPengeluaran = max(0, $inVal - $outVal); // User Formula: Selisih DG
+                }
             }
 
             if ($isDeduction) {
