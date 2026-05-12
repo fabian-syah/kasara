@@ -184,9 +184,9 @@ class SalesExport
                 $outlay = $currentSumPrice;
             }
 
-            // Absolute Confirmed Unified Metric Math
+            // User Specific Formula: Omset Bersih = Total Sales - Total Deductions (Confirmed targeting -8.299.000)
             $finalTotalOmset = $baseSales + $tradeOutgoingTotal;
-            $finalOmsetBersih = ($baseSales + $tradeOutgoingTotal) - ($outlay + $tradeIncomingTotal);
+            $finalOmsetBersih = $baseSales - ($outlay + $tradeIncomingTotal);
 
             // 4. Parse Split Payment detailed mapping
             $payData = [];

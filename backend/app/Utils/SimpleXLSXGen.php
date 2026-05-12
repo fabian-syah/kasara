@@ -119,7 +119,7 @@ class SimpleXLSXGen {
                     $s = 0; 
                     if ($rIdx === 0) {
                         $s = 2; // Header
-                    } elseif (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                    } elseif (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         // Right align numbers. Format as rupiah if value looks like a price
                         if ((float)$val > 10000) {
                             $s = 7; 
@@ -128,7 +128,7 @@ class SimpleXLSXGen {
                         }
                     }
                     
-                    if (is_numeric($val) && strlen((string)$val) < 15 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                    if (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                     } else {
                         $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
