@@ -214,6 +214,9 @@ class DashboardController extends Controller
                 if ($cat === 'downgrade') {
                     $dgRec = $dgMap->get($sale->receipt_id);
                     if ($dgRec) {
+                        $outVal = (float)$dgRec->outgoing_price;
+                        $totalRevenue += $outVal;
+                        $csPerformance[$csName]['total_sales'] += $outVal;
                         $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
                     }
                 }
@@ -450,7 +453,10 @@ class DashboardController extends Controller
                     $effectiveDeduction = $price;
                     if ($cat === 'downgrade') {
                         $dgRec = $rankDGMap->get($sale->receipt_id);
-                        if ($dgRec) $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
+                        if ($dgRec) {
+                            $omset += (float)$dgRec->outgoing_price;
+                            $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
+                        }
                     }
                     $omsetBersih -= $effectiveDeduction;
                 }
@@ -543,6 +549,8 @@ class DashboardController extends Controller
                             THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
                             ELSE 0
                         END
                     ) as total_omset"),
@@ -635,6 +643,8 @@ class DashboardController extends Controller
                             THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
+                            WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
                             ELSE 0
                         END
                     ) as omset"),
@@ -651,7 +661,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN -ABS(COALESCE(stock_outs.selling_price, 0))
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price - dg.incoming_cost_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             ELSE 0
                         END
                     ) as omset_bersih")

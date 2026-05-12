@@ -767,7 +767,8 @@ class AuditController extends Controller
                         'stock_outs.selling_price', 
                         'stock_outs.notes', 
                         'stock_outs.sales_account',
-                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price')
+                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
                     )->get();
 
                     $resolveActualCategory = function ($category, $notes, $salesAccount) {
@@ -835,6 +836,10 @@ class AuditController extends Controller
                             
                             $dailyStats[$date]['total_omset'] += $outPrice;
                             $dailyStats[$date]['omset_bersih'] += $price; // difference is exactly the net impact 
+                        } elseif ($cat === 'downgrade') {
+                            $outPrice = floatval($tx->dg_outgoing_price ?? 0);
+                            $dailyStats[$date]['total_omset'] += $outPrice;
+                            $dailyStats[$date]['omset_bersih'] -= $price; // Keep deduction identical for net sanity
                         } elseif ($isDeduction) {
                             $dailyStats[$date]['omset_bersih'] -= $price;
                         }
@@ -1245,7 +1250,8 @@ class AuditController extends Controller
                                 'split_payments',
                                 'notes',
                                 'sales_account',
-                                DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price')
+                                DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
+                                DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
                             )
                             ->get();
 
@@ -1298,6 +1304,10 @@ class AuditController extends Controller
                                 
                                 $totalTradeOutgoing += $outPrice;
                                 $tradeSelisih += $price;
+                            } elseif ($cat === 'downgrade') {
+                                $outPrice = floatval($ps->dg_outgoing_price ?? 0);
+                                $totalTradeOutgoing += $outPrice;
+                                $deductions += $price;
                             } elseif ($isDeduction) {
                                 $deductions += $price;
                             }
@@ -1382,12 +1392,12 @@ class AuditController extends Controller
 
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account')->get() as $hp) {
                             $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
-                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah'])) {
                                 $activityDetails[$catLower][] = [
                                     'name' => $hp->name,
                                     'imei' => $hp->imei,
                                     'storage' => $hp->storage,
-                                    'price' => in_array($catLower, ['tukar_tambah', 'downgrade']) 
+                                    'price' => in_array($catLower, ['tukar_tambah']) 
                                         ? abs((float) $hp->total_diff) 
                                         : (float) ($hp->item_price > 0 ? $hp->item_price : ($hp->cost_price ?? 0))
                                 ];
@@ -1435,6 +1445,28 @@ class AuditController extends Controller
                                 'imei' => $itt->incoming_imei ?? '-',
                                 'storage' => $itt->incoming_storage ?? '-',
                                 'price' => (float) $itt->incoming_cost_price
+                            ];
+                        }
+
+                        // 1c. Fetch ALL Incoming Downgrade Units explicitly for report activity breakdown
+                        $dgIncomingQuery = DB::table('downgrades')
+                            ->join('stock_outs', 'downgrades.receipt_id', '=', 'stock_outs.receipt_id')
+                            ->leftJoin('product_types', 'downgrades.incoming_product_type_id', '=', 'product_types.id')
+                            ->whereNull('stock_outs.deleted_at');
+                        
+                        $applyLocalScope($dgIncomingQuery);
+
+                        foreach ($dgIncomingQuery->select(
+                            'product_types.name as incoming_name', 
+                            'downgrades.incoming_cost_price',
+                            'downgrades.incoming_imei',
+                            'downgrades.incoming_storage'
+                        )->get() as $idg) {
+                            $activityDetails['downgrade'][] = [
+                                'name' => 'IN: ' . ($idg->incoming_name ?? 'Unit Downgrade'),
+                                'imei' => $idg->incoming_imei ?? '-',
+                                'storage' => $idg->incoming_storage ?? '-',
+                                'price' => (float) $idg->incoming_cost_price
                             ];
                         }
 
