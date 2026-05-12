@@ -953,8 +953,8 @@ const summaryStats = computed(() => {
 
     return {
         totalOmset: baseSales + (tradeOutgoingTotal || tradeSelisih),
-        // Mathematically correct transparent formula: (Sales + TT_Out) - (Refund + AB + DG + InTT)
-        omsetBersih: (baseSales + tradeOutgoingTotal) - (outlay + tradeIncomingTotal),
+        // User Confirmed Alignment: Omset Bersih = Murni Sales - Deductions
+        omsetBersih: baseSales - (outlay + tradeIncomingTotal),
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits
