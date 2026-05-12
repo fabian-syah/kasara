@@ -1044,7 +1044,7 @@ const summaryStats = computed(() => {
         nonHpUnits
     };
 });
-w
+
 const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
