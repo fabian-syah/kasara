@@ -3243,29 +3243,37 @@ class AuditController extends Controller
                     $row['customer'] ?? '',
                     $row['whatsapp'] ?? '',
                     $row['category'] ?? '',
+                    $row['bundling'] ?? '-',
                     $row['produk_keluar'] ?? '',
-                    str_replace("'", "", $row['imei_keluar'] ?? '-') . "\u{200B}",
-                    $row['qty_keluar'] ?? 0,
-                    $row['harga_satuan_keluar'] ?? 0,
+                    str_replace("'", "", $row['imei_keluar'] ?? '') . "\u{200B}",
+                    $row['qty_keluar'] ?? '',
+                    $row['harga_satuan_keluar'] ?? '',
                     $row['distributor_keluar'] ?? '',
                     $row['produk_masuk'] ?? '',
-                    str_replace("'", "", $row['imei_masuk'] ?? '-') . "\u{200B}",
-                    $row['qty_masuk'] ?? 0,
-                    $row['harga_satuan_masuk'] ?? 0,
-                    $row['distributor_masuk'] ?? ''
+                    str_replace("'", "", $row['imei_masuk'] ?? '') . "\u{200B}",
+                    $row['qty_masuk'] ?? '',
+                    $row['harga_satuan_masuk'] ?? '',
+                    $row['distributor_masuk'] ?? '',
+                    $row['in_tukar_tambah'] ?? ''
                 ];
 
                 if (isset($row['payment_details'])) {
                     foreach ($row['payment_details'] as $amt) {
-                        $xlsxRow[] = (float)$amt;
+                        // Keep empty string if explicitly requested to avoid showing 0
+                        $xlsxRow[] = ($amt === '') ? '' : (float)$amt;
                     }
                 }
 
                 $xlsxRow = array_merge($xlsxRow, [
-                    $row['total_penjualan'] ?? 0,
-                    $row['total_pengeluaran'] ?? 0,
+                    ($row['total_penjualan'] === '') ? '' : (float)($row['total_penjualan'] ?? 0),
+                    ($row['total_pengeluaran'] === '') ? '' : (float)($row['total_pengeluaran'] ?? 0),
                     $row['status'] ?? ''
                 ]);
+                
+                // Inject metadata for zebra striping helper
+                if (isset($row['__bg_striped'])) {
+                    $xlsxRow['__bg_striped'] = $row['__bg_striped'];
+                }
 
                 $xlsxData[] = $xlsxRow;
             }
@@ -3278,7 +3286,8 @@ class AuditController extends Controller
                 
                 // Start summation from column index 17 (first payment/money column) 
                 // up to the second-to-last column (Total Pengeluaran). Skip the final Status column.
-                $startSumCol = 17;
+                // Recalibrated from index 17 up to 19 (+2 for added columns: bundling and in_tukar_tambah)
+                $startSumCol = 19;
                 $endSumCol = $colCount - 2; 
                 
                 if ($endSumCol >= $startSumCol) {

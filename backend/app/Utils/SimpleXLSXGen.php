@@ -66,17 +66,18 @@ class SimpleXLSXGen {
 <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
 <font><b/><sz val="14"/><name val="Calibri"/></font>
 </fonts>
-<fills count="6">
+<fills count="7">
 <fill><patternFill patternType="none"/></fill>
 <fill><patternFill patternType="gray125"/></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FF2C3E50"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFD1FAE5"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFFEF2F2"/></patternFill></fill>
 <fill><patternFill patternType="solid"><fgColor rgb="FFEFF6FF"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/></patternFill></fill>
 </fills>
 <borders count="1"><border><left/><right/><top/><bottom/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="8">
+<cellXfs count="11">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>
@@ -85,6 +86,9 @@ class SimpleXLSXGen {
 <xf numFmtId="0" fontId="1" fillId="5" borderId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
 <xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="6" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="6" borderId="0" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="164" fontId="0" fillId="6" borderId="0" applyFill="1" applyNumberFormat="1"><alignment horizontal="right" vertical="center"/></xf>
 </cellXfs>
 </styleSheet>';
         
@@ -113,6 +117,16 @@ class SimpleXLSXGen {
 
             $ws = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $colsXml . '<sheetData>';
             foreach ($sheet['rows'] as $rIdx => $row) {
+                $isStriped = false;
+                if (is_array($row)) {
+                    if (isset($row['__bg_striped'])) {
+                        $isStriped = (bool) $row['__bg_striped'];
+                        unset($row['__bg_striped']); // DO NOT render meta as a column
+                    }
+                    // Re-index purely to numeric just in case it was associative
+                    $row = array_values($row);
+                }
+
                 $ws .= '<row r="'.($rIdx+1).'">';
                 foreach ($row as $cIdx => $val) {
                     $col = $this->num2alpha($cIdx) . ($rIdx + 1);
@@ -128,6 +142,13 @@ class SimpleXLSXGen {
                         }
                     }
                     
+                    // Apply striping mapping
+                    if ($isStriped) {
+                        if ($s === 0) $s = 8;
+                        elseif ($s === 6) $s = 9;
+                        elseif ($s === 7) $s = 10;
+                    }
+
                     if (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                     } else {
