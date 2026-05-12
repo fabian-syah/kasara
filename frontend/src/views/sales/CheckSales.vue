@@ -649,7 +649,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
