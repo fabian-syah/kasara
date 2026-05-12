@@ -98,6 +98,7 @@ class SimpleXLSXGen {
             $colWidths = [];
             foreach ($sheet['rows'] as $row) {
                 foreach ($row as $cIdx => $val) {
+                    if ($cIdx === '__bg_striped') continue;
                     $len = mb_strlen((string)$val) + 4;
                     if (!isset($colWidths[$cIdx]) || $len > $colWidths[$cIdx]) {
                         $colWidths[$cIdx] = $len;
