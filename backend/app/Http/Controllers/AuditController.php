@@ -192,7 +192,7 @@ class AuditController extends Controller
             };
 
             $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
-            $activityCategories = ['refund', 'angkat_barang'];
+            $activityCategories = ['refund', 'angkat_barang', 'cancel_penjualan'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
             // Optimization: Pre-fetch meta data to avoid N+1 in loops
@@ -1704,7 +1704,7 @@ class AuditController extends Controller
             $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
             $rfData = \App\Models\Refund::whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
 
-            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData, $rfData) {
+            $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $warehouses, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData, $rfData) {
                 $details = [];
                 $catLower = strtolower($trx->category);
                 $receiptId = $trx->receipt_id;
@@ -1941,12 +1941,61 @@ class AuditController extends Controller
 
                 $finalPrice = $isNeg ? -abs($rawSellingPrice) : $rawSellingPrice;
 
+                $cash = 0;
+                $transfer = 0;
+                $edc = 0;
+
+                if ($trx->split_payments) {
+                    $splits = is_array($trx->split_payments) ? $trx->split_payments : json_decode($trx->split_payments, true);
+                    if (is_array($splits)) {
+                        foreach ($splits as $sp) {
+                            $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
+                            $amt = (float) ($sp['amount'] ?? 0);
+                            if ($isNeg) $amt = -abs($amt);
+                            
+                            $pm = $pmId ? $paymentMethods->get($pmId) : null;
+                            $pmCat = strtolower($pm->category ?? '');
+                            if ($pmCat === 'cash') $cash += $amt;
+                            elseif ($pmCat === 'transfer') $transfer += $amt;
+                            elseif ($pmCat === 'edc') $edc += $amt;
+                        }
+                    }
+                } elseif ($trx->payment_method_id) {
+                    $pm = $paymentMethods->get($trx->payment_method_id);
+                    $pmCat = strtolower($pm->category ?? '');
+                    if ($pmCat === 'cash') $cash = $finalPrice;
+                    elseif ($pmCat === 'transfer') $transfer = $finalPrice;
+                    elseif ($pmCat === 'edc') $edc = $finalPrice;
+                }
+
+                $outletName = '-';
+                $oId = $trx->branch_id;
+                $osId = $trx->online_shop_id;
+                $wId = $trx->warehouse_id;
+                if ($oId && isset($branches[$oId])) {
+                    $outletName = $branches[$oId]->name;
+                } elseif ($osId && isset($onlineShops[$osId])) {
+                    $outletName = $onlineShops[$osId]->name;
+                } elseif ($wId && isset($warehouses[$wId])) {
+                    $outletName = $warehouses[$wId]->name;
+                } else {
+                    $u = $trx->inventoryUser ?? $trx->user;
+                    if ($u) {
+                         if ($u->branch_id && isset($branches[$u->branch_id])) $outletName = $branches[$u->branch_id]->name;
+                         elseif ($u->online_shop_id && isset($onlineShops[$u->online_shop_id])) $outletName = $onlineShops[$u->online_shop_id]->name;
+                    }
+                }
+
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
                     'order_no' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                     'customer_phone' => $trx->customer_wa ?? '-',
+                    'outlet_name' => $outletName,
+                    'cash' => $cash,
+                    'transfer' => $transfer,
+                    'edc' => $edc,
                     'category' => $trx->category,
                     'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
                     'qty' => $totalQty,

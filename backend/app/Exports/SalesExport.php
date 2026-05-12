@@ -29,12 +29,11 @@ class SalesExport
 
     public function collection()
     {
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'cancel_penjualan'];
 
         $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$this->startDate, $this->endDate])
-            ->where('status', '!=', 'cancelled');
+            ->whereBetween('reporting_date', [$this->startDate, $this->endDate]);
 
         if ($this->branchId) {
             $query->where('stock_outs.branch_id', $this->branchId);
