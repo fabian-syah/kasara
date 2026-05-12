@@ -1430,7 +1430,8 @@ class AuditController extends Controller
                         $ttIncomingQuery = DB::table('tukar_tambahs')
                             ->join('stock_outs', 'tukar_tambahs.receipt_id', '=', 'stock_outs.receipt_id')
                             ->leftJoin('product_types', 'tukar_tambahs.incoming_product_type_id', '=', 'product_types.id')
-                            ->whereNull('stock_outs.deleted_at');
+                            ->whereNull('stock_outs.deleted_at')
+                            ->where('stock_outs.category', '!=', 'cancel_penjualan');
                         
                         $applyLocalScope($ttIncomingQuery);
 
@@ -1452,7 +1453,8 @@ class AuditController extends Controller
                         $dgIncomingQuery = DB::table('downgrades')
                             ->join('stock_outs', 'downgrades.receipt_id', '=', 'stock_outs.receipt_id')
                             ->leftJoin('product_types', 'downgrades.incoming_product_type_id', '=', 'product_types.id')
-                            ->whereNull('stock_outs.deleted_at');
+                            ->whereNull('stock_outs.deleted_at')
+                            ->where('stock_outs.category', '!=', 'cancel_penjualan');
                         
                         $applyLocalScope($dgIncomingQuery);
 
