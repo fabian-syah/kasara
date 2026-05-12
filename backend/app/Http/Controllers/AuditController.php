@@ -236,7 +236,7 @@ class AuditController extends Controller
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
                 // 1. Paginated Sales Query
                 function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
-                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod'])
+                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
                         ->whereIn('category', $salesCategories)
                         ->where(function ($q) use ($startDate, $endDate) {
                             $startTS = $startDate . ' 05:00:00';
@@ -1998,6 +1998,8 @@ class AuditController extends Controller
                     'edc' => $edc,
                     'category' => $trx->category,
                     'sales_name' => $trx->sales_account ?? ($trx->inventoryUser?->name) ?? '-',
+                    'cancelled_by_name' => $trx->cancelledByUser?->name,
+                    'cancel_reason' => $trx->cancel_reason,
                     'qty' => $totalQty,
                     'items' => $details,
                     'grand_total' => $finalPrice,
@@ -2760,7 +2762,7 @@ class AuditController extends Controller
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan'];
 
-        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit'])
+        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit', 'cancelledByUser'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -2928,6 +2930,8 @@ class AuditController extends Controller
                 'audit_score' => $auditScore,
                 'audit_total' => $totalQuestions,
                 'audit_yes' => $yesCount,
+                'cancelled_by_name' => $trx->cancelledByUser?->name,
+                'cancel_reason' => $trx->cancel_reason,
                 'inventory_account_name' => $trx->inventoryUser->full_name ?? $trx->user->full_name ?? '-',
                 'split_payments_data' => $processedSplitPayments,
                 'selling_price' => $hargaJual,
@@ -3520,9 +3524,10 @@ class AuditController extends Controller
             'inventaris',
             'event_sponsorship',
             'hilang',
+            'cancel_penjualan',
         ];
 
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'destination', 'cancelledByUser'])
             ->whereIn('category', $categories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -3642,6 +3647,8 @@ class AuditController extends Controller
                 'outlet_name' => $outletName,
                 'audit_score' => $score,
                 'audit_total' => $totalQuestions,
+                'cancelled_by_name' => $trx->cancelledByUser?->name,
+                'cancel_reason' => $trx->cancel_reason,
             ];
         });
 

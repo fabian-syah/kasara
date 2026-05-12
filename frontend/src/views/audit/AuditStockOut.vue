@@ -213,6 +213,13 @@
                                             <AlertTriangle :size="12" class="text-red-500" />
                                             {{ getCategoryLabel(item.category) }}
                                         </span>
+                                        <div v-else-if="item.category === 'cancel_penjualan'" class="flex flex-col gap-1">
+                                            <span class="inline-flex w-fit px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 whitespace-nowrap">
+                                                Cancel Penjualan
+                                            </span>
+                                            <div v-if="item.cancelled_by_name" class="text-[10px] text-red-500/80 font-medium leading-tight">Oleh: {{ item.cancelled_by_name }}</div>
+                                            <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
+                                        </div>
                                         <span
                                             v-else
                                             class="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border border-purple-100 dark:border-purple-500/20 whitespace-nowrap"
@@ -477,6 +484,7 @@ const getCategoryLabel = (val) => {
         'inventaris': 'Keluar Inventaris',
         'event_sponsorship': 'Event / Sponsorship',
         'hilang': 'Hilang / Dicuri',
+        'cancel_penjualan': 'Cancel Penjualan',
     };
     return categories[val] || val;
 };

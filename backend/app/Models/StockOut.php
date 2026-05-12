@@ -285,6 +285,11 @@ class StockOut extends Model
         return $this->belongsTo(User::class, 'confirmed_by');
     }
 
+    public function cancelledByUser()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
     // Note: sourceBranch would be the user's branch at the time of creation
     // We'll get it through the user relationship
 
