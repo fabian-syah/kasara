@@ -237,7 +237,9 @@ class SalesExport
                 'harga_satuan_masuk' => (float)$sumInPrices,
                 'distributor_masuk' => implode(", ", $inDists) ?: '-',
                 'payment_details' => $payData,
-                'status' => strtoupper($so->status ?? ($cat === 'cancel_penjualan' ? 'DIBATALKAN' : 'LUNAS')),
+                'total_penjualan' => (float)$baseSales,
+                'total_pengeluaran' => (float)($outlay + $tradeIncomingTotal),
+                'status' => strtoupper($so->status ?? 'LUNAS'),
                 'total_omset' => (float)$finalTotalOmset,
                 'omset_bersih' => (float)$finalOmsetBersih
             ];
@@ -273,6 +275,8 @@ class SalesExport
         }
 
         $heads = array_merge($heads, [
+            'Total Penjualan',
+            'Total Pengeluaran',
             'Status',
             'Total Omset',
             'Omset Bersih'

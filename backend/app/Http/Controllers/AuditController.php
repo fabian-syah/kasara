@@ -3262,6 +3262,8 @@ class AuditController extends Controller
                 }
 
                 $xlsxRow = array_merge($xlsxRow, [
+                    $row['total_penjualan'] ?? 0,
+                    $row['total_pengeluaran'] ?? 0,
                     $row['status'] ?? '',
                     $row['total_omset'] ?? 0,
                     $row['omset_bersih'] ?? 0
