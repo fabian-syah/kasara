@@ -158,6 +158,9 @@ class StockOut extends Model
         'expedition_name',
         'expedition_tracking_no',
         'expedition_date',
+        'cancelled_at',
+        'cancelled_by',
+        'cancel_reason',
     ];
 
     protected $casts = [
