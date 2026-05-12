@@ -166,6 +166,7 @@
                             <th class="px-6 py-4">Qty</th>
                             <th class="px-6 py-4">Harga</th>
                             <th class="px-6 py-4">Total</th>
+                            <th class="px-6 py-4">Diskon & Akhir</th>
                             <th class="px-6 py-4">Akun / Catatan</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Distributor</th>
@@ -174,7 +175,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                         <tr v-if="loading">
-                            <td colspan="14" class="px-6 py-12">
+                            <td colspan="15" class="px-6 py-12">
                                 <div class="flex flex-col items-center justify-center text-text-secondary">
                                     <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                     <span class="text-sm font-medium">Memuat data penjualan...</span>
@@ -182,7 +183,7 @@
                             </td>
                         </tr>
                         <tr v-else-if="(salesRecords.daily_sales?.data || salesRecords.daily_sales).length === 0">
-                            <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
+                            <td colspan="15" class="px-6 py-12 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center">
                                     <div
                                         class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -232,6 +233,16 @@
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(detail.price) }}</td>
                                     <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(detail.price * detail.qty) }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <div class="flex flex-col gap-1 items-start">
+                                            <span v-if="item.total_discount > 0" class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
+                                                Disc: -{{ formatCurrency(item.total_discount) }}
+                                            </span>
+                                            <span class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
+                                                {{ formatCurrency(item.grand_total) }}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1.5 items-start">
                                             <!-- Account Priority: inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
@@ -324,6 +335,16 @@
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
                                     <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{ formatCurrency(item.grand_total / (item.qty || 1)) }}</td>
                                     <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{ formatCurrency(item.grand_total) }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col gap-1 items-start">
+                                            <span v-if="item.total_discount > 0" class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
+                                                Disc: -{{ formatCurrency(item.total_discount) }}
+                                            </span>
+                                            <span class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
+                                                {{ formatCurrency(item.grand_total) }}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1">
                                             <span v-if="String(item.transaction_pin) === '9090'" class="text-xs font-bold text-primary-500">
