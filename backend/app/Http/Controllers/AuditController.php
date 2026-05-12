@@ -3235,9 +3235,6 @@ class AuditController extends Controller
 
             $rows = $export->collection();
             foreach ($rows as $row) {
-                $cat = strtolower($row['category'] ?? '');
-                $isExchange = str_contains($cat, 'tukar') || str_contains($cat, 'downgrade');
-
                 $xlsxRow = [
                     $row['waktu'] ?? '',
                     $row['order_no'] ?? '',
@@ -3246,26 +3243,28 @@ class AuditController extends Controller
                     $row['customer'] ?? '',
                     $row['whatsapp'] ?? '',
                     $row['category'] ?? '',
-                    $row['product'] ?? '',
-                    str_replace("'", "", $row['imei'] ?? '-'),
-                    $row['qty'] ?? 1,
-                    $row['price'] ?? '',
-                    $row['total'] ?? '',
-                    $row['distributor'] ?? '',
-                    $row['payment'] ?? '',
+                    $row['produk_keluar'] ?? '',
+                    str_replace("'", "", $row['imei_keluar'] ?? '-'),
+                    $row['qty_keluar'] ?? 0,
+                    $row['harga_satuan_keluar'] ?? 0,
+                    $row['distributor_keluar'] ?? '',
+                    $row['produk_masuk'] ?? '',
+                    str_replace("'", "", $row['imei_masuk'] ?? '-'),
+                    $row['qty_masuk'] ?? 0,
+                    $row['harga_satuan_masuk'] ?? 0,
+                    $row['distributor_masuk'] ?? ''
                 ];
 
                 if (isset($row['payment_details'])) {
                     foreach ($row['payment_details'] as $amt) {
-                        $xlsxRow[] = $amt;
+                        $xlsxRow[] = (float)$amt;
                     }
                 }
 
                 $xlsxRow = array_merge($xlsxRow, [
+                    $row['total_omset'] ?? 0,
                     $row['status'] ?? '',
-                    ($isExchange && $row['price_out'] != 0) ? $row['price_out'] : '',
-                    ($isExchange && $row['price_in'] != 0) ? $row['price_in'] : '',
-                    ($isExchange && $row['balance'] != 0) ? $row['balance'] : ''
+                    $row['total_pengeluaran'] ?? 0
                 ]);
 
                 $xlsxData[] = $xlsxRow;

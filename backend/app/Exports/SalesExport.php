@@ -3,6 +3,8 @@
 namespace App\Exports;
 
 use App\Models\StockOut;
+use App\Models\PaymentMethod;
+use Illuminate\Support\Facades\Schema;
 
 class SalesExport
 {
@@ -20,6 +22,35 @@ class SalesExport
         $this->startDate = $startDate;
         $this->endDate = $endDate;
         $this->user = $user;
+
+        $this->loadPaymentMethods();
+    }
+
+    protected function loadPaymentMethods()
+    {
+        try {
+            $query = PaymentMethod::query()->where('is_active', true);
+            
+            if ($this->branchId) {
+                $query->whereHas('branches', function($q) {
+                    $q->where('branch_id', $this->branchId);
+                });
+                
+                // Finalize and check if mapped
+                $methods = (clone $query)->orderBy('category')->orderBy('name')->get();
+                
+                // Fallback to ALL ACTIVE if specific branch assignment is not explicitly declared for any
+                if ($methods->isEmpty()) {
+                    $this->paymentMethods = PaymentMethod::where('is_active', true)->orderBy('category')->orderBy('name')->get();
+                } else {
+                    $this->paymentMethods = $methods;
+                }
+            } else {
+                $this->paymentMethods = $query->orderBy('category')->orderBy('name')->get();
+            }
+        } catch (\Exception $e) {
+            $this->paymentMethods = collect();
+        }
     }
 
     public function title(): string
@@ -29,7 +60,7 @@ class SalesExport
 
     public function collection()
     {
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'cancel_penjualan'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'cancel_penjualan', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
 
         $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
@@ -50,9 +81,11 @@ class SalesExport
             }
         }
 
-        $stockOuts = $query->orderBy('reporting_date', 'desc')
+        $stockOuts = $query->whereNull('deleted_at')
+            ->orderBy('reporting_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
+            
         $rows = [];
 
         $receiptIds = $stockOuts->pluck('receipt_id')->filter()->toArray();
@@ -62,7 +95,7 @@ class SalesExport
 
         foreach ($stockOuts as $so) {
             $location = $so->branch_id ? ($so->branch->name ?? '-') : ($so->onlineShop->name ?? '-');
-            $csName = $so->inventoryUser->name ?? ($so->user->name ?? '-');
+            $csName = $so->inventoryUser->name ?? ($so->user->name ?? $so->sales_account ?? '-');
             $cat = strtolower($so->category);
             $receiptId = $so->receipt_id;
             
@@ -71,211 +104,142 @@ class SalesExport
             elseif ($cat === 'downgrade') $exchangeInfo = $dgData->get($receiptId);
             elseif ($cat === 'tukar_unit') $exchangeInfo = $ueData->get($receiptId);
 
-            $payment = $so->paymentMethod->name ?? null;
-            if (!$payment && !empty($so->split_payments_data)) {
-                $payment = implode(', ', array_column($so->split_payments_data, 'method_name'));
+            // 1. Prepare Output Collections (Flattened to 1 row per sale as requested)
+            $outProds = [];
+            $outImeis = [];
+            $outDists = [];
+            $qtyOut = 0;
+            $sumOutPrices = 0;
+
+            foreach ($so->items as $item) {
+                $qtyOut++;
+                $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
+                $outProds[] = $prodName;
+                if ($item->imei) $outImeis[] = "'" . $item->imei;
+                
+                $d = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
+                if (!in_array($d, $outDists)) $outDists[] = $d;
+
+                $itemBase = (float)($item->pivot->selling_price ?? 0);
+                $netItem = $itemBase - (float)($item->pivot->item_discount ?? 0) - (float)($item->pivot->distributed_discount ?? 0);
+                $sumOutPrices += $netItem;
             }
 
-            $isNeg = in_array($cat, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
-            
-            // Helper to calculate split payments
-            if (!$this->paymentMethods) {
-                $this->paymentMethods = \App\Models\PaymentMethod::orderBy('category')->orderBy('name')->get();
+            foreach ($so->nonHpItems as $nItem) {
+                $qtyOut += $nItem->quantity;
+                $nName = ($nItem->product?->name ?? 'Aksesoris') . " (Qty: {$nItem->quantity})";
+                $outProds[] = $nName;
+
+                $d = $nItem->distributor?->name ?? $nItem->product?->brand ?? '-';
+                if ($d !== '-' && !in_array($d, $outDists)) $outDists[] = $d;
+
+                $baseN = (float)($nItem->selling_price ?? 0);
+                $netN = ($baseN - (float)($nItem->item_discount ?? 0) - (float)($nItem->distributed_discount ?? 0)) * $nItem->quantity;
+                $sumOutPrices += $netN;
             }
-            
-            $splitPayments = $so->split_payments_data;
+
+            // 2. Prepare Incoming Collections
+            $inProds = [];
+            $inImeis = [];
+            $inDists = [];
+            $qtyIn = 0;
+            $sumInPrices = 0;
+
+            if ($exchangeInfo) {
+                $qtyIn = 1;
+                $iName = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
+                $inProds[] = $iName;
+                if (!empty($exchangeInfo->incoming_imei)) {
+                    $inImeis[] = "'" . $exchangeInfo->incoming_imei;
+                }
+                
+                $sumInPrices = (float)($exchangeInfo->incoming_cost_price ?? 0);
+                $dIn = $exchangeInfo->distributor?->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
+                $inDists[] = $dIn;
+            }
+
+            // 3. Define Financial Fields according to strict requirements
+            $totalOmset = $sumOutPrices; // Start as sum of out selling prices
+            $totalPengeluaran = 0;
+
+            if ($exchangeInfo) {
+                // Explicit override for total omset from outgoing_price column if available
+                $outPrice = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $sumOutPrices));
+                $totalOmset = $outPrice;
+
+                if ($cat === 'tukar_tambah') {
+                    $totalPengeluaran = $sumInPrices;
+                } elseif ($cat === 'downgrade') {
+                    // "selisih downgrade" -> difference given back to customer? Or absolute In price?
+                    // Usually selisih downgrade implies: what we refunded. Out - In.
+                    $diff = $outPrice - $sumInPrices;
+                    // If it's a downgrade, In is usually > Out, making negative difference, which is money flow OUT.
+                    if ($diff < 0) {
+                        $totalPengeluaran = abs($diff);
+                    } else {
+                        // If positive difference, customer actually pays us, not an expenditure.
+                        $totalPengeluaran = 0;
+                    }
+                }
+            } elseif (in_array($cat, ['refund', 'angkat_barang'])) {
+                $totalPengeluaran = $sumOutPrices; // Cost paid out to retrieving customer
+                $totalOmset = 0; // Expenditures yield no gross sales revenue
+            }
+
+            // 4. Parse Split Payment detailed mapping
             $payData = [];
             foreach ($this->paymentMethods as $pm) {
                 $payData[$pm->name] = 0;
             }
 
-            if (empty($splitPayments)) {
-                $name = $so->paymentMethod->name ?? '';
-                $amount = $so->paid_amount ?: $so->selling_price;
-                if ($isNeg) $amount = -$amount;
-                if (isset($payData[$name])) {
-                    $payData[$name] = $amount;
-                }
+            $splitPayments = $so->split_payments_data;
+            
+            if ($cat === 'cancel_penjualan') {
+                // Exclude values for cancelled row purely
+                $totalOmset = 0;
+                $totalPengeluaran = 0;
             } else {
-                foreach ($splitPayments as $sp) {
-                    $name = $sp['method_name'] ?? '';
-                    $amount = $sp['amount'] ?? 0;
-                    if ($isNeg) $amount = -$amount;
+                if (empty($splitPayments)) {
+                    $name = $so->paymentMethod->name ?? 'CASH TOKO';
+                    $amt = $so->paid_amount ?: $so->selling_price;
                     if (isset($payData[$name])) {
-                        $payData[$name] += $amount;
+                        $payData[$name] = (float)$amt;
+                    }
+                } else {
+                    foreach ($splitPayments as $sp) {
+                        $name = $sp['method_name'] ?? 'Lainnya';
+                        $amt = $sp['amount'] ?? 0;
+                        if (isset($payData[$name])) {
+                            $payData[$name] += (float)$amt;
+                        }
                     }
                 }
             }
 
-            $groups = [];
-            $singles = [];
-
-            // Grouping logic: Items with the same non-empty note are combined into a bundle row.
-            // Items with empty notes are treated as individual single rows.
-            foreach ($so->items as $item) {
-                $note = trim($item->pivot->notes ?? '');
-                if ($note !== '') {
-                    $groups[$note][] = ['type' => 'hp', 'data' => $item];
-                } else {
-                    $singles[] = ['type' => 'hp', 'data' => $item];
-                }
-            }
-            foreach ($so->nonHpItems as $item) {
-                $note = trim($item->notes ?? '');
-                if ($note !== '') {
-                    $groups[$note][] = ['type' => 'non_hp', 'data' => $item];
-                } else {
-                    $singles[] = ['type' => 'non_hp', 'data' => $item];
-                }
-            }
-
-            // 1. Process Grouped Bundles
-            foreach ($groups as $groupName => $items) {
-                $totalPrice = 0;
-                $allImeis = [];
-                $productList = [];
-                $distributors = [];
-
-                foreach ($items as $it) {
-                    if ($it['type'] === 'hp') {
-                        $item = $it['data'];
-                        $rawPrice = $item->pivot->selling_price ?? 0;
-                        $itemDiscount = $item->pivot->item_discount ?? 0;
-                        $distDiscount = $item->pivot->distributed_discount ?? 0;
-                        $netPrice = $rawPrice - $itemDiscount - $distDiscount;
-                        $totalPrice += $netPrice;
-
-                        if ($item->imei) $allImeis[] = $item->imei;
-                        
-                        $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '') . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
-                        $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
-                        
-                        $dist = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
-                        if (!in_array($dist, $distributors)) $distributors[] = $dist;
-                    } else {
-                        $item = $it['data'];
-                        $rawPrice = $item->selling_price ?? 0;
-                        $itemDiscount = $item->item_discount ?? 0;
-                        $distDiscount = $item->distributed_discount ?? 0;
-                        $netPrice = ($rawPrice - $itemDiscount - $distDiscount) * $item->quantity;
-                        $totalPrice += $netPrice;
-
-                        $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})";
-                        $productList[] = ($so->is_bundle ? "📦 " : "") . $productName;
-                        
-                        $dist = $item->distributor?->name ?? $item->product->brand ?? $item->supplier_name ?? '-';
-                        if ($dist !== '-' && !in_array($dist, $distributors)) $distributors[] = $dist;
-                    }
-                }
-
-                $rows[] = [
-                    'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
-                    'order_no' => $so->receipt_id,
-                    'lokasi' => $location,
-                    'user' => $csName,
-                    'customer' => $so->customer_name ?? '-',
-                    'whatsapp' => $so->customer_wa ?? '-',
-                    'category' => strtoupper($so->category),
-                    'product' => implode("\n", $productList),
-                    'imei' => implode(', ', array_map(fn($i) => "'" . $i, $allImeis)) ?: '-',
-                    'qty' => 1,
-                    'price' => (float)$totalPrice,
-                    'total' => $isNeg ? -(float)$totalPrice : (float)$totalPrice,
-                    'distributor' => implode(', ', $distributors) ?: '-',
-                    'payment' => $payment ?: '-',
-                    'payment_details' => $payData,
-                    'status' => strtoupper($so->status),
-                    'price_out' => '-',
-                    'price_in' => '-',
-                    'balance' => '-'
-                ];
-            }
-
-            // 2. Process Individual Singles
-            foreach ($singles as $it) {
-                if ($it['type'] === 'hp') {
-                    $item = $it['data'];
-                    $productName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " " . ($item->ram ?? '') . "/" . ($item->storage ?? '');
-                    $condition = $item->condition === 'new' ? 'Baru' : 'Second';
-                    
-                    $rawPrice = $item->pivot->selling_price ?? 0;
-                    $itemDiscount = $item->pivot->item_discount ?? 0;
-                    $distDiscount = $item->pivot->distributed_discount ?? 0;
-                    $price = $rawPrice - $itemDiscount - $distDiscount;
-                    
-                    $distOut = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
-                    $finalDistributor = $distOut;
-                    $finalProductName = $productName . " [" . $condition . "]";
-                    $finalImei = $item->imei ? "'" . $item->imei : '-';
-                    
-                    $pOut = $price; $pIn = 0; $diff = 0;
-
-                    if ($exchangeInfo) {
-                        $pOut = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_unit' ? $exchangeInfo->incoming_cost_price : $price));
-                        $pIn = (float)($exchangeInfo->incoming_cost_price ?? 0);
-                        $diff = $pOut - $pIn;
-
-                        $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
-                        $inImei = $exchangeInfo->incoming_imei ?? '-';
-                        $finalProductName = "OUT: " . $productName . " [" . $condition . "] || IN: " . $inProd;
-                        $finalImei = "OUT: " . ($item->imei ?? '-') . " || IN: " . $inImei;
-                        
-                        $distIn = $exchangeInfo->distributor?->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
-                        $finalDistributor = "OUT: " . $distOut . " || IN: " . $distIn;
-                    }
-
-                    $rows[] = [
-                        'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
-                        'order_no' => $so->receipt_id,
-                        'lokasi' => $location,
-                        'user' => $csName,
-                        'customer' => $so->customer_name ?? '-',
-                        'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => strtoupper($so->category),
-                        'product' => $finalProductName,
-                        'imei' => $finalImei,
-                        'qty' => 1,
-                        'price' => (float)$pOut,
-                        'total' => $isNeg ? -abs($exchangeInfo ? $diff : $pOut) : (float)($exchangeInfo ? $diff : $pOut),
-                        'distributor' => $finalDistributor,
-                        'payment' => $payment ?: '-',
-                        'payment_details' => $payData,
-                        'status' => ($cat === 'penjualan_store' || $cat === 'penjualan_offline') ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
-                        'price_out' => $exchangeInfo ? (float)$pOut : 0,
-                        'price_in' => $exchangeInfo ? (float)$pIn : 0,
-                        'balance' => $isNeg ? -abs($exchangeInfo ? $diff : 0) : (float)($exchangeInfo ? $diff : 0)
-                    ];
-                } else {
-                    $item = $it['data'];
-                    $rawPrice = $item->selling_price ?? 0;
-                    $itemDiscount = $item->item_discount ?? 0;
-                    $distDiscount = $item->distributed_discount ?? 0;
-                    $price = $rawPrice - $itemDiscount - $distDiscount;
-                    
-                    $rows[] = [
-                        'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
-                        'order_no' => $so->receipt_id,
-                        'lokasi' => $location,
-                        'user' => $csName,
-                        'customer' => $so->customer_name ?? '-',
-                        'whatsapp' => $so->customer_wa ?? '-',
-                        'category' => strtoupper($so->category),
-                        'product' => ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . " (Qty: {$item->quantity})",
-                        'imei' => '-',
-                        'qty' => (float)$item->quantity,
-                        'price' => (float)$price,
-                        'total' => $isNeg ? -(float)($price * $item->quantity) : (float)($price * $item->quantity),
-                        'distributor' => $item->distributor?->name ?? $item->product->brand ?? $item->supplier_name ?? '-',
-                        'payment' => $payment ?: '-',
-                        'payment_details' => $payData,
-                        'status' => ($cat === 'penjualan_store' || $cat === 'penjualan_offline') ? 'LUNAS' : ($isNeg ? 'BELUM LUNAS' : strtoupper($so->status ?? 'LUNAS')),
-                        'price_out' => 0,
-                        'price_in' => 0,
-                        'balance' => 0
-                    ];
-                }
-            }
-
+            // Output ONE fully descriptive combined row
+            $rows[] = [
+                'waktu' => date('d/m/Y', strtotime($so->reporting_date)) . ' ' . $so->created_at->format('H:i'),
+                'order_no' => $receiptId,
+                'lokasi' => $location,
+                'user' => $csName,
+                'customer' => $so->customer_name ?? '-',
+                'whatsapp' => $so->customer_wa ?? '-',
+                'category' => strtoupper($so->category),
+                'produk_keluar' => implode("\n", $outProds) ?: '-',
+                'imei_keluar' => implode(", ", $outImeis) ?: '-',
+                'qty_keluar' => $qtyOut,
+                'harga_satuan_keluar' => (float)$sumOutPrices,
+                'distributor_keluar' => implode(", ", $outDists) ?: '-',
+                'produk_masuk' => implode("\n", $inProds) ?: '-',
+                'imei_masuk' => implode(", ", $inImeis) ?: '-',
+                'qty_masuk' => $qtyIn,
+                'harga_satuan_masuk' => (float)$sumInPrices,
+                'distributor_masuk' => implode(", ", $inDists) ?: '-',
+                'payment_details' => $payData,
+                'total_omset' => (float)$totalOmset,
+                'status' => strtoupper($so->status ?? ($cat === 'cancel_penjualan' ? 'DIBATALKAN' : 'LUNAS')),
+                'total_pengeluaran' => (float)$totalPengeluaran
+            ];
         }
 
         return $rows;
@@ -283,10 +247,6 @@ class SalesExport
 
     public function headings(): array
     {
-        if (!$this->paymentMethods) {
-            $this->paymentMethods = \App\Models\PaymentMethod::orderBy('category')->orderBy('name')->get();
-        }
-
         $heads = [
             'Waktu',
             'No Pesanan',
@@ -295,24 +255,26 @@ class SalesExport
             'Nama Customer',
             'WhatsApp',
             'Kategori',
-            'Produk',
-            'IMEI/S/N',
+            'Produk Keluar',
+            'IMEI',
             'Qty',
             'Harga Satuan',
-            'Total Harga',
             'Distributor',
-            'Metode Pembayaran'
+            'Produk Masuk',
+            'IMEI',
+            'Qty',
+            'Harga Satuan',
+            'Distributor',
         ];
 
         foreach ($this->paymentMethods as $pm) {
             $heads[] = $pm->name;
         }
-        
+
         $heads = array_merge($heads, [
+            'Total Penjualan',
             'Status',
-            'Harga Unit Keluar',
-            'Harga Unit Masuk',
-            'Selisih (Sisa Bayar)'
+            'Total Pengeluaran'
         ]);
 
         return $heads;
