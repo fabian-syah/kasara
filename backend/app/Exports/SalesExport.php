@@ -239,9 +239,7 @@ class SalesExport
                 'payment_details' => $payData,
                 'total_penjualan' => (float)$baseSales,
                 'total_pengeluaran' => (float)($outlay + $tradeIncomingTotal),
-                'status' => strtoupper($so->status ?? 'LUNAS'),
-                'total_omset' => (float)$finalTotalOmset,
-                'omset_bersih' => (float)$finalOmsetBersih
+                'status' => strtoupper($so->status ?? 'LUNAS')
             ];
         }
 
@@ -277,9 +275,7 @@ class SalesExport
         $heads = array_merge($heads, [
             'Total Penjualan',
             'Total Pengeluaran',
-            'Status',
-            'Total Omset',
-            'Omset Bersih'
+            'Status'
         ]);
 
         return $heads;
