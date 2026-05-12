@@ -892,20 +892,20 @@ const summaryStats = computed(() => {
 
         // Standard Sales categories
         const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);
-        const isTradeIn = cat === 'tukar_tambah';
-        const isDeduction = ['refund', 'angkat_barang', 'downgrade'].includes(cat);
+        const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
+        const isDeduction = ['refund', 'angkat_barang'].includes(cat);
 
         if (isBaseSale) {
             baseSales += total;
         } else if (isTradeIn) {
             tradeSelisih += total; // Net difference
             
-            // Sum outgoing price for total omset (falls back to difference if null)
-            const outVal = parseFloat(item.price_out) || total;
+            // Sum outgoing price for total omset
+            const outVal = parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0);
             tradeOutgoingTotal += Math.abs(outVal);
 
             // Explicitly track Incoming Price for conceptually aligned deductions
-            const inVal = parseFloat(item.price_in) || 0;
+            const inVal = parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0);
             tradeIncomingTotal += Math.abs(inVal);
         }
 
