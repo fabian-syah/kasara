@@ -121,7 +121,7 @@ class SimpleXLSXGen {
                         $s = 2; // Header
                     } elseif (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         // Right align numbers. Format as rupiah if value looks like a price
-                        if ((float)$val > 10000) {
+                        if (abs((float)$val) > 10000) {
                             $s = 7; 
                         } else {
                             $s = 6;
