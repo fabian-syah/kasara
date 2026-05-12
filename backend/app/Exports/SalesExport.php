@@ -159,10 +159,9 @@ class SalesExport
             }
 
             // 3. Standardized Financial Aggregation mapping EXACTLY to Unified View logic confirmed earlier today
-            $baseSales = 0;
-            $tradeOutgoingTotal = 0;
-            $tradeIncomingTotal = 0;
-            $outlay = 0;
+            // 3. Final Aligned Financial Metrics Mapping strictly satisfying explicit user instructions
+            $finalTotalPenjualan = 0;
+            $finalTotalPengeluaran = 0;
 
             $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
@@ -171,22 +170,19 @@ class SalesExport
             $currentSumPrice = abs($sumOutPrices); 
 
             if ($isBaseSale) {
-                $baseSales = $currentSumPrice;
+                // Case: Penjualan Store -> Mapped to Total Penjualan
+                $finalTotalPenjualan = $currentSumPrice;
             } elseif ($isTradeIn && $exchangeInfo) {
-                $outVal = (float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0));
-                $tradeOutgoingTotal = abs($outVal);
-
-                $inVal = (float)($exchangeInfo->incoming_cost_price ?? ($cat === 'downgrade' ? $tradeOutgoingTotal + $currentSumPrice : 0));
-                $tradeIncomingTotal = abs($inVal);
+                // Case: Trade Items Out (TT Out / DG Out) -> User demands these map to Total Penjualan (yields 3.5M)
+                $finalTotalPenjualan = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
+                // Case: In TT / Selisih Downgrade -> User demands these map to Total Pengeluaran (yields 16.799M)
+                $finalTotalPengeluaran = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
             }
 
             if ($isDeduction) {
-                $outlay = $currentSumPrice;
+                // Case: Refund / Angkat Barang -> Mapped directly to Total Pengeluaran
+                $finalTotalPengeluaran = $currentSumPrice;
             }
-
-            // User Specific Formula: Omset Bersih = Total Sales - Total Deductions (Confirmed targeting -8.299.000)
-            $finalTotalOmset = $baseSales + $tradeOutgoingTotal;
-            $finalOmsetBersih = $baseSales - ($outlay + $tradeIncomingTotal);
 
             // 4. Parse Split Payment detailed mapping
             $payData = [];
@@ -197,8 +193,8 @@ class SalesExport
             $splitPayments = $so->split_payments_data;
             
             if ($cat === 'cancel_penjualan') {
-                $finalTotalOmset = 0;
-                $finalOmsetBersih = 0;
+                $finalTotalPenjualan = 0;
+                $finalTotalPengeluaran = 0;
             } else {
                 if (empty($splitPayments)) {
                     $name = $so->paymentMethod->name ?? 'CASH TOKO';
@@ -237,8 +233,8 @@ class SalesExport
                 'harga_satuan_masuk' => (float)$sumInPrices,
                 'distributor_masuk' => implode(", ", $inDists) ?: '-',
                 'payment_details' => $payData,
-                'total_penjualan' => (float)$baseSales,
-                'total_pengeluaran' => (float)($outlay + $tradeIncomingTotal),
+                'total_penjualan' => (float)$finalTotalPenjualan,
+                'total_pengeluaran' => (float)$finalTotalPengeluaran,
                 'status' => strtoupper($so->status ?? 'LUNAS')
             ];
         }
