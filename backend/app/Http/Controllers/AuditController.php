@@ -625,6 +625,12 @@ class AuditController extends Controller
                             // Include Tukar Tambah OUT in Total Omset, and Net diff in Net Omset
                             $ownerGroups[$ownerId]['total_omset'] += $outPrice;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
+
+                            // Include In TT in activity total (Out Price - Selling Price Net Diff)
+                            $inTtVal = $outPrice - $price;
+                            if ($inTtVal > 0) {
+                                $ownerGroups[$ownerId]['total_activity_rp'] += $inTtVal;
+                            }
                         } elseif ($cat === 'downgrade') {
                             // Downgrade OUT is excluded from Total Omset.
                             // Downgrade Net impact is SUBTRACTED from Net Omset.
@@ -1474,13 +1480,15 @@ class AuditController extends Controller
                             'product_types.name as incoming_name', 
                             'downgrades.incoming_cost_price',
                             'downgrades.incoming_imei',
-                            'downgrades.incoming_storage'
+                            'downgrades.incoming_storage',
+                            'stock_outs.selling_price'
                         )->get() as $idg) {
                             $activityDetails['downgrade'][] = [
                                 'name' => 'IN: ' . ($idg->incoming_name ?? 'Unit Downgrade'),
                                 'imei' => $idg->incoming_imei ?? '-',
                                 'storage' => $idg->incoming_storage ?? '-',
-                                'price' => (float) $idg->incoming_cost_price
+                                // Use absolute net difference for Downgrade deduction to keep omset_bersih synced
+                                'price' => abs((float) $idg->selling_price)
                             ];
                         }
 
