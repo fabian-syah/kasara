@@ -432,21 +432,18 @@ const calculatedChange = computed(() => {
 const receiptSetting = computed(() => {
     return props.transaction.branch?.receipt_setting 
         || props.transaction.online_shop?.receipt_setting
-        || authStore.userBranch?.receipt_setting;
+        || authStore.userBranch?.receipt_setting
+        || authStore.user?.online_shop?.receipt_setting;
 });
 
 const displayAddress = computed(() => {
     return receiptSetting.value?.store_address 
-        || props.transaction.branch?.address 
-        || authStore.userBranch?.address 
         || 'Pusat Perbelanjaan Online';
 });
 
 // WhatsApp Phone
 const displayPhone = computed(() => {
-    const phone = receiptSetting.value?.whatsapp_number 
-        || props.transaction.branch?.phone 
-        || authStore.userBranch?.phone;
+    const phone = receiptSetting.value?.whatsapp_number;
     if (phone && phone.trim() !== '') {
         return `WhatsApp: ${phone}`;
     }
@@ -455,8 +452,7 @@ const displayPhone = computed(() => {
 
 const displayWarranty = computed(() => {
     return receiptSetting.value?.warranty_terms
-        || props.transaction.branch?.warranty_terms
-        || authStore.userBranch?.warranty_terms;
+        || `1. Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)\n2. Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan\n3. Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD`;
 });
 
 // Customer Phone
