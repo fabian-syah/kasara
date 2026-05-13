@@ -48,6 +48,13 @@ class SalesExport
             } else {
                 $this->paymentMethods = $query->orderBy('category')->orderBy('name')->get();
             }
+
+            // Exclude duplicate 'in TUKAR TAMBAH' column requested by user
+            if ($this->paymentMethods) {
+                $this->paymentMethods = $this->paymentMethods->reject(function($pm) {
+                    return strtolower(trim($pm->name)) === 'in tukar tambah';
+                });
+            }
         } catch (\Exception $e) {
             $this->paymentMethods = collect();
         }
@@ -209,13 +216,13 @@ class SalesExport
             if ($cat !== 'cancel_penjualan' && $cat !== 'downgrade' && !$isDeduction) {
                 if (empty($splitPayments)) {
                     $name = $so->paymentMethod->name ?? 'CASH TOKO';
-                    $amt = $so->paid_amount ?: $so->selling_price;
-                    if (isset($payData[$name])) { $payData[$name] = (float)$amt; }
+                    $amt = abs((float)($so->paid_amount ?: $so->selling_price));
+                    if (isset($payData[$name])) { $payData[$name] = $amt; }
                 } else {
                     foreach ($splitPayments as $sp) {
                         $name = $sp['method_name'] ?? 'Lainnya';
-                        $amt = $sp['amount'] ?? 0;
-                        if (isset($payData[$name])) { $payData[$name] += (float)$amt; }
+                        $amt = abs((float)($sp['amount'] ?? 0));
+                        if (isset($payData[$name])) { $payData[$name] += $amt; }
                     }
                 }
             }
