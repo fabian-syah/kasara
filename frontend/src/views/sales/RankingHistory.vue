@@ -729,7 +729,6 @@
                                     </th>
                                     <template v-else>
                                         <th class="px-6 py-4 text-right">Total Omset</th>
-                                        <th class="px-6 py-4 text-right">Omset Bersih</th>
                                     </template>
                                 </template>
                                 <template v-else-if="currentView === 'type'">
@@ -948,8 +947,6 @@
                                         <template v-if="currentView === 'sales'">
                                             <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
                                                 {{ formatCurrency(item.total_omset) }}</td>
-                                            <td class="px-6 py-4 text-right font-black text-emerald-500 font-mono whitespace-nowrap">
-                                                {{ formatCurrency(item.grand_total) }}</td>
                                         </template>
                                         <td v-else
                                             class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
@@ -1051,7 +1048,6 @@
                                     <td class="px-6 py-4 text-center">{{ totals.nonHp }}</td>
                                     <td class="px-6 py-4 text-center text-primary-500">{{ totals.units }}</td>
                                     <td class="px-6 py-4 text-right font-mono">{{ formatCurrency(totals.totOmset) }}</td>
-                                    <td class="px-6 py-4 text-right text-emerald-500 font-mono">{{ formatCurrency(totals.revenue) }}</td>
                                 </template>
 
                                 <template v-else-if="currentView === 'activity'">
