@@ -331,8 +331,8 @@ onMounted(async () => {
                                     Username Instagram
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs">@</span>
-                                    <input v-model="form.instagram" type="text" class="input pl-10 font-black text-sm" placeholder="pstore.official" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs z-10">@</span>
+                                    <input v-model="form.instagram" type="text" class="input !pl-12 font-black text-sm relative z-0" placeholder="pstore.official" />
                                 </div>
                             </div>
 
@@ -346,8 +346,8 @@ onMounted(async () => {
                                     Username TikTok
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs">@</span>
-                                    <input v-model="form.tiktok" type="text" class="input pl-10 font-black text-sm" placeholder="pstoretiktok" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs z-10">@</span>
+                                    <input v-model="form.tiktok" type="text" class="input !pl-12 font-black text-sm relative z-0" placeholder="pstoretiktok" />
                                 </div>
                             </div>
                         </div>
