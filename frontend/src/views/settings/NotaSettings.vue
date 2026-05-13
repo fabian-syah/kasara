@@ -177,28 +177,28 @@ onMounted(async () => {
 </script>
 
 <template>
-    <div class="space-y-6 pb-24 page-fade-in">
-        <!-- Top Glassmorphic Header -->
-        <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-900 dark:to-slate-950 border border-indigo-500/30 dark:border-zinc-800/50 shadow-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="space-y-6 pb-24 page-fade-in text-zinc-900 dark:text-zinc-50">
+        <!-- Top Glassmorphic Header (Emerald Green Accent) -->
+        <div class="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-emerald-600 to-teal-700 dark:from-emerald-900 dark:to-zinc-950 border border-emerald-500/30 dark:border-zinc-800/50 shadow-2xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="flex items-center gap-4 relative z-10">
                 <div class="p-4 bg-white/10 backdrop-blur-lg border border-white/20 rounded-[1.5rem] shadow-inner">
                     <FileText class="w-8 h-8 text-white" />
                 </div>
                 <div>
                     <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase">Setting Nota</h1>
-                    <p class="text-indigo-100 text-xs font-bold uppercase tracking-wider mt-1 opacity-90">Kustomisasi tampilan nota fisik dan struk transaksi</p>
+                    <p class="text-emerald-50 text-xs font-bold uppercase tracking-wider mt-1 opacity-95">Kustomisasi tampilan nota fisik dan struk transaksi</p>
                 </div>
             </div>
             
-            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" class="btn bg-white text-indigo-700 hover:bg-indigo-50 font-black rounded-2xl px-6 py-3 tracking-widest uppercase shadow-lg active:scale-95 flex items-center gap-2 relative z-10">
-                <Loader2 v-if="isSaving" class="animate-spin" :size="16" />
-                <Save v-else :size="16" />
+            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" class="btn bg-white text-emerald-800 hover:bg-emerald-50 font-black rounded-2xl px-6 py-3 tracking-widest uppercase shadow-lg active:scale-95 flex items-center gap-2 relative z-10">
+                <Loader2 v-if="isSaving" class="animate-spin text-emerald-800" :size="16" />
+                <Save v-else class="text-emerald-800" :size="16" />
                 <span>Simpan Perubahan</span>
             </button>
 
-            <!-- Abs Backdrop Glows -->
-            <div class="absolute top-0 right-0 w-96 h-96 bg-indigo-400/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3"></div>
-            <div class="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 blur-3xl rounded-full translate-y-1/3 -translate-x-1/3"></div>
+            <!-- Background Glow Accents in Teal/Emerald -->
+            <div class="absolute top-0 right-0 w-96 h-96 bg-emerald-400/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/3"></div>
+            <div class="absolute bottom-0 left-0 w-64 h-64 bg-teal-500/20 blur-3xl rounded-full translate-y-1/3 -translate-x-1/3"></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -207,8 +207,8 @@ onMounted(async () => {
                 <!-- Target Selection Card -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-5">
                     <div class="flex items-center gap-2 pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
-                        <Building2 :size="18" class="text-indigo-600" />
-                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Lokasi Target</h3>
+                        <Building2 :size="18" class="text-emerald-600 dark:text-emerald-400" />
+                        <h3 class="text-sm font-black text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">Lokasi Target</h3>
                     </div>
 
                     <div v-if="isPrivileged" class="space-y-4">
@@ -218,13 +218,13 @@ onMounted(async () => {
                             <div class="grid grid-cols-2 bg-zinc-50 dark:bg-zinc-950 p-1 rounded-xl gap-1 border border-zinc-200 dark:border-zinc-850">
                                 <button @click="selectedType = 'branch'" type="button"
                                     class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
-                                    :class="selectedType === 'branch' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'">
+                                    :class="selectedType === 'branch' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900'">
                                     <Building2 :size="12" />
                                     Cabang Fisik
                                 </button>
                                 <button @click="selectedType = 'online_shop'" type="button"
                                     class="flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-black uppercase transition-all"
-                                    :class="selectedType === 'online_shop' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'">
+                                    :class="selectedType === 'online_shop' ? 'bg-emerald-600 text-white shadow-md' : 'text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900'">
                                     <ShoppingBag :size="12" />
                                     Toko Online
                                 </button>
@@ -239,10 +239,10 @@ onMounted(async () => {
                             </div>
                             <select v-else v-model="selectedLocationId" class="input uppercase font-black">
                                 <template v-if="selectedType === 'branch'">
-                                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                    <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white dark:bg-zinc-950">{{ b.name }}</option>
                                 </template>
                                 <template v-else>
-                                    <option v-for="os in onlineShops" :key="os.id" :value="os.id">{{ os.name }} ({{ os.platform }})</option>
+                                    <option v-for="os in onlineShops" :key="os.id" :value="os.id" class="bg-white dark:bg-zinc-950">{{ os.name }} ({{ os.platform }})</option>
                                 </template>
                             </select>
                         </div>
@@ -254,27 +254,27 @@ onMounted(async () => {
                             <ShieldCheck :size="16" />
                             <span class="text-[10px] font-black uppercase tracking-widest">Terkunci ke Akun Anda</span>
                         </div>
-                        <p class="text-xs text-zinc-800 dark:text-white font-black uppercase">{{ currentUserLocationName }}</p>
+                        <p class="text-xs text-zinc-900 dark:text-white font-black uppercase leading-tight">{{ currentUserLocationName }}</p>
                     </div>
                 </div>
 
                 <!-- Help Tips Card -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-4">
-                    <div class="flex items-center gap-2 text-indigo-600 pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
+                    <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
                         <Info :size="18" />
-                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Panduan Setting</h3>
+                        <h3 class="text-sm font-black text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">Panduan Setting</h3>
                     </div>
-                    <ul class="space-y-3 text-[11px] text-zinc-500 dark:text-zinc-400 font-bold leading-relaxed">
+                    <ul class="space-y-3 text-[11px] text-zinc-600 dark:text-zinc-200 font-bold leading-relaxed">
                         <li class="flex items-start gap-2">
-                            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full mt-1.5 shrink-0"></div>
+                            <div class="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full mt-1.5 shrink-0"></div>
                             <span>Jika isian dikosongkan, sistem akan otomatis menggunakan alamat dan nomor WhatsApp default bawaan database pusat.</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full mt-1.5 shrink-0"></div>
+                            <div class="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full mt-1.5 shrink-0"></div>
                             <span>Instagram & TikTok akan muncul di bagian kanan atas kertas nota di sebelah judul struk.</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <div class="w-1.5 h-1.5 bg-indigo-600 rounded-full mt-1.5 shrink-0"></div>
+                            <div class="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full mt-1.5 shrink-0"></div>
                             <span>Keterangan garansi mendukung pergantian baris (paragraf) untuk memudahkan pengelompokan pasal-pasal garansi toko.</span>
                         </li>
                     </ul>
@@ -287,26 +287,26 @@ onMounted(async () => {
                     
                     <!-- Main Form Wrapper with inner absolute loader for fetching -->
                     <div v-if="isLoading" class="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
-                        <Loader2 class="w-10 h-10 text-indigo-600 animate-spin mb-3" />
+                        <Loader2 class="w-10 h-10 text-emerald-600 dark:text-emerald-400 animate-spin mb-3" />
                         <p class="text-xs font-black text-zinc-600 dark:text-zinc-300 uppercase tracking-widest">Sedang Mengambil Setting...</p>
                     </div>
 
                     <div class="flex items-center justify-between pb-5 border-b border-zinc-100 dark:border-zinc-800/50 mb-6">
                         <div class="flex items-center gap-2.5">
-                            <FileText :size="18" class="text-indigo-600" />
-                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Rincian Informasi Nota</h3>
+                            <FileText :size="18" class="text-emerald-600 dark:text-emerald-400" />
+                            <h3 class="text-sm font-black text-zinc-900 dark:text-zinc-50 uppercase tracking-wider">Rincian Informasi Nota</h3>
                         </div>
-                        <span class="text-[9px] font-black text-indigo-600 tracking-widest uppercase">CUSTOM FIELD</span>
+                        <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-400 tracking-widest uppercase">CUSTOM FIELD</span>
                     </div>
 
                     <div class="space-y-6">
                         <!-- Store Address Override -->
                         <div class="space-y-1.5">
                             <label class="label flex items-center gap-1.5">
-                                <MapPin :size="12" class="text-indigo-600" />
+                                <MapPin :size="12" class="text-emerald-600 dark:text-emerald-400" />
                                 Alamat Toko di Nota
                             </label>
-                            <textarea v-model="form.store_address" class="input min-h-[80px] resize-none font-medium text-sm placeholder:font-semibold" 
+                            <textarea v-model="form.store_address" class="input min-h-[80px] resize-none font-bold text-sm leading-normal" 
                                 placeholder="Contoh: Jl. Alternatif Cibubur No. 99, Harjamukti, Cimanggis, Kota Depok, Jawa Barat"></textarea>
                         </div>
 
@@ -314,36 +314,36 @@ onMounted(async () => {
                             <!-- WhatsApp Number -->
                             <div class="space-y-1.5">
                                 <label class="label flex items-center gap-1.5">
-                                    <Phone :size="12" class="text-indigo-600" />
+                                    <Phone :size="12" class="text-emerald-600 dark:text-emerald-400" />
                                     Nomor WhatsApp Toko
                                 </label>
-                                <input v-model="form.whatsapp_number" type="text" class="input font-bold placeholder:font-semibold" placeholder="Contoh: 081299998888" />
+                                <input v-model="form.whatsapp_number" type="text" class="input font-black text-sm tracking-wide" placeholder="Contoh: 081299998888" />
                             </div>
                             
                             <!-- Blank to fill grid -->
-                            <div></div>
+                            <div class="hidden sm:block"></div>
 
                             <!-- Instagram Profile -->
                             <div class="space-y-1.5">
                                 <label class="label flex items-center gap-1.5">
-                                    <Instagram :size="12" class="text-indigo-600" />
+                                    <Instagram :size="12" class="text-emerald-600 dark:text-emerald-400" />
                                     Username Instagram
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-black text-xs">@</span>
-                                    <input v-model="form.instagram" type="text" class="input pl-8 font-bold placeholder:font-semibold" placeholder="pstore.official" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-200 font-black text-xs">@</span>
+                                    <input v-model="form.instagram" type="text" class="input pl-8 font-black text-sm" placeholder="pstore.official" />
                                 </div>
                             </div>
 
                             <!-- TikTok Profile -->
                             <div class="space-y-1.5">
                                 <label class="label flex items-center gap-1.5">
-                                    <Send :size="12" class="text-indigo-600" />
+                                    <Send :size="12" class="text-emerald-600 dark:text-emerald-400" />
                                     Username TikTok
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-black text-xs">@</span>
-                                    <input v-model="form.tiktok" type="text" class="input pl-8 font-bold placeholder:font-semibold" placeholder="pstoretiktok" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-200 font-black text-xs">@</span>
+                                    <input v-model="form.tiktok" type="text" class="input pl-8 font-black text-sm" placeholder="pstoretiktok" />
                                 </div>
                             </div>
                         </div>
@@ -351,16 +351,16 @@ onMounted(async () => {
                         <!-- Warranty Terms Override -->
                         <div class="space-y-1.5">
                             <label class="label flex items-center gap-1.5">
-                                <ShieldCheck :size="12" class="text-indigo-600" />
+                                <ShieldCheck :size="12" class="text-emerald-600 dark:text-emerald-400" />
                                 Keterangan Garansi (T&C)
                             </label>
-                            <textarea v-model="form.warranty_terms" class="input min-h-[160px] resize-y font-medium text-xs placeholder:font-semibold leading-relaxed" 
+                            <textarea v-model="form.warranty_terms" class="input min-h-[160px] resize-y font-bold text-xs leading-relaxed" 
                                 placeholder="Tuliskan pasal-pasal garansi yang akan tercetak di bagian bawah nota...&#10;Contoh:&#10;- Garansi mesin 1 bulan sejak tanggal pembelian&#10;- Segel toko wajib utuh & menyertakan nota ini&#10;- Tidak melayani klaim garansi akibat kelalaian pengguna (jatuh/terkena air)."></textarea>
                         </div>
 
                         <!-- Save Area -->
                         <div class="pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex items-center justify-end gap-3">
-                            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" class="btn bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 font-black rounded-xl px-6 py-2.5 tracking-widest uppercase flex items-center gap-2">
+                            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" class="btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 font-black rounded-xl px-6 py-2.5 tracking-widest uppercase flex items-center gap-2">
                                 <Loader2 v-if="isSaving" class="animate-spin" :size="14" />
                                 <Save v-else :size="14" />
                                 Simpan
@@ -378,11 +378,12 @@ onMounted(async () => {
 @reference "../../style.css";
 
 .label {
-    @apply block text-[10px] font-black text-zinc-500 dark:text-zinc-400 mb-1.5 uppercase tracking-wider;
+    @apply block text-[10px] font-black text-zinc-600 dark:text-zinc-200 mb-1.5 uppercase tracking-wider;
 }
 
 .input {
-    @apply w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-zinc-800 dark:text-text-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all placeholder:text-zinc-400 dark:placeholder:text-text-secondary;
+    /* High-contrast typography variables mapped explicitly to ensure zero visibility issues on Dark & Light themes */
+    @apply w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-xs text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-zinc-500 dark:placeholder:text-zinc-400 font-bold;
 }
 
 .page-fade-in {
