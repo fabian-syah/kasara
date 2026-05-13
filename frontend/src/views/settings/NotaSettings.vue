@@ -4,7 +4,7 @@ import { useAuthStore } from "../../store/auth";
 import axios from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { 
-    FileText, Save, Loader2, MapPin, Phone, Instagram, Send, ShieldCheck,
+    FileText, Save, Loader2, MapPin, Phone, Instagram, ShieldCheck,
     Info, Building2, ShoppingBag
 } from "lucide-vue-next";
 
@@ -190,10 +190,11 @@ onMounted(async () => {
                 </div>
             </div>
             
-            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" class="btn bg-white text-emerald-800 hover:bg-emerald-50 font-black rounded-2xl px-6 py-3 tracking-widest uppercase shadow-lg active:scale-95 flex items-center gap-2 relative z-10">
-                <Loader2 v-if="isSaving" class="animate-spin text-emerald-800" :size="16" />
-                <Save v-else class="text-emerald-800" :size="16" />
-                <span>Simpan Perubahan</span>
+            <button @click="handleSave" type="button" :disabled="isSaving || isLoading" 
+                class="bg-white text-emerald-800 hover:bg-emerald-50 font-black rounded-2xl px-6 py-3 tracking-widest uppercase shadow-lg active:scale-95 flex items-center gap-2 relative z-10 disabled:opacity-60">
+                <Loader2 v-if="isSaving" class="animate-spin !text-emerald-800" :size="16" />
+                <Save v-else class="!text-emerald-800" :size="16" />
+                <span class="!text-emerald-800 font-black">Simpan Perubahan</span>
             </button>
 
             <!-- Background Glow Accents in Teal/Emerald -->
@@ -330,20 +331,23 @@ onMounted(async () => {
                                     Username Instagram
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-200 font-black text-xs">@</span>
-                                    <input v-model="form.instagram" type="text" class="input pl-8 font-black text-sm" placeholder="pstore.official" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs">@</span>
+                                    <input v-model="form.instagram" type="text" class="input pl-10 font-black text-sm" placeholder="pstore.official" />
                                 </div>
                             </div>
 
                             <!-- TikTok Profile -->
                             <div class="space-y-1.5">
                                 <label class="label flex items-center gap-1.5">
-                                    <Send :size="12" class="text-emerald-600 dark:text-emerald-400" />
+                                    <!-- Inline TikTok Logo -->
+                                    <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 448 512">
+                                        <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
+                                    </svg>
                                     Username TikTok
                                 </label>
                                 <div class="relative">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-200 font-black text-xs">@</span>
-                                    <input v-model="form.tiktok" type="text" class="input pl-8 font-black text-sm" placeholder="pstoretiktok" />
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 dark:text-zinc-300 font-black text-xs">@</span>
+                                    <input v-model="form.tiktok" type="text" class="input pl-10 font-black text-sm" placeholder="pstoretiktok" />
                                 </div>
                             </div>
                         </div>
