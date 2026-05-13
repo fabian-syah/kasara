@@ -405,6 +405,15 @@ const routes = [
                     permissions: ['super_admin'] // Only super admin
                 }
             },
+            {
+                path: 'settings/nota',
+                name: 'NotaSettings',
+                component: () => import('../views/settings/NotaSettings.vue'),
+                meta: {
+                    title: 'Setting Nota',
+                    menu: 'settings_nota'
+                }
+            },
 
             // Master Data Routes (Super Admin)
             {

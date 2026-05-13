@@ -18,4 +18,11 @@ class OnlineShop extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    protected $with = ['receiptSetting'];
+
+    public function receiptSetting()
+    {
+        return $this->hasOne(ReceiptSetting::class);
+    }
 }

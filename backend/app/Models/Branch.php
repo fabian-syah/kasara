@@ -25,6 +25,8 @@ class Branch extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $with = ['receiptSetting'];
+
     public function scopeOnline($query)
     {
         return $query->where('type', 'online');
@@ -38,5 +40,10 @@ class Branch extends Model
     public function paymentMethods()
     {
         return $this->belongsToMany(PaymentMethod::class, 'branch_payment_method');
+    }
+
+    public function receiptSetting()
+    {
+        return $this->hasOne(ReceiptSetting::class);
     }
 }

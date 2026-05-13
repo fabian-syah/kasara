@@ -15,7 +15,8 @@ import {
     ChevronDown,
     LogOut,
     User,
-    Type
+    Type,
+    FileText
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import AnimatedThemeToggle from "../common/AnimatedThemeToggle.vue";
@@ -139,6 +140,11 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                                 class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                 <Settings :size="16" />
                                 <span>Pengaturan Profil</span>
+                            </router-link>
+                            <router-link to="/settings/nota" @click="isUserMenuOpen = false"
+                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                <FileText :size="16" />
+                                <span>Setting Nota</span>
                             </router-link>
                             <button @click="themeStore.toggleDarkMode"
                                 class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">

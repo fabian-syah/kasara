@@ -49,16 +49,23 @@
                                             authStore.userBranch?.name || '') }}
                                 </h1>
                                 <p class="text-[8px] font-bold leading-tight text-black mt-1">
-                                    {{ transaction.branch?.address || authStore.userBranch?.address
-                                        || 'Pusat Perbelanjaan Online' }}
+                                    {{ displayAddress }}
                                 </p>
                                 <p class="text-[8px] font-bold text-black">
                                     {{ displayPhone }}
                                 </p>
                             </div>
 
-                            <!-- Social Placeholder -->
-                            <div class="flex flex-col justify-center items-end opacity-0">
+                            <!-- Social Links -->
+                            <div class="flex flex-col justify-center items-end text-[7px] font-bold text-black pr-1">
+                                <span v-if="receiptSetting?.instagram" class="flex items-center gap-0.5 leading-tight whitespace-nowrap">
+                                    <span>IG:</span>
+                                    <span class="uppercase font-black">@{{ receiptSetting.instagram.replace('@', '') }}</span>
+                                </span>
+                                <span v-if="receiptSetting?.tiktok" class="flex items-center gap-0.5 leading-tight mt-0.5 whitespace-nowrap">
+                                    <span>TT:</span>
+                                    <span class="uppercase font-black">@{{ receiptSetting.tiktok.replace('@', '') }}</span>
+                                </span>
                             </div>
                         </div>
 
@@ -241,9 +248,9 @@
                         <!-- ===== GARANSI NOTES ===== -->
                         <div
                             class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
-                            <div v-if="transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms"
+                            <div v-if="displayWarranty"
                                 class="text-[9px] text-black font-bold whitespace-pre-line leading-relaxed">
-                                {{ transaction.branch?.warranty_terms || authStore.userBranch?.warranty_terms }}
+                                {{ displayWarranty }}
                             </div>
                             <ul v-else class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
                                 <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)
@@ -422,13 +429,34 @@ const calculatedChange = computed(() => {
     return Math.max(0, calculatedTotalPaid.value - Math.abs(calculatedGrandTotal.value));
 });
 
+const receiptSetting = computed(() => {
+    return props.transaction.branch?.receipt_setting 
+        || props.transaction.online_shop?.receipt_setting
+        || authStore.userBranch?.receipt_setting;
+});
+
+const displayAddress = computed(() => {
+    return receiptSetting.value?.store_address 
+        || props.transaction.branch?.address 
+        || authStore.userBranch?.address 
+        || 'Pusat Perbelanjaan Online';
+});
+
 // WhatsApp Phone
 const displayPhone = computed(() => {
-    const phone = props.transaction.branch?.phone || authStore.userBranch?.phone;
+    const phone = receiptSetting.value?.whatsapp_number 
+        || props.transaction.branch?.phone 
+        || authStore.userBranch?.phone;
     if (phone && phone.trim() !== '') {
         return `WhatsApp: ${phone}`;
     }
     return 'HP, Laptop, Barang Elektronik Bergaransi';
+});
+
+const displayWarranty = computed(() => {
+    return receiptSetting.value?.warranty_terms
+        || props.transaction.branch?.warranty_terms
+        || authStore.userBranch?.warranty_terms;
 });
 
 // Customer Phone
