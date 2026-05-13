@@ -501,7 +501,7 @@ class AuditController extends Controller
                         ->get()->groupBy('owner_id');
 
                     // Define specific categories
-                    $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling'];
+                    $stdSalesCats = ['penjualan_store'];
                     $normalizedStdSalesCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $stdSalesCats));
                     $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
 
@@ -611,29 +611,19 @@ class AuditController extends Controller
                         $cat = $resolveActualCategory($tx->category, $tx->notes, $tx->sales_account);
                         $price = abs((float) $tx->selling_price);
 
-                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
+                        $isBaseSale = ($cat === 'penjualan_store');
                         $isTradeIn = ($cat === 'tukar_tambah');
                         $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
-
-                        if ($cat === 'tukar_unit') {
-                            $price = 0;
-                        }
 
                         if ($isBaseSale) {
                             $ownerGroups[$ownerId]['total_omset'] += $price;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
-                        } elseif ($isTradeIn) {
-                            $outPrice = floatval($tx->tt_outgoing_price ?? 0);
-                            if ($outPrice <= 0) $outPrice = $price;
-                            $ownerGroups[$ownerId]['total_omset'] += $outPrice;
-                            $ownerGroups[$ownerId]['grand_total'] += $price;
-                        } elseif ($cat === 'downgrade') {
-                            $outPrice = floatval($tx->dg_outgoing_price ?? 0);
-                            $ownerGroups[$ownerId]['total_omset'] += $outPrice;
-                            $ownerGroups[$ownerId]['grand_total'] -= $price;
+                        }
+
+                        // Activity metrics (deductions) continue to accumulate for activity rankings view
+                        if ($cat === 'downgrade') {
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
                         } elseif ($isDeduction) {
-                            $ownerGroups[$ownerId]['grand_total'] -= $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
                         }
                     }
