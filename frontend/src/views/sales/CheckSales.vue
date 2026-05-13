@@ -981,12 +981,12 @@ const summaryStats = computed(() => {
             const outVal = Math.abs(parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0));
             const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
 
-            tradeOutgoingTotal += outVal;
-
             // Segregation rules satisfying user's distinct accounting logic for TT vs DG
             if (cat === 'tukar_tambah') {
+                tradeOutgoingTotal += outVal; // Only TT Out counts towards Omset
                 tradeIncomingTotal += inVal;
             } else if (cat === 'downgrade') {
+                // Downgrade Out is excluded from Omset as requested by user
                 tradeIncomingTotal += Math.max(0, inVal - outVal);
             }
         }
@@ -1050,7 +1050,7 @@ const formatCurrency = (val) => {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0
-    }).format(val || 0);
+    }).format(Math.abs(val || 0));
 }
 
 const handlePeriodChange = () => {

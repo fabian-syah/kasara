@@ -214,9 +214,6 @@ class DashboardController extends Controller
                 if ($cat === 'downgrade') {
                     $dgRec = $dgMap->get($sale->receipt_id);
                     if ($dgRec) {
-                        $outVal = (float)$dgRec->outgoing_price;
-                        $totalRevenue += $outVal;
-                        $csPerformance[$csName]['total_sales'] += $outVal;
                         $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
                     }
                 }
@@ -454,7 +451,6 @@ class DashboardController extends Controller
                     if ($cat === 'downgrade') {
                         $dgRec = $rankDGMap->get($sale->receipt_id);
                         if ($dgRec) {
-                            $omset += (float)$dgRec->outgoing_price;
                             $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
                         }
                     }
@@ -550,7 +546,7 @@ class DashboardController extends Controller
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            THEN 0
                             ELSE 0
                         END
                     ) as total_omset"),
@@ -644,7 +640,7 @@ class DashboardController extends Controller
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            THEN 0
                             ELSE 0
                         END
                     ) as omset"),

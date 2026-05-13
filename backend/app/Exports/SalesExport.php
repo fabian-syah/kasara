@@ -196,10 +196,11 @@ class SalesExport
             } elseif ($isTradeIn && $exchangeInfo) {
                 $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
                 $inVal = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
-                $finalTotalPenjualan = $outVal;
                 if ($cat === 'tukar_tambah') {
+                    $finalTotalPenjualan = $outVal;
                     $finalTotalPengeluaran = $inVal;
                 } elseif ($cat === 'downgrade') {
+                    $finalTotalPenjualan = 0; // Downgrade outgoing is excluded from Total Omset as requested
                     $finalTotalPengeluaran = max(0, $inVal - $outVal); // Formula confirmed by calculator
                 }
             }

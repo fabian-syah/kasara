@@ -855,8 +855,6 @@ class AuditController extends Controller
                             $dailyStats[$date]['total_omset'] += $outPrice;
                             $dailyStats[$date]['omset_bersih'] += $price; // difference is exactly the net impact 
                         } elseif ($cat === 'downgrade') {
-                            $outPrice = floatval($tx->dg_outgoing_price ?? 0);
-                            $dailyStats[$date]['total_omset'] += $outPrice;
                             $dailyStats[$date]['omset_bersih'] -= $price; // Keep deduction identical for net sanity
                         } elseif ($isDeduction) {
                             $dailyStats[$date]['omset_bersih'] -= $price;
@@ -1323,8 +1321,6 @@ class AuditController extends Controller
                                 $totalTradeOutgoing += $outPrice;
                                 $tradeSelisih += $price;
                             } elseif ($cat === 'downgrade') {
-                                $outPrice = floatval($ps->dg_outgoing_price ?? 0);
-                                $totalTradeOutgoing += $outPrice;
                                 $deductions += $price;
                             } elseif ($isDeduction) {
                                 $deductions += $price;
