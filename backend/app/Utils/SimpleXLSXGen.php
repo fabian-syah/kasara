@@ -99,7 +99,19 @@ class SimpleXLSXGen {
             foreach ($sheet['rows'] as $row) {
                 foreach ($row as $cIdx => $val) {
                     if ($cIdx === '__bg_striped') continue;
-                    $len = mb_strlen((string)$val) + 4;
+                    $valStr = (string)$val;
+                    $len = mb_strlen($valStr);
+                    
+                    // Predict real formatted currency length to prevent column overflow (###)
+                    if (is_numeric($val) && strlen($valStr) < 12 && ($valStr === "0" || !str_starts_with($valStr, '0'))) {
+                        if (abs((float)$val) > 10000) {
+                            // Simulate "Rp #,##0" format to obtain exact character counts
+                            $fmt = "Rp " . number_format(abs((float)$val), 0, '.', '.');
+                            $len = max($len, mb_strlen($fmt));
+                        }
+                    }
+
+                    $len += 5; // Standard cell horizontal padding safety cushion
                     if (!isset($colWidths[$cIdx]) || $len > $colWidths[$cIdx]) {
                         $colWidths[$cIdx] = $len;
                     }

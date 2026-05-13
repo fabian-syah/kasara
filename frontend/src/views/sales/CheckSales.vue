@@ -958,13 +958,16 @@ const summaryStats = computed(() => {
         const origCat = item.category?.toLowerCase();
         const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
 
-        // EXPLICIT FIX: Sum individual visible item totals exactly to match user's required Gross Total (ignoring distributed transaction-level discounts)
+        // EXPLICIT FIX: Sum individual visible item totals exactly, and subtract manual transaction-level discounts to match net revenue requirements
         let total = 0;
+        const discount = parseFloat(item.total_discount) || 0;
         if (item.items && item.items.length > 0) {
             total = item.items.reduce((sum, detail) => sum + (parseFloat(detail.price) * parseFloat(detail.qty || 1)), 0);
         } else {
             total = Math.abs(parseFloat(item.original_price || item.total_amount || item.grand_total) || 0);
         }
+        // Subtract manual discount from absolute sum
+        total = Math.max(0, total - discount);
         if (cat === 'tukar_unit') {
             total = 0;
         }

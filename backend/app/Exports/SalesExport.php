@@ -187,17 +187,18 @@ class SalesExport
             $finalTotalPenjualan = 0;
             $finalTotalPengeluaran = 0;
             $currentSumPrice = abs($sumOutPrices);
+            $discount = (float)($so->total_discount ?? 0);
             
             $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
 
             if ($isBaseSale) {
-                $finalTotalPenjualan = $currentSumPrice;
+                $finalTotalPenjualan = max(0, $currentSumPrice - $discount);
             } elseif ($isTradeIn && $exchangeInfo) {
                 $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
                 $inVal = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
                 if ($cat === 'tukar_tambah') {
-                    $finalTotalPenjualan = $outVal;
+                    $finalTotalPenjualan = max(0, $outVal - $discount);
                     $finalTotalPengeluaran = $inVal;
                 } elseif ($cat === 'downgrade') {
                     $finalTotalPenjualan = 0; // Downgrade outgoing is excluded from Total Omset as requested
@@ -268,6 +269,7 @@ class SalesExport
                     $rowPayData[$pm->name] = $isFirstRow ? (float)($payData[$pm->name] ?? 0) : '';
                 }
                 $rowArr['payment_details'] = $rowPayData;
+                $rowArr['total_discount'] = $isFirstRow ? (float)($so->total_discount ?? 0) : '';
 
                 // Final Aggregation Values - Empty on downstream rows
                 $rowArr['total_penjualan'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : '';
@@ -313,6 +315,7 @@ class SalesExport
         }
 
         $heads = array_merge($heads, [
+            'Diskon',
             'Total Penjualan',
             'Pengeluaran Refund Angkat Barang Downgrade',
             'Status'
