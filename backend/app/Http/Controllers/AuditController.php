@@ -385,9 +385,12 @@ class AuditController extends Controller
                 function () use ($salesCategories, $startDate, $endDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
                     $baseQuery = DB::table('stock_outs')->leftJoin('users', 'stock_outs.user_id', '=', 'users.id');
 
+                    // Unified date logic with created_at fallback
+                    $startTS = $startDate . ' 05:00:00';
+                    $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
+
                     // AUTO-REPAIR: If inventory_user_id is missing or same as user_id but sales_account string exists, sync it
-                    // This fixes existing transactions that were misattributed to the main account
-                    // Optimized Auto-Repair: Use bulk fetch and batch updates instead of iterative sequential queries
+                    // Expanded: Uses early $startTS/$endTS for unified created_at fallback range to capture all recent transactions
                     $unmappedNames = DB::table('stock_outs')
                         ->select('sales_account')
                         ->where(function ($q) {
@@ -395,17 +398,30 @@ class AuditController extends Controller
                               ->orWhereRaw('inventory_user_id = user_id');
                         })
                         ->whereNotNull('sales_account')
-                        ->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
+                            $q->whereBetween('reporting_date', [$startDate, $endDate])
+                              ->orWhereBetween('created_at', [$startTS, $endTS]);
+                        })
                         ->distinct()
                         ->pluck('sales_account');
 
                     if ($unmappedNames->isNotEmpty()) {
-                        // Order by ID to guarantee stable resolution matching ->first() logic
-                        $usersMap = \App\Models\User::whereIn('name', $unmappedNames)
-                            ->orderBy('id')
-                            ->get()
-                            ->keyBy('name')
-                            ->map(fn($u) => $u->id);
+                        // Bulletproof fuzzy mapping: Fetch users and perform trim-insensitive comparisons
+                        $allUsers = \App\Models\User::orderBy('id')->get();
+                        $usersMap = [];
+                        foreach ($unmappedNames as $typedName) {
+                            $cleanTyped = strtolower(trim($typedName));
+                            if (!$cleanTyped) continue;
+
+                            $matchedUser = $allUsers->first(function ($u) use ($cleanTyped) {
+                                return strtolower(trim($u->name ?? '')) === $cleanTyped
+                                    || strtolower(trim($u->full_name ?? '')) === $cleanTyped;
+                            });
+
+                            if ($matchedUser) {
+                                $usersMap[$typedName] = $matchedUser->id;
+                            }
+                        }
                             
                         foreach ($usersMap as $name => $userId) {
                             DB::table('stock_outs')
@@ -414,7 +430,10 @@ class AuditController extends Controller
                                       ->orWhereRaw('inventory_user_id = user_id');
                                 })
                                 ->where('sales_account', $name)
-                                ->whereBetween('reporting_date', [$startDate, $endDate])
+                                ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
+                                    $q->whereBetween('reporting_date', [$startDate, $endDate])
+                                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                })
                                 ->where(function ($q) use ($userId) {
                                      $q->whereNull('inventory_user_id')->orWhere('inventory_user_id', '!=', $userId);
                                 })
@@ -422,9 +441,6 @@ class AuditController extends Controller
                         }
                     }
 
-                    // Unified date logic with created_at fallback
-                    $startTS = $startDate . ' 05:00:00';
-                    $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                     $baseQuery->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                         $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
