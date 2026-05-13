@@ -2163,6 +2163,8 @@ class AuditController extends Controller
                     'order_no' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                     'customer_phone' => $trx->customer_wa ?? '-',
+                    'branch' => $trx->branch ?? $trx->inventoryUser?->branch ?? $trx->user?->branch,
+                    'online_shop' => $trx->onlineShop ?? $trx->inventoryUser?->onlineShop ?? $trx->user?->onlineShop,
                     'outlet_name' => $outletName,
                     'cash' => $cash,
                     'transfer' => $transfer,

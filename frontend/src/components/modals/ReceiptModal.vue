@@ -433,8 +433,11 @@ const receiptSetting = computed(() => {
     const b = props.transaction.branch || authStore.userBranch;
     const os = props.transaction.online_shop || authStore.user?.online_shop;
     const target = b || os;
+    console.log("DEBUG RECEIPT - Target Location:", target);
     if (!target) return null;
-    return target.receipt_setting || target.receiptSetting;
+    const setting = target.receipt_setting || target.receiptSetting;
+    console.log("DEBUG RECEIPT - Resolved Setting:", setting);
+    return setting;
 });
 
 const displayAddress = computed(() => {
