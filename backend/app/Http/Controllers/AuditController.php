@@ -627,7 +627,8 @@ class AuditController extends Controller
 
                         $cat = strtolower($resolveActualCategory($tx->category, $tx->notes, $tx->sales_account));
                         $discount = abs((float) ($tx->total_discount ?? 0));
-                        $price = max(0, abs((float) $tx->selling_price) - $discount);
+                        // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                        $price = max(0, abs((float) $tx->selling_price));
 
                         // Sales leaderboard metrics based strictly on store sales, trade-ins, and downgrades
                         $isBaseSale = ($cat === 'penjualan_store');
@@ -641,8 +642,6 @@ class AuditController extends Controller
                             $outPrice = floatval($tx->tt_outgoing_price ?? 0);
                             if ($outPrice <= 0) {
                                 $outPrice = $price;
-                            } else {
-                                $outPrice = max(0, $outPrice - $discount);
                             }
                             // Include Tukar Tambah OUT in Total Omset, and Net diff in Net Omset
                             $ownerGroups[$ownerId]['total_omset'] += $outPrice;
@@ -867,7 +866,8 @@ class AuditController extends Controller
 
                         $cat = strtolower($resolveActualCategory($tx->category, $tx->notes, $tx->sales_account));
                         $discount = abs((float) ($tx->total_discount ?? 0));
-                        $price = max(0, abs((float) $tx->selling_price) - $discount);
+                        // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                        $price = max(0, abs((float) $tx->selling_price));
 
                         $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                         $isTradeIn = ($cat === 'tukar_tambah');
@@ -880,8 +880,6 @@ class AuditController extends Controller
                             $outPrice = floatval($tx->tt_outgoing_price ?? 0);
                             if ($outPrice <= 0) {
                                 $outPrice = $price;
-                            } else {
-                                $outPrice = max(0, $outPrice - $discount);
                             }
                             
                             $dailyStats[$date]['total_omset'] += $outPrice;
@@ -1398,7 +1396,8 @@ class AuditController extends Controller
                         foreach ($rawStats as $ps) {
                             $cat = strtolower($resolveActualCategory($ps->category, $ps->notes, $ps->sales_account));
                             $discount = abs((float) ($ps->total_discount ?? 0));
-                            $price = max(0, abs((float) $ps->selling_price) - $discount);
+                            // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                            $price = max(0, abs((float) $ps->selling_price));
 
                             $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                             $isTradeIn = ($cat === 'tukar_tambah');
@@ -1438,8 +1437,6 @@ class AuditController extends Controller
                                 $outPrice = floatval($ps->tt_outgoing_price ?? 0);
                                 if ($outPrice <= 0) {
                                     $outPrice = $price;
-                                } else {
-                                    $outPrice = max(0, $outPrice - $discount);
                                 }
                                 
                                 $totalTradeOutgoing += $outPrice;
@@ -2599,7 +2596,7 @@ class AuditController extends Controller
                             }
                         });
                     }
-                })->selectRaw('SUM(selling_price - COALESCE(total_discount, 0)) as revenue, COUNT(*) as trx_count')->first(),
+                })->selectRaw('SUM(selling_price) as revenue, COUNT(*) as trx_count')->first(),
 
             // 2. Daily Trend
             fn() => StockOut::whereIn('category', $salesCategories)->whereYear('reporting_date', $year)
@@ -2636,7 +2633,7 @@ class AuditController extends Controller
                             }
                         });
                     }
-                })->groupBy('reporting_date')->select('reporting_date', DB::raw('SUM(selling_price - COALESCE(total_discount, 0)) as revenue'))->get(),
+                })->groupBy('reporting_date')->select('reporting_date', DB::raw('SUM(selling_price) as revenue'))->get(),
 
             // 3. User Breakdown
             fn() => StockOut::whereIn('category', $salesCategories)->whereYear('reporting_date', $year)
@@ -2663,7 +2660,7 @@ class AuditController extends Controller
                             $sub->orWhereIn('users.distributor_id', $distributorIds);
                     }
                 })->groupBy('users.id', 'users.name', 'users.full_name')
-                ->select('users.name', 'users.full_name as full_name', DB::raw('SUM(selling_price - COALESCE(total_discount, 0)) as revenue'), DB::raw('COUNT(*) as count'))
+                ->select('users.name', 'users.full_name as full_name', DB::raw('SUM(selling_price) as revenue'), DB::raw('COUNT(*) as count'))
                 ->get(),
         ]);
         ;
