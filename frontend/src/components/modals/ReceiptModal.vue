@@ -35,7 +35,7 @@
                         <div class="grid grid-cols-[60px_1fr_40px] sm:grid-cols-[80px_1fr_60px] gap-1 sm:gap-2 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-black">
                             <!-- Logo -->
                             <div class="w-16 h-16 bg-white overflow-hidden self-center">
-                                <img src="/images/logo-pstore.png" alt="PSTORE" class="w-full h-full object-contain" />
+                                <img src="/images/ps.png" alt="PSTORE" class="w-full h-full object-contain" />
                             </div>
 
                             <!-- Header Info (Center) -->
