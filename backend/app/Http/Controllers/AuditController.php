@@ -236,7 +236,7 @@ class AuditController extends Controller
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
                 // 1. Paginated Sales Query
                 function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
-                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'inventoryUser.branch', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
+                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
                         ->whereIn('category', $salesCategories)
                         ->where(function ($q) use ($startDate, $endDate) {
                             $startTS = $startDate . ' 05:00:00';

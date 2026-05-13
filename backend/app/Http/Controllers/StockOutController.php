@@ -126,7 +126,7 @@ class StockOutController extends Controller
             });
         }
 
-        $results = $query->with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user', 'inventoryUser', 'destination', 'destinationBranch'])
+        $results = $query->with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'destination', 'destinationBranch'])
             ->latest()
             ->paginate($request->per_page ?? 20);
 
@@ -870,10 +870,9 @@ class StockOutController extends Controller
         }
     }
 
-    // Get single stock out
     public function show($id)
     {
-        $stockOut = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'paymentMethod'])
+        $stockOut = StockOut::with(['items.product', 'nonHpDetails.product', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'destinationBranch', 'destination', 'paymentMethod'])
             ->where('id', $id)
             ->orWhere('receipt_id', $id)
             ->firstOrFail();

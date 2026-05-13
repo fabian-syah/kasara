@@ -430,10 +430,11 @@ const calculatedChange = computed(() => {
 });
 
 const receiptSetting = computed(() => {
-    return props.transaction.branch?.receipt_setting 
-        || props.transaction.online_shop?.receipt_setting
-        || authStore.userBranch?.receipt_setting
-        || authStore.user?.online_shop?.receipt_setting;
+    const b = props.transaction.branch || authStore.userBranch;
+    const os = props.transaction.online_shop || authStore.user?.online_shop;
+    const target = b || os;
+    if (!target) return null;
+    return target.receipt_setting || target.receiptSetting;
 });
 
 const displayAddress = computed(() => {
