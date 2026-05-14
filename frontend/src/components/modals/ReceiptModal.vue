@@ -735,9 +735,9 @@ const allReceiptItems = computed(() => {
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        transform: scale(0.88) !important;
+        transform: scale(0.76) !important;
         transform-origin: top left !important;
-        width: 113.6% !important;
+        width: 131.6% !important;
     }
 
     .nota-paper .mb-6 {
