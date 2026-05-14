@@ -902,9 +902,33 @@ class InventoryController extends Controller
                         ->orWhereRaw('LOWER(description) LIKE ?', ["%{$lowKeyword}%"]);
 
                         if ($type === 'hp') {
-                            $sub->orWhereHas('productDetail', function ($sq) use ($lowKeyword) {
-                                $sq->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"]);
-                            });
+                            // Pre-resolve ProductDetail IDs matching IMEI to avoid PostgreSQL type casting exceptions on reference_id
+                            $matchingDetails = \App\Models\ProductDetail::with(['downgrade', 'tukarTambah', 'refund', 'unitExchange'])
+                                ->whereRaw('LOWER(imei) LIKE ?', ["%{$lowKeyword}%"])
+                                ->get();
+
+                            if ($matchingDetails->isNotEmpty()) {
+                                $possibleRefIds = [];
+                                foreach ($matchingDetails as $det) {
+                                    // 1. Standard numeric match
+                                    $possibleRefIds[] = (string)$det->id;
+
+                                    // 2. Legacy text receipt matches
+                                    if ($det->downgrade_id && $det->downgrade) {
+                                        $possibleRefIds[] = 'DG IN: ' . $det->downgrade->receipt_id;
+                                    }
+                                    if ($det->tukar_tambah_id && $det->tukarTambah) {
+                                        $possibleRefIds[] = 'TT IN: ' . $det->tukarTambah->receipt_id;
+                                    }
+                                    if ($det->refund_id && $det->refund) {
+                                        $possibleRefIds[] = 'Refund: ' . $det->refund->receipt_id;
+                                    }
+                                    if ($det->unit_exchange_id && $det->unitExchange) {
+                                        $possibleRefIds[] = 'Exchange IN: ' . $det->unitExchange->receipt_id;
+                                    }
+                                }
+                                $sub->orWhereIn('reference_id', array_unique($possibleRefIds));
+                            }
                         }
                     });
                 }
