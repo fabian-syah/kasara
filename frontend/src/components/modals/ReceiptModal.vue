@@ -712,7 +712,6 @@ const allReceiptItems = computed(() => {
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        height: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
         padding: 0 !important;
@@ -720,11 +719,9 @@ const allReceiptItems = computed(() => {
 
     #receipt-modal-print-wrapper>div {
         display: block !important;
-        height: 100% !important;
     }
 
     #receipt-content {
-        height: 100% !important;
         padding: 0 !important;
     }
 
@@ -733,45 +730,56 @@ const allReceiptItems = computed(() => {
         box-shadow: none !important;
         width: 100% !important;
         max-width: none !important;
-        min-height: 100vh !important;
-        padding: 8mm 10mm !important;
+        padding: 6mm 8mm !important;
         margin: 0 !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-
-    .nota-paper > .relative.z-10 {
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
+        transform: scale(0.88) !important;
+        transform-origin: top left !important;
+        width: 113.6% !important;
     }
 
     .nota-paper .mb-6 {
-        margin-bottom: 0.75rem !important;
+        margin-bottom: 0.4rem !important;
     }
 
     .nota-paper .mb-5 {
-        margin-bottom: 0.5rem !important;
+        margin-bottom: 0.35rem !important;
     }
 
     .nota-paper .mb-4 {
-        margin-bottom: 0.5rem !important;
+        margin-bottom: 0.3rem !important;
+    }
+
+    .nota-paper .mt-6 {
+        margin-top: 0.5rem !important;
     }
 
     .nota-paper .mt-8 {
-        margin-top: auto !important;
+        margin-top: 0.5rem !important;
     }
 
     .nota-paper .gap-6 {
-        gap: 0.5rem !important;
+        gap: 0.35rem !important;
+    }
+
+    .nota-paper .gap-4 {
+        gap: 0.25rem !important;
     }
 
     .nota-paper .py-4 {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+
+    .nota-paper .py-3 {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+    }
+
+    .nota-paper .p-4 {
+        padding: 0.35rem !important;
     }
 
     .nota-paper img {
