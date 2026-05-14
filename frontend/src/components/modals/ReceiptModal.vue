@@ -701,19 +701,19 @@ const allReceiptItems = computed(() => {
 
     html,
     body {
-        height: 100vh !important;
-        width: 100vw !important;
+        height: 100% !important;
+        width: 100% !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
     }
 
     #receipt-modal-print-wrapper {
         display: block !important;
-        position: fixed !important;
+        position: absolute !important;
         left: 0 !important;
         top: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
         padding: 0 !important;
