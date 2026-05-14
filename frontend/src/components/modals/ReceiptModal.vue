@@ -738,6 +738,15 @@ const allReceiptItems = computed(() => {
         transform: scale(0.88) !important;
         transform-origin: top left !important;
         width: 113.6% !important;
+        min-height: 113.6vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .nota-paper > .relative.z-10 {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     .nota-paper .mb-6 {
@@ -757,7 +766,7 @@ const allReceiptItems = computed(() => {
     }
 
     .nota-paper .mt-8 {
-        margin-top: 0.5rem !important;
+        margin-top: auto !important;
     }
 
     .nota-paper .gap-6 {
