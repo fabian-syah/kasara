@@ -29,149 +29,172 @@
                 <div id="receipt-content"
                     class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                     <div v-if="transaction"
-                        class="nota-paper w-full sm:max-w-[480px] mx-auto bg-white p-3 sm:p-6 text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border border-gray-200 print:border-none">
+                        class="nota-paper w-full sm:max-w-[480px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-slate-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-4 border-t-8 border-indigo-950 relative overflow-hidden print:border-t-0">
 
                         <!-- ===== NOTA HEADER ===== -->
-                        <div class="grid grid-cols-[60px_1fr_40px] sm:grid-cols-[80px_1fr_60px] gap-1 sm:gap-2 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-black">
-                            <!-- Logo -->
-                            <div class="w-16 h-16 bg-white overflow-hidden self-center">
-                                <img src="/images/ps.png" alt="PSTORE" class="w-full h-full object-contain" />
+                        <div class="flex flex-col items-center text-center mb-5 pb-5 border-b border-slate-100">
+                            <!-- Logo and Branch Stack -->
+                            <div class="flex items-center justify-center gap-3 mb-3">
+                                <div class="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center shrink-0 border border-slate-100/50">
+                                    <img src="/images/ps.png" alt="PSTORE" class="w-9 h-9 object-contain" />
+                                </div>
+                                <div class="text-left">
+                                    <h1 class="text-base sm:text-lg font-black text-indigo-950 uppercase leading-none tracking-tight">
+                                        {{ (transaction.branch_name || transaction.branch?.name ||
+                                            authStore.userBranch?.name || '').toUpperCase().includes('PSTORE')
+                                            ? (transaction.branch_name || transaction.branch?.name ||
+                                                authStore.userBranch?.name)
+                                            : 'PSTORE ' + (transaction.branch_name || transaction.branch?.name ||
+                                                authStore.userBranch?.name || '') }}
+                                    </h1>
+                                    <p class="text-[8px] sm:text-[9px] font-bold text-slate-600 mt-1 leading-tight max-w-[220px] sm:max-w-xs">
+                                        {{ displayAddress }}
+                                    </p>
+                                </div>
                             </div>
 
-                            <!-- Header Info (Center) -->
-                            <div class="text-center self-center px-1">
-                                <h1 class="text-sm sm:text-lg font-black text-black uppercase leading-tight">
-                                    {{ (transaction.branch_name || transaction.branch?.name ||
-                                        authStore.userBranch?.name || '').toUpperCase().includes('PSTORE')
-                                        ? (transaction.branch_name || transaction.branch?.name ||
-                                            authStore.userBranch?.name)
-                                        : 'PSTORE ' + (transaction.branch_name || transaction.branch?.name ||
-                                            authStore.userBranch?.name || '') }}
-                                </h1>
-                                <p class="text-[8px] font-bold leading-tight text-black mt-1">
-                                    {{ displayAddress }}
-                                </p>
-                                <p class="text-[8px] font-bold text-black">
-                                    {{ displayPhone }}
-                                </p>
-                            </div>
-
-                            <!-- Social Links -->
-                            <div class="flex flex-col justify-center items-end text-[7px] font-bold text-black pr-1">
-                                <span v-if="receiptSetting?.instagram" class="flex items-center gap-0.5 leading-tight whitespace-nowrap">
-                                    <span>IG:</span>
-                                    <span class="uppercase font-black">@{{ receiptSetting.instagram.replace('@', '') }}</span>
+                            <!-- Unified Social Bar -->
+                            <div class="flex flex-wrap justify-center items-center gap-x-3 gap-y-1 px-3 py-1 bg-slate-50 rounded-full border border-slate-100/80 w-fit">
+                                <!-- WhatsApp -->
+                                <span class="flex items-center gap-1 text-[8px] sm:text-[9px] font-extrabold text-slate-800 whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-emerald-500 fill-current" viewBox="0 0 24 24">
+                                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.443-4.421-9.868-9.889-9.868-5.462 0-9.901 4.44-9.904 9.888-.001 2.15.619 4.193 1.694 5.829l-1.002 3.665 3.82-1.021z"/>
+                                    </svg>
+                                    <span>{{ displayPhoneClean }}</span>
                                 </span>
-                                <span v-if="receiptSetting?.tiktok" class="flex items-center gap-0.5 leading-tight mt-0.5 whitespace-nowrap">
-                                    <span>TT:</span>
-                                    <span class="uppercase font-black">@{{ receiptSetting.tiktok.replace('@', '') }}</span>
+                                
+                                <!-- Divider -->
+                                <span v-if="receiptSetting?.instagram || receiptSetting?.tiktok" class="text-slate-300 text-[8px] font-normal">|</span>
+                                
+                                <!-- Instagram -->
+                                <span v-if="receiptSetting?.instagram" class="flex items-center gap-1 text-[8px] sm:text-[9px] font-extrabold text-slate-800 whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-pink-600 fill-current" viewBox="0 0 24 24">
+                                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                    </svg>
+                                    <span>@{{ receiptSetting.instagram.replace('@', '').toUpperCase() }}</span>
+                                </span>
+
+                                <!-- Divider -->
+                                <span v-if="receiptSetting?.instagram && receiptSetting?.tiktok" class="text-slate-300 text-[8px] font-normal">|</span>
+
+                                <!-- TikTok -->
+                                <span v-if="receiptSetting?.tiktok" class="flex items-center gap-1 text-[8px] sm:text-[9px] font-extrabold text-slate-800 whitespace-nowrap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 text-slate-900 fill-current" viewBox="0 0 24 24">
+                                        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z"/>
+                                    </svg>
+                                    <span>@{{ receiptSetting.tiktok.replace('@', '').toUpperCase() }}</span>
                                 </span>
                             </div>
                         </div>
 
                         <!-- ===== NOTA TYPE TITLE ===== -->
                         <div class="text-center mb-4">
-                            <h2 class="text-base font-black text-black uppercase border-b-2 border-black inline-block px-6 pb-0.5 tracking-widest">
+                            <h2 class="text-xs sm:text-sm font-black text-indigo-950 uppercase bg-slate-50 border border-slate-100 rounded-lg inline-block px-5 py-1 tracking-[0.2em]">
                                 {{ receiptTitle }}
                             </h2>
                         </div>
 
                         <!-- ===== INFO NOTA ===== -->
-                        <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs mb-4">
-                            <span class="font-semibold text-black">No. Nota</span>
-                            <span class="text-black">: {{ transaction.order_no || '-' }}</span>
-                            <span class="font-semibold text-black">Atas Nama</span>
-                            <span class="text-black font-bold">: {{ transaction.customer_name || 'Umum' }}</span>
-                            <span class="font-semibold text-black">Sales</span>
-                            <span class="text-black">: {{ transaction.inventory_user_name ||
-                                transaction.inventory_account_name ||
-                                transaction.sales_account || transaction.sales_name || '-' }}</span>
-                            <span class="font-semibold text-black">Tanggal</span>
-                            <span class="text-black">: {{ displayDate }}</span>
-                            <span class="font-semibold text-black">No. HP</span>
-                            <span class="text-black">: {{ displayCustomerPhone }}</span>
+                        <div class="grid grid-cols-2 gap-3 mb-4 text-xs">
+                            <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100">
+                                <div class="text-[8px] font-black tracking-wider uppercase text-slate-400">Pelanggan</div>
+                                <div class="font-extrabold text-indigo-950 text-sm mt-0.5">{{ transaction.customer_name || 'Umum' }}</div>
+                                <div class="text-[9px] text-slate-500 mt-1 font-bold">{{ displayCustomerPhone }}</div>
+                            </div>
+                            <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-100 text-right">
+                                <div class="text-[8px] font-black tracking-wider uppercase text-slate-400">No. Nota</div>
+                                <div class="font-extrabold text-indigo-950 text-xs mt-0.5">#{{ transaction.order_no || '-' }}</div>
+                                <div class="text-[9px] text-slate-500 mt-1 font-bold">{{ displayDate }}</div>
+                                <div class="text-[8px] text-slate-400 mt-1 leading-none">Sales: <span class="font-extrabold text-slate-600">{{ transaction.inventory_user_name ||
+                                    transaction.inventory_account_name ||
+                                    transaction.sales_account || transaction.sales_name || '-' }}</span></div>
+                            </div>
                         </div>
 
                         <!-- ===== TABEL ITEMS ===== -->
-                        <table class="w-full text-[10px] sm:text-xs border-collapse mb-4">
-                            <thead>
-                                <tr class="border-t-2 border-b-2 border-black bg-gray-50/50">
-                                    <th class="py-2 px-1 text-left font-bold text-black w-[40px] sm:w-[50px]">Qty</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black min-w-[70px]">IMEI</th>
-                                    <th class="py-2 px-1 text-left font-bold text-black">Ket.</th>
-                                    <th class="py-2 px-1 text-right font-bold text-black w-[80px] sm:w-[100px]">{{ columnLabelJumlah }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template v-if="allReceiptItems.length > 0">
-                                    <tr v-for="(item, index) in allReceiptItems" :key="index"
-                                        class="border-b border-gray-300">
-                                        <td class="py-2 px-1 text-black align-top text-center font-bold">{{ item.qty }}
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top font-mono text-[9px] break-all">
-                                            {{ item.imei && item.imei !== '-' ? item.imei : (item.is_hp ? '-' : 'ACCESSORY') }}
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top">
-                                            <!-- Badge for In/Out if applicable -->
-                                            <span v-if="item.name.includes('OUT:')" class="inline-block px-1.5 py-0.5 bg-red-100 text-red-700 text-[8px] font-black rounded mb-1">UNIT KELUAR</span>
-                                            <span v-else-if="item.name.includes('IN:')" class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black rounded mb-1">UNIT MASUK</span>
-                                            
-                                            <div class="font-black uppercase text-black">{{ item.name.replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '') }}</div>
-                                            <div v-if="item.ram || item.storage"
-                                                class="text-[10px] text-black font-medium">
-                                                {{ [...new Set([item.ram, item.storage].filter(Boolean))].join('/') }}
-                                            </div>
-                                            <div v-if="item.condition" class="text-[9px] text-black font-bold italic">
-                                                Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition ===
-                                                    'ex_ibox' ? 'Ex iBox' : 'Second') }}
-                                            </div>
-                                        </td>
-                                        <td class="py-2 px-1 text-black align-top text-right font-bold w-[80px] sm:w-[120px]">
-                                            <div v-if="(item.discount || item.item_discount) > 0"
-                                                class="text-[7px] sm:text-[8px] text-gray-500 line-through opacity-70">
-                                                {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
-                                            </div>
-                                            <div class="flex flex-col">
-                                                <span :class="item.price < 0 ? 'text-emerald-700' : ''" class="text-[9px] sm:text-xs">{{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
-                                                    (item.discount || item.item_discount || 0))) }}</span>
-                                                <span v-if="(item.discount || item.item_discount) > 0"
-                                                    class="text-[6px] sm:text-[7px] text-primary-600 bg-primary-50 px-0.5 rounded inline-block self-end mt-0.5">
-                                                    -{{ formatNumber(item.qty * (item.discount ||
-                                                        item.item_discount)) }}
-                                                </span>
-                                            </div>
-                                        </td>
+                        <div class="rounded-xl overflow-hidden border border-slate-100 mb-4">
+                            <table class="w-full text-[10px] sm:text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-indigo-950 text-white">
+                                        <th class="py-2 px-3 text-left font-bold text-white w-[40px]">Qty</th>
+                                        <th class="py-2 px-2 text-left font-bold text-white">Item Detail</th>
+                                        <th class="py-2 px-3 text-right font-bold text-white w-[90px] sm:w-[110px]">{{ columnLabelJumlah }}</th>
                                     </tr>
-                                </template>
-                                <!-- Empty rows for physical nota feel -->
-                                <tr v-for="n in Math.max(0, 3 - (allReceiptItems.length || 0))" :key="'empty-' + n"
-                                    class="border-b border-gray-300">
-                                    <td class="py-3 px-1">&nbsp;</td>
-                                    <td class="py-3 px-1"></td>
-                                    <td class="py-3 px-1"></td>
-                                    <td class="py-3 px-1"></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="bg-white">
+                                    <template v-if="allReceiptItems.length > 0">
+                                        <tr v-for="(item, index) in allReceiptItems" :key="index" class="border-b border-slate-100">
+                                            <td class="py-3 px-3 text-indigo-950 text-center font-black align-top">{{ item.qty }}</td>
+                                            <td class="py-3 px-2 align-top">
+                                                <!-- Badges -->
+                                                <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                                    <span v-if="item.name.includes('OUT:')" class="px-1.5 py-0.5 bg-red-50 text-red-700 text-[7px] sm:text-[8px] font-black rounded tracking-wider uppercase">KELUAR</span>
+                                                    <span v-else-if="item.name.includes('IN:')" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[7px] sm:text-[8px] font-black rounded tracking-wider uppercase">MASUK</span>
+                                                    
+                                                    <span v-if="item.condition" class="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[7px] font-black rounded tracking-wider uppercase">
+                                                        {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="font-black uppercase text-indigo-950 text-[10px] sm:text-xs tracking-tight">
+                                                    {{ item.name.replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '') }}
+                                                </div>
+                                                
+                                                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                                                    <span v-if="item.imei && item.imei !== '-'" class="font-mono text-[9px] font-black text-blue-600 bg-blue-50 px-1 py-0.5 rounded leading-none">
+                                                        IMEI: {{ item.imei }}
+                                                    </span>
+                                                    <span v-if="item.ram || item.storage" class="text-[9px] text-slate-500 font-bold flex items-center gap-1">
+                                                        <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        {{ [...new Set([item.ram, item.storage].filter(Boolean))].join('/') }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-3 align-top text-right w-[90px] sm:w-[110px]">
+                                                <div v-if="(item.discount || item.item_discount) > 0"
+                                                    class="text-[7px] sm:text-[8px] text-slate-400 line-through opacity-70 font-bold">
+                                                    {{ formatNumber(item.qty * (item.price || item.selling_price)) }}
+                                                </div>
+                                                <div class="flex flex-col items-end">
+                                                    <span :class="item.price < 0 ? 'text-emerald-600' : 'text-slate-900'" class="text-[10px] sm:text-xs font-black">
+                                                        {{ formatNumber(item.qty * ((item.price || item.selling_price || 0) -
+                                                            (item.discount || item.item_discount || 0))) }}
+                                                    </span>
+                                                    <span v-if="(item.discount || item.item_discount) > 0"
+                                                        class="text-[6px] sm:text-[7px] text-pink-700 font-black bg-pink-50 px-1 py-0.5 rounded mt-0.5">
+                                                        -{{ formatNumber(item.qty * (item.discount || item.item_discount)) }}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                    <tr v-for="n in Math.max(0, 3 - (allReceiptItems.length || 0))" :key="'empty-' + n" class="border-b border-slate-100 opacity-20">
+                                        <td class="py-4 px-3">&nbsp;</td>
+                                        <td class="py-4 px-2"></td>
+                                        <td class="py-4 px-3"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
                         <!-- ===== PAYMENT SECTION ===== -->
                         <div class="flex justify-end mb-4 payment-section">
-                            <div class="w-full sm:w-[240px] text-xs space-y-1">
+                            <div class="w-full sm:w-[240px] text-xs space-y-1.5">
                                 <!-- Subtotal -->
-                                <div class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">SUB TOTAL :</span>
-                                    <span class="text-black">
+                                <div class="flex justify-between border-b border-slate-100 pb-1.5">
+                                    <span class="font-bold text-slate-500 text-[10px]">SUB TOTAL :</span>
+                                    <span class="text-indigo-950 font-extrabold">
                                         {{ formatCurrency(transaction.original_price ||
                                             (Number(transaction.selling_price || 0) +
                                                 Number(transaction.total_discount || 0))) }}
                                     </span>
                                 </div>
 
-                                <!-- Total Diskon if any -->
+                                <!-- Total Diskon -->
                                 <div v-if="transaction.total_discount > 0"
-                                    class="flex justify-between border-b border-gray-300 pb-1">
-                                    <span class="font-bold text-black text-[10px]">TOTAL DISKON :</span>
-                                    <span class="text-primary-700 font-bold">
+                                    class="flex justify-between border-b border-slate-100 pb-1.5">
+                                    <span class="font-bold text-slate-500 text-[10px]">TOTAL DISKON :</span>
+                                    <span class="text-emerald-600 font-extrabold">
                                         -{{ formatCurrency(transaction.total_discount) }}
                                     </span>
                                 </div>
@@ -180,99 +203,95 @@
                                 <template
                                     v-if="transaction.split_payments_data && transaction.split_payments_data.length > 0">
                                     <div v-for="(payment, idx) in transaction.split_payments_data" :key="idx"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px] uppercase">{{ payment.method_name
-                                        }} :</span>
-                                        <span class="text-black">
+                                        class="flex justify-between border-b border-slate-100 pb-1.5">
+                                        <span class="font-bold text-slate-500 text-[10px] uppercase">{{ payment.method_name }} :</span>
+                                        <span class="text-slate-700 font-extrabold">
                                             {{ formatCurrency(payment.amount) }}
                                         </span>
                                     </div>
                                 </template>
                                 <template v-else>
                                     <div v-if="transaction.cash > 0"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px]">CASH :</span>
-                                        <span class="text-black">
+                                        class="flex justify-between border-b border-slate-100 pb-1.5">
+                                        <span class="font-bold text-slate-500 text-[10px]">CASH :</span>
+                                        <span class="text-slate-700 font-extrabold">
                                             {{ formatCurrency(transaction.cash) }}
                                         </span>
                                     </div>
                                     <div v-if="transaction.transfer > 0"
-                                        class="flex justify-between border-b border-gray-300 pb-1">
-                                        <span class="font-bold text-black text-[10px]">TF :</span>
-                                        <span class="text-black">
+                                        class="flex justify-between border-b border-slate-100 pb-1.5">
+                                        <span class="font-bold text-slate-500 text-[10px]">TF :</span>
+                                        <span class="text-slate-700 font-extrabold">
                                             {{ formatCurrency(transaction.transfer) }}
                                         </span>
                                     </div>
                                 </template>
 
-                                <!-- Final Total Header -->
-                                <div
-                                    class="flex justify-between border-t-2 border-black pt-2 pb-1 relative transition-all">
-                                    <div class="absolute -top-1 left-0 right-0 h-0.5 bg-black/10 print:hidden"></div>
-                                    <span class="font-black text-black text-xs uppercase tracking-tight">{{ labelTotal }}</span>
-                                    <span class="font-black text-black text-xs">
-                                        {{ formatCurrency(calculatedGrandTotal) }}
-                                    </span>
+                                <!-- Final Total Head (Indigo Box) -->
+                                <div class="bg-indigo-950 text-white rounded-xl p-2.5 my-2 relative transition-all">
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-black text-white text-[10px] sm:text-xs uppercase tracking-wider">{{ labelTotal }}</span>
+                                        <span class="font-black text-white text-sm sm:text-base">
+                                            {{ formatCurrency(calculatedGrandTotal) }}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <!-- Total Paid / Dibayar -->
-                                <div
-                                    class="flex justify-between border-t border-gray-400/50 pt-1 text-black font-extrabold flex-row-reverse">
-                                    <span>{{ formatCurrency(calculatedTotalPaid) }}</span>
-                                    <span class="text-[10px] uppercase">{{ labelBayar }} :</span>
+                                <div class="flex justify-between pt-1 text-slate-700 font-extrabold flex-row-reverse">
+                                    <span class="text-slate-900">{{ formatCurrency(calculatedTotalPaid) }}</span>
+                                    <span class="text-[10px] uppercase text-slate-400">{{ labelBayar }} :</span>
                                 </div>
 
-                                <!-- Change / Kembalian -->
+                                <!-- Change / Kembalian (Emerald Box) -->
                                 <div v-if="calculatedChange > 0"
-                                    class="flex justify-between border-t border-gray-400 pt-1.5 mt-1 text-primary-600 font-black flex-row-reverse bg-primary-50 px-1 rounded animate-pulse-once print:bg-white print:border-black print:text-black">
-                                    <span class="text-sm">{{ formatCurrency(calculatedChange) }}</span>
-                                    <span class="text-[11px] uppercase self-center">KEMBALIAN :</span>
+                                    class="flex justify-between border border-emerald-100 pt-1.5 pb-1 px-2.5 mt-1.5 text-emerald-700 font-black flex-row-reverse bg-emerald-50/80 rounded-lg animate-pulse-once print:bg-white print:border-emerald-500">
+                                    <span class="text-base text-emerald-700 font-black">{{ formatCurrency(calculatedChange) }}</span>
+                                    <span class="text-[11px] uppercase text-emerald-700/80 self-center">KEMBALIAN :</span>
                                 </div>
 
-                                <div class="text-[9px] text-right text-gray-500 italic mt-1">
+                                <div class="text-[8px] text-right text-slate-400 italic mt-1 font-bold">
                                     Metode: {{ transaction.split_payments_data?.length > 1 ? 'SPLIT (CAMPURAN)' : (transaction.payment_method_name || transaction.payment_method || '-') }}
                                 </div>
                             </div>
                         </div>
 
                         <!-- ===== TRANSACTION NOTES ===== -->
-                        <div v-if="transaction.notes || transaction.reason" class="mb-4 text-[10px] text-black italic">
+                        <div v-if="transaction.notes || transaction.reason" class="mb-4 p-2 bg-amber-50/50 border border-amber-100 rounded-lg text-[10px] text-slate-700 font-bold">
                             <div v-if="transaction.reason">
-                                <span class="font-bold">Alasan:</span> {{ transaction.reason }}
+                                <span class="text-amber-800">Alasan:</span> {{ transaction.reason }}
                             </div>
-                            <div v-if="transaction.notes">
-                                <span class="font-bold">Catatan:</span> {{ transaction.notes }}
+                            <div v-if="transaction.notes" class="mt-0.5">
+                                <span class="text-amber-800">Catatan:</span> {{ transaction.notes }}
                             </div>
                         </div>
 
                         <!-- ===== GARANSI NOTES ===== -->
-                        <div
-                            class="bg-gray-100/80 border border-black/20 rounded p-2.5 mb-5 print:bg-white print:border-black">
-                            <div v-if="displayWarranty"
-                                class="text-[9px] text-black font-bold whitespace-pre-line leading-relaxed">
+                        <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-5">
+                            <div class="text-[8px] font-black tracking-widest text-indigo-950 uppercase mb-1.5 border-b border-slate-200/60 pb-1">Ketentuan Garansi</div>
+                            <div v-if="displayWarranty" class="text-[9px] text-slate-600 font-bold whitespace-pre-line leading-relaxed">
                                 {{ displayWarranty }}
                             </div>
-                            <ul v-else class="text-[10px] text-black font-bold space-y-0.5 list-disc pl-3">
-                                <li class="font-black underline italic">Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)
-                                </li>
-                                <li class="font-black underline italic">Barang yang Sudah Dibeli Tidak Dapat
-                                    Dikembalikan/Ditukarkan</li>
-                                <li class="font-black underline italic">Tidak ada garansi IMEI afr, jatuh, gagal upgrade
-                                    dan LCD</li>
+                            <ul v-else class="text-[9px] text-slate-600 font-bold space-y-0.5 list-disc pl-3 leading-relaxed">
+                                <li>Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)</li>
+                                <li>Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan</li>
+                                <li>Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD</li>
                             </ul>
                         </div>
 
                         <!-- ===== SIGNATURE AREA ===== -->
-                        <div class="flex justify-between text-[10px] sm:text-xs mt-6 mb-2 signature-area gap-2">
-                            <div class="flex-1 text-center min-w-0">
-                                <p class="font-semibold text-black mb-10 sm:mb-12">Pembeli,</p>
-                                <div class="border-b border-gray-400 w-full max-w-[120px] mx-auto text-center text-[8px] sm:text-[10px] font-bold truncate">
+                        <div class="flex justify-between text-[10px] mt-8 mb-2 signature-area gap-4">
+                            <div class="flex-1 text-center">
+                                <div class="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-12">Pembeli</div>
+                                <div class="border-b-2 border-dashed border-slate-200 w-full max-w-[120px] mx-auto mb-1"></div>
+                                <div class="text-[10px] font-extrabold text-slate-700 truncate uppercase">
                                     {{ transaction.customer_name || 'Umum' }}
                                 </div>
                             </div>
-                            <div class="flex-1 text-center min-w-0">
-                                <p class="font-semibold text-black mb-10 sm:mb-12">Hormat Kami,</p>
-                                <div class="border-b border-gray-400 w-full max-w-[120px] mx-auto text-center text-[8px] sm:text-[10px] font-bold truncate">
+                            <div class="flex-1 text-center">
+                                <div class="text-[8px] font-black text-slate-400 uppercase tracking-wider mb-12">Hormat Kami</div>
+                                <div class="border-b-2 border-dashed border-slate-200 w-full max-w-[120px] mx-auto mb-1"></div>
+                                <div class="text-[10px] font-extrabold text-indigo-950 truncate uppercase">
                                     {{ transaction.inventory_user_name || transaction.inventory_account_name ||
                                         transaction.sales_account || transaction.sales_name || 'PSTORE' }}
                                 </div>
@@ -454,6 +473,11 @@ const displayPhone = computed(() => {
     return 'HP, Laptop, Barang Elektronik Bergaransi';
 });
 
+const displayPhoneClean = computed(() => {
+    const phone = receiptSetting.value?.whatsapp_number;
+    return phone && phone.trim() !== '' ? phone : '0851-3300-5600';
+});
+
 const displayWarranty = computed(() => {
     return receiptSetting.value?.warranty_terms
         || `1. Garansi 1 Bulan (Nota Dan Segel Jangan Hilang)\n2. Barang yang Sudah Dibeli Tidak Dapat Dikembalikan/Ditukarkan\n3. Tidak ada garansi IMEI afr, jatuh, gagal upgrade dan LCD`;
@@ -539,44 +563,54 @@ const allReceiptItems = computed(() => {
 }
 
 /* PSTORE Receipt Paper Styles */
-.nota-paper,
-.nota-paper * {
-    color: #000000 !important;
+.nota-paper {
+    background-color: #ffffff !important;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+    color: #0f172a !important;
     font-weight: 600 !important;
-    opacity: 1 !important;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
 }
 
-.nota-paper h2 {
-    font-weight: 900 !important;
+.nota-paper h1, 
+.nota-paper h2, 
+.nota-paper h3, 
+.nota-paper th {
+    color: #1e1b4b !important;
 }
 
-.nota-paper {
-    background-color: #ffffff !important;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
+/* Keep explicit text colors override functioning */
+.nota-paper .text-white {
+    color: #ffffff !important;
 }
 
-.nota-paper .text-gray-700,
-.nota-paper .text-gray-600,
-.nota-paper .text-gray-500 {
-    color: #000000 !important;
-    opacity: 1 !important;
+.nota-paper .text-indigo-950 {
+    color: #1e1b4b !important;
 }
 
-.nota-paper .text-primary-700 {
-    color: #1d4ed8 !important;
-}
-
+.nota-paper .text-emerald-600,
 .nota-paper .text-emerald-700 {
-    color: #047857 !important;
+    color: #059669 !important;
+}
+
+.nota-paper .text-pink-600,
+.nota-paper .text-pink-700 {
+    color: #db2777 !important;
+}
+
+.nota-paper .text-slate-500 {
+    color: #64748b !important;
+}
+
+.nota-paper .text-slate-400 {
+    color: #94a3b8 !important;
 }
 
 .pdf-capture-mode,
 .pdf-capture-mode * {
     background-color: #ffffff !important;
     border-color: #e5e7eb !important;
-    color: #000000 !important;
+    color: #0f172a !important;
     box-shadow: none !important;
 }
 </style>
