@@ -335,7 +335,10 @@
                                 { key: 'jaringan', label: '4G / LTE', color: 'border border-gray-400 bg-white' },
                                 { key: 'laptop', label: 'Penjualan Laptop', color: 'border border-gray-400 bg-white' },
                                 { key: 'tv', label: 'Penjualan TV', color: 'border border-gray-400 bg-white' },
-                                { key: 'jasa', label: 'Penjualan Jasa', color: 'border border-gray-400 bg-white' }
+                                { key: 'jasa', label: 'Penjualan Jasa', color: 'border border-gray-400 bg-white' },
+                                { key: 'pspatu', label: 'Penjualan Pspatu', color: 'border border-gray-400 bg-white' },
+                                { key: 'psshion', label: 'Penjualan Psshion', color: 'border border-gray-400 bg-white' },
+                                { key: 'icloud', label: 'iCloud', color: 'border border-gray-400 bg-white' }
                             ]" :key="'report-cat-' + cat.key">
                                 <div v-if="(salesData?.report_summary?.dist_map_rp?.[cat.key] > 0) || (salesData?.report_summary?.stock_details?.[cat.key] && (Array.isArray(salesData.report_summary.stock_details[cat.key]) ? salesData.report_summary.stock_details[cat.key].length > 0 : Object.keys(salesData.report_summary.stock_details[cat.key]).length > 0))"
                                     class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
@@ -399,6 +402,24 @@
                                 <span class="capitalize">Sim Card</span>
                                 <span class="text-emerald-950 font-black">{{
                                     salesData?.report_summary?.dist_map?.sim_card || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Pspatu</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.pspatu || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Psshion</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.psshion || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">iCloud</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.dist_map?.icloud || 0 }}</span>
                             </div>
 
                             <div
@@ -533,6 +554,24 @@
                                 <span class="capitalize">Tv</span>
                                 <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv ||
                                     0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Pspatu</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.pspatu
+                                    || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Psshion</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.psshion
+                                    || 0 }}</span>
+                            </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">iCloud</span>
+                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.icloud
+                                    || 0 }}</span>
                             </div>
                         </div>
 
@@ -1639,6 +1678,24 @@ const categoryStocks = computed(() => {
             items: soldDetails.tv || {},
             remaining: stockReport.tv || 0,
             remainingItems: stockDetails.tv || {},
+        },
+        {
+            label: 'STOK PSPATU',
+            items: soldDetails.pspatu || {},
+            remaining: stockReport.pspatu || 0,
+            remainingItems: stockDetails.pspatu || {},
+        },
+        {
+            label: 'STOK PSSHION',
+            items: soldDetails.psshion || {},
+            remaining: stockReport.psshion || 0,
+            remainingItems: stockDetails.psshion || {},
+        },
+        {
+            label: 'STOK ICLOUD',
+            items: soldDetails.icloud || {},
+            remaining: stockReport.icloud || 0,
+            remainingItems: stockDetails.icloud || {},
         }
     ];
 });
@@ -1711,12 +1768,17 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'jaringan', label: '4G / LTE', emoji: '⬜️' },
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' },
-        { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' }
+        { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' },
+        { key: 'pspatu', label: 'Penjualan pspatu', emoji: '⬜️' },
+        { key: 'psshion', label: 'Penjualan psshion', emoji: '⬜️' },
+        { key: 'icloud', label: 'icloud', emoji: '⬜️' }
     ];
 
     categoryConfigs.forEach(cat => {
         const val = mapRp[cat.key] || 0;
-        if (val !== 0) {
+        const sItems = stockDetails[cat.key] || {};
+        const hasStock = Object.keys(sItems).length > 0;
+        if (val !== 0 || hasStock) {
             text += `${cat.emoji} ${cat.label} : ${formatCurrency(val)}\n`;
         }
     });
@@ -1747,6 +1809,9 @@ const getBaseReportText = (isForCopy = false) => {
     text += `Tv            : ${summary.dist_map?.tv || 0}\n`;
     text += `4G / LTE      : ${summary.dist_map?.jaringan || 0}\n`;
     text += `Sim Card      : ${summary.dist_map?.sim_card || 0}\n`;
+    text += `Pspatu        : ${summary.dist_map?.pspatu || 0}\n`;
+    text += `Psshion       : ${summary.dist_map?.psshion || 0}\n`;
+    text += `iCloud        : ${summary.dist_map?.icloud || 0}\n`;
     text += `pengunjung: .........\n`;
     text += `__________________\n__________________\n\n*Laporan keuangan*\n\n`;
     text += `🔶 total cash ready\n………………\n………………\n\n🔶 RICIAN PENGELUARAN\n………………\n………………\nTotal     :\n\n🔶 RINCIAN DEPOSIT TOKO\n………………\n………………\nTotal     :\n\nAWAL   :\nIN     :\nSISA   :\n`;
@@ -1760,7 +1825,10 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'arcis', label: 'STOK ARCIS' },
         { key: 'dokter_pstore', label: 'STOK DOKTER PSTORE' },
         { key: 'laptop', label: 'STOK LAPTOPS' },
-        { key: 'tv', label: 'STOK TVSTORE' }
+        { key: 'tv', label: 'STOK TVSTORE' },
+        { key: 'pspatu', label: 'STOK PSPATU' },
+        { key: 'psshion', label: 'STOK PSSHION' },
+        { key: 'icloud', label: 'STOK ICLOUD' }
     ];
 
     stockCats.forEach(cat => {

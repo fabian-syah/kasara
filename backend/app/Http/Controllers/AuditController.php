@@ -1451,12 +1451,12 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeSelisih;
                         $omsetBersih = $baseSalesOnly - $deductions;
 
-                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'others' => 0];
-                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'others' => 0];
+                        $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
+                        $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $productTradeSelisih = 0;
                         $soldDetails = [];
-                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'others' => 0];
-                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'inventaris_toko' => [], 'others' => []];
+                        $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
+                        $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'inventaris_toko' => [], 'pspatu' => [], 'psshion' => [], 'icloud' => [], 'others' => []];
 
                         $getCategoryByItem = function ($did, $isHp = false) {
                             $did = (int) $did;
@@ -1477,6 +1477,9 @@ class AuditController extends Controller
                                 19 => 'jaringan',        // network
                                 20 => 'jasa',            // Jasa
                                 21 => 'inventaris_toko',  // Inventaris Toko
+                                22 => 'pspatu',          // pspatu
+                                23 => 'psshion',         // psshion
+                                24 => 'icloud',          // iCloud
                             ];
 
                             if (isset($idMap[$did])) {
@@ -3954,6 +3957,9 @@ class AuditController extends Controller
             'tv' => ['label' => 'Penjualan tv', 'icon' => '⬜️'],
             'jasa' => ['label' => 'Penjualan Jasa', 'icon' => '⬜️'],
             'inventaris_toko' => ['label' => 'Inventaris Toko', 'icon' => '⬜️'],
+            'pspatu' => ['label' => 'Penjualan pspatu', 'icon' => '⬜️'],
+            'psshion' => ['label' => 'Penjualan psshion', 'icon' => '⬜️'],
+            'icloud' => ['label' => 'Penjualan iCloud', 'icon' => '⬜️'],
         ];
 
         foreach ($dispMap as $key => $conf) {
@@ -3988,7 +3994,10 @@ class AuditController extends Controller
             'tv' => 'stok tv',
             'perdana' => 'stok Sim Card',
             'jaringan' => 'stok 4G / LTE',
-            'inventaris_toko' => 'stok inventaris toko'
+            'inventaris_toko' => 'stok inventaris toko',
+            'pspatu' => 'stok pspatu',
+            'psshion' => 'stok psshion',
+            'icloud' => 'stok iCloud'
         ];
 
         foreach ($stkMap as $key => $label) {
