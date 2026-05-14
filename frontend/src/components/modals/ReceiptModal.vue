@@ -740,7 +740,7 @@ const allReceiptItems = computed(() => {
         border: none !important;
         box-shadow: none !important;
         max-width: none !important;
-        padding: 6mm 8mm !important;
+        padding: 15mm 12mm !important;
         margin: 0 !important;
         color: black !important;
         background: white !important;
@@ -763,19 +763,19 @@ const allReceiptItems = computed(() => {
     }
 
     .nota-paper .mb-6 {
-        margin-bottom: 0.4rem !important;
+        margin-bottom: 1rem !important;
     }
 
     .nota-paper .mb-5 {
-        margin-bottom: 0.35rem !important;
+        margin-bottom: 0.75rem !important;
     }
 
     .nota-paper .mb-4 {
-        margin-bottom: 0.3rem !important;
+        margin-bottom: 0.6rem !important;
     }
 
     .nota-paper .mt-6 {
-        margin-top: 0.5rem !important;
+        margin-top: 1.5rem !important;
     }
 
     .nota-paper .mt-8 {
@@ -783,25 +783,25 @@ const allReceiptItems = computed(() => {
     }
 
     .nota-paper .gap-6 {
-        gap: 0.35rem !important;
+        gap: 1rem !important;
     }
 
     .nota-paper .gap-4 {
-        gap: 0.25rem !important;
+        gap: 0.75rem !important;
     }
 
     .nota-paper .py-4 {
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.35rem !important;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
     }
 
     .nota-paper .py-3 {
-        padding-top: 0.25rem !important;
-        padding-bottom: 0.25rem !important;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
     }
 
     .nota-paper .p-4 {
-        padding: 0.35rem !important;
+        padding: 0.75rem !important;
     }
 
     .nota-paper img {
