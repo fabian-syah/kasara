@@ -883,7 +883,10 @@ class AuditController extends Controller
                             }
                             
                             $dailyStats[$date]['total_omset'] += $outPrice;
-                            $dailyStats[$date]['omset_bersih'] += $price; // difference is exactly the net impact 
+                            // CORRECT FORMULA: Omset Bersih excludes TT Out, and subtracts In TT.
+                            // In TT value = Out TT value - Selisih.
+                            $inPrice = max(0, $outPrice - $price);
+                            $dailyStats[$date]['omset_bersih'] -= $inPrice;
                         } elseif ($cat === 'downgrade') {
                             $dailyStats[$date]['omset_bersih'] -= $price; // Keep deduction identical for net sanity
                         } elseif ($isDeduction) {
@@ -1807,8 +1810,9 @@ class AuditController extends Controller
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
                         
-                        // Correct direct formula: Omset Bersih = Total Sales(Gross) - All Deductions(including InTT)
-                        $omsetBersih = $paymentTotal - $activityDeductions;
+                        // Correct direct formula: Omset Bersih = Sales(Base) - All Deductions(including InTT)
+                        // To satisfy user's requirement (Omset Bersih = Penjualan Store - In TT), we exclude TT Out from the baseline.
+                        $omsetBersih = $baseSalesOnly - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
