@@ -50,7 +50,7 @@
             left: 50%;
             transform: translate(-50%, -50%) scale(1.2);
             width: 320px;
-            opacity: 0.025;
+            opacity: 0.07;
             z-index: -1;
             pointer-events: none;
         }
@@ -710,10 +710,10 @@
                         </span>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
-                        {{ number_format(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0), 0, ',', '.') }}
+                        {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
-                        {{ number_format(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0), 0, ',', '.') }}
+                        {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
                 </tr>
             @endforeach
@@ -732,10 +732,10 @@
                         <span class="badge-status badge-keluar">UNIT KELUAR</span>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
-                        {{ number_format(($item->selling_price ?? 0) - ($item->item_discount ?? 0), 0, ',', '.') }}
+                        {{ number_format(abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
-                        {{ number_format($item->quantity * (($item->selling_price ?? 0) - ($item->item_discount ?? 0)), 0, ',', '.') }}
+                        {{ number_format(abs($item->quantity * (($item->selling_price ?? 0) - ($item->item_discount ?? 0))), 0, ',', '.') }}
                     </td>
                 </tr>
             @endforeach
@@ -799,7 +799,7 @@
 
                     <div class="summary-row-red clearfix">
                         <span class="summary-label-red">Selisih Harga</span>
-                        <span class="summary-value-red">Rp {{ number_format($transaction->selling_price, 0, ',', '.') }}</span>
+                        <span class="summary-value-red">Rp {{ number_format(abs($transaction->selling_price), 0, ',', '.') }}</span>
                     </div>
                 </div>
 
@@ -819,7 +819,7 @@
                             </svg>
                         </td>
                         <td class="gt-right">
-                            <span class="gt-value">Rp {{ number_format($transaction->selling_price, 0, ',', '.') }}</span>
+                            <span class="gt-value">Rp {{ number_format(abs($transaction->selling_price), 0, ',', '.') }}</span>
                         </td>
                     </tr>
                 </table>

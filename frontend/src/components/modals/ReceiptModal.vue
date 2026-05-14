@@ -45,8 +45,7 @@
                             </svg>
                         </div>
 
-                        <!-- ===== WATERMARK BACKGROUND (Giant faint "PS" in middle) ===== -->
-                        <div class="absolute inset-0 flex items-center justify-center opacity-[0.025] pointer-events-none z-0">
+                        <div class="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none z-0">
                             <img src="/images/ps.png" alt="" class="w-[400px] h-[400px] object-contain transform scale-125" />
                         </div>
 
@@ -165,7 +164,7 @@
                             </div>
 
                             <!-- ===== TABEL ITEMS (6 Columns) ===== -->
-                            <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white">
+                            <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                                 <table class="w-full text-[10px] sm:text-xs border-collapse">
                                     <thead>
                                         <tr class="bg-neutral-950 text-white text-[9px] sm:text-[10px] uppercase tracking-wider">
@@ -179,7 +178,7 @@
                                     </thead>
                                     <tbody>
                                         <template v-if="allReceiptItems.length > 0">
-                                            <tr v-for="(item, index) in allReceiptItems" :key="index" class="border-b border-neutral-200" :class="index % 2 === 1 ? 'bg-neutral-50/50' : 'bg-white'">
+                                            <tr v-for="(item, index) in allReceiptItems" :key="index" class="border-b border-neutral-200" :class="index % 2 === 1 ? 'bg-neutral-50/40' : 'bg-transparent'">
                                                 <td class="py-4 px-3 text-neutral-950 text-center font-black align-middle text-xs">{{ item.qty }}</td>
                                                 
                                                 <td class="py-4 px-3 align-middle">
@@ -210,11 +209,11 @@
                                                 </td>
                                                 
                                                 <td class="py-4 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
-                                                    {{ formatNumber((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0)) }}
+                                                    {{ formatNumber(Math.abs((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0))) }}
                                                 </td>
                                                 
                                                 <td class="py-4 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
-                                                    {{ formatNumber(item.qty * ((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0))) }}
+                                                    {{ formatNumber(Math.abs(item.qty * ((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0)))) }}
                                                 </td>
                                             </tr>
                                         </template>
@@ -281,7 +280,7 @@
                                         <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
                                             <span class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih Harga</span>
                                             <span class="text-red-600 font-black text-sm">
-                                                {{ formatCurrency(calculatedGrandTotal) }}
+                                                {{ formatCurrency(Math.abs(calculatedGrandTotal)) }}
                                             </span>
                                         </div>
                                     </div>
@@ -296,7 +295,7 @@
                                         </div>
                                         <!-- Red Total Part -->
                                         <div class="flex-1 flex items-center justify-end pr-4 text-white" style="z-index: 1;">
-                                            <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{ formatCurrency(calculatedGrandTotal) }}</span>
+                                            <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{ formatCurrency(Math.abs(calculatedGrandTotal)) }}</span>
                                         </div>
                                     </div>
                                     
@@ -307,7 +306,7 @@
                             </div>
 
                             <!-- ===== SIGNATURE AREA ===== -->
-                            <div class="grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white">
+                            <div class="grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                                 <div class="text-center border-r border-neutral-200">
                                     <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Customer / Pembeli</div>
                                     <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
