@@ -106,66 +106,66 @@
                             </div>
 
                             <!-- ===== METADATA INFO GRID (3 Columns, 2 Rows) ===== -->
-                            <div class="grid grid-cols-3 gap-x-0 mb-6 bg-white/60 backdrop-blur-[2px] rounded-xl p-5 border border-neutral-200">
+                            <div class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
                                 <!-- Column 1: No Nota & Tanggal -->
-                                <div class="flex flex-col gap-6 pr-5 border-r border-dashed border-neutral-300">
+                                <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                     <!-- No Nota -->
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
-                                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
                                         </div>
-                                        <div>
-                                            <div class="text-[8px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-1">No. Nota</div>
-                                            <div class="text-[11px] sm:text-xs font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.order_no || '-' }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. Nota</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.order_no || '-' }}</div>
                                         </div>
                                     </div>
                                     
                                     <!-- Tanggal & Waktu -->
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
-                                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
                                         </div>
-                                        <div>
-                                            <div class="text-[8px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-1">Tanggal & Waktu</div>
-                                            <div class="text-[11px] sm:text-xs font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayDate }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Tanggal & Waktu</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayDate }}</div>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <!-- Column 2: Atas Nama & No HP -->
-                                <div class="flex flex-col gap-6 px-5 border-r border-dashed border-neutral-300">
+                                <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
                                     <!-- Atas Nama -->
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
-                                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
                                         </div>
-                                        <div>
-                                            <div class="text-[8px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-1">Atas Nama</div>
-                                            <div class="text-[11px] sm:text-xs font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.customer_name || 'Umum' }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Atas Nama</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.customer_name || 'Umum' }}</div>
                                         </div>
                                     </div>
                                     
                                     <!-- No HP -->
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
-                                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>
                                         </div>
-                                        <div>
-                                            <div class="text-[8px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-1">No. HP</div>
-                                            <div class="text-[11px] sm:text-xs font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayCustomerPhone }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. HP</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayCustomerPhone }}</div>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <!-- Column 3: Customer Service -->
-                                <div class="flex flex-col gap-6 pl-5">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
-                                            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
+                                <div class="flex flex-col gap-4 pl-4">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z"/></svg>
                                         </div>
-                                        <div>
-                                            <div class="text-[8px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-1">Customer Service</div>
-                                            <div class="text-[11px] sm:text-xs font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.inventory_user_name || transaction.inventory_account_name || transaction.sales_account || transaction.sales_name || '-' }}</div>
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Customer Service</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.inventory_user_name || transaction.inventory_account_name || transaction.sales_account || transaction.sales_name || '-' }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -225,9 +225,9 @@
                                                 </td>
                                             </tr>
                                         </template>
-                                        <!-- Filler rows -->
-                                        <tr v-for="n in Math.max(0, 2 - (allReceiptItems.length || 0))" :key="'empty-' + n" class="border-b border-neutral-100">
-                                            <td class="py-5 px-3">&nbsp;</td>
+                                        <!-- Filler rows (hidden on print) -->
+                                        <tr v-for="n in Math.max(0, 2 - (allReceiptItems.length || 0))" :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
+                                            <td class="py-3 px-3">&nbsp;</td>
                                             <td colspan="5"></td>
                                         </tr>
                                     </tbody>
@@ -678,8 +678,8 @@ const allReceiptItems = computed(() => {
 <style>
 @media print {
     @page {
-        margin: 0;
-        size: auto;
+        margin: 5mm;
+        size: A4 portrait;
     }
 
     html,
@@ -690,6 +690,7 @@ const allReceiptItems = computed(() => {
         margin: 0 !important;
         padding: 0 !important;
         height: auto !important;
+        overflow: visible !important;
     }
 
     #receipt-modal-print-wrapper,
@@ -705,7 +706,7 @@ const allReceiptItems = computed(() => {
         width: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
-        padding: 10mm !important;
+        padding: 5mm !important;
     }
 
     #receipt-modal-print-wrapper>div {
@@ -719,9 +720,34 @@ const allReceiptItems = computed(() => {
         max-width: none !important;
         padding: 0 !important;
         margin: 0 !important;
-        zoom: 1.1;
         color: black !important;
         background: white !important;
+        font-size: 90% !important;
+    }
+
+    .nota-paper .mb-6 {
+        margin-bottom: 0.75rem !important;
+    }
+
+    .nota-paper .mb-5 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .nota-paper .mb-4 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .nota-paper .mt-8 {
+        margin-top: 1rem !important;
+    }
+
+    .nota-paper .gap-6 {
+        gap: 0.5rem !important;
+    }
+
+    .nota-paper .py-4 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
     }
 
     .nota-paper img {
