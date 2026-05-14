@@ -745,9 +745,10 @@ const allReceiptItems = computed(() => {
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        zoom: 0.9 !important;
-        width: 111.1% !important;
-        height: 111.1% !important;
+        zoom: 1 !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 100% !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
