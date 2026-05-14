@@ -687,42 +687,50 @@ const allReceiptItems = computed(() => {
 @media print {
     @page {
         margin: 0;
-        size: auto;
+        size: A4 portrait;
     }
 
     html,
-    body,
-    #app,
-    #app>* {
-        visibility: hidden !important;
+    body {
         margin: 0 !important;
         padding: 0 !important;
-        height: auto !important;
-        overflow: visible !important;
+        height: 100vh !important;
+        width: 100vw !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
     }
 
-    #receipt-modal-print-wrapper,
-    #receipt-modal-print-wrapper * {
-        visibility: visible !important;
+    #app,
+    #app>* {
+        display: none !important;
     }
 
     #receipt-modal-print-wrapper {
         display: block !important;
-        position: absolute !important;
+        position: fixed !important;
         left: 0 !important;
         top: 0 !important;
-        width: 100% !important;
+        width: 100vw !important;
+        height: 100vh !important;
         background: white !important;
         z-index: 9999999 !important;
         padding: 0 !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
     }
 
-    #receipt-modal-print-wrapper>div {
-        display: block !important;
+    #receipt-modal-print-wrapper * {
+        visibility: visible !important;
     }
 
+    #receipt-modal-print-wrapper>div,
     #receipt-content {
+        display: block !important;
+        height: 100% !important;
         padding: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
     }
 
     .nota-paper {
@@ -734,17 +742,20 @@ const allReceiptItems = computed(() => {
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        zoom: 0.76 !important;
-        width: 100% !important;
-        min-height: 100vh !important;
+        zoom: 0.9 !important;
+        width: 111.1% !important;
+        height: 111.1% !important;
+        box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
+        overflow: hidden !important;
     }
 
     .nota-paper > .relative.z-10 {
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
+        height: 100% !important;
     }
 
     .nota-paper .mb-6 {
