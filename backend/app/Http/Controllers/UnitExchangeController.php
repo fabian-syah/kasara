@@ -150,6 +150,7 @@ class UnitExchangeController extends Controller
                 $inQty = $request->incoming_quantity ?? 1;
                 $imeiExisted = false;
                 $imeiStatus = null;
+                $productDetail = null;
                 if ($isImei) {
                     $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
                     if ($existingPd) {
@@ -170,8 +171,9 @@ class UnitExchangeController extends Controller
                             'unit_exchange_id' => $exchange->id,
                             'notes' => 'Masuk dari Tukar Unit (Update): ' . $receiptId,
                         ]);
+                        $productDetail = $existingPd;
                     } else {
-                        ProductDetail::create([
+                        $productDetail = ProductDetail::create([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
                             'imei' => $request->incoming_imei,
@@ -266,10 +268,11 @@ class UnitExchangeController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => $inQty,
-                    'reference_id' => 'Exchange IN: ' . $receiptId,
+                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('Exchange IN: ' . $receiptId),
                     'description' => 'Tukar Unit (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
                     'supplier_name' => 'Exchange Customer',
                     'distributor_id' => $request->distributor_id,
+                    'notes' => 'Exchange IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
                 ]);
 
                 // Out Log
@@ -280,8 +283,9 @@ class UnitExchangeController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => $outQty,
-                    'reference_id' => 'Exchange OUT: ' . $receiptId,
+                    'reference_id' => $receiptId,
                     'description' => 'Tukar Unit (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                    'distributor_id' => $outgoingUnit->distributor_id,
                 ]);
 
                 $msg = 'Tukar unit berhasil diproses.';

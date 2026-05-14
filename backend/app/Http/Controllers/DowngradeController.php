@@ -158,6 +158,7 @@ class DowngradeController extends Controller
 
                 $imeiExisted = false;
                 $imeiStatus = null;
+                $productDetail = null;
                 if ($isImei) {
                     $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
                     if ($existingPd) {
@@ -178,8 +179,9 @@ class DowngradeController extends Controller
                             'downgrade_id' => $downgrade->id,
                             'notes' => 'Masuk dari Downgrade (Update): ' . $receiptId,
                         ]);
+                        $productDetail = $existingPd;
                     } else {
-                        ProductDetail::create([
+                        $productDetail = ProductDetail::create([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
                             'imei' => $request->incoming_imei,
@@ -272,10 +274,11 @@ class DowngradeController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => $inQty,
-                    'reference_id' => 'DG IN: ' . $receiptId,
-                    'description' => 'Downgrade (Masuk): ' . $incomingProductType->name,
+                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('DG IN: ' . $receiptId),
+                    'description' => 'Downgrade (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
                     'supplier_name' => 'Customer: ' . $request->customer_name,
                     'distributor_id' => $request->distributor_id,
+                    'notes' => 'Downgrade IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
                 ]);
 
                 InventoryLog::create([
@@ -284,8 +287,9 @@ class DowngradeController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => $outQty,
-                    'reference_id' => 'DG OUT: ' . $receiptId,
-                    'description' => 'Downgrade (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown'),
+                    'reference_id' => $receiptId,
+                    'description' => 'Downgrade (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                    'distributor_id' => $outgoingUnit->distributor_id,
                 ]);
 
                 $msg = 'Downgrade berhasil diproses.';

@@ -202,11 +202,11 @@ class RefundController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => $qty,
-                    'reference_id' => 'Refund: ' . $receiptId,
+                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('Refund: ' . $receiptId),
                     'description' => 'Refund Barang: ' . $productType->name . ($request->imei ? ' (' . $request->imei . ')' : ''),
                     'supplier_name' => 'Refund Customer',
                     'distributor_id' => $request->distributor_id,
-                    'notes' => $request->notes,
+                    'notes' => 'Refund IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
                 ]);
 
                 // 5. Create StockOut record to ensure visibility in Cek Penjualan

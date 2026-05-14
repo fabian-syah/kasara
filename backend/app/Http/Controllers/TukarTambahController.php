@@ -157,6 +157,7 @@ class TukarTambahController extends Controller
 
                 $imeiExisted = false;
                 $imeiStatus = null;
+                $productDetail = null;
                 if ($isImei) {
                     $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
                     if ($existingPd) {
@@ -177,8 +178,9 @@ class TukarTambahController extends Controller
                             'tukar_tambah_id' => $tukarTambah->id,
                             'notes' => 'Masuk dari Tukar Tambah (Update): ' . $receiptId,
                         ]);
+                        $productDetail = $existingPd;
                     } else {
-                        ProductDetail::create([
+                        $productDetail = ProductDetail::create([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
                             'imei' => $request->incoming_imei,
@@ -272,10 +274,11 @@ class TukarTambahController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'in',
                     'quantity' => $inQty,
-                    'reference_id' => 'TT IN: ' . $receiptId,
-                    'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name,
+                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('TT IN: ' . $receiptId),
+                    'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
                     'supplier_name' => 'Customer: ' . $request->customer_name,
                     'distributor_id' => $request->distributor_id,
+                    'notes' => 'Tukar Tambah IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
                 ]);
 
                 InventoryLog::create([
@@ -285,8 +288,9 @@ class TukarTambahController extends Controller
                     'user_id' => $inventoryUserId,
                     'type' => 'out',
                     'quantity' => $outQty,
-                    'reference_id' => 'TT OUT: ' . $receiptId,
-                    'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown'),
+                    'reference_id' => $receiptId,
+                    'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                    'distributor_id' => $outgoingUnit->distributor_id,
                 ]);
 
                 $msg = 'Tukar tambah berhasil diproses.';

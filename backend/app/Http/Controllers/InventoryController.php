@@ -1029,6 +1029,29 @@ class InventoryController extends Controller
         if ($type === 'hp') {
             $paginated->getCollection()->transform(function ($log) {
                 $detail = $log->productDetail;
+
+                // Robust fallback for historical string reference_ids from specific transactions
+                if (!$detail && is_string($log->reference_id) && !is_numeric($log->reference_id)) {
+                    $ref = $log->reference_id;
+                    if (str_starts_with($ref, 'DG IN: ')) {
+                        $rcpt = str_replace('DG IN: ', '', $ref);
+                        $txn = \App\Models\Downgrade::where('receipt_id', $rcpt)->first();
+                        if ($txn) $detail = \App\Models\ProductDetail::where('downgrade_id', $txn->id)->first();
+                    } elseif (str_starts_with($ref, 'TT IN: ')) {
+                        $rcpt = str_replace('TT IN: ', '', $ref);
+                        $txn = \App\Models\TukarTambah::where('receipt_id', $rcpt)->first();
+                        if ($txn) $detail = \App\Models\ProductDetail::where('tukar_tambah_id', $txn->id)->first();
+                    } elseif (str_starts_with($ref, 'Refund: ')) {
+                        $rcpt = str_replace('Refund: ', '', $ref);
+                        $txn = \App\Models\Refund::where('receipt_id', $rcpt)->first();
+                        if ($txn) $detail = \App\Models\ProductDetail::where('refund_id', $txn->id)->first();
+                    } elseif (str_starts_with($ref, 'Exchange IN: ')) {
+                        $rcpt = str_replace('Exchange IN: ', '', $ref);
+                        $txn = \App\Models\UnitExchange::where('receipt_id', $rcpt)->first();
+                        if ($txn) $detail = \App\Models\ProductDetail::where('unit_exchange_id', $txn->id)->first();
+                    }
+                }
+
                 return [
                     'id' => $log->id,
                     'created_at' => $log->created_at->toDateTimeString(),
