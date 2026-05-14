@@ -1043,8 +1043,8 @@ const summaryStats = computed(() => {
     return {
         totalOmset: finalOmset,
         // FINAL ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER CALCULATOR
-        // Excludes tradeOutgoingTotal (TT Out) from Omset Bersih base as explicitly requested by user formula: baseSales - (Deductions + In TT)
-        omsetBersih: baseSales - (outlay + tradeIncomingTotal),
+        // Re-integrates finalOmset (Total Omset) as the baseline: Omset Bersih = Total Omset - (Deductions + In TT)
+        omsetBersih: finalOmset - (outlay + tradeIncomingTotal),
         hpUnitsOut,
         hpUnitsIn,
         nonHpUnits

@@ -883,10 +883,9 @@ class AuditController extends Controller
                             }
                             
                             $dailyStats[$date]['total_omset'] += $outPrice;
-                            // CORRECT FORMULA: Omset Bersih excludes TT Out, and subtracts In TT.
-                            // In TT value = Out TT value - Selisih.
-                            $inPrice = max(0, $outPrice - $price);
-                            $dailyStats[$date]['omset_bersih'] -= $inPrice;
+                            // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
+                            // This mathematically simplifies to: Omset Bersih += Price Difference (cash received).
+                            $dailyStats[$date]['omset_bersih'] += $price;
                         } elseif ($cat === 'downgrade') {
                             $dailyStats[$date]['omset_bersih'] -= $price; // Keep deduction identical for net sanity
                         } elseif ($isDeduction) {
@@ -1452,7 +1451,9 @@ class AuditController extends Controller
                         }
 
                         $paymentTotal = $baseSalesOnly + $tradeSelisih;
-                        $omsetBersih = $baseSalesOnly - $deductions;
+                        // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
+                        // This is equivalent to: Base Sales + TT Difference - Deductions.
+                        $omsetBersih = $paymentTotal - $deductions;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];

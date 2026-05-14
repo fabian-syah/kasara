@@ -202,13 +202,15 @@ class DashboardController extends Controller
             } elseif ($isTradeIn) {
                 $ttRec = $ttMap->get($sale->receipt_id);
                 $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
-                $netVal = $ttRec ? (float)($ttRec->outgoing_price - $ttRec->incoming_cost_price) : $price;
+                $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : max(0, $outVal - $price);
                 
                 $totalRevenue += $outVal;
                 $csPerformance[$csName]['total_sales'] += $outVal;
                 
-                $totalNetRevenue += $netVal;
-                $csPerformance[$csName]['net_sales'] += $netVal;
+                // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
+                // For Tukar Tambah, this adds the net price difference (OUT - IN) to net revenue.
+                $totalNetRevenue += ($outVal - $inVal);
+                $csPerformance[$csName]['net_sales'] += ($outVal - $inVal);
             } elseif ($isDeduction) {
                 $effectiveDeduction = $price;
                 if ($cat === 'downgrade') {
@@ -443,9 +445,11 @@ class DashboardController extends Controller
                 } elseif ($isTradeIn) {
                     $ttRec = $rankTTMap->get($sale->receipt_id);
                     $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
-                    $netVal = $ttRec ? (float)($ttRec->outgoing_price - $ttRec->incoming_cost_price) : $price;
+                    $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : max(0, $outVal - $price);
                     $omset += $outVal;
-                    $omsetBersih += $netVal;
+                    // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
+                    // For Tukar Tambah, this adds the net price difference (OUT - IN) to net revenue.
+                    $omsetBersih += ($outVal - $inVal);
                 } elseif ($isDeduction) {
                     $effectiveDeduction = $price;
                     if ($cat === 'downgrade') {
@@ -555,7 +559,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
+                            THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
@@ -649,7 +653,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
                             THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
+                            THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')

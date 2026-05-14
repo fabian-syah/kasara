@@ -530,7 +530,8 @@ const currentLocalRank = computed(() => {
                       :class="leftPodiumData.podium[0].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[0].name }}</h4>
                     <span class="text-[8px] sm:text-[10px] font-bold text-slate-400/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[0].omset) }}</span>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-emerald-400/80 tabular-nums truncate w-full">Bersih: {{
+                    <span class="text-[8px] sm:text-[10px] font-bold tabular-nums truncate w-full"
+                      :class="leftPodiumData.podium[0].omset_bersih < 0 ? 'text-red-400/80' : 'text-emerald-400/80'">Bersih: {{
                       formatCurrency(leftPodiumData.podium[0].omset_bersih) }}</span>
                   </div>
                   <div
@@ -569,8 +570,10 @@ const currentLocalRank = computed(() => {
                         <span class="text-[9px] sm:text-xs font-black text-primary-500 tabular-nums">Total: {{
                           formatCurrency(leftPodiumData.podium[1].omset) }}</span>
                       </div>
-                      <div class="inline-flex bg-emerald-500/10 px-2 sm:px-4 py-0.5 rounded-full border border-emerald-500/20 mx-auto">
-                        <span class="text-[9px] sm:text-xs font-black text-emerald-400 tabular-nums">Bersih: {{
+                      <div class="inline-flex px-2 sm:px-4 py-0.5 rounded-full border mx-auto transition-colors duration-300"
+                        :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'">
+                        <span class="text-[9px] sm:text-xs font-black tabular-nums"
+                          :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'text-red-400' : 'text-emerald-400'">Bersih: {{
                           formatCurrency(leftPodiumData.podium[1].omset_bersih) }}</span>
                       </div>
                     </div>
@@ -606,7 +609,8 @@ const currentLocalRank = computed(() => {
                       :class="leftPodiumData.podium[2].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[2].name }}</h4>
                     <span class="text-[8px] sm:text-[10px] font-bold text-amber-700/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[2].omset) }}</span>
-                    <span class="text-[8px] sm:text-[10px] font-bold text-emerald-400/80 tabular-nums truncate w-full">Bersih: {{
+                    <span class="text-[8px] sm:text-[10px] font-bold tabular-nums truncate w-full"
+                      :class="leftPodiumData.podium[2].omset_bersih < 0 ? 'text-red-400/80' : 'text-emerald-400/80'">Bersih: {{
                       formatCurrency(leftPodiumData.podium[2].omset_bersih) }}</span>
                   </div>
                   <div
@@ -669,7 +673,8 @@ const currentLocalRank = computed(() => {
                       <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400/80' : 'text-text-secondary opacity-60'">
                         Total: {{ formatCurrency(item.omset) }}
                       </span>
-                      <span class="text-[10px] font-bold tabular-nums text-emerald-400/90">
+                      <span class="text-[10px] font-bold tabular-nums transition-colors duration-300"
+                        :class="item.omset_bersih < 0 ? 'text-red-400/90' : 'text-emerald-400/90'">
                         Bersih: {{ formatCurrency(item.omset_bersih) }}
                       </span>
                     </div>
@@ -783,7 +788,8 @@ const currentLocalRank = computed(() => {
                   <span class="font-semibold text-slate-400">{{ formatCurrency(user.omset ?? user.revenue ?? 0) }}</span>
                 </td>
                 <td class="py-4 text-center">
-                  <span class="font-bold text-emerald-400">{{ formatCurrency(user.omset_bersih ?? user.revenue ?? 0) }}</span>
+                  <span class="font-bold transition-colors duration-300"
+                    :class="(user.omset_bersih ?? 0) < 0 ? 'text-red-400' : 'text-emerald-400'">{{ formatCurrency(user.omset_bersih ?? user.revenue ?? 0) }}</span>
                 </td>
                 <td class="py-4 text-right">
                   <div
