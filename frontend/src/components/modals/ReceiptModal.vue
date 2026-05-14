@@ -691,18 +691,20 @@ const allReceiptItems = computed(() => {
     }
 
     html,
-    body {
+    body,
+    #app,
+    #app>* {
+        visibility: hidden !important;
         margin: 0 !important;
         padding: 0 !important;
+    }
+
+    html,
+    body {
         height: 100vh !important;
         width: 100vw !important;
         overflow: hidden !important;
         box-sizing: border-box !important;
-    }
-
-    #app,
-    #app>* {
-        display: none !important;
     }
 
     #receipt-modal-print-wrapper {
@@ -720,6 +722,7 @@ const allReceiptItems = computed(() => {
         box-sizing: border-box !important;
     }
 
+    #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper * {
         visibility: visible !important;
     }
