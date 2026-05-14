@@ -724,10 +724,15 @@ const allReceiptItems = computed(() => {
         display: none !important;
     }
 
-    img {
-        display: block !important;
+    .nota-paper,
+    .nota-paper * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    img {
+        display: block !important;
     }
 }
 </style>
