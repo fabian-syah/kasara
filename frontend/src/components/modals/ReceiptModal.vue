@@ -728,17 +728,15 @@ const allReceiptItems = computed(() => {
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        width: 100% !important;
         max-width: none !important;
         padding: 6mm 8mm !important;
         margin: 0 !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        transform: scale(0.76) !important;
-        transform-origin: top left !important;
-        width: 131.6% !important;
-        min-height: 131.6vh !important;
+        zoom: 0.76 !important;
+        width: 100% !important;
+        min-height: 100vh !important;
         display: flex !important;
         flex-direction: column !important;
     }
