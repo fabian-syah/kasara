@@ -51,7 +51,7 @@
 
                         <div class="relative z-10">
                             <!-- ===== NOTA HEADER ===== -->
-                            <div class="flex items-center gap-5 mb-4 mt-2 px-6">
+                            <div class="flex items-center gap-5 mb-4 mt-6 px-6">
                                 <!-- Giant Floating Logo Left -->
                                 <div class="shrink-0">
                                     <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 object-contain" />
@@ -332,16 +332,24 @@
                             </div>
 
                             <!-- ===== PREMIUM STRIPED FOOTER BAR ===== -->
-                            <div class="relative h-6 bg-neutral-950 -mx-6 -mb-6 print:-mx-6 print:-mb-6 mt-8 flex items-center justify-center overflow-hidden">
-                                <!-- Left Slanted Accent -->
-                                <div class="absolute left-0 top-0 h-full w-[25%] bg-red-600 select-none" style="clip-path: polygon(0 0, 80% 0, 100% 100%, 0% 100%);"></div>
-                                <!-- Right Slanted Accent -->
-                                <div class="absolute right-0 top-0 h-full w-[25%] bg-red-600 select-none" style="clip-path: polygon(20% 0, 100% 0, 100% 100%, 0% 100%);"></div>
+                            <div class="relative h-6 -mx-6 -mb-6 print:-mx-6 print:-mb-6 mt-8 flex items-center justify-center overflow-hidden" style="background-color: #0a0a0a !important;">
+                                <!-- Left Slanted Accent (SVG for print compatibility) -->
+                                <div class="absolute left-0 top-0 h-full w-[25%]" style="overflow: hidden;">
+                                    <svg class="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none" style="display: block;">
+                                        <polygon points="0,0 80,0 100,24 0,24" fill="#dc2626" />
+                                    </svg>
+                                </div>
+                                <!-- Right Slanted Accent (SVG for print compatibility) -->
+                                <div class="absolute right-0 top-0 h-full w-[25%]" style="overflow: hidden;">
+                                    <svg class="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none" style="display: block;">
+                                        <polygon points="20,0 100,0 100,24 0,24" fill="#dc2626" />
+                                    </svg>
+                                </div>
                                 <!-- Dots in Center -->
                                 <div class="flex gap-1.5 z-10 select-none">
-                                    <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
-                                    <div class="w-1.5 h-1.5 rounded-full bg-red-600"></div>
-                                    <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
+                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ffffff !important;"></div>
+                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #dc2626 !important;"></div>
+                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ffffff !important;"></div>
                                 </div>
                             </div>
                         </div>
@@ -678,8 +686,8 @@ const allReceiptItems = computed(() => {
 <style>
 @media print {
     @page {
-        margin: 5mm;
-        size: A4 portrait;
+        margin: 0;
+        size: auto;
     }
 
     html,
@@ -704,13 +712,20 @@ const allReceiptItems = computed(() => {
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
+        height: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
-        padding: 5mm !important;
+        padding: 0 !important;
     }
 
     #receipt-modal-print-wrapper>div {
         display: block !important;
+        height: 100% !important;
+    }
+
+    #receipt-content {
+        height: 100% !important;
+        padding: 0 !important;
     }
 
     .nota-paper {
@@ -718,11 +733,20 @@ const allReceiptItems = computed(() => {
         box-shadow: none !important;
         width: 100% !important;
         max-width: none !important;
-        padding: 0 !important;
+        min-height: 100vh !important;
+        padding: 8mm 10mm !important;
         margin: 0 !important;
         color: black !important;
         background: white !important;
-        font-size: 90% !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .nota-paper > .relative.z-10 {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     .nota-paper .mb-6 {
@@ -738,7 +762,7 @@ const allReceiptItems = computed(() => {
     }
 
     .nota-paper .mt-8 {
-        margin-top: 1rem !important;
+        margin-top: auto !important;
     }
 
     .nota-paper .gap-6 {
