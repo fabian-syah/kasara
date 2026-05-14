@@ -740,7 +740,7 @@ const allReceiptItems = computed(() => {
         border: none !important;
         box-shadow: none !important;
         max-width: none !important;
-        padding: 15mm 12mm !important;
+        padding: 25mm 15mm !important;
         margin: 0 !important;
         color: black !important;
         background: white !important;
@@ -763,19 +763,19 @@ const allReceiptItems = computed(() => {
     }
 
     .nota-paper .mb-6 {
-        margin-bottom: 1rem !important;
+        margin-bottom: 1.75rem !important;
     }
 
     .nota-paper .mb-5 {
-        margin-bottom: 0.75rem !important;
+        margin-bottom: 1.5rem !important;
     }
 
     .nota-paper .mb-4 {
-        margin-bottom: 0.6rem !important;
+        margin-bottom: 1.25rem !important;
     }
 
     .nota-paper .mt-6 {
-        margin-top: 1.5rem !important;
+        margin-top: 2rem !important;
     }
 
     .nota-paper .mt-8 {
