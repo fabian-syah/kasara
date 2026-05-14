@@ -116,7 +116,7 @@
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. Nota</div>
-                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.order_no || '-' }}</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ transaction.order_no || '-' }}</div>
                                         </div>
                                     </div>
                                     
@@ -127,7 +127,7 @@
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Tanggal & Waktu</div>
-                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayDate }}</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ displayDate }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -141,7 +141,7 @@
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Atas Nama</div>
-                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.customer_name || 'Umum' }}</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ transaction.customer_name || 'Umum' }}</div>
                                         </div>
                                     </div>
                                     
@@ -152,7 +152,7 @@
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. HP</div>
-                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ displayCustomerPhone }}</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ displayCustomerPhone }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -165,7 +165,7 @@
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Customer Service</div>
-                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight truncate">{{ transaction.inventory_user_name || transaction.inventory_account_name || transaction.sales_account || transaction.sales_name || '-' }}</div>
+                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ transaction.inventory_user_name || transaction.inventory_account_name || transaction.sales_account || transaction.sales_name || '-' }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -175,13 +175,13 @@
                             <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                                 <table class="w-full text-[10px] sm:text-xs border-collapse">
                                     <thead>
-                                        <tr class="bg-neutral-950 text-white text-[9px] sm:text-[10px] uppercase tracking-wider">
-                                            <th class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
-                                            <th class="py-3 px-3 text-left font-black">Brand / IMEI</th>
-                                            <th class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
-                                            <th class="py-3 px-2 text-center font-black">Status</th>
-                                            <th class="py-3 px-3 text-right font-black">Harga Satuan</th>
-                                            <th class="py-3 px-3 text-right font-black">Total</th>
+                                        <tr style="background-color: #0a0a0a !important;" class="text-[9px] sm:text-[10px] uppercase tracking-wider">
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black">Brand / IMEI</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-2 text-center font-black">Status</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black">Harga Satuan</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black">Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
