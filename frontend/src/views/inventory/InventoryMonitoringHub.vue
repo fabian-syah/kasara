@@ -624,7 +624,7 @@ onMounted(() => {
                                     {{ ['incoming_otw', 'history_in'].includes(activeTab) ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}
                                 </th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Nama Barang</th>
-                                <th v-if="activeTab === 'incoming_otw'" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
+                                <th v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Resi Ekspedisi</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Status</th>
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Waktu Kirim</th>
                                 <th v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Detail Info</th>
@@ -663,7 +663,7 @@ onMounted(() => {
                                     </div>
                                 </td>
                                 <!-- Resi Ekspedisi -->
-                                <td v-if="activeTab === 'incoming_otw'" class="px-8 py-5 whitespace-nowrap">
+                                <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div v-if="transfer.expedition_tracking_no" class="flex flex-col gap-1">
                                         <span class="text-xs font-black uppercase tracking-widest text-purple-400">
                                             {{ transfer.expedition_name }}
@@ -718,7 +718,7 @@ onMounted(() => {
                                             <span>Ekspedisi</span>
                                         </button>
 
-                                        <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
+                                        <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                             @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
                                             class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
                                             <Search :size="12" />
@@ -762,20 +762,20 @@ onMounted(() => {
                                 </span>
                             </div>
                         </div>
-                        <!-- Cabang Pengirim (Mobile) -->
-                        <div v-if="activeTab === 'incoming_otw'" class="flex items-center gap-3">
+                        <!-- Cabang Pengirim / Penerima (Mobile) -->
+                        <div v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
                                 <Building2 :size="16" />
                             </div>
                             <div class="flex flex-col">
-                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Cabang Pengirim</span>
+                                <span class="text-[10px] uppercase font-black tracking-widest opacity-40">{{ activeTab === 'incoming_otw' ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}</span>
                                 <span class="font-bold text-white text-base truncate max-w-xs">
-                                    {{ getSenderDetails(transfer) }}
+                                    {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
                                 </span>
                             </div>
                         </div>
                         <!-- Resi Ekspedisi (Mobile) -->
-                        <div v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" class="flex items-center gap-3">
+                        <div v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
                                 <Truck :size="16" />
                             </div>
@@ -787,7 +787,7 @@ onMounted(() => {
                             </div>
                         </div>
                         <!-- Detail Info (Mobile) -->
-                        <div v-if="activeTab === 'incoming_otw'" class="flex items-center gap-3">
+                        <div v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
                                 <Package :size="16" />
                             </div>
@@ -814,7 +814,7 @@ onMounted(() => {
                                     class="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
                                     Exp
                                 </button>
-                                <button v-if="activeTab === 'incoming_otw' && transfer.expedition_tracking_no" 
+                                <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                     @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
                                     class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
                                     Lacak
