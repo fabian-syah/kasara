@@ -192,8 +192,8 @@
             float: left;
             width: 28px;
             height: 28px;
-            background-color: #fef2f2;
-            border: 1px solid #fee2e2;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
             border-radius: 50%;
             text-align: center;
             margin-right: 8px;
@@ -213,7 +213,7 @@
         .info-label {
             font-size: 7px;
             font-weight: 900;
-            color: #9ca3af;
+            color: #0a0a0a;
             text-transform: uppercase;
             margin-bottom: 1px;
         }
@@ -246,9 +246,13 @@
 
         .item-table td {
             padding: 12px 10px;
-            border-bottom: 1px solid #f3f4f6;
+            border-bottom: 1px solid #e5e7eb;
             vertical-align: middle;
             font-size: 10px;
+        }
+
+        .item-table tbody tr:nth-child(even) {
+            background-color: #f9fafb;
         }
 
         .badge-status {
@@ -604,14 +608,14 @@
             $title = $hasExchange ? 'NOTA TUKAR TAMBAH' : 'NOTA PENJUALAN';
         @endphp
         <h1 class="receipt-title-main">{{ $title }}</h1>
-        <div class="receipt-title-sub">— TRANSACTION RECEIPT —</div>
+        <div class="receipt-title-sub">— BUKTI TRANSAKSI —</div>
     </div>
 
     <!-- INFO METADATA TABLE (3 Columns) -->
     <table class="info-table">
         <tr>
             <!-- Column 1: No Nota & Tanggal -->
-            <td class="info-cell" style="border-right: 1px solid #f3f4f6;">
+            <td class="info-cell" style="border-right: 1px dashed #d1d5db;">
                 <div class="clearfix" style="margin-bottom: 10px;">
                     <div class="info-icon-container">
                         <svg class="info-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
@@ -633,7 +637,7 @@
             </td>
             
             <!-- Column 2: Atas Nama & No HP -->
-            <td class="info-cell" style="border-right: 1px solid #f3f4f6;">
+            <td class="info-cell" style="border-right: 1px dashed #d1d5db;">
                 <div class="clearfix" style="margin-bottom: 10px;">
                     <div class="info-icon-container">
                         <svg class="info-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
