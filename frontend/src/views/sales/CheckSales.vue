@@ -112,7 +112,9 @@
                         <Wallet :size="14" class="text-emerald-500" />
                         Omset Bersih
                     </p>
-                    <p class="text-2xl font-black text-emerald-600 mt-2">{{ formatCurrency(summaryStats.omsetBersih) }}
+                    <p class="text-2xl font-black mt-2 transition-colors duration-300"
+                        :class="summaryStats.omsetBersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600'">
+                        {{ formatCurrency(summaryStats.omsetBersih) }}
                     </p>
                     <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat +
                         Refund + In TT + Selisih DG)</p>
@@ -1050,11 +1052,13 @@ const summaryStats = computed(() => {
 });
 
 const formatCurrency = (val) => {
-    return new Intl.NumberFormat('id-ID', {
+    const num = parseFloat(val) || 0;
+    const formatted = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0
-    }).format(Math.abs(val || 0));
+    }).format(Math.abs(num));
+    return num < 0 ? `-${formatted}` : formatted;
 }
 
 const handlePeriodChange = () => {
