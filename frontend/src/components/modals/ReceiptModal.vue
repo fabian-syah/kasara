@@ -252,9 +252,9 @@
                                     <tbody>
                                         <template v-if="processedReceiptItems.length > 0">
                                             <tr v-for="(item, index) in processedReceiptItems" :key="index"
-                                                class="border-b border-neutral-300"
                                                 :class="[
-                                                    item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90')
+                                                    item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'),
+                                                    item.show_bottom_border ? 'border-b border-neutral-300' : ''
                                                 ]">
                                                 
                                                 <!-- IMEI COLUMN -->
@@ -749,7 +749,7 @@ const processedReceiptItems = computed(() => {
         const groupKey = it.notes || it.pivot?.notes || it.pivot_notes;
 
         if (!isBundle) {
-            newList.push({ ...it, is_bundle_header: false, is_bundle_child: false });
+            newList.push({ ...it, is_bundle_header: false, is_bundle_child: false, show_bottom_border: true });
         } else {
             // Only process this bundle group the FIRST time its group key is encountered to keep it unified
             if (!seenBundleKeys.has(groupKey)) {
@@ -788,16 +788,18 @@ const processedReceiptItems = computed(() => {
                     price: groupTotal,
                     qty: 1,
                     imei: '-',
-                    notes: groupKey
+                    notes: groupKey,
+                    show_bottom_border: false
                 });
 
                 // 5. Push the INDIVIDUAL COMPONENT ROWS underneath it (with prices hidden)
-                groupItems.forEach(child => {
+                groupItems.forEach((child, childIdx) => {
                     newList.push({
                         ...child,
                         is_bundle_header: false,
                         is_bundle_child: true,
-                        _hidePrice: true
+                        _hidePrice: true,
+                        show_bottom_border: childIdx === groupItems.length - 1
                     });
                 });
             }
