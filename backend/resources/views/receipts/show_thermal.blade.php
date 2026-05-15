@@ -679,12 +679,11 @@
     <table class="item-table">
         <thead>
             <tr>
-                <th style="width: 35px; text-align: center;">Qty</th>
-                <th style="width: 110px;">Brand / IMEI</th>
+                <th style="width: 110px;">IMEI</th>
                 <th>Deskripsi Barang</th>
-                <th style="width: 85px; text-align: center;">Status</th>
                 <th style="width: 85px; text-align: right;">Harga Satuan</th>
-                <th style="width: 85px; text-align: right;">Total</th>
+                <th style="width: 35px; text-align: center;">Qty</th>
+                <th style="width: 85px; text-align: right;">Jumlah</th>
             </tr>
         </thead>
         <tbody>
@@ -692,30 +691,28 @@
                 @php
                     $isMasuk = str_contains(strtoupper($item->pivot->notes ?? ''), 'IN:') || str_contains(strtoupper($item->pivot->notes ?? ''), 'MASUK');
                     $pName = $item->product->name ?? ($item->product_name ?? 'Produk');
-                    $brand = str_contains(strtolower($pName), 'iphone') || str_contains(strtolower($pName), 'xr') || str_contains(strtolower($pName), 'xs') || str_contains(strtolower($pName), 'ipad') ? 'Apple' : 'PSTORE UNIT';
+                    $pName = str_replace('IN:', '', str_replace('OUT:', '', $pName));
+                    $pName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $pName);
+                    $dbBrand = $item->product->brandRelation->name ?? $item->product->brand ?? 'PSTORE UNIT';
+                    $storage = $item->storage ?? '-';
+                    $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
                 @endphp
                 <tr>
-                    <td style="text-align: center; font-weight: 900; color: #0a0a0a;">1</td>
                     <td>
-                        <div style="font-weight: 900; text-transform: uppercase; color: #0a0a0a;">{{ $brand }}</div>
-                        <div style="font-size: 8px; font-family: monospace; color: #6b7280; margin-top: 2px;">
+                        <div style="font-size: 10px; font-weight: 900; font-family: monospace; color: #0a0a0a;">
                             {{ $item->pivot->imei && $item->pivot->imei !== '-' ? $item->pivot->imei : '-' }}
                         </div>
                     </td>
                     <td>
-                        <div style="font-weight: 900; color: #374151;">{{ str_replace('IN:', '', str_replace('OUT:', '', $pName)) }}</div>
+                        <div style="font-weight: 900; color: #374151;">{{ $dbBrand }} - {{ $pName }}</div>
                         <div style="font-size: 8px; color: #6b7280; margin-top: 2px;">
-                            Condition: {{ $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
+                            Storage: {{ $storage }} | Kondisi: {{ $kondisi }}
                         </div>
-                    </td>
-                    <td style="text-align: center;">
-                        <span class="badge-status {{ $isMasuk ? 'badge-masuk' : 'badge-keluar' }}">
-                            {{ $isMasuk ? 'UNIT MASUK' : 'UNIT KELUAR' }}
-                        </span>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
                         {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
+                    <td style="text-align: center; font-weight: 900; color: #0a0a0a;">1</td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
                         {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
@@ -723,21 +720,24 @@
             @endforeach
 
             @foreach($transaction->nonHpItems as $item)
+                @php
+                    $nonHpName = $item->product->name ?? $item->name;
+                    $nonHpName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $nonHpName);
+                @endphp
                 <tr>
-                    <td style="text-align: center; font-weight: 900; color: #0a0a0a;">{{ $item->quantity }}</td>
                     <td>
-                        <div style="font-weight: 900; text-transform: uppercase; color: #0a0a0a;">AKSESORIS</div>
-                        <div style="font-size: 8px; color: #6b7280;">-</div>
+                        <div style="font-size: 10px; font-weight: 900; font-family: monospace; color: #0a0a0a;">-</div>
                     </td>
                     <td>
-                        <div style="font-weight: 900; color: #374151;">{{ $item->product->name ?? $item->name }}</div>
-                    </td>
-                    <td style="text-align: center;">
-                        <span class="badge-status badge-keluar">UNIT KELUAR</span>
+                        <div style="font-weight: 900; color: #374151;">{{ $nonHpName }}</div>
+                        <div style="font-size: 8px; color: #6b7280; margin-top: 2px;">
+                            AKSESORIS
+                        </div>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
                         {{ number_format(abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0)), 0, ',', '.') }}
                     </td>
+                    <td style="text-align: center; font-weight: 900; color: #0a0a0a;">{{ $item->quantity }}</td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
                         {{ number_format(abs($item->quantity * (($item->selling_price ?? 0) - ($item->item_discount ?? 0))), 0, ',', '.') }}
                     </td>
@@ -749,7 +749,7 @@
             @for($i = 0; $i < max(0, 2 - $rowCount); $i++)
                 <tr style="opacity: 0.1;">
                     <td style="padding: 12px;">&nbsp;</td>
-                    <td colspan="5"></td>
+                    <td colspan="4"></td>
                 </tr>
             @endfor
         </tbody>

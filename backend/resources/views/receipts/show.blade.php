@@ -97,9 +97,13 @@
             </thead>
             <tbody>
                 @foreach($transaction->items as $item)
+                    @php
+                        $pName = $item->product->name ?? 'Produk';
+                        $pName = str_ireplace('paket bundling', 'Paket Promo', $pName);
+                    @endphp
                     <tr class="border-b border-gray-100">
                         <td class="py-3">
-                            <div class="font-bold uppercase">{{ $item->product->name }}</div>
+                            <div class="font-bold uppercase">{{ $pName }}</div>
                             <div class="text-[10px] text-gray-500 mono">{{ $item->imei }}</div>
                         </td>
                         <td class="py-3 text-center">{{ $item->pivot->qty ?? 1 }}</td>
@@ -110,9 +114,13 @@
 
                 @if($transaction->nonHpItems)
                     @foreach($transaction->nonHpItems as $item)
+                        @php
+                            $nonHpName = $item->product->name ?? $item->name;
+                            $nonHpName = str_ireplace('paket bundling', 'Paket Promo', $nonHpName);
+                        @endphp
                         <tr class="border-b border-gray-100">
                             <td class="py-3">
-                                <div class="font-bold uppercase">{{ $item->product->name }}</div>
+                                <div class="font-bold uppercase">{{ $nonHpName }}</div>
                             </td>
                             <td class="py-3 text-center">{{ $item->quantity }}</td>
                             <td class="py-3 text-right font-bold">{{ number_format($item->selling_price, 0, ',', '.') }}</td>
