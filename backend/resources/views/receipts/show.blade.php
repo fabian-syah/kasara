@@ -98,6 +98,12 @@
                 </tr>
             </thead>
             <tbody>
+                @php
+                    $itemIdx = 0;
+                    $gTotalVal = $transaction->paid_amount ?: $transaction->selling_price - $transaction->total_discount;
+                    $isBundleTrx = (bool)$transaction->is_bundle;
+                @endphp
+
                 @foreach($transaction->items as $item)
                     @php
                         $pName = $item->product?->name ?? 'Produk';
@@ -116,10 +122,23 @@
                             <div class="font-bold uppercase">{{ $dbBrand }} - {{ $pName }}</div>
                             <div class="text-[10px] text-gray-500">Storage: {{ $storage }} | Kondisi: {{ $kondisi }}</div>
                         </td>
-                        <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
+                        <td class="py-3 text-right font-bold">
+                            @if($isBundleTrx)
+                                {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                            @else
+                                {{ number_format($price, 0, ',', '.') }}
+                            @endif
+                        </td>
                         <td class="py-3 text-center">1</td>
-                        <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
+                        <td class="py-3 text-right font-bold">
+                            @if($isBundleTrx)
+                                {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                            @else
+                                {{ number_format($price, 0, ',', '.') }}
+                            @endif
+                        </td>
                     </tr>
+                    @php $itemIdx++; @endphp
                 @endforeach
 
                 @if($transaction->nonHpItems)
@@ -135,10 +154,23 @@
                                 <div class="font-bold uppercase">{{ $nonHpName }}</div>
                                 <div class="text-[10px] text-gray-500">AKSESORIS</div>
                             </td>
-                            <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
+                            <td class="py-3 text-right font-bold">
+                                @if($isBundleTrx)
+                                    {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                                @else
+                                    {{ number_format($price, 0, ',', '.') }}
+                                @endif
+                            </td>
                             <td class="py-3 text-center">{{ $item->quantity }}</td>
-                            <td class="py-3 text-right font-bold">{{ number_format($price * $item->quantity, 0, ',', '.') }}</td>
+                            <td class="py-3 text-right font-bold">
+                                @if($isBundleTrx)
+                                    {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                                @else
+                                    {{ number_format($price * $item->quantity, 0, ',', '.') }}
+                                @endif
+                            </td>
                         </tr>
+                        @php $itemIdx++; @endphp
                     @endforeach
                 @endif
             </tbody>

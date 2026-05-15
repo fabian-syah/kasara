@@ -687,6 +687,12 @@
             </tr>
         </thead>
         <tbody>
+            @php
+                $itemIdx = 0;
+                $gTotalVal = abs($transaction->selling_price);
+                $isBundleTrx = (bool)$transaction->is_bundle;
+            @endphp
+
             @foreach($transaction->items as $item)
                 @php
                     $isMasuk = str_contains(strtoupper($item->pivot->notes ?? ''), 'IN:') || str_contains(strtoupper($item->pivot->notes ?? ''), 'MASUK');
@@ -696,6 +702,7 @@
                     $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
                     $storage = $item->storage ?? '-';
                     $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
+                    $price = abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0));
                 @endphp
                 <tr>
                     <td>
@@ -710,19 +717,29 @@
                         </div>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
-                        {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
+                        @if($isBundleTrx)
+                            {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                        @else
+                            {{ number_format($price, 0, ',', '.') }}
+                        @endif
                     </td>
                     <td style="text-align: center; font-weight: 900; color: #0a0a0a;">1</td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
-                        {{ number_format(abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0)), 0, ',', '.') }}
+                        @if($isBundleTrx)
+                            {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                        @else
+                            {{ number_format($price, 0, ',', '.') }}
+                        @endif
                     </td>
                 </tr>
+                @php $itemIdx++; @endphp
             @endforeach
 
             @foreach($transaction->nonHpItems as $item)
                 @php
                     $nonHpName = $item->product->name ?? $item->name;
                     $nonHpName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $nonHpName);
+                    $price = abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0));
                 @endphp
                 <tr>
                     <td>
@@ -735,13 +752,22 @@
                         </div>
                     </td>
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
-                        {{ number_format(abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0)), 0, ',', '.') }}
+                        @if($isBundleTrx)
+                            {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                        @else
+                            {{ number_format($price, 0, ',', '.') }}
+                        @endif
                     </td>
                     <td style="text-align: center; font-weight: 900; color: #0a0a0a;">{{ $item->quantity }}</td>
                     <td style="text-align: right; font-weight: 900; color: #0a0a0a;">
-                        {{ number_format(abs($item->quantity * (($item->selling_price ?? 0) - ($item->item_discount ?? 0))), 0, ',', '.') }}
+                        @if($isBundleTrx)
+                            {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                        @else
+                            {{ number_format($price * $item->quantity, 0, ',', '.') }}
+                        @endif
                     </td>
                 </tr>
+                @php $itemIdx++; @endphp
             @endforeach
 
             {{-- Filling standard table --}}

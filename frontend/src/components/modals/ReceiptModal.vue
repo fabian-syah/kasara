@@ -280,8 +280,13 @@
 
                                                 <td
                                                     class="py-4 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
-                                                    {{ formatNumber(Math.abs((item.price || item.selling_price || 0) -
-                                                        (item.discount || item.item_discount || 0))) }}
+                                                    <span v-if="transaction.is_bundle">
+                                                        {{ index === 0 ? formatNumber(Math.abs(calculatedGrandTotal)) : '-' }}
+                                                    </span>
+                                                    <span v-else>
+                                                        {{ formatNumber(Math.abs((item.price || item.selling_price || 0) -
+                                                            (item.discount || item.item_discount || 0))) }}
+                                                    </span>
                                                 </td>
 
                                                 <td
@@ -290,9 +295,14 @@
 
                                                 <td
                                                     class="py-4 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
-                                                    {{ formatNumber(Math.abs(item.qty * ((item.price ||
-                                                        item.selling_price || 0) - (item.discount || item.item_discount ||
-                                                            0)))) }}
+                                                    <span v-if="transaction.is_bundle">
+                                                        {{ index === 0 ? formatNumber(Math.abs(calculatedGrandTotal)) : '-' }}
+                                                    </span>
+                                                    <span v-else>
+                                                        {{ formatNumber(Math.abs(item.qty * ((item.price ||
+                                                            item.selling_price || 0) - (item.discount || item.item_discount ||
+                                                                0)))) }}
+                                                    </span>
                                                 </td>
                                             </tr>
                                         </template>
@@ -698,18 +708,15 @@ const allReceiptItems = computed(() => {
     const nonHpSource = props.transaction.non_hp_items || props.transaction.non_hp_details || props.transaction.nonHpItems;
 
     if (nonHpSource?.length > 0) {
-        const hasBundleRepresented = list.some(it => it.is_bundle);
-        if (!hasBundleRepresented) {
-            nonHpSource.forEach(it => {
-                list.push({
-                    ...it,
-                    qty: it.quantity || it.qty || 1,
-                    name: it.product_name || it.product?.name || it.name,
-                    price: it.selling_price || it.price,
-                    is_hp: false
-                });
+        nonHpSource.forEach(it => {
+            list.push({
+                ...it,
+                qty: it.quantity || it.qty || 1,
+                name: it.product_name || it.product?.name || it.name,
+                price: it.selling_price || it.price,
+                is_hp: false
             });
-        }
+        });
     }
 
     return list;
