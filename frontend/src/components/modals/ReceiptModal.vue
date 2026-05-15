@@ -810,9 +810,10 @@ const allReceiptItems = computed(() => {
 
     html,
     body {
-        height: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
         width: 100% !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
     }
 
@@ -822,12 +823,13 @@ const allReceiptItems = computed(() => {
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
         padding: 0 !important;
         margin: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
     }
 
@@ -839,7 +841,8 @@ const allReceiptItems = computed(() => {
     #receipt-modal-print-wrapper>div,
     #receipt-content {
         display: block !important;
-        height: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
         box-sizing: border-box !important;
@@ -849,20 +852,37 @@ const allReceiptItems = computed(() => {
         border: none !important;
         box-shadow: none !important;
         max-width: none !important;
-        padding: 10mm 10mm !important;
-        margin: 0 auto !important;
+        padding: 5mm 10mm !important;
+        margin: 0 !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        zoom: 1.25 !important;
+        zoom: 1 !important;
         transform: none !important;
-        width: 80% !important;
-        height: 80% !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
+    
+    /* Typography scaling for print to make it readable on A4 without zoom layout bugs */
+    .nota-paper .text-\[6px\] { font-size: 8px !important; }
+    .nota-paper .text-\[7px\] { font-size: 10px !important; }
+    .nota-paper .text-\[8px\] { font-size: 11px !important; }
+    .nota-paper .text-\[9px\] { font-size: 12px !important; }
+    .nota-paper .text-\[10px\] { font-size: 13px !important; }
+    .nota-paper .text-\[11px\] { font-size: 14px !important; }
+    .nota-paper .text-xs { font-size: 0.9rem !important; }
+    .nota-paper .text-sm { font-size: 1rem !important; }
+    .nota-paper .text-base { font-size: 1.15rem !important; }
+    .nota-paper .text-lg { font-size: 1.25rem !important; }
+    .nota-paper .text-xl { font-size: 1.4rem !important; }
+    .nota-paper .text-2xl { font-size: 1.7rem !important; }
+    .nota-paper .text-3xl { font-size: 2rem !important; }
+    .nota-paper svg { transform: scale(1.2); }
 
     .nota-paper>.relative.z-10 {
         flex: 1 !important;
