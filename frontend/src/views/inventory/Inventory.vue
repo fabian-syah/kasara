@@ -1127,7 +1127,7 @@ async function exportInventory() {
                 <label for="select-all-checkbox" class="flex items-center cursor-pointer">
                   <span class="sr-only">Pilih Semua</span>
                   <input id="select-all-checkbox" type="checkbox" :checked="isAllSelected"
-                    @change="toggleSelectAll" class="checkbox border-surface-400" />
+                    @change="toggleSelectAll" class="inv-checkbox border-surface-400" />
                 </label>
               </th>
 
@@ -1343,7 +1343,7 @@ async function exportInventory() {
                 <label :for="'item-select-' + item.id" class="flex items-center cursor-pointer">
                   <span class="sr-only">Pilih item {{ item.product?.name }}</span>
                   <input :id="'item-select-' + item.id" type="checkbox" :checked="isSelected(item)" @change="toggleSelect(item)"
-                    class="checkbox border-surface-400" />
+                    class="inv-checkbox border-surface-400" />
                 </label>
               </td>
               <td class="text-sm text-text-secondary whitespace-nowrap">
@@ -1944,7 +1944,42 @@ async function exportInventory() {
   }
 }
 
+.inv-checkbox {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  border-radius: 0.375rem !important;
+  border: 2px solid #64748b !important;
+  background-color: transparent !important;
+  cursor: pointer !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: relative !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease;
+}
 
+.inv-checkbox:hover {
+  border-color: rgb(var(--color-primary-400)) !important;
+}
+
+.inv-checkbox:checked {
+  background-color: rgb(var(--color-primary-500)) !important;
+  border-color: rgb(var(--color-primary-500)) !important;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+.inv-checkbox:indeterminate {
+  background-color: rgb(var(--color-primary-500)) !important;
+  border-color: rgb(var(--color-primary-500)) !important;
+  background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3crect x='4' y='7' width='8' height='2' rx='1'/%3e%3c/svg%3e") !important;
+  background-size: 100% 100% !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
 
 .label {
   display: block;
