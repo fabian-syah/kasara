@@ -941,9 +941,11 @@ const processedReceiptItems = computed(() => {
         
         width: 210mm !important;
         max-width: 100% !important;
-        min-height: 296mm !important;
-        height: auto !important;
-        overflow: visible !important;
+        height: 280mm !important; /* Universal safe height: Pins footer & absorbs all mobile DPI inflation errors */
+        max-height: 280mm !important;
+        overflow: hidden !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
         
         transform: none !important;
         zoom: 1 !important;
