@@ -176,49 +176,41 @@
                                 <table class="w-full text-[10px] sm:text-xs border-collapse">
                                     <thead>
                                         <tr style="background-color: #0a0a0a !important;" class="text-[9px] sm:text-[10px] uppercase tracking-wider">
-                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
-                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black">Brand / IMEI</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black w-[110px]">IMEI</th>
                                             <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
-                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-2 text-center font-black">Status</th>
-                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black">Harga Satuan</th>
-                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black">Total</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
+                                            <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <template v-if="allReceiptItems.length > 0">
                                             <tr v-for="(item, index) in allReceiptItems" :key="index" class="border-b border-neutral-300" :class="index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'">
-                                                <td class="py-4 px-3 text-neutral-950 text-center font-black align-middle text-xs">{{ item.qty }}</td>
-                                                
-                                                <td class="py-4 px-3 align-middle">
-                                                    <div class="font-black text-neutral-900 uppercase text-[11px]">
-                                                        {{ item.name.toLowerCase().includes('iphone') || item.name.toLowerCase().includes('xr') || item.name.toLowerCase().includes('xs') || item.name.toLowerCase().includes('11') || item.name.toLowerCase().includes('12') || item.name.toLowerCase().includes('13') || item.name.toLowerCase().includes('14') || item.name.toLowerCase().includes('15') || item.name.toLowerCase().includes('ipad') ? 'Apple' : 'Pstore Unit' }}
-                                                    </div>
-                                                    <div class="text-[9px] text-neutral-500 font-bold font-mono mt-0.5">
-                                                        {{ item.imei && item.imei !== '-' ? item.imei : '-' }}
+                                                <td class="py-4 px-3 align-middle text-left">
+                                                    <div class="text-[10px] font-black font-mono text-neutral-900">
+                                                        {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei : '-') : '-' }}
                                                     </div>
                                                 </td>
                                                 
                                                 <td class="py-4 px-3 align-middle">
-                                                    <div class="font-bold text-neutral-800 text-[11px]">
-                                                        {{ item.name.replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '') }}
+                                                    <div class="font-bold text-neutral-800 text-[11px] uppercase">
+                                                        {{ item.is_hp ? (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo') }}
                                                     </div>
                                                     <div class="text-[8px] text-neutral-500 font-bold mt-0.5">
-                                                        Condition: {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : '-')) }}
+                                                        <span v-if="item.is_hp">
+                                                            Storage: {{ item.storage || '-' }} | Kondisi: {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : '-')) }}
+                                                        </span>
+                                                        <span v-else>
+                                                            AKSESORIS
+                                                        </span>
                                                     </div>
-                                                </td>
-                                                
-                                                <td class="py-4 px-2 align-middle text-center">
-                                                    <span v-if="item.name.includes('IN:')" class="inline-block px-3 py-1 border border-red-500 bg-white text-red-600 text-[8px] font-black rounded-md uppercase whitespace-nowrap tracking-wider">
-                                                        UNIT MASUK
-                                                    </span>
-                                                    <span v-else class="inline-block px-3 py-1 bg-red-600 border border-red-600 text-white text-[8px] font-black rounded-md uppercase whitespace-nowrap tracking-wider">
-                                                        UNIT KELUAR
-                                                    </span>
                                                 </td>
                                                 
                                                 <td class="py-4 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
                                                     {{ formatNumber(Math.abs((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0))) }}
                                                 </td>
+                                                
+                                                <td class="py-4 px-3 text-neutral-950 text-center font-black align-middle text-xs">{{ item.qty }}</td>
                                                 
                                                 <td class="py-4 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
                                                     {{ formatNumber(Math.abs(item.qty * ((item.price || item.selling_price || 0) - (item.discount || item.item_discount || 0)))) }}
@@ -228,7 +220,7 @@
                                         <!-- Filler rows (hidden on print) -->
                                         <tr v-for="n in Math.max(0, 2 - (allReceiptItems.length || 0))" :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
                                             <td class="py-3 px-3">&nbsp;</td>
-                                            <td colspan="5"></td>
+                                            <td colspan="4"></td>
                                         </tr>
                                     </tbody>
                                 </table>
