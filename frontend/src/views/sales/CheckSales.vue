@@ -1,12 +1,14 @@
 <template>
     <!-- MAINTENANCE VIEW -->
     <div v-if="isMaintenance" class="flex flex-col items-center justify-center min-h-[70vh] text-center py-20 px-4">
-        <div class="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-3xl border-2 border-amber-100 dark:border-amber-500/20 flex items-center justify-center mb-8 relative shadow-xl shadow-amber-500/5 animate-pulse">
+        <div
+            class="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-3xl border-2 border-amber-100 dark:border-amber-500/20 flex items-center justify-center mb-8 relative shadow-xl shadow-amber-500/5 animate-pulse">
             <Wrench :size="36" stroke-width="2" />
         </div>
         <h2 class="text-3xl font-black text-text-primary tracking-tight mb-4">Sedang Maintenance / Debugging</h2>
         <p class="text-text-secondary max-w-md text-base font-medium leading-relaxed mx-auto">
-            Kami sedang melakukan pemeliharaan dan pembaharuan sistem pada halaman Cek Penjualan. Harap tunggu beberapa saat, halaman ini akan segera kembali beroperasi normal.
+            Kami sedang melakukan pemeliharaan dan pembaharuan sistem pada halaman Cek Penjualan. Harap tunggu beberapa
+            saat, halaman ini akan segera kembali beroperasi normal.
         </p>
     </div>
 
@@ -338,7 +340,7 @@
                                                     <Image :size="12" stroke-width="3" />
                                                     <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
                                                         'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
-                                                        (imgIdx + 1)) }}</span>
+                                                            (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
                                             <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
@@ -370,7 +372,7 @@
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                     <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone
-                                        }}</td>
+                                    }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -437,7 +439,7 @@
                                                     <Image :size="12" stroke-width="3" />
                                                     <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
                                                         'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
-                                                        (imgIdx + 1)) }}</span>
+                                                            (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
                                             <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
@@ -674,7 +676,7 @@ import { useAuthStore } from '../../store/auth'
 const authStore = useAuthStore()
 
 // GANTI KE false UNTUK MATIKAN MAINTENANCE DAN MENGEMBALIKAN KE NORMAL
-const isMaintenance = ref(true)
+const isMaintenance = ref(false)
 const loading = ref(false)
 const exportLoading = ref(false)
 const selectedPeriod = ref('daily')
