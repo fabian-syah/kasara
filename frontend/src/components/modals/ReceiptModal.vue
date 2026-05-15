@@ -335,7 +335,7 @@
                                             Catatan
                                         </div>
                                         <div
-                                            class="bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
+                                            class="notes-box bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
                                             {{ transaction.notes || transaction.reason || 'Tidak ada catatan tambahan.'
                                             }}
                                         </div>
@@ -431,7 +431,7 @@
 
                             <!-- ===== SIGNATURE AREA ===== -->
                             <div
-                                class="grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
+                                class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                                 <div class="text-center border-r border-neutral-200">
                                     <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">
                                         Customer / Pembeli</div>
@@ -1018,11 +1018,28 @@ const processedReceiptItems = computed(() => {
         display: none !important;
     }
 
+    /* COMPLETE ARTIFACT ELIMINATION: Universally strips all box-shadows and blurs which render as solid gray halos in browser print engines */
+    #receipt-modal-print-wrapper,
+    #receipt-modal-print-wrapper *,
     .nota-paper,
     .nota-paper * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
+    }
+
+    /* Force translucent elements to be 100% solid pure white opaque to prevent gray backgrounds */
+    .nota-paper .signature-area,
+    .nota-paper .notes-box {
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
     }
 
     img {
