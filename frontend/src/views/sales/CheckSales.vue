@@ -372,7 +372,7 @@
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                     <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone
-                                        }}</td>
+                                    }}</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -676,7 +676,7 @@ import { useAuthStore } from '../../store/auth'
 const authStore = useAuthStore()
 
 // GANTI KE false UNTUK MATIKAN MAINTENANCE DAN MENGEMBALIKAN KE NORMAL
-const isMaintenance = ref(true)
+const isMaintenance = ref(false)
 const loading = ref(false)
 const exportLoading = ref(false)
 const selectedPeriod = ref('daily')
