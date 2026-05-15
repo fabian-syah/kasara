@@ -90,40 +90,54 @@
         <table class="w-full text-xs mb-6">
             <thead>
                 <tr class="border-y-2 border-black">
-                    <th class="py-2 text-left">Item</th>
-                    <th class="py-2 text-center">Qty</th>
-                    <th class="py-2 text-right">Harga</th>
+                    <th class="py-2 text-left w-24">IMEI</th>
+                    <th class="py-2 text-left">Deskripsi Barang</th>
+                    <th class="py-2 text-right w-24">Harga Satuan</th>
+                    <th class="py-2 text-center w-12">Qty</th>
+                    <th class="py-2 text-right w-28">Jumlah</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($transaction->items as $item)
                     @php
-                        $pName = $item->product->name ?? 'Produk';
+                        $pName = $item->product?->name ?? 'Produk';
+                        $pName = str_replace('IN:', '', str_replace('OUT:', '', $pName));
                         $pName = str_ireplace('paket bundling', 'Paket Promo', $pName);
+                        $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
+                        $storage = $item->storage ?? '-';
+                        $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
+                        $price = abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0));
                     @endphp
                     <tr class="border-b border-gray-100">
                         <td class="py-3">
-                            <div class="font-bold uppercase">{{ $pName }}</div>
-                            <div class="text-[10px] text-gray-500 mono">{{ $item->imei }}</div>
+                            <div class="text-[10px] text-gray-500 font-mono font-bold">{{ $item->pivot->imei && $item->pivot->imei !== '-' ? $item->pivot->imei : '-' }}</div>
                         </td>
-                        <td class="py-3 text-center">{{ $item->pivot->qty ?? 1 }}</td>
-                        <td class="py-3 text-right font-bold">{{ number_format($item->pivot->selling_price, 0, ',', '.') }}
+                        <td class="py-3">
+                            <div class="font-bold uppercase">{{ $dbBrand }} - {{ $pName }}</div>
+                            <div class="text-[10px] text-gray-500">Storage: {{ $storage }} | Kondisi: {{ $kondisi }}</div>
                         </td>
+                        <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
+                        <td class="py-3 text-center">1</td>
+                        <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
 
                 @if($transaction->nonHpItems)
                     @foreach($transaction->nonHpItems as $item)
                         @php
-                            $nonHpName = $item->product->name ?? $item->name;
+                            $nonHpName = $item->product?->name ?? $item->name;
                             $nonHpName = str_ireplace('paket bundling', 'Paket Promo', $nonHpName);
+                            $price = abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0));
                         @endphp
                         <tr class="border-b border-gray-100">
+                            <td class="py-3 text-center">-</td>
                             <td class="py-3">
                                 <div class="font-bold uppercase">{{ $nonHpName }}</div>
+                                <div class="text-[10px] text-gray-500">AKSESORIS</div>
                             </td>
+                            <td class="py-3 text-right font-bold">{{ number_format($price, 0, ',', '.') }}</td>
                             <td class="py-3 text-center">{{ $item->quantity }}</td>
-                            <td class="py-3 text-right font-bold">{{ number_format($item->selling_price, 0, ',', '.') }}</td>
+                            <td class="py-3 text-right font-bold">{{ number_format($price * $item->quantity, 0, ',', '.') }}</td>
                         </tr>
                     @endforeach
                 @endif

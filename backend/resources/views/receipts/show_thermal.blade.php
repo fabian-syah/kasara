@@ -690,10 +690,10 @@
             @foreach($transaction->items as $item)
                 @php
                     $isMasuk = str_contains(strtoupper($item->pivot->notes ?? ''), 'IN:') || str_contains(strtoupper($item->pivot->notes ?? ''), 'MASUK');
-                    $pName = $item->product->name ?? ($item->product_name ?? 'Produk');
+                    $pName = $item->product?->name ?? ($item->product_name ?? 'Produk');
                     $pName = str_replace('IN:', '', str_replace('OUT:', '', $pName));
                     $pName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $pName);
-                    $dbBrand = $item->product->brandRelation->name ?? $item->product->brand ?? 'PSTORE UNIT';
+                    $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
                     $storage = $item->storage ?? '-';
                     $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
                 @endphp

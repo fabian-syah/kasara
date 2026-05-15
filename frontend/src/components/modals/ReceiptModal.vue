@@ -194,7 +194,7 @@
                                                 
                                                 <td class="py-4 px-3 align-middle">
                                                     <div class="font-bold text-neutral-800 text-[11px] uppercase">
-                                                        {{ item.is_hp ? (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo') }}
+                                                        {{ item.is_hp ? ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand)) || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo') }}
                                                     </div>
                                                     <div class="text-[8px] text-neutral-500 font-bold mt-0.5">
                                                         <span v-if="item.is_hp">
