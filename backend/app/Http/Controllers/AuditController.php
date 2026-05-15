@@ -2001,7 +2001,8 @@ class AuditController extends Controller
                     }
                 }
 
-                // GROUPING LOGIC FOR BUNDLES
+                // DISABLED GROUPING LOGIC FOR BUNDLES: Keep items individual as requested
+                /*
                 if ($trx->is_bundle) {
                     $grouped = [];
                     $bundles = [];
@@ -2075,6 +2076,7 @@ class AuditController extends Controller
                         $details = $grouped;
                     }
                 }
+                */
 
                 $paymentMethodNames = [];
                 if ($trx->payment_method_id) {

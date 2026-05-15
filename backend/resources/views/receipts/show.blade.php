@@ -99,53 +99,91 @@
             </thead>
             <tbody>
                 @php
-                    $itemIdx = 0;
-                    $gTotalVal = $transaction->paid_amount ?: $transaction->selling_price - $transaction->total_discount;
-                    $isBundleTrx = (bool)$transaction->is_bundle;
+                    // 1. Merge all items into one unified list
+                    $allBladeItems = [];
+                    foreach($transaction->items as $it) {
+                        $it->is_hp = true;
+                        $allBladeItems[] = $it;
+                    }
+                    foreach(($transaction->nonHpItems ?? []) as $it) {
+                        $it->is_hp = false;
+                        $allBladeItems[] = $it;
+                    }
+
+                    // 2. Identify which items belong to the same bundle using their notes
+                    $bundleGroups = [];
+                    foreach($allBladeItems as $idx => $it) {
+                        $notes = strtolower($it->is_hp ? ($it->pivot->notes ?? '') : ($it->notes ?? ''));
+                        if(str_contains($notes, 'paket') || str_contains($notes, 'bundle')) {
+                            $key = $it->is_hp ? ($it->pivot->notes ?? '') : ($it->notes ?? '');
+                            $bundleGroups[$key][] = $idx;
+                        }
+                    }
+
+                    // 3. Pre-calculate combined bundle totals and mark hidden rows
+                    $bundleTotals = [];
+                    $hidePriceIndices = [];
+                    foreach($bundleGroups as $key => $indices) {
+                        $groupSum = 0;
+                        foreach($indices as $idx) {
+                            $it = $allBladeItems[$idx];
+                            $price = abs(($it->is_hp ? ($it->pivot->selling_price ?? 0) : ($it->selling_price ?? 0)) - ($it->is_hp ? ($it->pivot->item_discount ?? 0) : ($it->item_discount ?? 0)));
+                            $qty = $it->is_hp ? 1 : ($it->quantity ?? 1);
+                            $groupSum += ($price * $qty);
+                        }
+                        $firstIdx = $indices[0];
+                        $bundleTotals[$firstIdx] = $groupSum;
+                        for($i = 1; $i < count($indices); $i++) {
+                            $hidePriceIndices[$indices[$i]] = true;
+                        }
+                    }
                 @endphp
 
-                @foreach($transaction->items as $item)
-                    @php
-                        $pName = $item->product?->name ?? 'Produk';
-                        $pName = str_replace('IN:', '', str_replace('OUT:', '', $pName));
-                        $pName = str_ireplace('paket bundling', 'Paket Promo', $pName);
-                        $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
-                        $storage = $item->storage ?? '-';
-                        $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
-                        $price = abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0));
-                    @endphp
-                    <tr class="border-b border-gray-100">
-                        <td class="py-3">
-                            <div class="text-[10px] text-gray-500 font-mono font-bold">{{ $item->pivot->imei && $item->pivot->imei !== '-' ? $item->pivot->imei : '-' }}</div>
-                        </td>
-                        <td class="py-3">
-                            <div class="font-bold uppercase">{{ $dbBrand }} - {{ $pName }}</div>
-                            <div class="text-[10px] text-gray-500">Storage: {{ $storage }} | Kondisi: {{ $kondisi }}</div>
-                        </td>
-                        <td class="py-3 text-right font-bold">
-                            @if($isBundleTrx)
-                                {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
-                            @else
-                                {{ number_format($price, 0, ',', '.') }}
-                            @endif
-                        </td>
-                        <td class="py-3 text-center">1</td>
-                        <td class="py-3 text-right font-bold">
-                            @if($isBundleTrx)
-                                {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
-                            @else
-                                {{ number_format($price, 0, ',', '.') }}
-                            @endif
-                        </td>
-                    </tr>
-                    @php $itemIdx++; @endphp
-                @endforeach
-
-                @if($transaction->nonHpItems)
-                    @foreach($transaction->nonHpItems as $item)
+                @foreach($allBladeItems as $idx => $item)
+                    @if($item->is_hp)
+                        @php
+                            $pName = $item->product?->name ?? 'Produk';
+                            $pName = str_replace('IN:', '', str_replace('OUT:', '', $pName));
+                            $pName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $pName);
+                            $pName = str_replace('📦 ', '', $pName);
+                            $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
+                            $storage = $item->storage ?? '-';
+                            $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
+                            $price = abs(($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0));
+                        @endphp
+                        <tr class="border-b border-gray-100">
+                            <td class="py-3">
+                                <div class="text-[10px] text-gray-500 font-mono font-bold">{{ $item->pivot->imei && $item->pivot->imei !== '-' ? $item->pivot->imei : '-' }}</div>
+                            </td>
+                            <td class="py-3">
+                                <div class="font-bold uppercase">{{ $dbBrand }} - {{ $pName }}</div>
+                                <div class="text-[10px] text-gray-500">Storage: {{ $storage }} | Kondisi: {{ $kondisi }}</div>
+                            </td>
+                            <td class="py-3 text-right font-bold">
+                                @if(isset($hidePriceIndices[$idx]))
+                                    -
+                                @elseif(isset($bundleTotals[$idx]))
+                                    {{ number_format($bundleTotals[$idx], 0, ',', '.') }}
+                                @else
+                                    {{ number_format($price, 0, ',', '.') }}
+                                @endif
+                            </td>
+                            <td class="py-3 text-center">1</td>
+                            <td class="py-3 text-right font-bold">
+                                @if(isset($hidePriceIndices[$idx]))
+                                    -
+                                @elseif(isset($bundleTotals[$idx]))
+                                    {{ number_format($bundleTotals[$idx], 0, ',', '.') }}
+                                @else
+                                    {{ number_format($price, 0, ',', '.') }}
+                                @endif
+                            </td>
+                        </tr>
+                    @else
                         @php
                             $nonHpName = $item->product?->name ?? $item->name;
-                            $nonHpName = str_ireplace('paket bundling', 'Paket Promo', $nonHpName);
+                            $nonHpName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $nonHpName);
+                            $nonHpName = str_replace('📦 ', '', $nonHpName);
                             $price = abs(($item->selling_price ?? 0) - ($item->item_discount ?? 0));
                         @endphp
                         <tr class="border-b border-gray-100">
@@ -155,24 +193,27 @@
                                 <div class="text-[10px] text-gray-500">AKSESORIS</div>
                             </td>
                             <td class="py-3 text-right font-bold">
-                                @if($isBundleTrx)
-                                    {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                                @if(isset($hidePriceIndices[$idx]))
+                                    -
+                                @elseif(isset($bundleTotals[$idx]))
+                                    {{ number_format($bundleTotals[$idx], 0, ',', '.') }}
                                 @else
                                     {{ number_format($price, 0, ',', '.') }}
                                 @endif
                             </td>
                             <td class="py-3 text-center">{{ $item->quantity }}</td>
                             <td class="py-3 text-right font-bold">
-                                @if($isBundleTrx)
-                                    {{ $itemIdx === 0 ? number_format($gTotalVal, 0, ',', '.') : '-' }}
+                                @if(isset($hidePriceIndices[$idx]))
+                                    -
+                                @elseif(isset($bundleTotals[$idx]))
+                                    {{ number_format($bundleTotals[$idx], 0, ',', '.') }}
                                 @else
                                     {{ number_format($price * $item->quantity, 0, ',', '.') }}
                                 @endif
                             </td>
                         </tr>
-                        @php $itemIdx++; @endphp
-                    @endforeach
-                @endif
+                    @endif
+                @endforeach
             </tbody>
         </table>
 

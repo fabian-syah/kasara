@@ -250,8 +250,8 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template v-if="allReceiptItems.length > 0">
-                                            <tr v-for="(item, index) in allReceiptItems" :key="index"
+                                        <template v-if="processedReceiptItems.length > 0">
+                                            <tr v-for="(item, index) in processedReceiptItems" :key="index"
                                                 class="border-b border-neutral-300"
                                                 :class="index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'">
                                                 <td class="py-4 px-3 align-middle text-left">
@@ -263,7 +263,7 @@
 
                                                 <td class="py-4 px-3 align-middle">
                                                     <div class="font-bold text-neutral-800 text-[11px] uppercase">
-                                                        {{ item.is_hp ? ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand)) || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo') }}
+                                                        {{ item.is_hp ? ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand)) || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
                                                     </div>
                                                     <div class="text-[8px] text-neutral-500 font-bold mt-0.5">
                                                         <span v-if="item.is_hp">
@@ -280,8 +280,9 @@
 
                                                 <td
                                                     class="py-4 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
-                                                    <span v-if="transaction.is_bundle">
-                                                        {{ index === 0 ? formatNumber(Math.abs(calculatedGrandTotal)) : '-' }}
+                                                    <span v-if="item._hidePrice">-</span>
+                                                    <span v-else-if="item._bundlePrice !== null">
+                                                        {{ formatNumber(Math.abs(item._bundlePrice)) }}
                                                     </span>
                                                     <span v-else>
                                                         {{ formatNumber(Math.abs((item.price || item.selling_price || 0) -
@@ -295,8 +296,9 @@
 
                                                 <td
                                                     class="py-4 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
-                                                    <span v-if="transaction.is_bundle">
-                                                        {{ index === 0 ? formatNumber(Math.abs(calculatedGrandTotal)) : '-' }}
+                                                    <span v-if="item._hidePrice">-</span>
+                                                    <span v-else-if="item._bundlePrice !== null">
+                                                        {{ formatNumber(Math.abs(item._bundlePrice)) }}
                                                     </span>
                                                     <span v-else>
                                                         {{ formatNumber(Math.abs(item.qty * ((item.price ||
@@ -307,7 +309,7 @@
                                             </tr>
                                         </template>
                                         <!-- Filler rows (hidden on print) -->
-                                        <tr v-for="n in Math.max(0, 2 - (allReceiptItems.length || 0))"
+                                        <tr v-for="n in Math.max(0, 2 - (processedReceiptItems.length || 0))"
                                             :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
                                             <td class="py-3 px-3">&nbsp;</td>
                                             <td colspan="4"></td>
@@ -718,6 +720,51 @@ const allReceiptItems = computed(() => {
             });
         });
     }
+
+    return list;
+});
+
+// Dynamically group and aggregate bundle item prices based on their notes content
+const processedReceiptItems = computed(() => {
+    const baseList = allReceiptItems.value;
+    
+    // 1. Group items by their specific bundle notes
+    const bundleGroups = {};
+    baseList.forEach((it, idx) => {
+        const rawNotes = (it.notes || it.pivot?.notes || it.pivot_notes || '').toLowerCase();
+        // Match notes containing "paket" or "bundle" (case insensitive)
+        if (rawNotes.includes('paket') || rawNotes.includes('bundle')) {
+            const groupKey = it.notes || it.pivot?.notes || it.pivot_notes;
+            if (!bundleGroups[groupKey]) {
+                bundleGroups[groupKey] = [];
+            }
+            bundleGroups[groupKey].push({ item: it, index: idx });
+        }
+    });
+
+    // 2. Process each group to aggregate prices on the first item and hide on others
+    const list = baseList.map(it => ({ ...it, _bundlePrice: null, _hidePrice: false }));
+
+    Object.keys(bundleGroups).forEach(key => {
+        const group = bundleGroups[key];
+        if (group.length > 0) {
+            // Sum the final selling price of all components in this bundle group
+            const totalBundlePrice = group.reduce((sum, g) => {
+                const price = Math.abs((g.item.price || g.item.selling_price || 0) - (g.item.discount || g.item.item_discount || 0));
+                return sum + (price * (g.item.qty || 1));
+            }, 0);
+
+            // Set aggregate price only on the FIRST item of this group
+            const firstIdx = group[0].index;
+            list[firstIdx]._bundlePrice = totalBundlePrice;
+
+            // Hide the individual component prices on ALL subsequent items of the group
+            for (let i = 1; i < group.length; i++) {
+                const idx = group[i].index;
+                list[idx]._hidePrice = true;
+            }
+        }
+    });
 
     return list;
 });
