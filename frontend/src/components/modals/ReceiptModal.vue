@@ -56,7 +56,7 @@
                             <div class="flex items-center gap-5 mb-4 mt-6 px-6">
                                 <!-- Giant Floating Logo Left -->
                                 <div class="shrink-0">
-                                    <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 print:w-32 print:h-32 object-contain" />
+                                    <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 print:w-20 print:h-20 object-contain" />
                                 </div>
                                 <!-- Branch & Social Info -->
                                 <div class="flex-1">
@@ -960,21 +960,21 @@ const processedReceiptItems = computed(() => {
         overflow: visible !important;
     }
     
-    /* Typography scaling for print to make it readable on A4 without zoom layout bugs */
+    /* Typography scaling for print - moderately scaled to keep high legibility without overflowing */
     .nota-paper .text-\[6px\] { font-size: 8px !important; }
-    .nota-paper .text-\[7px\] { font-size: 10px !important; }
-    .nota-paper .text-\[8px\] { font-size: 11px !important; }
-    .nota-paper .text-\[9px\] { font-size: 12px !important; }
-    .nota-paper .text-\[10px\] { font-size: 13px !important; }
-    .nota-paper .text-\[11px\] { font-size: 14px !important; }
-    .nota-paper .text-xs { font-size: 0.9rem !important; }
-    .nota-paper .text-sm { font-size: 1rem !important; }
-    .nota-paper .text-base { font-size: 1.15rem !important; }
-    .nota-paper .text-lg { font-size: 1.25rem !important; }
-    .nota-paper .text-xl { font-size: 1.4rem !important; }
-    .nota-paper .text-2xl { font-size: 1.7rem !important; }
-    .nota-paper .text-3xl { font-size: 2rem !important; }
-    .nota-paper svg { transform: scale(1.2); }
+    .nota-paper .text-\[7px\] { font-size: 9px !important; }
+    .nota-paper .text-\[8px\] { font-size: 10px !important; }
+    .nota-paper .text-\[9px\] { font-size: 11px !important; }
+    .nota-paper .text-\[10px\] { font-size: 11.5px !important; }
+    .nota-paper .text-\[11px\] { font-size: 12px !important; }
+    .nota-paper .text-xs { font-size: 0.85rem !important; }
+    .nota-paper .text-sm { font-size: 0.95rem !important; }
+    .nota-paper .text-base { font-size: 1.05rem !important; }
+    .nota-paper .text-lg { font-size: 1.15rem !important; }
+    .nota-paper .text-xl { font-size: 1.25rem !important; }
+    .nota-paper .text-2xl { font-size: 1.45rem !important; }
+    .nota-paper .text-3xl { font-size: 1.75rem !important; }
+    .nota-paper svg { transform: scale(1.1); }
 
     .nota-paper>.relative.z-10 {
         flex: 1 !important;
@@ -983,20 +983,21 @@ const processedReceiptItems = computed(() => {
         height: 100% !important;
     }
 
+    /* Tightly optimize margins and paddings to squeeze onto a single page */
     .nota-paper .mb-6 {
-        margin-bottom: 1.75rem !important;
+        margin-bottom: 0.75rem !important;
     }
 
     .nota-paper .mb-5 {
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 0.6rem !important;
     }
 
     .nota-paper .mb-4 {
-        margin-bottom: 1.25rem !important;
+        margin-bottom: 0.5rem !important;
     }
 
     .nota-paper .mt-6 {
-        margin-top: 2rem !important;
+        margin-top: 0.75rem !important;
     }
 
     .nota-paper .mt-8 {
@@ -1004,25 +1005,34 @@ const processedReceiptItems = computed(() => {
     }
 
     .nota-paper .gap-6 {
-        gap: 1rem !important;
-    }
-
-    .nota-paper .gap-4 {
         gap: 0.75rem !important;
     }
 
+    .nota-paper .gap-4 {
+        gap: 0.5rem !important;
+    }
+
     .nota-paper .py-4 {
-        padding-top: 0.75rem !important;
-        padding-bottom: 0.75rem !important;
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
     }
 
     .nota-paper .py-3 {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
     }
 
     .nota-paper .p-4 {
-        padding: 0.75rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .nota-paper .p-6 {
+        padding: 0.6rem !important;
+    }
+
+    .nota-paper .px-6 {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
     }
 
     .nota-paper img {
