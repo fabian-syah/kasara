@@ -761,7 +761,7 @@
             <!-- Left: Notes and Warranty -->
             <td class="split-col-left">
                 <div style="margin-bottom: 12px;">
-                    <div class="ribbon-header">Catatan & Alasan</div>
+                    <div class="ribbon-header">Catatan</div>
                     <div class="ribbon-body">
                         {{ $transaction->notes ?? ($transaction->reason ?? 'Tidak ada catatan tambahan.') }}
                     </div>
