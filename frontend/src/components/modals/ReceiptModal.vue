@@ -56,7 +56,7 @@
                             <div class="flex items-center gap-5 mb-4 mt-6 px-6">
                                 <!-- Giant Floating Logo Left -->
                                 <div class="shrink-0">
-                                    <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 print:w-28 print:h-28 object-contain" />
+                                    <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 print:w-32 print:h-32 object-contain" />
                                 </div>
                                 <!-- Branch & Social Info -->
                                 <div class="flex-1">
@@ -849,15 +849,15 @@ const allReceiptItems = computed(() => {
         border: none !important;
         box-shadow: none !important;
         max-width: none !important;
-        padding: 25mm 15mm !important;
-        margin: 0 !important;
+        padding: 10mm 10mm !important;
+        margin: 0 auto !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        zoom: 1.35 !important;
+        zoom: 1.25 !important;
         transform: none !important;
-        width: 100% !important;
-        height: 100% !important;
+        width: 80% !important;
+        height: 80% !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
