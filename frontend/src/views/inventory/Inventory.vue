@@ -521,6 +521,53 @@ function changePage(page) {
   }
 }
 
+/**
+ * Helper to filter incoming real-time stock events based on user location context
+ * and active UI location filters.
+ */
+const shouldProcessEchoEvent = (item) => {
+  if (!item) return false;
+
+  // Extract placement/branch/shop info from the event payload
+  const itemBranchId = item.branch_id || (item.placement_type === 'branch' ? item.placement_id : null);
+  const itemShopId = item.online_shop_id || (item.placement_type === 'online_shop' ? item.placement_id : null);
+  const itemWarehouseId = item.warehouse_id || (item.placement_type === 'warehouse' ? item.placement_id : null);
+  const itemDistributorId = item.distributor_id || (item.placement_type === 'distributor' ? item.placement_id : null);
+
+  // 1. Active Specific UI Location Filter Context
+  if (selectedLocationKey.value && selectedLocationKey.value !== 'all') {
+    if (effectiveBranchId.value && String(itemBranchId) !== String(effectiveBranchId.value)) return false;
+    if (effectiveOnlineShopId.value && String(itemShopId) !== String(effectiveOnlineShopId.value)) return false;
+    if (effectiveWarehouseId.value && String(itemWarehouseId) !== String(effectiveWarehouseId.value)) return false;
+    if (effectiveDistributorId.value && String(itemDistributorId) !== String(effectiveDistributorId.value)) return false;
+    
+    // Filter mismatched empty mappings
+    if (effectiveBranchId.value && !itemBranchId) return false;
+    if (effectiveOnlineShopId.value && !itemShopId) return false;
+    if (effectiveWarehouseId.value && !itemWarehouseId) return false;
+    if (effectiveDistributorId.value && !itemDistributorId) return false;
+
+    return true;
+  }
+
+  // 2. Restrict by Global Context / User Assigned Assignment
+  const role = (authStore.userRole || '').toLowerCase();
+  const isPrivileged = ['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+  
+  // Privileged viewing "All Locations" receives all events
+  if (isPrivileged) return true;
+
+  // Standard staff are locked strictly to their defined assignments
+  const userBranchId = authStore.user?.branch_id;
+  const userShopId = authStore.user?.online_shop_id;
+
+  if (userBranchId && String(itemBranchId) !== String(userBranchId)) return false;
+  if (userShopId && String(itemShopId) !== String(userShopId)) return false;
+
+  return true;
+};
+
+
 
 
 const branches = ref([]);
@@ -544,12 +591,19 @@ onMounted(() => {
   if (window.Echo) {
     window.Echo.channel('inventory')
       .listen('.StockInEvent', (e) => {
+        // Limit real-time ingestion to the active or allowed location
+        if (!shouldProcessEchoEvent(e.product)) return;
+
         inventoryStore.pushNewProduct(e.product);
         toast.success(`Stok baru masuk: ${e.product.product?.name || 'Item'}`);
       });
 
     window.Echo.channel('stock-out')
       .listen('.StockOutEvent', (e) => {
+        // Limit stock out events to match selection context
+        const affectedItem = e.stockOut?.product || e.stockOut;
+        if (affectedItem && !shouldProcessEchoEvent(affectedItem)) return;
+
         inventoryStore.handleStockOut(e.stockOut);
       });
   }
@@ -1890,57 +1944,7 @@ async function exportInventory() {
   }
 }
 
-.checkbox {
-  width: 1.375rem;
-  height: 1.375rem;
-  border-radius: 0.375rem;
-  border: 2.5px solid rgb(100, 116, 139);
-  /* slate-500 - more visible */
-  background-color: transparent;
-  cursor: pointer;
-  transition: all 0.2s;
-  appearance: none;
-  position: relative;
-  flex-shrink: 0;
-}
 
-.checkbox:hover {
-  border-color: rgb(var(--color-primary-400));
-  background-color: rgba(var(--color-primary-500), 0.1);
-}
-
-.checkbox:checked {
-  background-color: rgb(var(--color-primary-500));
-  border-color: rgb(var(--color-primary-500));
-}
-
-.checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 6px;
-  top: 2px;
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2.5px 2.5px 0;
-  transform: rotate(45deg);
-}
-
-.checkbox:indeterminate {
-  background-color: rgb(var(--color-primary-500));
-  border-color: rgb(var(--color-primary-500));
-}
-
-.checkbox:indeterminate::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 8px;
-  width: 12px;
-  height: 2.5px;
-  background: white;
-  border-radius: 1px;
-}
 
 .label {
   display: block;
