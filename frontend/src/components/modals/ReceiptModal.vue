@@ -941,9 +941,10 @@ const processedReceiptItems = computed(() => {
         
         width: 210mm !important;
         max-width: 100% !important;
-        height: 280mm !important; /* Universal safe height: Pins footer & absorbs all mobile DPI inflation errors */
-        max-height: 280mm !important;
-        overflow: hidden !important;
+        height: auto !important; /* Fluid auto height to 100% guarantee 1-page fitting regardless of native browser margins */
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         
@@ -968,10 +969,10 @@ const processedReceiptItems = computed(() => {
     .nota-paper svg { transform: scale(1.05); }
 
     .nota-paper>.relative.z-10 {
-        flex: 1 !important;
+        flex: none !important;
         display: flex !important;
         flex-direction: column !important;
-        height: 100% !important;
+        height: auto !important;
     }
 
     /* Tightly optimize margins and paddings to squeeze onto a single page */
@@ -992,7 +993,7 @@ const processedReceiptItems = computed(() => {
     }
 
     .nota-paper .mt-8 {
-        margin-top: auto !important;
+        margin-top: 1.5rem !important; /* Beautiful, natural visual separation in dynamic fluid layouts */
     }
 
     .nota-paper .gap-6 {
