@@ -274,18 +274,10 @@
                                                         <span v-if="item.is_bundle_child" class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
                                                         <span>
                                                             {{ item.is_hp ? ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand)) || 'PSTORE UNIT') + ' - ' : '' }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div v-if="!item.is_bundle_header" class="text-[8px] text-neutral-500 font-bold mt-0.5" :class="{'pl-7': item.is_bundle_child}">
-                                                        <span v-if="item.is_hp">
-                                                            Storage: {{ item.storage || '-' }} | Kondisi: {{
-                                                                item.condition === 'new' ? 'Baru' : (item.condition ===
-                                                                    'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ?
-                                                                        'Second' : '-')) }}
-                                                        </span>
-                                                        <span v-else>
-                                                            AKSESORIS
+                                                            <template v-if="item.is_hp">
+                                                                {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
+                                                                {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
+                                                            </template>
                                                         </span>
                                                     </div>
                                                 </td>

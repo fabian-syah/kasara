@@ -795,15 +795,20 @@
                                 $pName = str_ireplace(['paket bundling', 'paket bundling '], 'Paket Promo', $pName);
                                 $pName = str_replace('📦 ', '', $pName);
                                 $dbBrand = $item->product?->brandRelation?->name ?? $item->product?->brand ?? 'PSTORE UNIT';
-                                $storage = $item->storage ?? '-';
-                                $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : 'Second');
+                                $storage = $item->storage ?? '';
+                                $kondisi = $item->condition === 'new' ? 'Baru' : ($item->condition === 'ex_ibox' ? 'Ex iBox' : ($item->condition === 'second' ? 'Second' : ''));
+                                
+                                $detailStr = '';
+                                if ($storage && $storage !== '-') {
+                                    $detailStr .= ' ' . $storage;
+                                }
+                                if ($kondisi && $kondisi !== '-') {
+                                    $detailStr .= ' ' . $kondisi;
+                                }
                             @endphp
                             <div style="font-weight: 900; color: #374151; text-transform: uppercase; @if($item->is_bundle_child) padding-left: 12px; font-weight: 700; color: #4b5563; @endif">
                                 @if($item->is_bundle_child)<span style="color: #4b5563; margin-right: 4px; font-weight: 900;">*</span>@endif
-                                {{ $dbBrand }} - {{ $pName }}
-                            </div>
-                            <div style="font-size: 8px; color: #6b7280; margin-top: 2px; @if($item->is_bundle_child) padding-left: 20px; @endif">
-                                Storage: {{ $storage }} | Kondisi: {{ $kondisi }}
+                                {{ $dbBrand }} - {{ $pName }}{{ $detailStr }}
                             </div>
                         @else
                             @php
@@ -814,9 +819,6 @@
                             <div style="font-weight: 900; color: #374151; text-transform: uppercase; @if($item->is_bundle_child) padding-left: 12px; font-weight: 700; color: #4b5563; @endif">
                                 @if($item->is_bundle_child)<span style="color: #4b5563; margin-right: 4px; font-weight: 900;">*</span>@endif
                                 {{ $nonHpName }}
-                            </div>
-                            <div style="font-size: 8px; color: #6b7280; margin-top: 2px; @if($item->is_bundle_child) padding-left: 20px; @endif">
-                                AKSESORIS
                             </div>
                         @endif
                     </td>
