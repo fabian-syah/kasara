@@ -1,5 +1,6 @@
 <template>
-    <transition name="fade">
+    <Teleport to="body">
+        <transition name="fade">
         <div v-if="isOpen" id="receipt-modal-print-wrapper"
             class="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white"
             @click.self="close">
@@ -509,6 +510,7 @@
             </div>
         </div>
     </transition>
+    </Teleport>
 </template>
 
 <script setup>
@@ -885,22 +887,19 @@ const processedReceiptItems = computed(() => {
         size: A4 portrait;
     }
 
-    html,
-    body,
-    #app,
-    #app>* {
-        visibility: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
+    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs */
+    body > :not(#receipt-modal-print-wrapper) {
+        display: none !important;
     }
 
     html,
     body {
-        height: auto !important;
-        min-height: 100% !important;
+        height: 100% !important;
         width: 100% !important;
-        overflow: visible !important;
-        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: hidden !important;
     }
 
     #receipt-modal-print-wrapper {
@@ -909,66 +908,63 @@ const processedReceiptItems = computed(() => {
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        height: auto !important;
-        min-height: 100% !important;
+        height: 100% !important;
         background: white !important;
         z-index: 9999999 !important;
         padding: 0 !important;
         margin: 0 !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         box-sizing: border-box !important;
     }
 
-    #receipt-modal-print-wrapper,
-    #receipt-modal-print-wrapper * {
-        visibility: visible !important;
-    }
-
-    #receipt-modal-print-wrapper>div,
     #receipt-content {
         display: block !important;
-        height: auto !important;
-        min-height: 100% !important;
+        height: 100% !important;
+        width: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
         box-sizing: border-box !important;
+        overflow: hidden !important;
     }
 
+    /* CRITICAL FIX: Lock to exact A4 dimensions with rigid max bounding to GUARANTEE A SINGLE PAGE across all platforms */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        max-width: none !important;
-        padding: 5mm 10mm !important;
+        padding: 4mm 9mm !important; /* Slightly tightened internal print padding */
         margin: 0 !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
-        zoom: 1 !important;
-        transform: none !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 100% !important;
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
-        overflow: visible !important;
+        
+        width: 210mm !important;
+        height: 297mm !important;
+        max-width: 210mm !important;
+        max-height: 297mm !important;
+        overflow: hidden !important;
+        
+        transform: none !important;
+        zoom: 1 !important;
     }
     
-    /* Typography scaling for print - moderately scaled to keep high legibility without overflowing */
-    .nota-paper .text-\[6px\] { font-size: 8px !important; }
-    .nota-paper .text-\[7px\] { font-size: 9px !important; }
-    .nota-paper .text-\[8px\] { font-size: 10px !important; }
-    .nota-paper .text-\[9px\] { font-size: 11px !important; }
-    .nota-paper .text-\[10px\] { font-size: 11.5px !important; }
-    .nota-paper .text-\[11px\] { font-size: 12px !important; }
-    .nota-paper .text-xs { font-size: 0.85rem !important; }
-    .nota-paper .text-sm { font-size: 0.95rem !important; }
-    .nota-paper .text-base { font-size: 1.05rem !important; }
-    .nota-paper .text-lg { font-size: 1.15rem !important; }
-    .nota-paper .text-xl { font-size: 1.25rem !important; }
-    .nota-paper .text-2xl { font-size: 1.45rem !important; }
-    .nota-paper .text-3xl { font-size: 1.75rem !important; }
-    .nota-paper svg { transform: scale(1.1); }
+    /* Typography scaling for print - tightly optimized to prevent expansion/overflow on mobile/desktop */
+    .nota-paper .text-\[6px\] { font-size: 7.5px !important; }
+    .nota-paper .text-\[7px\] { font-size: 8.5px !important; }
+    .nota-paper .text-\[8px\] { font-size: 9px !important; }
+    .nota-paper .text-\[9px\] { font-size: 10px !important; }
+    .nota-paper .text-\[10px\] { font-size: 11px !important; }
+    .nota-paper .text-\[11px\] { font-size: 11.5px !important; }
+    .nota-paper .text-xs { font-size: 0.8rem !important; }
+    .nota-paper .text-sm { font-size: 0.9rem !important; }
+    .nota-paper .text-base { font-size: 1rem !important; }
+    .nota-paper .text-lg { font-size: 1.1rem !important; }
+    .nota-paper .text-xl { font-size: 1.2rem !important; }
+    .nota-paper .text-2xl { font-size: 1.4rem !important; }
+    .nota-paper .text-3xl { font-size: 1.7rem !important; }
+    .nota-paper svg { transform: scale(1.05); }
 
     .nota-paper>.relative.z-10 {
         flex: 1 !important;
@@ -979,19 +975,19 @@ const processedReceiptItems = computed(() => {
 
     /* Tightly optimize margins and paddings to squeeze onto a single page */
     .nota-paper .mb-6 {
-        margin-bottom: 0.75rem !important;
-    }
-
-    .nota-paper .mb-5 {
         margin-bottom: 0.6rem !important;
     }
 
-    .nota-paper .mb-4 {
+    .nota-paper .mb-5 {
         margin-bottom: 0.5rem !important;
     }
 
+    .nota-paper .mb-4 {
+        margin-bottom: 0.4rem !important;
+    }
+
     .nota-paper .mt-6 {
-        margin-top: 0.75rem !important;
+        margin-top: 0.6rem !important;
     }
 
     .nota-paper .mt-8 {
