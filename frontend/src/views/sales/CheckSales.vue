@@ -1,5 +1,16 @@
 <template>
-    <div class="space-y-6">
+    <!-- MAINTENANCE VIEW -->
+    <div v-if="isMaintenance" class="flex flex-col items-center justify-center min-h-[70vh] text-center py-20 px-4">
+        <div class="w-20 h-20 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-3xl border-2 border-amber-100 dark:border-amber-500/20 flex items-center justify-center mb-8 relative shadow-xl shadow-amber-500/5 animate-pulse">
+            <Wrench :size="36" stroke-width="2" />
+        </div>
+        <h2 class="text-3xl font-black text-text-primary tracking-tight mb-4">Sedang Maintenance / Debugging</h2>
+        <p class="text-text-secondary max-w-md text-base font-medium leading-relaxed mx-auto">
+            Kami sedang melakukan pemeliharaan dan pembaharuan sistem pada halaman Cek Penjualan. Harap tunggu beberapa saat, halaman ini akan segera kembali beroperasi normal.
+        </p>
+    </div>
+
+    <div v-else class="space-y-6">
         <!-- Header & Filters -->
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
@@ -651,7 +662,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
@@ -661,6 +672,9 @@ import { useEscapeKey } from '../../composables/useEscapeKey'
 import { useAuthStore } from '../../store/auth'
 
 const authStore = useAuthStore()
+
+// GANTI KE false UNTUK MATIKAN MAINTENANCE DAN MENGEMBALIKAN KE NORMAL
+const isMaintenance = ref(true)
 const loading = ref(false)
 const exportLoading = ref(false)
 const selectedPeriod = ref('daily')
