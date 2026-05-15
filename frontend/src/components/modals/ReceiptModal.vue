@@ -395,8 +395,6 @@
                                             <div
                                                 class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
                                                 Dibayarkan</div>
-                                            <div class="text-[6px] text-neutral-400 font-bold leading-none mt-1">(Cash /
-                                                Debit)</div>
                                         </div>
                                         <!-- Red Total Part -->
                                         <div class="flex-1 flex items-center justify-end pr-4 text-white"
