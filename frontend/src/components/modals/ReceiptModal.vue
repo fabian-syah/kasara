@@ -452,33 +452,7 @@
                                 </div>
                             </div>
 
-                            <!-- ===== PREMIUM STRIPED FOOTER BAR ===== -->
-                            <div class="relative h-6 -mx-6 -mb-6 print:-mx-6 print:-mb-6 mt-8 flex items-center justify-center overflow-hidden"
-                                style="background-color: #0a0a0a !important;">
-                                <!-- Left Slanted Accent (SVG for print compatibility) -->
-                                <div class="absolute left-0 top-0 h-full w-[25%]" style="overflow: hidden;">
-                                    <svg class="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none"
-                                        style="display: block;">
-                                        <polygon points="0,0 80,0 100,24 0,24" fill="#dc2626" />
-                                    </svg>
-                                </div>
-                                <!-- Right Slanted Accent (SVG for print compatibility) -->
-                                <div class="absolute right-0 top-0 h-full w-[25%]" style="overflow: hidden;">
-                                    <svg class="w-full h-full" viewBox="0 0 100 24" preserveAspectRatio="none"
-                                        style="display: block;">
-                                        <polygon points="20,0 100,0 100,24 0,24" fill="#dc2626" />
-                                    </svg>
-                                </div>
-                                <!-- Dots in Center -->
-                                <div class="flex gap-1.5 z-10 select-none">
-                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ffffff !important;">
-                                    </div>
-                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #dc2626 !important;">
-                                    </div>
-                                    <div class="w-1.5 h-1.5 rounded-full" style="background-color: #ffffff !important;">
-                                    </div>
-                                </div>
-                            </div>
+
                         </div>
                     </div>
                 </div>
