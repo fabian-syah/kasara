@@ -899,40 +899,39 @@ const processedReceiptItems = computed(() => {
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
-        overflow: hidden !important;
+        overflow: visible !important;
     }
 
-    #receipt-modal-print-wrapper {
+    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
+    #receipt-modal-print-wrapper,
+    #receipt-modal-print-wrapper > div,
+    #receipt-content {
         display: block !important;
-        position: absolute !important;
+        position: relative !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
-        height: 100% !important;
+        height: auto !important;
+        min-height: 100% !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
         background: white !important;
         z-index: 9999999 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
+        flex: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        transform: none !important;
     }
 
-    #receipt-content {
-        display: block !important;
-        height: 100% !important;
-        width: 100% !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-    }
-
-    /* CRITICAL FIX: Lock to exact A4 dimensions with rigid max bounding to GUARANTEE A SINGLE PAGE across all platforms */
+    /* CRITICAL FIX: Direct fitting to A4 physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        padding: 4mm 9mm !important; /* Slightly tightened internal print padding */
-        margin: 0 !important;
+        padding: 4mm 8mm !important; /* Compressed internal print padding */
+        margin: 0 auto !important;
         color: black !important;
         background: white !important;
         border-radius: 0 !important;
@@ -941,10 +940,10 @@ const processedReceiptItems = computed(() => {
         flex-direction: column !important;
         
         width: 210mm !important;
-        height: 297mm !important;
-        max-width: 210mm !important;
-        max-height: 297mm !important;
-        overflow: hidden !important;
+        max-width: 100% !important;
+        min-height: 296mm !important;
+        height: auto !important;
+        overflow: visible !important;
         
         transform: none !important;
         zoom: 1 !important;
