@@ -980,7 +980,7 @@ const summaryStats = computed(() => {
         let total = 0;
         const discount = parseFloat(item.total_discount) || 0;
         if (item.items && item.items.length > 0) {
-            total = item.items.reduce((sum, detail) => sum + (parseFloat(detail.price) * parseFloat(detail.qty || 1)), 0);
+            total = item.items.reduce((sum, detail) => sum + (Math.abs(parseFloat(detail.price)) * parseFloat(detail.qty || 1)), 0);
         } else {
             total = Math.abs(parseFloat(item.original_price || item.total_amount || item.grand_total) || 0);
         }
