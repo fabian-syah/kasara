@@ -125,8 +125,8 @@ const searchQuery = ref("");
 const debouncedSearch = ref("");
 const selectedCategory = ref('');
 const selectedBrand = ref('');
-const selectedCondition = ref('all');
-const selectedStockStatus = ref('all');
+const selectedCondition = 'all'; // Defaulted
+const selectedStockStatus = 'all'; // Defaulted
 // Month Filter
 const currentDate = new Date();
 const currentMonth = currentDate.getMonth() + 1;
@@ -333,22 +333,23 @@ async function loadInventory(page = 1) {
       page: page,
       search: debouncedSearch.value,
       type: activeTab.value,
-      branch_id: selectedLocationKey.value?.startsWith('branch_') ? selectedLocationValue.value : undefined,
-      online_shop_id: selectedLocationKey.value?.startsWith('shop_') ? selectedLocationValue.value : undefined,
-      warehouse_id: selectedLocationKey.value?.startsWith('warehouse_') ? selectedLocationValue.value : undefined,
-      distributor_id: selectedLocationKey.value?.startsWith('distributor_') ? selectedLocationValue.value : undefined,
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
-      condition: selectedCondition.value !== 'all' ? selectedCondition.value : undefined,
-      stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : undefined,
-      status: selectedStockStatus.value === 'all' ? undefined : selectedStockStatus.value,
+      month: selectedMonth.value?.month,
+      year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
       signal: inventoryController.signal
     };
 
+    if (props.isEmbedded) {
+      if (props.branchId) params.branch_id = props.branchId;
+      if (props.onlineShopId) params.online_shop_id = props.onlineShopId;
+    }
+
     if (props.pageMode === 'online_shop') {
       params.placement_type = 'online_shop';
+      if (props.onlineShopId) params.online_shop_id = props.onlineShopId;
     } else if (props.pageMode === 'warehouse') {
       params.placement_type = 'warehouse';
     } else if (props.pageMode === 'distributor') {
@@ -502,7 +503,7 @@ const computedLocations = computed(() => {
 });
 
 // Watchers
-watch([debouncedSearch, selectedCondition, selectedStockStatus, filterProduct, filterCapacity, filterBrand, selectedLocationKey], () => {
+watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, selectedMonth], () => {
   loadInventory(1);
 });
 
@@ -889,13 +890,11 @@ async function exportInventory() {
     const params = new URLSearchParams({
       type: activeTab.value,
       search: debouncedSearch.value,
-      branch_id: effectiveBranchId.value || '',
-      online_shop_id: effectiveOnlineShopId.value || '',
-      warehouse_id: effectiveWarehouseId.value || '',
+      month: selectedMonth.value?.month || '',
+      year: selectedMonth.value?.year || '',
       brand: filterBrand.value.join(','),
       product: filterProduct.value.join(','),
-      condition: selectedCondition.value !== 'all' ? selectedCondition.value : '',
-      stock_status: selectedStockStatus.value !== 'all' ? selectedStockStatus.value : '',
+      capacity: filterCapacity.value.join(','),
     });
 
     if (authStore.user?.distributor_id && props.pageMode === 'distributor') {
@@ -1021,43 +1020,6 @@ async function exportInventory() {
         <!-- Filters Wrapper -->
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
 
-          <div class="w-full md:w-56 relative" v-if="!isEmbedded && canFilterBranch && pageMode !== 'distributor'" ref="locationDropdownRef">
-            <label for="location-filter" class="sr-only">Filter Lokasi</label>
-            <button @click="isLocationDropdownOpen = !isLocationDropdownOpen" 
-              class="input w-full bg-surface-800 flex items-center justify-between text-left">
-              <span class="truncate">{{ selectedLocationLabel }}</span>
-              <ChevronDown :size="16" class="transition-transform duration-200" :class="{ 'rotate-180': isLocationDropdownOpen }" />
-            </button>
-            
-            <div v-if="isLocationDropdownOpen" 
-              class="absolute z-[60] mt-2 w-full bg-surface-800 border border-surface-700 rounded-xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2 overflow-hidden">
-              <div class="relative mb-2">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="14" />
-                <input v-model="locationSearchQuery" type="text" placeholder="Cari lokasi..." 
-                  class="input w-full pl-9 py-1.5 text-sm bg-surface-900 border-none focus:ring-1 focus:ring-primary-500" @click.stop />
-              </div>
-              <div class="max-h-64 overflow-y-auto space-y-0.5 custom-scrollbar">
-                <button @click="selectLocation('all')" 
-                  class="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-700 transition-colors text-sm"
-                  :class="{ 'bg-primary-500 text-white': selectedLocationKey === 'all' }">
-                  Semua Lokasi
-                </button>
-                <button v-for="loc in filteredLocations" :key="loc.key" @click="selectLocation(loc.key)" 
-                  class="w-full text-left px-3 py-2 rounded-lg hover:bg-surface-700 transition-colors text-sm flex items-center gap-2"
-                  :class="{ 'bg-primary-500 text-white': selectedLocationKey === loc.key }">
-                  <component :is="loc.icon" :size="14" :class="selectedLocationKey === loc.key ? 'text-white' : 'text-text-secondary'" />
-                  <span class="truncate flex flex-col">
-                    <span class="font-medium">{{ loc.label }}</span>
-                    <span class="text-[10px] uppercase tracking-wider opacity-70">{{ loc.type === 'branch' ? 'Cabang' : (loc.type === 'online_shop' ? 'Toko' : (loc.type === 'distributor' ? 'Distributor' : 'Gudang')) }}</span>
-                  </span>
-                </button>
-                <div v-if="filteredLocations.length === 0" class="px-3 py-4 text-center text-text-secondary text-sm">
-                  Tidak ada lokasi ditemukan
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Month Filter -->
           <div class="w-full md:w-48">
             <label for="month-filter" class="sr-only">Filter Bulan</label>
@@ -1068,34 +1030,6 @@ async function exportInventory() {
             </select>
           </div>
 
-          <!-- Condition Filter -->
-          <div class="w-full md:w-32" v-if="activeTab === 'hp'">
-            <label for="condition-filter" class="sr-only">Filter Kondisi</label>
-            <select id="condition-filter" v-model="selectedCondition" class="input w-full bg-surface-800">
-              <option value="all">Kondisi</option>
-              <option value="new">Baru</option>
-              <option value="used">Bekas</option>
-              <option value="ex_ibox">Ex iBox</option>
-            </select>
-          </div>
-
-          <!-- Stock Status Filter -->
-          <div class="w-full md:w-32">
-            <label for="stock-status-filter" class="sr-only">Filter Status Stok</label>
-            <select id="stock-status-filter" v-model="selectedStockStatus" class="input w-full bg-surface-800">
-              <option value="all">S. Stok</option>
-              <option value="available">Tersedia</option>
-              <option value="sold">Terjual</option>
-              <option value="booking">Booking</option>
-              <option value="loss">Hilang</option>
-            </select>
-          </div>
-
-          <button @click="loadInventory(1)" aria-label="Terapkan Filter"
-            class="btn btn-primary w-full md:w-auto flex items-center justify-center gap-2">
-            <Filter :size="16" />
-            Filter
-          </button>
 
           <!-- Export -->
           <button @click="exportInventory" class="btn btn-secondary w-full md:w-auto" aria-label="Export Data">
