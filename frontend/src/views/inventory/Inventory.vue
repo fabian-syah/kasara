@@ -264,6 +264,11 @@ async function fetchFilterOptions() {
     capacityOptions.value = response.data.capacities;
     brandOptions.value = response.data.brands;
     distributorOptions.value = response.data.distributors || [];
+    
+    // Also fetch full distributors list if options are still empty or to supplement
+    if (distributorOptions.value.length === 0) {
+      await fetchDistributors();
+    }
   } catch (error) {
     console.error("Failed to fetch filter options", error);
   }
@@ -520,6 +525,18 @@ const computedLocations = computed(() => {
 watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, filterDistributor, selectedMonth], () => {
   loadInventory(1);
 });
+
+// Sync distributor options from loaded products to catch manual entries
+watch(() => inventoryStore.products, (items) => {
+  if (items && items.length > 0) {
+    const fromItems = items.map(item => 
+      item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier
+    ).filter(Boolean);
+    
+    const combined = [...new Set([...distributorOptions.value, ...fromItems])];
+    distributorOptions.value = combined.sort((a, b) => a.localeCompare(b));
+  }
+}, { immediate: true });
 
 watch(() => props.branchId, () => {
   loadInventory(1);
@@ -876,7 +893,13 @@ async function fetchOnlineShops() {
 async function fetchDistributors() {
   try {
     const response = await distributorsApi.list();
-    distributors.value = response.data.data || response.data;
+    const data = response.data.data || response.data;
+    distributors.value = data;
+    
+    // Supplement distributorOptions with names from the official list
+    const names = data.map(d => d.name).filter(Boolean);
+    const combined = [...new Set([...distributorOptions.value, ...names])];
+    distributorOptions.value = combined.sort((a, b) => a.localeCompare(b));
   } catch (e) {
     console.error("Gagal load distributors", e);
   }
