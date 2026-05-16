@@ -432,7 +432,11 @@ async function submitUnitExchange(pin = null) {
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', unitExchangeForm.value.customer_name);
     formData.append('customer_phone', unitExchangeForm.value.customer_phone);
-    if (unitExchangeForm.value.distributor_id) formData.append('distributor_id', unitExchangeForm.value.distributor_id);
+    if (unitExchangeForm.value.distributor_id) {
+        formData.append('distributor_id', unitExchangeForm.value.distributor_id);
+        const selectedDist = props.distributors.find(d => d.id === unitExchangeForm.value.distributor_id);
+        if (selectedDist) formData.append('distributor_name', selectedDist.name);
+    }
     formData.append('incoming_source', unitExchangeForm.value.incoming_source);
     formData.append('incoming_product_type_id', unitExchangeForm.value.incoming_product_type_id);
     formData.append('incoming_storage', unitExchangeForm.value.incoming_storage);

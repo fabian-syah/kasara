@@ -423,7 +423,11 @@ async function submitDowngrade(pin = null) {
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', downgradeForm.value.customer_name);
     formData.append('customer_phone', downgradeForm.value.customer_phone);
-    if (downgradeForm.value.distributor_id) formData.append('distributor_id', downgradeForm.value.distributor_id);
+    if (downgradeForm.value.distributor_id) {
+        formData.append('distributor_id', downgradeForm.value.distributor_id);
+        const selectedDist = props.distributors.find(d => d.id === downgradeForm.value.distributor_id);
+        if (selectedDist) formData.append('distributor_name', selectedDist.name);
+    }
     formData.append('incoming_source', downgradeForm.value.incoming_source);
     formData.append('incoming_product_type_id', downgradeForm.value.incoming_product_type_id);
     formData.append('incoming_storage', downgradeForm.value.incoming_storage);

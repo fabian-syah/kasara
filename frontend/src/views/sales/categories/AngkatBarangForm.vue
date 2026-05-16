@@ -420,7 +420,11 @@ async function submitTradeIn(pin = null) {
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', tradeInForm.value.customer_name);
     formData.append('customer_phone', tradeInForm.value.customer_phone);
-    if (tradeInForm.value.distributor_id) formData.append('distributor_id', tradeInForm.value.distributor_id);
+    if (tradeInForm.value.distributor_id) {
+        formData.append('distributor_id', tradeInForm.value.distributor_id);
+        const selectedDist = props.distributors.find(d => d.id === tradeInForm.value.distributor_id);
+        if (selectedDist) formData.append('distributor_name', selectedDist.name);
+    }
     formData.append('brand_id', tradeInForm.value.brand_id);
     formData.append('product_type_id', tradeInForm.value.product_type_id);
     formData.append('source', tradeInForm.value.source);
@@ -591,7 +595,7 @@ async function submitTradeIn(pin = null) {
                         <div>
                             <label
                                 class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Distributor
-                                <span class="text-text-secondary opacity-50">(Opsional)</span></label>
+                                <span class="text-red-500">*</span></label>
                             <select v-model="tradeInForm.distributor_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none">
                                 <option :value="null">Semua Distributor</option>

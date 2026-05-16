@@ -445,7 +445,11 @@ async function submitTukarTambah(pin = null) {
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', tukarTambahForm.value.customer_name);
     formData.append('customer_phone', tukarTambahForm.value.customer_phone);
-    if (tukarTambahForm.value.distributor_id) formData.append('distributor_id', tukarTambahForm.value.distributor_id);
+    if (tukarTambahForm.value.distributor_id) {
+        formData.append('distributor_id', tukarTambahForm.value.distributor_id);
+        const selectedDist = props.distributors.find(d => d.id === tukarTambahForm.value.distributor_id);
+        if (selectedDist) formData.append('distributor_name', selectedDist.name);
+    }
     formData.append('incoming_source', tukarTambahForm.value.incoming_source);
     formData.append('incoming_product_type_id', tukarTambahForm.value.incoming_product_type_id);
     formData.append('incoming_storage', tukarTambahForm.value.incoming_storage);

@@ -349,7 +349,11 @@ async function submitRefund(pin = null) {
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);
     formData.append('customer_name', refundForm.value.customer_name);
     formData.append('customer_phone', refundForm.value.customer_phone);
-    if (refundForm.value.distributor_id) formData.append('distributor_id', refundForm.value.distributor_id);
+    if (refundForm.value.distributor_id) {
+        formData.append('distributor_id', refundForm.value.distributor_id);
+        const selectedDist = props.distributors.find(d => d.id === refundForm.value.distributor_id);
+        if (selectedDist) formData.append('distributor_name', selectedDist.name);
+    }
     formData.append('brand_id', refundForm.value.brand_id);
     formData.append('product_type_id', refundForm.value.product_type_id);
     formData.append('storage', refundForm.value.storage);
