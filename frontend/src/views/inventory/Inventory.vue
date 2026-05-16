@@ -335,8 +335,6 @@ watch(activeTab, () => {
   filterBrand.value = [];
   filterDistributorHp.value = [];
   filterDistributorNonHp.value = [];
-  selectedCondition.value = 'all';
-  selectedStockStatus.value = 'all';
 
   loadInventory(1);
   fetchFilterOptions();
@@ -365,7 +363,6 @@ async function loadInventory(page = 1) {
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
-      brand: filterBrand.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -375,6 +372,13 @@ async function loadInventory(page = 1) {
     if (props.isEmbedded) {
       if (props.branchId) params.branch_id = props.branchId;
       if (props.onlineShopId) params.online_shop_id = props.onlineShopId;
+    }
+
+    if (props.pageMode === 'inventory') {
+      if (effectiveBranchId.value) params.branch_id = effectiveBranchId.value;
+      if (effectiveOnlineShopId.value) params.online_shop_id = effectiveOnlineShopId.value;
+      if (effectiveWarehouseId.value) params.warehouse_id = effectiveWarehouseId.value;
+      if (effectiveDistributorId.value) params.distributor_id = effectiveDistributorId.value;
     }
 
     if (props.pageMode === 'online_shop') {
