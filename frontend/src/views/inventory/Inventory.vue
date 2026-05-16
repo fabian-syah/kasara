@@ -351,11 +351,25 @@ async function loadInventory(page = 1) {
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
       distributor: filterDistributor.value.join(','),
+      distributor_name: filterDistributor.value.join(','),
+      supplier: filterDistributor.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
       signal: inventoryController.signal
     };
+
+    // Also try to send IDs if we have a match in our loaded distributors list
+    if (filterDistributor.value.length > 0) {
+      const selectedIds = filterDistributor.value.map(name => {
+        const d = distributors.value.find(dist => dist.name === name);
+        return d ? d.id : null;
+      }).filter(Boolean);
+      
+      if (selectedIds.length > 0) {
+        params.distributor_id = selectedIds.join(',');
+      }
+    }
 
     if (props.isEmbedded) {
       if (props.branchId) params.branch_id = props.branchId;
@@ -933,7 +947,20 @@ async function exportInventory() {
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       distributor: filterDistributor.value.join(','),
+      distributor_name: filterDistributor.value.join(','),
+      supplier: filterDistributor.value.join(','),
     });
+
+    if (filterDistributor.value.length > 0) {
+      const selectedIds = filterDistributor.value.map(name => {
+        const d = distributors.value.find(dist => dist.name === name);
+        return d ? d.id : null;
+      }).filter(Boolean);
+      
+      if (selectedIds.length > 0) {
+        params.append('distributor_id', selectedIds.join(','));
+      }
+    }
 
     if (authStore.user?.distributor_id && props.pageMode === 'distributor') {
       params.append('distributor_id', authStore.user.distributor_id);
