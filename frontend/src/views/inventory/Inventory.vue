@@ -370,6 +370,7 @@ async function loadInventory(page = 1) {
       supplier: filterDistributor.value.join(','),
       supplier_name: filterDistributor.value.join(','),
       vendor_name: filterDistributor.value.join(','),
+      distributors: filterDistributor.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -580,6 +581,26 @@ watch(() => inventoryStore.products, (items) => {
     targetOptions.value = [...new Set(combined)].sort((a, b) => a.localeCompare(b));
   }
 }, { immediate: true });
+
+// Auto-normalize casing of selected filters to match available options
+// This prevents case-sensitive backend mismatch
+watch(distributorOptionsHp, (newOptions) => {
+  if (filterDistributorHp.value.length > 0) {
+    filterDistributorHp.value = filterDistributorHp.value.map(selected => {
+      const match = newOptions.find(o => o.toLowerCase() === selected.toLowerCase());
+      return match || selected;
+    });
+  }
+});
+
+watch(distributorOptionsNonHp, (newOptions) => {
+  if (filterDistributorNonHp.value.length > 0) {
+    filterDistributorNonHp.value = filterDistributorNonHp.value.map(selected => {
+      const match = newOptions.find(o => o.toLowerCase() === selected.toLowerCase());
+      return match || selected;
+    });
+  }
+});
 
 watch(() => props.branchId, () => {
   loadInventory(1);
