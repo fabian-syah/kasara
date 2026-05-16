@@ -363,6 +363,7 @@ async function loadInventory(page = 1) {
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
+      distributor: filterDistributor.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -562,31 +563,27 @@ const computedLocations = computed(() => {
 });
 
 // Watchers
-watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, selectedMonth], () => {
+watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, filterDistributorHp, filterDistributorNonHp, selectedMonth], () => {
   loadInventory(1);
 });
 
 // Sync distributor options from loaded products to catch manual entries
 watch(() => inventoryStore.products, (items) => {
   if (items && items.length > 0) {
-    const fromItems = items.map(item => 
-      item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier
-    ).filter(Boolean);
-    
-    const targetOptions = activeTab.value === 'hp' ? distributorOptionsHp : distributorOptionsNonHp;
-    
-    // Normalize casing: if a name exists in different casings, prefer the one from items
-    const combined = [...targetOptions.value];
-    fromItems.forEach(name => {
-      const existingIdx = combined.findIndex(c => c.toLowerCase() === name.toLowerCase());
-      if (existingIdx !== -1) {
-        combined[existingIdx] = name; // Update to item's casing
-      } else {
-        combined.push(name);
+    items.forEach(item => {
+      const name = item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier;
+      if (!name) return;
+
+      const cat = (item.product?.category || item.category || '').toLowerCase();
+      const isHp = cat === 'imei' || cat === 'hp / gadget' || cat === 'hp/gadget';
+      
+      const targetOptions = isHp ? distributorOptionsHp : distributorOptionsNonHp;
+      
+      if (!targetOptions.value.some(o => o.toLowerCase() === name.toLowerCase())) {
+        targetOptions.value.push(name);
+        targetOptions.value.sort((a, b) => a.localeCompare(b));
       }
     });
-    
-    targetOptions.value = [...new Set(combined)].sort((a, b) => a.localeCompare(b));
   }
 }, { immediate: true });
 

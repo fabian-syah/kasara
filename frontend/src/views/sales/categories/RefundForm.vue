@@ -317,8 +317,8 @@ watch(() => props.availablePaymentMethods, (methods) => {
 }, { immediate: true });
 
 async function submitRefund(pin = null) {
-    if (!refundForm.value.customer_name || !refundForm.value.customer_phone || !refundForm.value.brand_id || !refundForm.value.product_type_id || !refundForm.value.storage || !refundForm.value.condition || !refundForm.value.refund_price || !refundForm.value.reason) {
-        alert("Mohon lengkapi semua data wajib (Nama, WA, Brand, Tipe, Kapasitas, Kondisi, Harga Refund, Alasan).");
+    if (!refundForm.value.customer_name || !refundForm.value.customer_phone || !refundForm.value.brand_id || !refundForm.value.product_type_id || !refundForm.value.storage || !refundForm.value.condition || !refundForm.value.refund_price || !refundForm.value.reason || !refundForm.value.distributor_id) {
+        alert("Mohon lengkapi semua data wajib (Nama, WA, Distributor, Brand, Tipe, Kapasitas, Kondisi, Harga Refund, Alasan).");
         return;
     }
 

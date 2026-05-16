@@ -379,7 +379,8 @@ async function submitTradeIn(pin = null) {
                              tradeInForm.value.customer_phone && 
                              tradeInForm.value.brand_id && 
                              tradeInForm.value.product_type_id && 
-                             tradeInForm.value.buy_price;
+                             tradeInForm.value.buy_price &&
+                             tradeInForm.value.distributor_id;
 
     const hasSpecificFields = !isImei || (tradeInForm.value.storage && tradeInForm.value.condition);
 
