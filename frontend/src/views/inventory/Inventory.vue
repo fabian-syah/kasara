@@ -193,13 +193,23 @@ let inventoryController = null;
 const filterProduct = ref([])
 const filterCapacity = ref([])
 const filterBrand = ref([])
-const filterDistributor = ref([])
+const filterDistributorHp = ref([])
+const filterDistributorNonHp = ref([])
+const filterDistributor = computed({
+  get: () => activeTab.value === 'hp' ? filterDistributorHp.value : filterDistributorNonHp.value,
+  set: (val) => {
+    if (activeTab.value === 'hp') filterDistributorHp.value = val;
+    else filterDistributorNonHp.value = val;
+  }
+});
 
 // Filter Options
 const productOptions = ref([])
 const capacityOptions = ref([])
 const brandOptions = ref([])
-const distributorOptions = ref([])
+const distributorOptionsHp = ref([])
+const distributorOptionsNonHp = ref([])
+const distributorOptions = computed(() => activeTab.value === 'hp' ? distributorOptionsHp.value : distributorOptionsNonHp.value);
 
 // Dropdown Visibility State
 const activeFilterDropdown = ref(null); // 'product', 'capacity', or null
@@ -249,7 +259,8 @@ function clearFilter(filterName) {
   } else if (filterName === 'capacity') {
     filterCapacity.value = [];
   } else if (filterName === 'distributor') {
-    filterDistributor.value = [];
+    filterDistributorHp.value = [];
+    filterDistributorNonHp.value = [];
   }
   loadInventory(1);
 }
@@ -263,12 +274,15 @@ async function fetchFilterOptions() {
     productOptions.value = response.data.products;
     capacityOptions.value = response.data.capacities;
     brandOptions.value = response.data.brands;
-    distributorOptions.value = response.data.distributors || [];
     
-    // Also fetch full distributors list if options are still empty or to supplement
-    if (distributorOptions.value.length === 0) {
-      await fetchDistributors();
+    if (activeTab.value === 'hp') {
+      distributorOptionsHp.value = response.data.distributors || [];
+    } else {
+      distributorOptionsNonHp.value = response.data.distributors || [];
     }
+    
+    // Also fetch full distributors list to supplement
+    await fetchDistributors();
   } catch (error) {
     console.error("Failed to fetch filter options", error);
   }
@@ -319,7 +333,8 @@ watch(activeTab, () => {
   filterProduct.value = [];
   filterCapacity.value = [];
   filterBrand.value = [];
-  filterDistributor.value = [];
+  filterDistributorHp.value = [];
+  filterDistributorNonHp.value = [];
   selectedCondition.value = 'all';
   selectedStockStatus.value = 'all';
 
@@ -353,6 +368,8 @@ async function loadInventory(page = 1) {
       distributor: filterDistributor.value.join(','),
       distributor_name: filterDistributor.value.join(','),
       supplier: filterDistributor.value.join(','),
+      supplier_name: filterDistributor.value.join(','),
+      vendor_name: filterDistributor.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -547,8 +564,10 @@ watch(() => inventoryStore.products, (items) => {
       item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier
     ).filter(Boolean);
     
+    const targetOptions = activeTab.value === 'hp' ? distributorOptionsHp : distributorOptionsNonHp;
+    
     // Normalize casing: if a name exists in different casings, prefer the one from items
-    const combined = [...distributorOptions.value];
+    const combined = [...targetOptions.value];
     fromItems.forEach(name => {
       const existingIdx = combined.findIndex(c => c.toLowerCase() === name.toLowerCase());
       if (existingIdx !== -1) {
@@ -558,7 +577,7 @@ watch(() => inventoryStore.products, (items) => {
       }
     });
     
-    distributorOptions.value = [...new Set(combined)].sort((a, b) => a.localeCompare(b));
+    targetOptions.value = [...new Set(combined)].sort((a, b) => a.localeCompare(b));
   }
 }, { immediate: true });
 
@@ -922,8 +941,14 @@ async function fetchDistributors() {
     
     // Supplement distributorOptions with names from the official list
     const names = data.map(d => d.name).filter(Boolean);
-    const combined = [...new Set([...distributorOptions.value, ...names])];
-    distributorOptions.value = combined.sort((a, b) => a.localeCompare(b));
+    
+    // Supplement both tabs for completeness, or just active?
+    // Let's do both but keep them separate in options
+    const combinedHp = [...new Set([...distributorOptionsHp.value, ...names])];
+    distributorOptionsHp.value = combinedHp.sort((a, b) => a.localeCompare(b));
+    
+    const combinedNonHp = [...new Set([...distributorOptionsNonHp.value, ...names])];
+    distributorOptionsNonHp.value = combinedNonHp.sort((a, b) => a.localeCompare(b));
   } catch (e) {
     console.error("Gagal load distributors", e);
   }
@@ -959,6 +984,8 @@ async function exportInventory() {
       distributor: filterDistributor.value.join(','),
       distributor_name: filterDistributor.value.join(','),
       supplier: filterDistributor.value.join(','),
+      supplier_name: filterDistributor.value.join(','),
+      vendor_name: filterDistributor.value.join(','),
     });
 
     if (filterDistributor.value.length > 0) {
