@@ -32,10 +32,7 @@ const form = ref({
     username: "",
     email: "",
     phone: "",
-    address: "",
-    current_password: "",
-    new_password: "",
-    confirm_password: ""
+    address: ""
 });
 
 // Multi-Account PIN State
@@ -205,9 +202,7 @@ const isDirty = computed(() => {
     if (!user.value) return false;
     return (form.value.email || "") !== (user.value.email || "") ||
            (form.value.phone || "") !== (user.value.phone || "") ||
-           (form.value.address || "") !== (user.value.address || "") ||
-           form.value.new_password !== "" ||
-           form.value.confirm_password !== "";
+           (form.value.address || "") !== (user.value.address || "");
 });
 
 function resetForm() {
@@ -317,16 +312,6 @@ async function saveProfile() {
         formData.append("phone", form.value.phone || "");
         formData.append("address", form.value.address || "");
 
-        if (form.value.new_password) {
-            if (form.value.new_password !== form.value.confirm_password) {
-                toast.error("Konfirmasi password tidak cocok");
-                isSaving.value = false;
-                return;
-            }
-            formData.append("password", form.value.new_password);
-        }
-
-        // Use updateProfile for text data too as it handles the POST/PUT spoofing correctly
         const res = await usersApi.updateProfile(user.value.id, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -336,10 +321,6 @@ async function saveProfile() {
         // Update store and persist
         authStore.updateUserData(res.data.data);
 
-        // Clear password fields
-        form.value.current_password = "";
-        form.value.new_password = "";
-        form.value.confirm_password = "";
 
     } catch (error) {
         console.error("Update profile error", error);
@@ -617,17 +598,7 @@ async function handlePinSuccess(pin) {
 
                     <div class="space-y-4">
                         <div class="space-y-1.5">
-                            <label class="label">PASSWORD BARU</label>
-                            <input v-model="form.new_password" type="password" class="input" placeholder="•••••••••" autocomplete="new-password" />
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="label">KONFIRMASI PASSWORD</label>
-                            <input v-model="form.confirm_password" type="password" class="input" placeholder="•••••••••" autocomplete="new-password" />
-                        </div>
-
-                        <div class="pt-2 border-t border-zinc-100 dark:border-zinc-800/50 space-y-4">
-                            <div class="space-y-1.5">
-                                <label class="label">PIN TRANSAKSI</label>
+                            <label class="label">PIN TRANSAKSI</label>
                                 <div v-if="inventoryAccounts.length > 0" class="relative">
                                     <select v-model="selectedAccountId" class="input font-bold text-xs uppercase tracking-wider">
                                         <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">Staff: {{ acc.name }}</option>
@@ -657,14 +628,7 @@ async function handlePinSuccess(pin) {
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Update Security Settings Button -->
-                        <button @click="saveProfile" type="button" :disabled="isSaving" class="btn bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-950 dark:hover:bg-zinc-900 text-zinc-700 dark:text-white border border-zinc-200 dark:border-zinc-800 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest mt-2">
-                            <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="14" />
-                            Update Security Settings
-                        </button>
                     </div>
-                </div>
 
                 <!-- Account Info Card -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-4">
