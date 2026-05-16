@@ -365,12 +365,7 @@ async function loadInventory(page = 1) {
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
-      distributor: filterDistributor.value.join(','),
-      distributor_name: filterDistributor.value.join(','),
-      supplier: filterDistributor.value.join(','),
-      supplier_name: filterDistributor.value.join(','),
-      vendor_name: filterDistributor.value.join(','),
-      distributors: filterDistributor.value.join(','),
+      brand: filterBrand.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -420,6 +415,27 @@ async function loadInventory(page = 1) {
     isInitialLoading.value = false;
   }
 }
+
+const filteredInventoryItems = computed(() => {
+  let results = inventoryItems.value;
+  
+  if (filterDistributor.value.length > 0) {
+    results = results.filter(item => {
+      const name = (
+        item.distributor?.name || 
+        item.distributor_name || 
+        item.supplier_name || 
+        item.latest_distributor || 
+        item.latest_supplier || 
+        '-'
+      ).toLowerCase();
+      
+      return filterDistributor.value.some(f => name.includes(f.toLowerCase()));
+    });
+  }
+  
+  return results;
+});
 
 const locations = ref([]);
 
@@ -1442,7 +1458,7 @@ async function exportInventory() {
                 </td>
               </tr>
             </template>
-            <tr v-else-if="filteredProducts.length === 0">
+            <tr v-else-if="filteredInventoryItems.length === 0">
               <td colspan="15" class="text-center py-12">
                 <div class="flex flex-col items-center justify-center w-full h-full">
                   <Box :size="48" class="text-text-secondary mb-2" />
@@ -1450,7 +1466,7 @@ async function exportInventory() {
                 </div>
               </td>
             </tr>
-            <tr v-else v-for="item in inventoryItems" :key="item.id" 
+            <tr v-else v-for="item in filteredInventoryItems" :key="item.id" 
               v-memo="[item.id, item.status, item.quantity, item.selling_price, isSelected(item)]"
               @click="toggleSelect(item)"
               class="cursor-pointer transition-colors duration-200 hover:bg-surface-700/30"
