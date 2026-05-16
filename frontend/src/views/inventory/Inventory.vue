@@ -558,7 +558,7 @@ const computedLocations = computed(() => {
 });
 
 // Watchers
-watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, filterDistributor, selectedMonth], () => {
+watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, selectedMonth], () => {
   loadInventory(1);
 });
 
@@ -964,16 +964,10 @@ async function fetchDistributors() {
     const data = response.data.data || response.data;
     distributors.value = data;
     
-    // Supplement distributorOptions with names from the official list
-    const names = data.map(d => d.name).filter(Boolean);
-    
-    // Supplement both tabs for completeness, or just active?
-    // Let's do both but keep them separate in options
-    const combinedHp = [...new Set([...distributorOptionsHp.value, ...names])];
-    distributorOptionsHp.value = combinedHp.sort((a, b) => a.localeCompare(b));
-    
-    const combinedNonHp = [...new Set([...distributorOptionsNonHp.value, ...names])];
-    distributorOptionsNonHp.value = combinedNonHp.sort((a, b) => a.localeCompare(b));
+    // We no longer blindly add all official distributors to the filter options
+    // because this mixes HP and Non-HP distributors. The options will be 
+    // populated by the backend's filter-options endpoint (if supported) 
+    // and by the frontend extracting names from the currently loaded items.
   } catch (e) {
     console.error("Gagal load distributors", e);
   }
