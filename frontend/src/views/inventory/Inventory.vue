@@ -193,11 +193,13 @@ let inventoryController = null;
 const filterProduct = ref([])
 const filterCapacity = ref([])
 const filterBrand = ref([])
+const filterDistributor = ref([])
 
 // Filter Options
 const productOptions = ref([])
 const capacityOptions = ref([])
 const brandOptions = ref([])
+const distributorOptions = ref([])
 
 // Dropdown Visibility State
 const activeFilterDropdown = ref(null); // 'product', 'capacity', or null
@@ -233,6 +235,8 @@ function selectAllFilter(filterName) {
     filterProduct.value = [...computedProducts.value];
   } else if (filterName === 'capacity') {
     filterCapacity.value = [...computedCapacities.value];
+  } else if (filterName === 'distributor') {
+    filterDistributor.value = [...computedDistributors.value];
   }
   loadInventory(1);
 }
@@ -244,6 +248,8 @@ function clearFilter(filterName) {
     filterProduct.value = [];
   } else if (filterName === 'capacity') {
     filterCapacity.value = [];
+  } else if (filterName === 'distributor') {
+    filterDistributor.value = [];
   }
   loadInventory(1);
 }
@@ -257,6 +263,7 @@ async function fetchFilterOptions() {
     productOptions.value = response.data.products;
     capacityOptions.value = response.data.capacities;
     brandOptions.value = response.data.brands;
+    distributorOptions.value = response.data.distributors || [];
   } catch (error) {
     console.error("Failed to fetch filter options", error);
   }
@@ -307,6 +314,7 @@ watch(activeTab, () => {
   filterProduct.value = [];
   filterCapacity.value = [];
   filterBrand.value = [];
+  filterDistributor.value = [];
   selectedCondition.value = 'all';
   selectedStockStatus.value = 'all';
 
@@ -320,6 +328,7 @@ const filterSearchQuery = reactive({
   brand: '',
   product: '',
   capacity: '',
+  distributor: '',
   location: ''
 });
 
@@ -336,6 +345,7 @@ async function loadInventory(page = 1) {
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
       brand: filterBrand.value.join(','),
+      distributor: filterDistributor.value.join(','),
       month: selectedMonth.value?.month,
       year: selectedMonth.value?.year,
       per_page: 50, // Limit per page to reduce DOM nodes and main-thread work
@@ -498,12 +508,16 @@ const computedCapacities = computed(() => {
   return capacityOptions.value.filter(c => c.toLowerCase().includes(filterSearchQuery.capacity.toLowerCase()));
 });
 
+const computedDistributors = computed(() => {
+  return distributorOptions.value.filter(d => d.toLowerCase().includes(filterSearchQuery.distributor.toLowerCase()));
+});
+
 const computedLocations = computed(() => {
   return availableLocations.value.filter(loc => loc.label.toLowerCase().includes(filterSearchQuery.location.toLowerCase()));
 });
 
 // Watchers
-watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, selectedMonth], () => {
+watch([debouncedSearch, filterProduct, filterCapacity, filterBrand, filterDistributor, selectedMonth], () => {
   loadInventory(1);
 });
 
@@ -895,6 +909,7 @@ async function exportInventory() {
       brand: filterBrand.value.join(','),
       product: filterProduct.value.join(','),
       capacity: filterCapacity.value.join(','),
+      distributor: filterDistributor.value.join(','),
     });
 
     if (authStore.user?.distributor_id && props.pageMode === 'distributor') {
@@ -1165,7 +1180,37 @@ async function exportInventory() {
                 <th class="hidden lg:table-cell">Kondisi</th>
                 <th>IMEI</th>
                 <th class="hidden md:table-cell">Lokasi</th>
-                <th class="hidden xl:table-cell">Distributor</th>
+                <!-- Filterable Distributor Column (Faceted) -->
+                <th class="hidden xl:table-cell cursor-pointer group relative">
+                  <button @click="toggleFilterDropdown('distributor')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Distributor">
+                    <span>Distributor</span>
+                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                  </button>
+                  <!-- Dropdown -->
+                  <div v-if="activeFilterDropdown === 'distributor'"
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
+                    <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
+                      <label for="distributor-search" class="sr-only">Cari Distributor</label>
+                      <input id="distributor-search" v-model="filterSearchQuery.distributor" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                    </div>
+                    <div class="flex items-center justify-between px-1 pb-2 border-b border-surface-700 mb-1.5 text-[10px] font-bold">
+                      <button @click.stop="selectAllFilter('distributor')" class="text-primary-400 hover:text-primary-300">Pilih Semua</button>
+                      <button @click.stop="clearFilter('distributor')" class="text-red-400 hover:text-red-300">Hapus Semua</button>
+                    </div>
+                    <div class="max-h-52 overflow-y-auto custom-scrollbar">
+                      <div v-for="option in computedDistributors" :key="option"
+                        class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                        @click.stop="toggleFilter(filterDistributor, option)">
+                        <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                          :class="filterDistributor.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          <Check v-if="filterDistributor.includes(option)" :size="10" class="text-white" />
+                        </div>
+                        <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                      </div>
+                      <div v-if="computedDistributors.length === 0" class="text-xs text-text-secondary text-center py-2">Tidak ada hasil</div>
+                    </div>
+                  </div>
+                </th>
                 <th class="text-right">Harga Jual</th>
                 <th>Status</th>
               </template>
@@ -1178,7 +1223,36 @@ async function exportInventory() {
                 <th class="hidden md:table-cell">Lokasi</th>
                 <th>Stok</th>
                 <th class="text-right">Harga Jual</th>
-                <th class="hidden xl:table-cell">Distributor / Supplier</th>
+                <th class="hidden xl:table-cell cursor-pointer group relative">
+                  <button @click="toggleFilterDropdown('distributor')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Distributor">
+                    <span>Distributor / Supplier</span>
+                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                  </button>
+                  <!-- Dropdown -->
+                  <div v-if="activeFilterDropdown === 'distributor'"
+                    class="absolute left-0 top-full mt-2 w-48 bg-surface-800 border border-surface-700 rounded-lg shadow-xl z-50 p-2">
+                    <div class="px-1 pb-2 border-b border-surface-700 mb-1 sticky top-0 bg-surface-800">
+                      <label for="distributor-search-nonhp" class="sr-only">Cari Distributor</label>
+                      <input id="distributor-search-nonhp" v-model="filterSearchQuery.distributor" placeholder="Cari..." class="w-full bg-surface-900 text-xs p-1.5 rounded outline-none border border-surface-700 focus:border-primary-500" @click.stop />
+                    </div>
+                    <div class="flex items-center justify-between px-1 pb-2 border-b border-surface-700 mb-1.5 text-[10px] font-bold">
+                      <button @click.stop="selectAllFilter('distributor')" class="text-primary-400 hover:text-primary-300">Pilih Semua</button>
+                      <button @click.stop="clearFilter('distributor')" class="text-red-400 hover:text-red-300">Hapus Semua</button>
+                    </div>
+                    <div class="max-h-52 overflow-y-auto custom-scrollbar">
+                      <div v-for="option in computedDistributors" :key="option"
+                        class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
+                        @click.stop="toggleFilter(filterDistributor, option)">
+                        <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
+                          :class="filterDistributor.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          <Check v-if="filterDistributor.includes(option)" :size="10" class="text-white" />
+                        </div>
+                        <span class="text-sm text-text-primary truncate">{{ option }}</span>
+                      </div>
+                      <div v-if="computedDistributors.length === 0" class="text-xs text-text-secondary text-center py-2">Tidak ada hasil</div>
+                    </div>
+                  </div>
+                </th>
               </template>
 
               <th class="hidden xl:table-cell">Catatan</th>
