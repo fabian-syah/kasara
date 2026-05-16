@@ -362,7 +362,7 @@ async function loadInventory(page = 1) {
     // Also try to send IDs if we have a match in our loaded distributors list
     if (filterDistributor.value.length > 0) {
       const selectedIds = filterDistributor.value.map(name => {
-        const d = distributors.value.find(dist => dist.name === name);
+        const d = distributors.value.find(dist => dist.name?.toLowerCase() === name.toLowerCase());
         return d ? d.id : null;
       }).filter(Boolean);
       
@@ -547,8 +547,18 @@ watch(() => inventoryStore.products, (items) => {
       item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier
     ).filter(Boolean);
     
-    const combined = [...new Set([...distributorOptions.value, ...fromItems])];
-    distributorOptions.value = combined.sort((a, b) => a.localeCompare(b));
+    // Normalize casing: if a name exists in different casings, prefer the one from items
+    const combined = [...distributorOptions.value];
+    fromItems.forEach(name => {
+      const existingIdx = combined.findIndex(c => c.toLowerCase() === name.toLowerCase());
+      if (existingIdx !== -1) {
+        combined[existingIdx] = name; // Update to item's casing
+      } else {
+        combined.push(name);
+      }
+    });
+    
+    distributorOptions.value = [...new Set(combined)].sort((a, b) => a.localeCompare(b));
   }
 }, { immediate: true });
 
@@ -953,7 +963,7 @@ async function exportInventory() {
 
     if (filterDistributor.value.length > 0) {
       const selectedIds = filterDistributor.value.map(name => {
-        const d = distributors.value.find(dist => dist.name === name);
+        const d = distributors.value.find(dist => dist.name?.toLowerCase() === name.toLowerCase());
         return d ? d.id : null;
       }).filter(Boolean);
       
