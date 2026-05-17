@@ -2271,14 +2271,25 @@ class StockOutController extends Controller
             }
 
             // 2. Cleanup INCOMING Items for Exchanges/Refunds (Those not in stock_out_items but linked via transaction models)
-            $incomingHP = \App\Models\ProductDetail::where(function($q) use ($receiptId) {
+            $outgoingIds = [];
+            if ($stockOut->category !== 'angkat_barang') {
+                $outgoingIds = $stockOut->items->pluck('id')->toArray();
+            }
+
+            $incomingHPQuery = \App\Models\ProductDetail::where(function($q) use ($receiptId) {
                 $q->where('notes', 'like', "%Masuk dari %: $receiptId%")
                   ->orWhereHas('unitExchange', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('tukarTambah', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('downgrade', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('tradeIn', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
                   ->orWhereHas('refund', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); });
-            })->get();
+            });
+
+            if (!empty($outgoingIds)) {
+                $incomingHPQuery->whereNotIn('id', $outgoingIds);
+            }
+
+            $incomingHP = $incomingHPQuery->get();
 
             foreach ($incomingHP as $inc) {
                 // Delete the IN log to keep history clean
@@ -2287,6 +2298,13 @@ class StockOutController extends Controller
                     ->delete();
                 $inc->forceDelete();
             }
+
+            // 3. Soft delete associated transaction records to keep dashboards and active transaction lists clean
+            \App\Models\TukarTambah::where('receipt_id', $receiptId)->delete();
+            \App\Models\UnitExchange::where('receipt_id', $receiptId)->delete();
+            \App\Models\Downgrade::where('receipt_id', $receiptId)->delete();
+            \App\Models\TradeIn::where('receipt_id', $receiptId)->delete();
+            \App\Models\Refund::where('receipt_id', $receiptId)->delete();
 
             // --- B. Handle Non-HP Items ---
             foreach ($stockOut->nonHpDetails as $detail) {
