@@ -2303,14 +2303,43 @@ class StockOutController extends Controller
 
             $incomingHP = $incomingHPQuery->get();
 
-            throw new \Exception("Debug: receiptId=" . $receiptId . ", outgoingIds=" . json_encode($outgoingIds) . ", incomingHP=" . json_encode($incomingHP->pluck('id')->toArray()));
-
             foreach ($incomingHP as $inc) {
                 // Delete the IN log to keep history clean
                 \App\Models\InventoryLog::where('product_id', $inc->product_id)
                     ->where('reference_id', 'like', "%$receiptId%")
                     ->delete();
-                $inc->forceDelete();
+
+                // Check if this incoming product detail is referenced as an outgoing unit in any other transactions
+                $isReferenced = \App\Models\TukarTambah::where('outgoing_product_detail_id', $inc->id)
+                    ->where('receipt_id', '!=', $receiptId)
+                    ->exists()
+                    || \App\Models\UnitExchange::where('outgoing_product_detail_id', $inc->id)
+                    ->where('receipt_id', '!=', $receiptId)
+                    ->exists()
+                    || \App\Models\Downgrade::where('outgoing_product_detail_id', $inc->id)
+                    ->where('receipt_id', '!=', $receiptId)
+                    ->exists()
+                    || \DB::table('stock_out_items')
+                    ->where('product_detail_id', $inc->id)
+                    ->where('stock_out_id', '!=', $stockOut->id)
+                    ->exists();
+
+                if ($isReferenced) {
+                    // It was an existing sold item that was traded back. Do NOT delete it.
+                    // Just clear the current transaction link and revert status to sold.
+                    $inc->update([
+                        'status' => 'sold',
+                        'tukar_tambah_id' => null,
+                        'unit_exchange_id' => null,
+                        'downgrade_id' => null,
+                        'trade_in_id' => null,
+                        'refund_id' => null,
+                        'notes' => ($inc->notes ? $inc->notes . "\n" : "") . "Batal Tukar Tambah: " . $receiptId
+                    ]);
+                } else {
+                    // It was newly created for this transaction. Safe to delete.
+                    $inc->forceDelete();
+                }
             }
 
             // 3. Soft delete associated transaction records to keep dashboards and active transaction lists clean
