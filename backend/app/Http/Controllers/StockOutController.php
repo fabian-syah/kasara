@@ -2276,6 +2276,18 @@ class StockOutController extends Controller
                 $outgoingIds = $stockOut->items->pluck('id')->toArray();
             }
 
+            // Retrieve outgoing product detail IDs from transaction tables directly to be 100% safe
+            $ttOut = \App\Models\TukarTambah::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
+            if ($ttOut) $outgoingIds[] = $ttOut;
+
+            $ueOut = \App\Models\UnitExchange::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
+            if ($ueOut) $outgoingIds[] = $ueOut;
+
+            $dgOut = \App\Models\Downgrade::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
+            if ($dgOut) $outgoingIds[] = $dgOut;
+
+            $outgoingIds = array_unique(array_filter($outgoingIds));
+
             $incomingHPQuery = \App\Models\ProductDetail::where(function($q) use ($receiptId) {
                 $q->where('notes', 'like', "%Masuk dari %: $receiptId%")
                   ->orWhereHas('unitExchange', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
