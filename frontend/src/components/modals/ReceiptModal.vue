@@ -600,6 +600,28 @@ const sendWaReceiptFromModal = async () => {
             margin: 0 !important;
             background: #ffffff !important;
         }
+
+        /* =========================================================
+           CRITICAL FIX: Google PDF Engine does NOT support CSS variables 
+           like var(--tw-bg-opacity). We MUST hardcode Tailwind colors!
+           ========================================================= */
+        .bg-red-600 { background-color: #dc2626 !important; }
+        .text-red-600 { color: #dc2626 !important; }
+        .bg-neutral-950, .bg-black { background-color: #0a0a0a !important; }
+        .text-neutral-950, .text-neutral-900, .text-black { color: #0a0a0a !important; }
+        .text-white { color: #ffffff !important; }
+        .bg-white { background-color: #ffffff !important; }
+        .bg-neutral-50 { background-color: #f9fafb !important; }
+        .border-neutral-200 { border-color: #e5e7eb !important; border-width: 1px !important; border-style: solid !important; }
+        .border-neutral-300 { border-color: #d1d5db !important; }
+        .text-neutral-500 { color: #737373 !important; }
+        .rounded-xl { border-radius: 12px !important; }
+        .rounded-2xl { border-radius: 16px !important; }
+        .rounded-full { border-radius: 9999px !important; }
+        
+        th { background-color: #0a0a0a !important; color: #ffffff !important; }
+        .bg-white\\/60 { background-color: #f9fafb !important; }
+
         /* Fix PDF Engine bug for standard flex breakdown container */
         .flex.flex-col.md\\:flex-row {
             display: table !important;
