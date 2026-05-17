@@ -38,6 +38,19 @@ class WhatsAppShareController extends Controller
                 throw new \Exception('Gagal mendapatkan Link Google Drive. Silakan coba lagi.');
             }
 
+            // Convert to a Google Drive web preview link so it opens a preview in-browser rather than downloading directly
+            if ($driveLink && str_contains($driveLink, 'drive.google.com')) {
+                $fileId = null;
+                if (preg_match('/id=([a-zA-Z0-9_-]+)/', $driveLink, $matches)) {
+                    $fileId = $matches[1];
+                } elseif (preg_match('/\/d\/([a-zA-Z0-9_-]+)/', $driveLink, $matches)) {
+                    $fileId = $matches[1];
+                }
+                if ($fileId) {
+                    $driveLink = "https://drive.google.com/file/d/{$fileId}/view?usp=drivesdk";
+                }
+            }
+
             // 6. Susun Pesan WA
             $customerName = $transaction->customer_name ?: 'Pelanggan';
             $pesan = "Halo Kak *{$customerName}* 👋😊\n\n";

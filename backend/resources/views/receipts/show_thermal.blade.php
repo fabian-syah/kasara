@@ -476,56 +476,7 @@
             text-transform: uppercase;
         }
 
-        /* FOOTER BAR */
-        .footer-bar-container {
-            position: relative;
-            height: 20px;
-            background-color: #0a0a0a;
-            margin: 24px -30px -30px -30px;
-            overflow: hidden;
-            text-align: center;
-        }
 
-        .footer-slant-left {
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 25%;
-            background-color: #dc2626;
-        }
-
-        .footer-slant-right {
-            position: absolute;
-            right: 0;
-            top: 0;
-            height: 100%;
-            width: 25%;
-            background-color: #dc2626;
-        }
-
-        .footer-dots {
-            position: relative;
-            display: inline-block;
-            margin-top: 7px;
-            z-index: 5;
-        }
-
-        .dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin: 0 2px;
-        }
-
-        .dot-white {
-            background-color: #ffffff;
-        }
-
-        .dot-red {
-            background-color: #dc2626;
-        }
 
         .clearfix::after {
             content: "";
@@ -966,28 +917,7 @@
         </tr>
     </table>
 
-    <!-- STRIPED FOOTER BAR -->
-    <div class="footer-bar-container">
-        <!-- Absolute CSS Slanted Accents -->
-        <div class="footer-slant-left">
-            <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none">
-                <polygon points="0,0 80,0 100,20 0,20" fill="#dc2626" />
-                <polygon points="80,0 100,0 100,20 80,20" fill="#0a0a0a" />
-            </svg>
-        </div>
-        <div class="footer-slant-right">
-            <svg width="100%" height="20" viewBox="0 0 100 20" preserveAspectRatio="none">
-                <polygon points="20,0 100,0 100,20 0,20" fill="#dc2626" />
-                <polygon points="0,0 20,0 20,20 0,20" fill="#0a0a0a" />
-            </svg>
-        </div>
-        <!-- Dot accents -->
-        <div class="footer-dots">
-            <span class="dot dot-white"></span>
-            <span class="dot dot-red"></span>
-            <span class="dot dot-white"></span>
-        </div>
-    </div>
+
 </body>
 
 </html>
