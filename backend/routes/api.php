@@ -193,5 +193,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
     // WhatsApp GDrive Share (Livewire style)
-    Route::get('/receipts/{id}/share-wa', [\App\Http\Controllers\WhatsAppShareController::class, 'share']);
+    Route::match(['get', 'post'], '/receipts/{id}/share-wa', [\App\Http\Controllers\WhatsAppShareController::class, 'share']);
 });

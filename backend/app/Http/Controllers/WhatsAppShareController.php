@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Cache;
 
 class WhatsAppShareController extends Controller
 {
-    public function share($id)
+    public function share(Request $request, $id)
     {
         set_time_limit(150); // Increase execution time for this specific long-running task
         try {
@@ -32,7 +32,8 @@ class WhatsAppShareController extends Controller
             }
 
             // 3. Ambil/Generate Link Google Drive (Bisa dari Cache hasil Pre-generation)
-            $driveLink = self::getDriveLink($id);
+            $htmlContent = $request->input('htmlContent');
+            $driveLink = self::getDriveLink($id, $htmlContent);
 
             if (!$driveLink) {
                 throw new \Exception('Gagal mendapatkan Link Google Drive. Silakan coba lagi.');
@@ -81,12 +82,12 @@ class WhatsAppShareController extends Controller
      * Heavy lifting for PDF Generation & Upload
      * Can be called synchronously or from a background job
      */
-    public static function getDriveLink($id)
+    public static function getDriveLink($id, $htmlContent = null)
     {
         $cacheKey = "receipt_drive_link_{$id}";
         
-        // 0. Cek Cache
-        if ($cachedLink = Cache::get($cacheKey)) {
+        // 0. Cek Cache (hanya jika tidak dipaksa re-generation dari frontend)
+        if (!$htmlContent && ($cachedLink = Cache::get($cacheKey))) {
             return $cachedLink;
         }
 
@@ -113,36 +114,58 @@ class WhatsAppShareController extends Controller
             // 1. Get Cached Logos
             $logos = self::getBase64Images();
 
-            // 2. Hitung Total & Diskon langsung dari database (seperti ReceiptModal.vue)
-            $total_discount = abs($transaction->total_discount ?? 0);
-            $total_original = $transaction->original_price 
-                ?: (abs($transaction->selling_price) + $total_discount);
+            // If HTML content was not sent from frontend, fall back to rendering the blade template
+            if (!$htmlContent) {
+                // 2. Hitung Total & Diskon langsung dari database (seperti ReceiptModal.vue)
+                $total_discount = abs($transaction->total_discount ?? 0);
+                $total_original = $transaction->original_price 
+                    ?: (abs($transaction->selling_price) + $total_discount);
 
-            // 3. Process split payments
-            $processedSplitPayments = [];
-            if ($transaction->split_payments && count($transaction->split_payments) > 0) {
-                $methodIds = array_column($transaction->split_payments, 'payment_method_id');
-                $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
+                // 3. Process split payments
+                $processedSplitPayments = [];
+                if ($transaction->split_payments && count($transaction->split_payments) > 0) {
+                    $methodIds = array_column($transaction->split_payments, 'payment_method_id');
+                    $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
 
-                foreach ($transaction->split_payments as $sp) {
-                    $processedSplitPayments[] = [
-                        'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
-                        'amount' => $sp['amount'] ?? 0
-                    ];
+                    foreach ($transaction->split_payments as $sp) {
+                        $processedSplitPayments[] = [
+                            'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
+                            'amount' => $sp['amount'] ?? 0
+                        ];
+                    }
                 }
-            }
 
-            // 4. Render HTML
-            $htmlContent = view('receipts.show_thermal', [
-                'transaction' => $transaction,
-                'total_original' => $total_original,
-                'total_discount' => $total_discount,
-                'logoBase64' => $logos['logo'] ?? '',
-                'shopeeBase64' => $logos['shopee'] ?? '',
-                'tokopediaBase64' => $logos['tokopedia'] ?? '',
-                'split_payments_data' => $processedSplitPayments,
-                'receiptSetting' => $receiptSetting,
-            ])->render();
+                $paymentMethodNames = [];
+                if ($transaction->payment_method_id) {
+                    $pm = \App\Models\PaymentMethod::find($transaction->payment_method_id);
+                    if ($pm) $paymentMethodNames[] = $pm->name;
+                }
+                if ($transaction->split_payments) {
+                    $splits = is_array($transaction->split_payments) ? $transaction->split_payments : json_decode($transaction->split_payments, true);
+                    if (is_array($splits)) {
+                        foreach ($splits as $sp) {
+                            $pmId = $sp['payment_method_id'] ?? null;
+                            if ($pmId) {
+                                $pm = \App\Models\PaymentMethod::find($pmId);
+                                if ($pm) $paymentMethodNames[] = $pm->name;
+                            }
+                        }
+                    }
+                }
+                $paymentMethodNameFormatted = implode(', ', array_unique($paymentMethodNames)) ?: '-';
+
+                $htmlContent = view('receipts.show_thermal', [
+                    'transaction' => $transaction,
+                    'total_original' => $total_original,
+                    'total_discount' => $total_discount,
+                    'logoBase64' => $logos['logo'] ?? '',
+                    'shopeeBase64' => $logos['shopee'] ?? '',
+                    'tokopediaBase64' => $logos['tokopedia'] ?? '',
+                    'split_payments_data' => $processedSplitPayments,
+                    'receiptSetting' => $receiptSetting,
+                    'payment_method_name' => $paymentMethodNameFormatted,
+                ])->render();
+            }
 
             // 5. Kirim ke GDrive Bridge
             $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
@@ -180,7 +203,7 @@ class WhatsAppShareController extends Controller
      */
     private static function getBase64Images()
     {
-        return Cache::rememberForever('receipt_logos_base64_v2', function() {
+        return Cache::rememberForever('receipt_logos_base64_v5', function() {
             $images = [
                 'logo' => 'ps.png', 
                 'shopee' => 'shopee-icon-small.png', 

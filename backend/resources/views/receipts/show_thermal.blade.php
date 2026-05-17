@@ -759,7 +759,7 @@
                             <div style="font-size: 10px; font-weight: bold; text-align: center; color: #9ca3af;">-</div>
                         @else
                             <div style="font-size: 10px; font-weight: 900; font-family: monospace; color: #0a0a0a; @if($item->is_bundle_child) padding-left: 12px; @endif">
-                                {{ ($item->is_hp ? ($item->pivot->imei && $item->pivot->imei !== '-' ? $item->pivot->imei : '-') : '-') }}
+                                {{ ($item->is_hp ? ($item->imei && $item->imei !== '-' ? $item->imei : '-') : '-') }}
                             </div>
                         @endif
                     </td>
@@ -919,8 +919,7 @@
                     @endif
 
                     @php
-                        $showSelisih = in_array($transaction->category ?? '', ['tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'swap']);
-                        $summaryLabel = $showSelisih ? 'Selisih Harga' : 'Grand Total';
+                        $summaryLabel = 'Selisih Harga';
                     @endphp
                     <div class="summary-row-red clearfix">
                         <span class="summary-label-red">{{ $summaryLabel }}</span>
