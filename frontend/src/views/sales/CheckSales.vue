@@ -247,8 +247,21 @@
                                         :rowspan="item.items.length">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         item.customer_name }}</td>
-                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">{{
-                                        item.customer_wa || item.customer_phone }}</td>
+                                    <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
+                                        <div class="flex flex-col gap-1 items-start">
+                                            <span class="font-medium text-text-primary">{{ item.customer_wa || item.customer_phone || '-' }}</span>
+                                            <button 
+                                                v-if="item.customer_wa || item.customer_phone" 
+                                                @click="sendWaReceipt(item)" 
+                                                :disabled="sharingSales[item.id]"
+                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-50 transition-colors cursor-pointer"
+                                            >
+                                                <Loader2 v-if="sharingSales[item.id]" :size="10" class="animate-spin" />
+                                                <MessageSquare v-else :size="10" stroke-width="2.5" />
+                                                {{ sharingSales[item.id] ? 'Membuat Nota...' : 'Kirim Nota' }}
+                                            </button>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -371,8 +384,21 @@
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                    <td class="px-6 py-4 text-text-primary">{{ item.customer_wa || item.customer_phone
-                                    }}</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col gap-1 items-start">
+                                            <span class="font-medium text-text-primary">{{ item.customer_wa || item.customer_phone || '-' }}</span>
+                                            <button 
+                                                v-if="item.customer_wa || item.customer_phone" 
+                                                @click="sendWaReceipt(item)" 
+                                                :disabled="sharingSales[item.id]"
+                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-50 transition-colors cursor-pointer"
+                                            >
+                                                <Loader2 v-if="sharingSales[item.id]" :size="10" class="animate-spin" />
+                                                <MessageSquare v-else :size="10" stroke-width="2.5" />
+                                                {{ sharingSales[item.id] ? 'Membuat Nota...' : 'Kirim Nota' }}
+                                            </button>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
@@ -664,7 +690,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
@@ -802,6 +828,31 @@ const showReceiptModal = ref(false)
 const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
+
+const sharingSales = ref({})
+
+const sendWaReceipt = async (item) => {
+    let phone = (item.customer_wa || item.customer_phone || '').trim();
+    if (!phone || phone === '-') {
+        alert('Nomor WhatsApp tidak ditemukan atau kosong!');
+        return;
+    }
+    
+    sharingSales.value[item.id] = true;
+    try {
+        const response = await axios.get(`/receipts/${item.id}/share-wa`);
+        if (response.data && response.data.success && response.data.wa_url) {
+            window.open(response.data.wa_url, '_blank');
+        } else {
+            alert('Gagal membagikan nota: ' + (response.data?.error || 'Kesalahan tidak dikenal'));
+        }
+    } catch (error) {
+        console.error('Error sharing receipt:', error);
+        alert('Terjadi kesalahan saat membagikan nota: ' + (error.response?.data?.error || error.message || 'Kesalahan sistem'));
+    } finally {
+        sharingSales.value[item.id] = false;
+    }
+}
 
 const viewProof = (imgUrl) => {
     currentProofImages.value = [imgUrl]

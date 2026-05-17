@@ -40,12 +40,12 @@ class WhatsAppShareController extends Controller
 
             // 6. Susun Pesan WA
             $customerName = $transaction->customer_name ?: 'Pelanggan';
-            $pesan = "Halo Kak *{$customerName}*,\n";
-            $pesan .= "Terima kasih telah berbelanja di *PSTORE*.\n\n";
-            $pesan .= "Berikut Link Nota Resmi transaksi Anda:\n";
-            $pesan .= "{$driveLink}\n\n";
-            $pesan .= "Total: Rp " . number_format($transaction->selling_price, 0, ',', '.') . "\n";
-            $pesan .= "Nota ini aman dan valid. Terima kasih!";
+            $pesan = "Halo Kak *{$customerName}* 👋😊\n\n";
+            $pesan .= "Terima kasih banyak ya Kak sudah berbelanja di *PSTORE*! Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ✨\n\n";
+            $pesan .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
+            $pesan .= "👉 {$driveLink}\n\n";
+            $pesan .= "*Penting:* Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, agar link di atas bisa langsung diklik dengan mudah dari HP Kakak, dan juga untuk mempermudah klaim garansi atau promo menarik kami ke depannya 😉👍\n\n";
+            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ❤️";
 
             $waUrl = "https://wa.me/{$cleanPhone}?text=" . urlencode($pesan);
 
@@ -132,7 +132,8 @@ class WhatsAppShareController extends Controller
             $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = date('Y') . '/' . date('m') . '/' . Str::slug($branchName);
-            $filename = "Nota-{$transaction->receipt_id}.pdf";
+            $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
+            $filename = "Nota_{$customerNameClean}_{$transaction->receipt_id}.pdf";
 
             $response = Http::timeout(120)->post($scriptUrl, [
                 'htmlContent' => $htmlContent,
