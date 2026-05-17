@@ -113,25 +113,10 @@ class WhatsAppShareController extends Controller
             // 1. Get Cached Logos
             $logos = self::getBase64Images();
 
-            // 2. Hitung Total & Diskon
-            $total_original = 0;
-            foreach ($transaction->items as $item) {
-                $netPrice = ($item->pivot->selling_price ?? 0) - ($item->pivot->item_discount ?? 0) - ($item->pivot->distributed_discount ?? 0);
-                $total_original += $netPrice;
-            }
-            foreach ($transaction->nonHpItems as $item) {
-                $netPrice = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
-                $total_original += ($item->quantity ?? 1) * $netPrice;
-            }
-
-            $total_discount = 0;
-            if ($transaction->global_discount_value > 0) {
-                if ($transaction->global_discount_type === 'percentage') {
-                    $total_discount = ($total_original * $transaction->global_discount_value) / 100;
-                } else {
-                    $total_discount = $transaction->global_discount_value;
-                }
-            }
+            // 2. Hitung Total & Diskon langsung dari database (seperti ReceiptModal.vue)
+            $total_discount = abs($transaction->total_discount ?? 0);
+            $total_original = $transaction->original_price 
+                ?: (abs($transaction->selling_price) + $total_discount);
 
             // 3. Process split payments
             $processedSplitPayments = [];
@@ -195,9 +180,9 @@ class WhatsAppShareController extends Controller
      */
     private static function getBase64Images()
     {
-        return Cache::rememberForever('receipt_logos_base64', function() {
+        return Cache::rememberForever('receipt_logos_base64_v2', function() {
             $images = [
-                'logo' => 'logo-pstore.png', 
+                'logo' => 'ps.png', 
                 'shopee' => 'shopee-icon-small.png', 
                 'tokopedia' => 'tokopedia-icon-small.png'
             ];

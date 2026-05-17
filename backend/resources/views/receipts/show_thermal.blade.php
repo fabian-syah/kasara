@@ -505,7 +505,7 @@
     @if($logoBase64)
         <img src="{{ $logoBase64 }}" class="watermark" alt="">
     @else
-        <img src="https://stokps.com/images/logo-pstore.png" class="watermark" alt="">
+        <img src="{{ asset('images/ps.png') }}" class="watermark" alt="">
     @endif
 
     <!-- HEADER -->
@@ -514,7 +514,7 @@
             @if($logoBase64)
                 <img src="{{ $logoBase64 }}" alt="PSTORE" class="logo-img">
             @else
-                <img src="https://stokps.com/images/logo-pstore.png" alt="PSTORE" class="logo-img">
+                <img src="{{ asset('images/ps.png') }}" alt="PSTORE" class="logo-img">
             @endif
         </div>
         <div class="header-info">
