@@ -533,47 +533,96 @@ const sendWaReceiptFromModal = async () => {
             return;
         }
 
-        // Ambil clone isi modal nota
+        // 1. Kloning elemen nota utama
         const cloned = element.cloneNode(true);
-        // Hapus elemen tombol kirim atau cetak yang masuk di dalam kertas jika ada
+        
+        // 2. Bersihkan tombol-tombol yang tidak perlu ikut di PDF
         cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
 
-        // Ambil semua style dari dokumen utama agar style Vue/Tailwind ikut terbawa ke PDF
-        let stylesHtml = '';
+        // 3. Ambil semua style aktif (Tailwind / CSS internal) dari document
+        let compiledStyles = '';
         document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-            stylesHtml += el.outerHTML;
+            compiledStyles += el.outerHTML;
         });
 
-        // Susun dokumen HTML penuh yang mewarisi styling modal saat ini
+        // 4. Susun struktur HTML Bulletproof khusus untuk PDF Engine (Menggunakan struktur Table Layout)
         const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Nota Pembelian</title>
-    ${stylesHtml}
+    ${compiledStyles}
     <style>
+        @page {
+            margin: 0;
+            size: A4 portrait;
+        }
         body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            padding: 20px; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0 auto; 
+            padding: 30px; 
             background: #ffffff; 
-            display: flex;
-            justify-content: center;
+            color: #0a0a0a;
+            width: 100%;
+            max-width: 650px;
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         .nota-paper { 
             box-shadow: none !important;
             border: none !important;
-            width: 650px !important; /* Samakan dengan max-width modal desktop */
+            width: 100% !important;
+            max-width: 650px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #ffffff !important;
+        }
+        /* Fix PDF Engine bug for standard flex breakdown container */
+        .flex.flex-col.md\\:flex-row {
+            display: table !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+        }
+        .flex.flex-col.md\\:flex-row > div:first-child {
+            display: table-cell !important;
+            width: 58% !important;
+            vertical-align: top !important;
+            padding-right: 20px !important;
+        }
+        .flex.flex-col.md\\:flex-row > div:last-child {
+            display: table-cell !important;
+            width: 42% !important;
+            vertical-align: top !important;
+        }
+        /* Fix for signature section grid */
+        .signature-area.grid.grid-cols-2 {
+            display: table !important;
+            width: 100% !important;
+            table-layout: fixed !important;
+        }
+        .signature-area.grid.grid-cols-2 > div {
+            display: table-cell !important;
+            width: 50% !important;
+            vertical-align: top !important;
+        }
+        /* Keep background colors visible in PDF */
+        th, .bg-neutral-950, .bg-red-600 {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
     </style>
 </head>
 <body>
-    ${cloned.outerHTML} <!-- Gunakan outerHTML agar wrapper .nota-paper ikut terbawa -->
+    <div class="nota-paper">
+        ${cloned.innerHTML}
+    </div>
 </body>
 </html>
         `;
 
+        // 5. Kirim payload HTML yang sudah matang ke backend
         const response = await api.post(`/receipts/${props.transaction.id}/share-wa`, {
             htmlContent: htmlContent
         });

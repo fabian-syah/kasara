@@ -82,13 +82,12 @@ class WhatsAppShareController extends Controller
     {
         $cacheKey = "receipt_drive_link_{$id}";
         
-        // 0. Jika htmlContent dikirim dari frontend, kita bypass pencarian cache lama 
-        // agar update tampilan modal langsung ter-generate menjadi PDF baru
+        // Jika ada htmlContent kiriman baru dari modal web, hapus cache lama 
+        // agar PDF di Google Drive selalu ter-update dengan data modal terbaru
         if ($htmlContent) {
-            // Hapus cache lama jika ada agar link PDF diperbarui dengan tampilan modal terbaru
             Cache::forget($cacheKey);
         } else {
-            // Jika dipanggil dari background job tanpa htmlContent, baru cek cache
+            // Jika dipanggil otomatis tanpa payload HTML (misal cron / background job), gunakan cache jika ada
             if ($cachedLink = Cache::get($cacheKey)) {
                 return $cachedLink;
             }
@@ -97,17 +96,12 @@ class WhatsAppShareController extends Controller
         try {
             $transaction = StockOut::findOrFail($id);
             
-            // 1. FALLBACK: Hanya jika htmlContent kosong (misal dijalankan via scheduler/background job)
+            // JIKA JALUR BACKEND CADANGAN (htmlContent kosong), baru panggil template lama
             if (!$htmlContent) {
                 $transaction->load([
-                    'items.product',
-                    'nonHpItems.product',
-                    'user.branch.receiptSetting',
-                    'user.onlineShop.receiptSetting',
-                    'branch.receiptSetting',
-                    'onlineShop.receiptSetting',
-                    'destinationBranch.receiptSetting',
-                    'paymentMethod'
+                    'items.product', 'nonHpItems.product', 'user.branch.receiptSetting',
+                    'user.onlineShop.receiptSetting', 'branch.receiptSetting',
+                    'onlineShop.receiptSetting', 'destinationBranch.receiptSetting', 'paymentMethod'
                 ]);
 
                 $targetLocation = $transaction->branch 
@@ -138,21 +132,8 @@ class WhatsAppShareController extends Controller
                     $pm = \App\Models\PaymentMethod::find($transaction->payment_method_id);
                     if ($pm) $paymentMethodNames[] = $pm->name;
                 }
-                if ($transaction->split_payments) {
-                    $splits = is_array($transaction->split_payments) ? $transaction->split_payments : json_decode($transaction->split_payments, true);
-                    if (is_array($splits)) {
-                        foreach ($splits as $sp) {
-                            $pmId = $sp['payment_method_id'] ?? null;
-                            if ($pmId) {
-                                $pm = \App\Models\PaymentMethod::find($pmId);
-                                if ($pm) $paymentMethodNames[] = $pm->name;
-                            }
-                        }
-                    }
-                }
                 $paymentMethodNameFormatted = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-                // Menggunakan tampilan thermal lama sebagai cadangan saja
                 $htmlContent = view('receipts.show_thermal', [
                     'transaction' => $transaction,
                     'total_original' => $total_original,
@@ -166,13 +147,14 @@ class WhatsAppShareController extends Controller
                 ])->render();
             }
 
-            // 2. Kirim langsung htmlContent (baik hasil tangkapan Vue maupun fallback Blade) ke GDrive Bridge
+            // Ambil data folder & nama file berdasarkan transaksi saat ini
             $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = date('Y') . '/' . date('m') . '/' . Str::slug($branchName);
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
             $filename = "Nota_{$customerNameClean}_{$transaction->receipt_id}.pdf";
 
+            // Kirim raw HTML langsung ke Google API Macro tanpa render ulang di PHP
             $response = Http::timeout(120)->post($scriptUrl, [
                 'htmlContent' => $htmlContent,
                 'filename' => $filename,
@@ -184,7 +166,6 @@ class WhatsAppShareController extends Controller
                 $driveLink = $result['url'] ?? null;
                 
                 if ($driveLink) {
-                    // Simpan di cache selama 24 jam untuk request berikutnya tanpa htmlContent
                     Cache::put($cacheKey, $driveLink, now()->addHours(24));
                     return $driveLink;
                 }
