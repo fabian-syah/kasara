@@ -533,161 +533,43 @@ const sendWaReceiptFromModal = async () => {
             return;
         }
 
+        // Ambil clone isi modal nota
         const cloned = element.cloneNode(true);
+        // Hapus elemen tombol kirim atau cetak yang masuk di dalam kertas jika ada
         cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
 
+        // Ambil semua style dari dokumen utama agar style Vue/Tailwind ikut terbawa ke PDF
+        let stylesHtml = '';
+        document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+            stylesHtml += el.outerHTML;
+        });
+
+        // Susun dokumen HTML penuh yang mewarisi styling modal saat ini
         const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Nota Pembelian</title>
+    ${stylesHtml}
     <style>
         body { 
-            font-family: 'Outfit', 'Inter', sans-serif; 
+            font-family: 'Inter', sans-serif; 
             margin: 0; 
-            padding: 10px; 
+            padding: 20px; 
             background: #ffffff; 
-            color: #0a0a0a;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
+            display: flex;
+            justify-content: center;
         }
         .nota-paper { 
-            width: 100%; 
-            max-width: 420px; 
-            margin: 0 auto; 
-            background: #ffffff; 
-            color: #0a0a0a; 
-            position: relative;
-            box-sizing: border-box;
-        }
-        .text-red-600 { color: #dc2626 !important; }
-        .text-neutral-900 { color: #0a0a0a !important; }
-        .text-neutral-950 { color: #0a0a0a !important; }
-        .text-neutral-500 { color: #737373 !important; }
-        .text-neutral-400 { color: #a3a3a3 !important; }
-        .text-neutral-300 { color: #d4d4d4 !important; }
-        .text-white { color: #ffffff !important; }
-        .font-bold { font-weight: 700 !important; }
-        .font-black { font-weight: 900 !important; }
-        .font-semibold { font-weight: 600 !important; }
-        .text-center { text-align: center !important; }
-        .text-left { text-align: left !important; }
-        .text-right { text-align: right !important; }
-        .uppercase { text-transform: uppercase !important; }
-        .italic { font-style: italic !important; }
-        .flex { display: flex !important; }
-        .justify-between { justify-content: space-between !important; }
-        .justify-center { justify-content: center !important; }
-        .items-center { align-items: center !important; }
-        .flex-col { flex-direction: column !important; }
-        .flex-1 { flex: 1 1 0% !important; }
-        .shrink-0 { flex-shrink: 0 !important; }
-        .grid { display: grid !important; }
-        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-        .w-full { width: 100% !important; }
-        .w-7 { width: 28px !important; }
-        .h-7 { height: 28px !important; }
-        .w-16 { width: 64px !important; }
-        .h-1 { height: 4px !important; }
-        .h-px { height: 1px !important; }
-        .h-\[1.5px\] { height: 1.5px !important; }
-        .w-5 { width: 20px !important; }
-        .w-\[110px\] { width: 110px !important; }
-        .w-\[85px\] { width: 85px !important; }
-        .w-\[40px\] { width: 40px !important; }
-        .min-w-0 { min-width: 0 !important; }
-        .m-0 { margin: 0 !important; }
-        .mb-12 { margin-bottom: 48px !important; }
-        .mb-6 { margin-bottom: 24px !important; }
-        .mb-5 { margin-bottom: 20px !important; }
-        .mb-4 { margin-bottom: 16px !important; }
-        .mb-1.5 { margin-bottom: 6px !important; }
-        .mb-0.5 { margin-bottom: 2px !important; }
-        .mt-2 { margin-top: 8px !important; }
-        .mt-0.5 { margin-top: 2px !important; }
-        .-top-0.5 { top: -2px !important; }
-        .p-4 { padding: 16px !important; }
-        .p-6 { padding: 24px !important; }
-        .py-3 { padding-top: 12px !important; padding-bottom: 12px !important; }
-        .py-4 { padding-top: 16px !important; padding-bottom: 16px !important; }
-        .px-3 { padding-left: 12px !important; padding-right: 12px !important; }
-        .px-4 { padding-left: 16px !important; padding-right: 16px !important; }
-        .pr-4 { padding-right: 16px !important; }
-        .pl-4 { padding-left: 16px !important; }
-        .border { border: 1px solid #e5e7eb !important; }
-        .border-t { border-top: 1px solid #e5e7eb !important; }
-        .border-b { border-bottom: 1px solid #e5e7eb !important; }
-        .border-r { border-right: 1px solid #e5e7eb !important; }
-        .border-dashed { border-style: dashed !important; }
-        .border-neutral-200 { border-color: #e5e7eb !important; }
-        .border-neutral-300 { border-color: #d1d5db !important; }
-        .border-neutral-400 { border-color: #9ca3af !important; }
-        .bg-white { background-color: #ffffff !important; }
-        .bg-white\/60 { background-color: rgba(255, 255, 255, 0.6) !important; }
-        .bg-neutral-50 { background-color: #f9fafb !important; }
-        .bg-neutral-200 { background-color: #e5e7eb !important; }
-        .bg-red-600 { background-color: #dc2626 !important; }
-        .bg-red-600\/30 { background-color: rgba(220, 38, 38, 0.3) !important; }
-        .text-\[7px\] { font-size: 8px !important; }
-        .text-\[9px\] { font-size: 9px !important; }
-        .text-\[10px\] { font-size: 10px !important; }
-        .text-\[11px\] { font-size: 11px !important; }
-        .text-xs { font-size: 12px !important; }
-        .text-sm { font-size: 14px !important; }
-        .text-base { font-size: 16px !important; }
-        .text-3xl { font-size: 24px !important; font-weight: 900 !important; }
-        .rounded-xl { border-radius: 12px !important; }
-        .rounded-full { border-radius: 9999px !important; }
-        .overflow-hidden { overflow: hidden !important; }
-        .border-collapse { border-collapse: collapse !important; }
-        svg {
-            display: inline-block;
-            vertical-align: middle;
-            fill: currentColor;
-            width: 14px;
-            height: 14px;
-        }
-        .w-3.5 { width: 14px !important; }
-        .h-3.5 { height: 14px !important; }
-        .w-2.5 { width: 10px !important; }
-        .h-2.5 { height: 10px !important; }
-        .watermark {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-12deg);
-            width: 75%;
-            opacity: 0.025;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .grand-total-wrapper {
-            width: 100%;
-            background-color: #0a0a0a;
-            color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-top: 10px;
-        }
-        .gt-left {
-            padding: 8px 12px;
-            font-weight: 900;
-            text-transform: uppercase;
-            font-size: 10px;
-        }
-        .gt-value {
-            padding: 8px 16px;
-            font-weight: 900;
-            font-size: 18px;
-            background-color: #dc2626;
-            color: #ffffff;
-            text-align: right;
+            box-shadow: none !important;
+            border: none !important;
+            width: 650px !important; /* Samakan dengan max-width modal desktop */
         }
     </style>
 </head>
 <body>
-    ${cloned.innerHTML}
+    ${cloned.outerHTML} <!-- Gunakan outerHTML agar wrapper .nota-paper ikut terbawa -->
 </body>
 </html>
         `;

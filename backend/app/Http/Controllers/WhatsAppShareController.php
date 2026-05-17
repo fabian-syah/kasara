@@ -78,55 +78,53 @@ class WhatsAppShareController extends Controller
         }
     }
 
-    /**
-     * Heavy lifting for PDF Generation & Upload
-     * Can be called synchronously or from a background job
-     */
     public static function getDriveLink($id, $htmlContent = null)
     {
         $cacheKey = "receipt_drive_link_{$id}";
         
-        // 0. Cek Cache (hanya jika tidak dipaksa re-generation dari frontend)
-        if (!$htmlContent && ($cachedLink = Cache::get($cacheKey))) {
-            return $cachedLink;
+        // 0. Jika htmlContent dikirim dari frontend, kita bypass pencarian cache lama 
+        // agar update tampilan modal langsung ter-generate menjadi PDF baru
+        if ($htmlContent) {
+            // Hapus cache lama jika ada agar link PDF diperbarui dengan tampilan modal terbaru
+            Cache::forget($cacheKey);
+        } else {
+            // Jika dipanggil dari background job tanpa htmlContent, baru cek cache
+            if ($cachedLink = Cache::get($cacheKey)) {
+                return $cachedLink;
+            }
         }
 
         try {
-            $transaction = StockOut::with([
-                'items.product',
-                'nonHpItems.product',
-                'user.branch.receiptSetting',
-                'user.onlineShop.receiptSetting',
-                'branch.receiptSetting',
-                'onlineShop.receiptSetting',
-                'destinationBranch.receiptSetting',
-                'paymentMethod'
-            ])->findOrFail($id);
+            $transaction = StockOut::findOrFail($id);
             
-            // Resolve receipt settings exactly like ReceiptModal.vue
-            $targetLocation = $transaction->branch 
-                ?? ($transaction->onlineShop 
-                ?? ($transaction->destinationBranch 
-                ?? ($transaction->user->branch ?? ($transaction->user->onlineShop ?? null))));
-                
-            $receiptSetting = $targetLocation ? $targetLocation->receiptSetting : null;
-            
-            // 1. Get Cached Logos
-            $logos = self::getBase64Images();
-
-            // If HTML content was not sent from frontend, fall back to rendering the blade template
+            // 1. FALLBACK: Hanya jika htmlContent kosong (misal dijalankan via scheduler/background job)
             if (!$htmlContent) {
-                // 2. Hitung Total & Diskon langsung dari database (seperti ReceiptModal.vue)
-                $total_discount = abs($transaction->total_discount ?? 0);
-                $total_original = $transaction->original_price 
-                    ?: (abs($transaction->selling_price) + $total_discount);
+                $transaction->load([
+                    'items.product',
+                    'nonHpItems.product',
+                    'user.branch.receiptSetting',
+                    'user.onlineShop.receiptSetting',
+                    'branch.receiptSetting',
+                    'onlineShop.receiptSetting',
+                    'destinationBranch.receiptSetting',
+                    'paymentMethod'
+                ]);
 
-                // 3. Process split payments
+                $targetLocation = $transaction->branch 
+                    ?? ($transaction->onlineShop 
+                    ?? ($transaction->destinationBranch 
+                    ?? ($transaction->user->branch ?? ($transaction->user->onlineShop ?? null))));
+                    
+                $receiptSetting = $targetLocation ? $targetLocation->receiptSetting : null;
+                $logos = self::getBase64Images();
+
+                $total_discount = abs($transaction->total_discount ?? 0);
+                $total_original = $transaction->original_price ?: (abs($transaction->selling_price) + $total_discount);
+
                 $processedSplitPayments = [];
                 if ($transaction->split_payments && count($transaction->split_payments) > 0) {
                     $methodIds = array_column($transaction->split_payments, 'payment_method_id');
                     $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
-
                     foreach ($transaction->split_payments as $sp) {
                         $processedSplitPayments[] = [
                             'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
@@ -154,6 +152,7 @@ class WhatsAppShareController extends Controller
                 }
                 $paymentMethodNameFormatted = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
+                // Menggunakan tampilan thermal lama sebagai cadangan saja
                 $htmlContent = view('receipts.show_thermal', [
                     'transaction' => $transaction,
                     'total_original' => $total_original,
@@ -167,7 +166,7 @@ class WhatsAppShareController extends Controller
                 ])->render();
             }
 
-            // 5. Kirim ke GDrive Bridge
+            // 2. Kirim langsung htmlContent (baik hasil tangkapan Vue maupun fallback Blade) ke GDrive Bridge
             $scriptUrl = 'https://script.google.com/macros/s/AKfycbwZIhLxZK_AhiC5k1JPctPfjOa2zPLUO8vcYfwSbyVt2nKF3dVOlRptkF07M0xdDBbY/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = date('Y') . '/' . date('m') . '/' . Str::slug($branchName);
@@ -185,7 +184,7 @@ class WhatsAppShareController extends Controller
                 $driveLink = $result['url'] ?? null;
                 
                 if ($driveLink) {
-                    // Simpan di cache selama 24 jam
+                    // Simpan di cache selama 24 jam untuk request berikutnya tanpa htmlContent
                     Cache::put($cacheKey, $driveLink, now()->addHours(24));
                     return $driveLink;
                 }
