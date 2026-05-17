@@ -885,35 +885,35 @@
 
             <!-- Right: Totals Breakdown & Slanted Banner -->
             <td class="split-col-right">
-                <div class="summary-table clearfix">
-                    <div class="summary-row clearfix">
-                        <span class="summary-label">Sub Total</span>
-                        <span class="summary-value">Rp {{ number_format($total_original, 0, ',', '.') }}</span>
-                    </div>
+                <table class="summary-table" cellspacing="0" cellpadding="0" border="0" style="width: 100%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+                    <tr>
+                        <td style="text-align: left; font-size: 9px; font-weight: 700; color: #6b7280; padding-bottom: 4px;">Sub Total</td>
+                        <td style="text-align: right; font-size: 9px; font-weight: 900; color: #111827; padding-bottom: 4px;">Rp {{ number_format($total_original, 0, ',', '.') }}</td>
+                    </tr>
                     @if($total_discount > 0)
-                        <div class="summary-row clearfix" style="margin-top: 4px;">
-                            <span class="summary-label">Diskon</span>
-                            <span class="summary-value" style="color: #dc2626;">-Rp {{ number_format($total_discount, 0, ',', '.') }}</span>
-                        </div>
+                        <tr>
+                            <td style="text-align: left; font-size: 9px; font-weight: 700; color: #6b7280; padding-bottom: 4px;">Diskon</td>
+                            <td style="text-align: right; font-size: 9px; font-weight: 900; color: #dc2626; padding-bottom: 4px;">-Rp {{ number_format($total_discount, 0, ',', '.') }}</td>
+                        </tr>
                     @endif
 
                     {{-- Breakdown row support --}}
                     @if(isset($split_payments_data) && count($split_payments_data) > 0)
                         @foreach($split_payments_data as $sp)
                             @if(($sp['amount'] ?? 0) > 0)
-                                <div class="summary-row clearfix" style="margin-top: 4px; border-top: 1px solid #f3f4f6; padding-top: 2px;">
-                                    <span class="summary-label" style="text-transform: uppercase;">{{ $sp['method_name'] ?? 'Bayar' }}</span>
-                                    <span class="summary-value">Rp {{ number_format($sp['amount'], 0, ',', '.') }}</span>
-                                </div>
+                                <tr>
+                                    <td style="text-align: left; font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-top: 1px solid #f3f4f6; padding-top: 4px; padding-bottom: 4px;">{{ $sp['method_name'] ?? 'Bayar' }}</td>
+                                    <td style="text-align: right; font-size: 9px; font-weight: 900; color: #111827; border-top: 1px solid #f3f4f6; padding-top: 4px; padding-bottom: 4px;">Rp {{ number_format($sp['amount'], 0, ',', '.') }}</td>
+                                </tr>
                             @endif
                         @endforeach
                     @elseif($transaction->split_payments && count($transaction->split_payments) > 0)
                         @foreach($transaction->split_payments as $sp)
                             @if(($sp['amount'] ?? 0) > 0)
-                                <div class="summary-row clearfix" style="margin-top: 4px; border-top: 1px solid #f3f4f6; padding-top: 2px;">
-                                    <span class="summary-label" style="text-transform: uppercase;">{{ $sp['method'] ?? 'Bayar' }}</span>
-                                    <span class="summary-value">Rp {{ number_format($sp['amount'], 0, ',', '.') }}</span>
-                                </div>
+                                <tr>
+                                    <td style="text-align: left; font-size: 9px; font-weight: 700; color: #6b7280; text-transform: uppercase; border-top: 1px solid #f3f4f6; padding-top: 4px; padding-bottom: 4px;">{{ $sp['method'] ?? 'Bayar' }}</td>
+                                    <td style="text-align: right; font-size: 9px; font-weight: 900; color: #111827; border-top: 1px solid #f3f4f6; padding-top: 4px; padding-bottom: 4px;">Rp {{ number_format($sp['amount'], 0, ',', '.') }}</td>
+                                </tr>
                             @endif
                         @endforeach
                     @endif
@@ -921,11 +921,11 @@
                     @php
                         $summaryLabel = 'Selisih Harga';
                     @endphp
-                    <div class="summary-row-red clearfix">
-                        <span class="summary-label-red">{{ $summaryLabel }}</span>
-                        <span class="summary-value-red">Rp {{ number_format(abs($transaction->selling_price), 0, ',', '.') }}</span>
-                    </div>
-                </div>
+                    <tr>
+                        <td style="text-align: left; font-size: 9px; font-weight: 900; color: #dc2626; text-transform: uppercase; border-top: 1px dashed #d1d5db; padding-top: 8px;">{{ $summaryLabel }}</td>
+                        <td style="text-align: right; font-size: 11px; font-weight: 900; color: #dc2626; border-top: 1px dashed #d1d5db; padding-top: 8px;">Rp {{ number_format(abs($transaction->selling_price), 0, ',', '.') }}</td>
+                    </tr>
+                </table>
 
                 <!-- PIXEL-PERFECT SLANTED BANNER TABLE -->
                 <table class="grand-total-wrapper" cellspacing="0" cellpadding="0" border="0">
