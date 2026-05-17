@@ -539,11 +539,32 @@ const sendWaReceiptFromModal = async () => {
         // 2. Bersihkan tombol-tombol yang tidak perlu ikut di PDF
         cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
 
+        // Ubah src gambar relatif menjadi absolute agar Google Apps Script bisa memuatnya
+        cloned.querySelectorAll('img').forEach(img => {
+            const src = img.getAttribute('src');
+            if (src && src.startsWith('/')) {
+                img.src = window.location.origin + src;
+            }
+        });
+
         // 3. Ambil semua style aktif (Tailwind / CSS internal) dari document
         let compiledStyles = '';
-        document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-            compiledStyles += el.outerHTML;
-        });
+        const styleElements = document.querySelectorAll('style, link[rel="stylesheet"]');
+        for (const el of styleElements) {
+            if (el.tagName.toLowerCase() === 'style') {
+                compiledStyles += el.outerHTML;
+            } else if (el.tagName.toLowerCase() === 'link') {
+                try {
+                    // Fetch external CSS (Tailwind file di production) dan inline agar bisa dibaca Google PDF Engine
+                    const res = await fetch(el.href);
+                    const cssText = await res.text();
+                    compiledStyles += `<style>\n${cssText}\n</style>`;
+                } catch (e) {
+                    console.error('Failed to inline stylesheet:', el.href);
+                    compiledStyles += el.outerHTML; // Fallback
+                }
+            }
+        }
 
         // 4. Susun struktur HTML Bulletproof khusus untuk PDF Engine (Menggunakan struktur Table Layout)
         const htmlContent = `
