@@ -91,7 +91,24 @@ class WhatsAppShareController extends Controller
         }
 
         try {
-            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
+            $transaction = StockOut::with([
+                'items.product',
+                'nonHpItems.product',
+                'user.branch.receiptSetting',
+                'user.onlineShop.receiptSetting',
+                'branch.receiptSetting',
+                'onlineShop.receiptSetting',
+                'destinationBranch.receiptSetting',
+                'paymentMethod'
+            ])->findOrFail($id);
+            
+            // Resolve receipt settings exactly like ReceiptModal.vue
+            $targetLocation = $transaction->branch 
+                ?? ($transaction->onlineShop 
+                ?? ($transaction->destinationBranch 
+                ?? ($transaction->user->branch ?? ($transaction->user->onlineShop ?? null))));
+                
+            $receiptSetting = $targetLocation ? $targetLocation->receiptSetting : null;
             
             // 1. Get Cached Logos
             $logos = self::getBase64Images();
@@ -139,6 +156,7 @@ class WhatsAppShareController extends Controller
                 'shopeeBase64' => $logos['shopee'] ?? '',
                 'tokopediaBase64' => $logos['tokopedia'] ?? '',
                 'split_payments_data' => $processedSplitPayments,
+                'receiptSetting' => $receiptSetting,
             ])->render();
 
             // 5. Kirim ke GDrive Bridge

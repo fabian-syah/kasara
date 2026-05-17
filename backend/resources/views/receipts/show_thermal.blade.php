@@ -520,29 +520,42 @@
         <div class="header-info">
             <div>
                 <h2 class="brand-title-red">PSTORE</h2>
-                <h2 class="brand-title-black">{{ strtoupper(str_replace('PSTORE', '', str_replace('PSTORE ', '', ($transaction->branch->name ?? ($transaction->branch_name ?? 'CABANG'))))) }}</h2>
+                <h2 class="brand-title-black">
+                    {{ strtoupper(str_replace('PSTORE', '', str_replace('PSTORE ', '', ($transaction->branch->name ?? ($transaction->branch_name ?? ($transaction->onlineShop->name ?? 'CABANG')))))) }}
+                </h2>
             </div>
             <p class="header-sub">
-                {{ $transaction->branch->address ?? 'Pusat Perbelanjaan Online. HP, Laptop, Barang Elektronik Bergaransi Terjamin.' }}
+                {{ $receiptSetting->store_address ?? ($transaction->branch->address ?? ($transaction->onlineShop->address ?? 'Pusat Perbelanjaan Online. HP, Laptop, Barang Elektronik Bergaransi Terjamin.')) }}
             </p>
             <div>
+                @php
+                    $whatsappClean = isset($receiptSetting->whatsapp_number) && trim($receiptSetting->whatsapp_number) !== '' ? $receiptSetting->whatsapp_number : '0851-3300-5600';
+                    $tiktokClean = isset($receiptSetting->tiktok) && trim($receiptSetting->tiktok) !== '' ? str_replace('@', '', $receiptSetting->tiktok) : null;
+                    $instagramClean = isset($receiptSetting->instagram) && trim($receiptSetting->instagram) !== '' ? str_replace('@', '', $receiptSetting->instagram) : null;
+                @endphp
                 <!-- WhatsApp -->
                 <span class="social-item">
                     <svg class="social-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z"/></svg>
-                    WA: 0851-3300-5600
+                    WA: {{ $whatsappClean }}
                 </span>
-                <span class="social-divider">|</span>
-                <!-- TikTok -->
-                <span class="social-item">
-                    <svg class="social-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z"/></svg>
-                    TikTok: PSTORE_
-                </span>
-                <span class="social-divider">|</span>
-                <!-- IG -->
-                <span class="social-item">
-                    <svg class="social-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                    IG: PSTORE_
-                </span>
+                
+                @if($tiktokClean)
+                    <span class="social-divider">|</span>
+                    <!-- TikTok -->
+                    <span class="social-item">
+                        <svg class="social-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z"/></svg>
+                        TikTok: {{ $tiktokClean }}
+                    </span>
+                @endif
+                
+                @if($instagramClean)
+                    <span class="social-divider">|</span>
+                    <!-- IG -->
+                    <span class="social-item">
+                        <svg class="social-icon" style="fill: #dc2626;" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        IG: {{ $instagramClean }}
+                    </span>
+                @endif
             </div>
         </div>
     </div>
@@ -555,10 +568,22 @@
     <!-- TITLE -->
     <div class="receipt-title-block">
         @php
-            $hasExchange = count($transaction->items->filter(fn($i) => str_contains(strtoupper($i->pivot->notes ?? ''), 'IN:') || str_contains(strtoupper($i->pivot->notes ?? ''), 'MASUK'))) > 0;
-            $title = $hasExchange ? 'NOTA TUKAR TAMBAH' : 'NOTA PENJUALAN';
+            $cat = $transaction->category ?? 'penjualan';
+            $mapping = [
+                'penjualan_store' => 'Nota Penjualan Store',
+                'penjualan' => 'Nota Penjualan',
+                'penjualan_offline' => 'Nota Penjualan',
+                'refund' => 'Nota Refund',
+                'tukar_tambah' => 'Nota Tukar Tambah',
+                'tukar_unit' => 'Nota Tukar Unit',
+                'angkat_barang' => 'Nota Angkat Barang',
+                'downgrade' => 'Nota Downgrade',
+                'shopee' => 'Nota Shopee',
+                'orderan_online' => 'Nota Order Online'
+            ];
+            $title = $mapping[$cat] ?? 'Nota Penjualan';
         @endphp
-        <h1 class="receipt-title-main">{{ $title }}</h1>
+        <h1 class="receipt-title-main">{{ strtoupper($title) }}</h1>
         <div class="receipt-title-sub">— BUKTI TRANSAKSI —</div>
     </div>
 
@@ -573,7 +598,7 @@
                     </div>
                     <div class="info-text-container">
                         <div class="info-label">No. Nota</div>
-                        <div class="info-value">#{{ $transaction->receipt_id }}</div>
+                        <div class="info-value">{{ $transaction->order_no ?: ($transaction->receipt_id ?: '-') }}</div>
                     </div>
                 </div>
                 <div class="clearfix">
@@ -582,7 +607,9 @@
                     </div>
                     <div class="info-text-container">
                         <div class="info-label">Tanggal & Waktu</div>
-                        <div class="info-value">{{ $transaction->created_at->format('d M Y, H:i') }}</div>
+                        <div class="info-value">
+                            {{ $transaction->created_at ? $transaction->created_at->format('d M Y, H:i') : ($transaction->date ?: '-') }}
+                        </div>
                     </div>
                 </div>
             </td>
@@ -604,7 +631,9 @@
                     </div>
                     <div class="info-text-container">
                         <div class="info-label">No. HP</div>
-                        <div class="info-value">{{ $transaction->customer_phone && $transaction->customer_phone !== '-' ? $transaction->customer_phone : '000000000000' }}</div>
+                        <div class="info-value">
+                            {{ ($transaction->customer_phone ?: ($transaction->customer_wa ?: ($transaction->shopee_phone ?: ($transaction->event_phone ?: '-')))) }}
+                        </div>
                     </div>
                 </div>
             </td>
@@ -618,7 +647,7 @@
                     <div class="info-text-container">
                         <div class="info-label">Customer Service</div>
                         <div class="info-value" style="max-width: 120px; overflow: hidden;">
-                            {{ $transaction->inventory_user_name ?? ($transaction->sales_name ?? 'PSTORE STAFF') }}
+                            {{ $transaction->inventory_user_name ?? ($transaction->inventory_account_name ?? ($transaction->sales_account ?? ($transaction->sales_name ?? '-'))) }}
                         </div>
                     </div>
                 </div>
@@ -645,7 +674,8 @@
                     $it->is_hp = true;
                     $baseBladeItems[] = $it;
                 }
-                foreach(($transaction->nonHpItems ?? []) as $it) {
+                $nonHpSource = (isset($transaction->nonHpItems) && count($transaction->nonHpItems) > 0) ? $transaction->nonHpItems : ($transaction->nonHpDetails ?? []);
+                foreach($nonHpSource as $it) {
                     $it->is_hp = false;
                     $baseBladeItems[] = $it;
                 }
@@ -839,9 +869,17 @@
 
                 <div class="warranty-title">Syarat & Ketentuan —</div>
                 <ul class="warranty-list">
-                    <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
-                    <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.</li>
-                    <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
+                    @if(isset($receiptSetting) && $receiptSetting->warranty_terms)
+                        @foreach(explode("\n", $receiptSetting->warranty_terms) as $term)
+                            @if(trim($term) !== '')
+                                <li>{{ trim($term) }}</li>
+                            @endif
+                        @endforeach
+                    @else
+                        <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
+                        <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.</li>
+                        <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
+                    @endif
                 </ul>
             </td>
 
@@ -860,7 +898,16 @@
                     @endif
 
                     {{-- Breakdown row support --}}
-                    @if($transaction->split_payments && count($transaction->split_payments) > 0)
+                    @if(isset($split_payments_data) && count($split_payments_data) > 0)
+                        @foreach($split_payments_data as $sp)
+                            @if(($sp['amount'] ?? 0) > 0)
+                                <div class="summary-row clearfix" style="margin-top: 4px; border-top: 1px solid #f3f4f6; padding-top: 2px;">
+                                    <span class="summary-label" style="text-transform: uppercase;">{{ $sp['method_name'] ?? 'Bayar' }}</span>
+                                    <span class="summary-value">Rp {{ number_format($sp['amount'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                        @endforeach
+                    @elseif($transaction->split_payments && count($transaction->split_payments) > 0)
                         @foreach($transaction->split_payments as $sp)
                             @if(($sp['amount'] ?? 0) > 0)
                                 <div class="summary-row clearfix" style="margin-top: 4px; border-top: 1px solid #f3f4f6; padding-top: 2px;">
@@ -871,8 +918,12 @@
                         @endforeach
                     @endif
 
+                    @php
+                        $showSelisih = in_array($transaction->category ?? '', ['tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'swap']);
+                        $summaryLabel = $showSelisih ? 'Selisih Harga' : 'Grand Total';
+                    @endphp
                     <div class="summary-row-red clearfix">
-                        <span class="summary-label-red">Selisih Harga</span>
+                        <span class="summary-label-red">{{ $summaryLabel }}</span>
                         <span class="summary-value-red">Rp {{ number_format(abs($transaction->selling_price), 0, ',', '.') }}</span>
                     </div>
                 </div>
@@ -897,6 +948,10 @@
                         </td>
                     </tr>
                 </table>
+                
+                <div style="font-size: 8px; text-align: right; color: #9ca3af; font-style: italic; margin-top: 6px; font-weight: bold;">
+                    Metode: {{ (isset($split_payments_data) && count($split_payments_data) > 1) ? 'SPLIT (CAMPURAN)' : ($transaction->paymentMethod->name ?? ($transaction->payment_method ?? '-')) }}
+                </div>
             </td>
         </tr>
     </table>
@@ -912,7 +967,9 @@
             <td style="width: 50%; vertical-align: top;">
                 <div class="sig-title">Hormat Kami</div>
                 <div class="sig-line"></div>
-                <div class="sig-name" style="color: #dc2626;">PSTORE</div>
+                <div class="sig-name" style="color: #dc2626;">
+                    {{ $transaction->inventory_user_name ?? ($transaction->inventory_account_name ?? ($transaction->sales_account ?? ($transaction->sales_name ?? 'PSTORE'))) }}
+                </div>
             </td>
         </tr>
     </table>
