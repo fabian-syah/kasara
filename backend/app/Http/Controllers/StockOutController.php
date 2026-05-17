@@ -2303,6 +2303,8 @@ class StockOutController extends Controller
 
             $incomingHP = $incomingHPQuery->get();
 
+            throw new \Exception("Debug: receiptId=" . $receiptId . ", outgoingIds=" . json_encode($outgoingIds) . ", incomingHP=" . json_encode($incomingHP->pluck('id')->toArray()));
+
             foreach ($incomingHP as $inc) {
                 // Delete the IN log to keep history clean
                 \App\Models\InventoryLog::where('product_id', $inc->product_id)
