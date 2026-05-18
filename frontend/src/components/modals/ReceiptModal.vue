@@ -689,12 +689,13 @@ const sendWaReceiptFromModal = async () => {
         });
 
         if (response.data && response.data.success) {
-            // Menggunakan Emoji Dasar (Tanpa Skin Tone Modifier) untuk Kompatibilitas 100%
-            const wave = encodeURIComponent("😁");   // 👋 (Atau 😁 sesuai contoh)
-            const pray = encodeURIComponent("😂😁");   // 🤲 (Atau 😂😁 sesuai contoh)
-            const pin = encodeURIComponent("📌");      // 📌
-            const heart = encodeURIComponent("❤️");    // ❤️
-            const folded = encodeURIComponent("🙏");   // 🙏
+            // Menggunakan Hardcoded Percent-Encoding (ASCII Murni)
+            // KEBAL terhadap kerusakan FTP / File Encoding / VPS.
+            const wave = "%F0%9F%98%81";               // 😁
+            const pray = "%F0%9F%98%82%F0%9F%98%81";   // 😂😁
+            const pin = "%F0%9F%93%8C";                // 📌
+            const heart = "%E2%9D%A4%EF%B8%8F";        // ❤️
+            const folded = "%F0%9F%99%8F";             // 🙏
 
             const customerName = props.transaction.customer_name || 'Pelanggan';
             const branchObj = props.transaction.branch || props.transaction.destinationBranch || authStore.userBranch || {};
@@ -714,7 +715,7 @@ const sendWaReceiptFromModal = async () => {
             let cleanPhone = (props.transaction.customer_phone || '').toString().replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
 
-            const waUrl = `https://wa.me/${cleanPhone}?text=${textParam}`;
+            const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${textParam}`;
 
             if (newWindow) {
                 newWindow.location.href = waUrl;
