@@ -615,7 +615,7 @@ const sendWaReceiptFromModal = async () => {
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             margin: 0 auto; 
-            padding: 45px; 
+            padding: 0 !important;
             background: #ffffff; 
             color: #0a0a0a;
             width: 100%;
@@ -627,28 +627,33 @@ const sendWaReceiptFromModal = async () => {
         #receipt-modal-print-wrapper {
             width: 100% !important;
             max-width: 100% !important;
-            margin: 0 auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #ffffff !important;
         }
         #receipt-modal-print-wrapper > .nota-paper {
-            margin: 0 auto !important;
+            margin: 0 !important;
             width: 100% !important;
-            max-width: 700px !important;
+            max-width: 100% !important;
             display: block !important;
             float: none !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 0 !important;
+            padding: 40px !important;
+            padding-top: 60px !important;
             background: #ffffff !important;
+            box-sizing: border-box !important;
         }
         .nota-paper { 
             box-shadow: none !important;
             border: none !important;
             width: 100% !important;
-            max-width: 700px !important;
-            padding: 0 !important;
-            margin: 0 auto !important;
+            max-width: 100% !important;
+            padding: 40px !important;
+            padding-top: 60px !important;
+            margin: 0 !important;
             background: #ffffff !important;
+            box-sizing: border-box !important;
         }
 
         /* =========================================================
@@ -677,6 +682,7 @@ const sendWaReceiptFromModal = async () => {
             display: table !important;
             width: 100% !important;
             table-layout: fixed !important;
+            margin-top: 25px !important;
         }
         .flex.flex-col.md\\:flex-row > div:first-child {
             display: table-cell !important;
@@ -696,6 +702,7 @@ const sendWaReceiptFromModal = async () => {
             table-layout: fixed !important;
             border: none !important;
             box-shadow: none !important;
+            margin-top: 30px !important;
         }
         .signature-area.grid.grid-cols-2 > div {
             display: table-cell !important;
@@ -706,6 +713,10 @@ const sendWaReceiptFromModal = async () => {
             border-left: none !important;
             border-top: none !important;
             border-bottom: none !important;
+        }
+        /* Spacing between metadata grid and product table */
+        .overflow-x-auto.print\:overflow-visible {
+            margin-top: 25px !important;
         }
         /* Keep background colors visible in PDF */
         th, .bg-neutral-950, .bg-red-600 {
