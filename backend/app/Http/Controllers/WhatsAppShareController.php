@@ -155,7 +155,7 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbxnoj0l1H4CRPGLRc6cp7av0RQgJlIr2OLF2_-SF9x7P_yAiP1PtrkFKG1Q0Gf8IxbGWw/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycby1iZVOgTy5XWib8nKVwGX3D0DoY2-b9MxWOcTM8IXZsYrmdtmnFzGnEtN45_FGMBbn3g/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = 'NOTA';
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
