@@ -59,16 +59,24 @@ class WhatsAppShareController extends Controller
                     ?? ($transaction->user->branch->name ?? ''));
             $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
 
-            $pesan = "Halo Kak *{$customerName}*  \u{1F44B}\n\n";
-            $pesan .= "Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n";
-            $pesan .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa \u{1F932}\n\n";
-            $pesan .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
-            $pesan .= "\u{1F4CC} {$driveLink}\n\n";
-            $pesan .= "*Penting:* \n";
-            $pesan .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya \u{1FAF6}\n\n";
-            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! \u{1F64F}";
+            // Membangun URL text WhatsApp secara aman dengan Hardcoded Percent-Encoding
+            // Ini menjamin 100% emojis tidak akan rusak (jadi tanda tanya/kotak) di VPS atau mobile device apapun
+            $wave = "%F0%9F%91%8B%F0%9F%8F%BB"; // 👋🏻
+            $pray = "%F0%9F%A4%B2%F0%9F%8F%BB"; // 🤲🏻
+            $pin = "%F0%9F%93%8C"; // 📌
+            $heart = "%F0%9F%AB%B6%F0%9F%8F%BB"; // 🫶🏻
+            $folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
 
-            $waUrl = "https://wa.me/{$cleanPhone}?text=" . rawurlencode($pesan);
+            $text = rawurlencode("Halo Kak *{$customerName}*  ") . $wave . rawurlencode("\n\n");
+            $text .= rawurlencode("Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n");
+            $text .= rawurlencode("Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ") . $pray . rawurlencode("\n\n");
+            $text .= rawurlencode("Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n");
+            $text .= $pin . rawurlencode(" {$driveLink}\n\n");
+            $text .= rawurlencode("*Penting:* \n");
+            $text .= rawurlencode("Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya ") . $heart . rawurlencode("\n\n");
+            $text .= rawurlencode("Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ") . $folded;
+
+            $waUrl = "https://wa.me/{$cleanPhone}?text=" . $text;
 
             return response()->json([
                 'success' => true,
