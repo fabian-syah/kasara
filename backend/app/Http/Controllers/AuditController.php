@@ -1256,11 +1256,11 @@ class AuditController extends Controller
                                     $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
                                         if (!empty($branchIds)) {
                                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id')->whereIn('users.branch_id', $branchIds)));
+                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.branch_id', $branchIds)));
                                         }
                                         if (!empty($onlineShopIds)) {
                                             $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id')->whereIn('users.online_shop_id', $onlineShopIds)));
+                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.online_shop_id', $onlineShopIds)));
                                         }
 
                                         if (empty($branchIds) && empty($onlineShopIds)) {
