@@ -689,19 +689,19 @@ const sendWaReceiptFromModal = async () => {
         });
 
         if (response.data && response.data.success) {
-            // Hardcoded Percent-Encoding Emojis (Aman dari distorsi build pipeline atau engine JS)
-            const wave = "%F0%9F%91%8B%F0%9F%8F%BB";   // 👋🏻
-            const pray = "%F0%9F%A4%B2%F0%9F%8F%BB";   // 🤲🏻
-            const pin = "%F0%9F%93%8C";               // 📌
-            const heart = "%F0%9F%AB%B6%F0%9F%8F%BB"; // 🫶🏻
-            const folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
+            // Menggunakan Unicode Escape Sequence (100% Aman dari Masalah Encoding File)
+            const wave = encodeURIComponent("\u{1F44B}\u{1F3FB}");   // 👋🏻 (Wave + Light Skin Tone)
+            const pray = encodeURIComponent("\u{1F932}\u{1F3FB}");   // 🤲🏻 (Pray + Light Skin Tone)
+            const pin = encodeURIComponent("\u{1F4CC}");               // 📌
+            const heart = encodeURIComponent("\u{1FAF6}\u{1F3FB}"); // 🫶🏻 (Heart Hands + Light Skin Tone)
+            const folded = encodeURIComponent("\u{1F64F}\u{1F3FB}"); // 🙏🏻 (Folded Hands + Light Skin Tone)
 
             const customerName = props.transaction.customer_name || 'Pelanggan';
             const branchObj = props.transaction.branch || props.transaction.destinationBranch || authStore.userBranch || {};
             const branchName = props.transaction.branch_name || branchObj.name || 'CABANG';
             const displayBranch = branchName ? `PSTORE ${branchName.toUpperCase().replace('PSTORE ', '').replace('PSTORE', '')}` : 'PSTORE';
 
-            // Satukan parameter text secara sepotong-sepotong agar value emoji persen tidak di-encode ulang
+            // Susun textParam menggunakan variabel emoji yang sudah aman ter-encode
             let textParam = encodeURIComponent(`Halo Kak *${customerName}* `) + wave + encodeURIComponent(`\n\n`);
             textParam += encodeURIComponent(`Terima kasih banyak ya Kak sudah berbelanja di *${displayBranch}*!\n\n`);
             textParam += encodeURIComponent(`Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa `) + pray + encodeURIComponent(`\n\n`);
@@ -714,7 +714,6 @@ const sendWaReceiptFromModal = async () => {
             let cleanPhone = (props.transaction.customer_phone || '').toString().replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
 
-            // Pasang textParam mentah tanpa dibungkus encodeURIComponent() lagi di luar
             const waUrl = `https://wa.me/${cleanPhone}?text=${textParam}`;
 
             if (newWindow) {
