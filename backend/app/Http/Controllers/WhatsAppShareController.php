@@ -175,7 +175,12 @@ class WhatsAppShareController extends Controller
                 if ($driveLink) {
                     Cache::put($cacheKey, $driveLink, now()->addHours(24));
                     return $driveLink;
+                } else {
+                    $scriptError = $result['error'] ?? 'Unknown script error (URL was empty)';
+                    Log::error("GDrive Generation Script Error for ID {$id}: " . $scriptError);
                 }
+            } else {
+                Log::error("GDrive HTTP Request Failed for ID {$id}. Status: " . $response->status() . " Body: " . $response->body());
             }
             
             return null;
