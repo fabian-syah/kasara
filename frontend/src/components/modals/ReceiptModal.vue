@@ -534,10 +534,38 @@ watch(() => props.isOpen, async (newVal) => {
 });
 
 const sendWaReceiptFromModal = async () => {
+    // Buka tab baru kosong lebih dulu secara sinkron agar tidak diblokir oleh Safari Popup Blocker
+    let newWindow = null;
+    try {
+        newWindow = window.open('', '_blank');
+        if (newWindow) {
+            newWindow.document.title = "Menyiapkan WhatsApp...";
+            newWindow.document.body.innerHTML = `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; margin-top: 80px; color: #1f2937; padding: 20px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    <div style="margin-bottom: 24px;">
+                        <img src="${window.location.origin}/images/ps.png" alt="PSTORE" style="width: 80px; height: 80px; object-fit: contain;" onerror="this.style.display='none';" />
+                    </div>
+                    <h2 style="font-size: 20px; font-weight: 800; color: #dc2626; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Menyiapkan WhatsApp...</h2>
+                    <p style="font-size: 14px; color: #4b5563; line-height: 1.5; margin-bottom: 24px;">Sedang memproses dan mengunggah nota PDF Kakak ke Google Drive. Anda akan diarahkan ke WhatsApp secara otomatis.</p>
+                    <div style="margin: 20px auto; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #dc2626; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                </div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+        }
+    } catch (e) {
+        console.warn("Failed to pre-open window (likely autoSend trigger):", e);
+    }
+
     isGeneratingPDF.value = true;
     try {
         const element = document.querySelector('.nota-paper');
         if (!element) {
+            if (newWindow) newWindow.close();
             alert('Elemen nota tidak ditemukan!');
             return;
         }
@@ -741,15 +769,21 @@ const sendWaReceiptFromModal = async () => {
         });
 
         if (response.data && response.data.success && response.data.wa_url) {
-            window.open(response.data.wa_url, '_blank');
+            if (newWindow) {
+                newWindow.location.href = response.data.wa_url;
+            } else {
+                window.open(response.data.wa_url, '_blank');
+            }
             emit('sent');
             if (props.autoSend) {
                 close();
             }
         } else {
+            if (newWindow) newWindow.close();
             alert('Gagal membagikan nota: ' + (response.data?.error || 'Kesalahan tidak dikenal'));
         }
     } catch (error) {
+        if (newWindow) newWindow.close();
         console.error('Error sharing receipt:', error);
         alert('Terjadi kesalahan saat membagikan nota: ' + (error.response?.data?.error || error.message || 'Kesalahan sistem'));
     } finally {
