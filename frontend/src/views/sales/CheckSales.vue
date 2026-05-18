@@ -253,12 +253,10 @@
                                             <button 
                                                 v-if="item.customer_wa || item.customer_phone" 
                                                 @click="sendWaReceipt(item)" 
-                                                :disabled="sharingSales[item.id]"
-                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-50 transition-colors cursor-pointer"
+                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                                             >
-                                                <Loader2 v-if="sharingSales[item.id]" :size="10" class="animate-spin" />
-                                                <MessageSquare v-else :size="10" stroke-width="2.5" />
-                                                {{ sharingSales[item.id] ? 'Membuat Nota...' : 'Kirim Nota' }}
+                                                <MessageSquare :size="10" stroke-width="2.5" />
+                                                <span>Kirim Nota</span>
                                             </button>
                                         </div>
                                     </td>
@@ -390,12 +388,10 @@
                                             <button 
                                                 v-if="item.customer_wa || item.customer_phone" 
                                                 @click="sendWaReceipt(item)" 
-                                                :disabled="sharingSales[item.id]"
-                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 disabled:opacity-50 transition-colors cursor-pointer"
+                                                class="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors cursor-pointer"
                                             >
-                                                <Loader2 v-if="sharingSales[item.id]" :size="10" class="animate-spin" />
-                                                <MessageSquare v-else :size="10" stroke-width="2.5" />
-                                                {{ sharingSales[item.id] ? 'Membuat Nota...' : 'Kirim Nota' }}
+                                                <MessageSquare :size="10" stroke-width="2.5" />
+                                                <span>Kirim Nota</span>
                                             </button>
                                         </div>
                                     </td>
@@ -572,7 +568,12 @@
         </div>
 
         <!-- Unified Receipt Modal -->
-        <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" @close="showReceiptModal = false" />
+        <ReceiptModal 
+            :is-open="showReceiptModal" 
+            :transaction="currentReceiptData" 
+            :auto-send="autoSendReceipt"
+            @close="showReceiptModal = false; autoSendReceipt = false" 
+        />
 
         <!-- Cancel Sale Modal -->
         <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false"
@@ -829,29 +830,18 @@ const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
 
-const sharingSales = ref({})
+const autoSendReceipt = ref(false)
 
-const sendWaReceipt = async (item) => {
+const sendWaReceipt = (item) => {
     let phone = (item.customer_wa || item.customer_phone || '').trim();
     if (!phone || phone === '-') {
         alert('Nomor WhatsApp tidak ditemukan atau kosong!');
         return;
     }
     
-    sharingSales.value[item.id] = true;
-    try {
-        const response = await axios.get(`/receipts/${item.id}/share-wa`);
-        if (response.data && response.data.success && response.data.wa_url) {
-            window.open(response.data.wa_url, '_blank');
-        } else {
-            alert('Gagal membagikan nota: ' + (response.data?.error || 'Kesalahan tidak dikenal'));
-        }
-    } catch (error) {
-        console.error('Error sharing receipt:', error);
-        alert('Terjadi kesalahan saat membagikan nota: ' + (error.response?.data?.error || error.message || 'Kesalahan sistem'));
-    } finally {
-        sharingSales.value[item.id] = false;
-    }
+    currentReceiptData.value = item
+    autoSendReceipt.value = true
+    showReceiptModal.value = true
 }
 
 const viewProof = (imgUrl) => {
@@ -892,6 +882,7 @@ useEscapeKey(() => {
 
 const openReceipt = (item) => {
     currentReceiptData.value = item
+    autoSendReceipt.value = false
     showReceiptModal.value = true
 }
 

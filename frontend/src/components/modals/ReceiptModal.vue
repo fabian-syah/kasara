@@ -495,7 +495,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed } from 'vue';
+import { defineProps, defineEmits, ref, computed, watch, nextTick } from 'vue';
 import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
 import { useEscapeKey } from '../../composables/useEscapeKey';
 import api from '../../api/axios';
@@ -523,6 +523,15 @@ const close = () => {
 };
 
 const isGeneratingPDF = ref(false);
+
+watch(() => props.isOpen, async (newVal) => {
+    if (newVal && props.autoSend) {
+        await nextTick();
+        setTimeout(() => {
+            sendWaReceiptFromModal();
+        }, 500);
+    }
+});
 
 const sendWaReceiptFromModal = async () => {
     isGeneratingPDF.value = true;
@@ -673,6 +682,9 @@ const sendWaReceiptFromModal = async () => {
         if (response.data && response.data.success && response.data.wa_url) {
             window.open(response.data.wa_url, '_blank');
             emit('sent');
+            if (props.autoSend) {
+                close();
+            }
         } else {
             alert('Gagal membagikan nota: ' + (response.data?.error || 'Kesalahan tidak dikenal'));
         }
