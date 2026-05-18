@@ -59,12 +59,12 @@ class WhatsAppShareController extends Controller
                     ?? ($transaction->user->branch->name ?? ''));
             $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
 
-            // Menggunakan Emoji Dasar (Tanpa Skin Tone Modifier) untuk Kompatibilitas 100%
-            $wave = "%F0%9F%98%81";   // 😁
-            $pray = "%F0%9F%98%82%F0%9F%98%81";   // 😂😁
+            // Menggunakan Emoji Skin-Tone (Sudah diverifikasi aman di jalur api.whatsapp.com)
+            $wave = "%F0%9F%91%8B%F0%9F%8F%BB";   // 👋🏻
+            $pray = "%F0%9F%A4%B2%F0%9F%8F%BB";   // 🤲🏻
             $pin = "%F0%9F%93%8C";               // 📌
-            $heart = "%E2%9D%A4%EF%B8%8F"; // ❤️
-            $folded = "%F0%9F%99%8F"; // 🙏
+            $heart = "%F0%9F%AB%B6%F0%9F%8F%BB"; // 🫶🏻
+            $folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
 
             // Lakukan pemisahan enkode teks dan emoji agar tidak terjadi double-encoding (%25)
             $text = rawurlencode("Halo Kak *{$customerName}* ") . $wave . rawurlencode("\n\n");

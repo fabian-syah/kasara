@@ -691,11 +691,11 @@ const sendWaReceiptFromModal = async () => {
         if (response.data && response.data.success) {
             // Menggunakan Hardcoded Percent-Encoding (ASCII Murni)
             // KEBAL terhadap kerusakan FTP / File Encoding / VPS.
-            const wave = "%F0%9F%98%81";               // 😁
-            const pray = "%F0%9F%98%82%F0%9F%98%81";   // 😂😁
+            const wave = "%F0%9F%91%8B%F0%9F%8F%BB";   // 👋🏻
+            const pray = "%F0%9F%A4%B2%F0%9F%8F%BB";   // 🤲🏻
             const pin = "%F0%9F%93%8C";                // 📌
-            const heart = "%E2%9D%A4%EF%B8%8F";        // ❤️
-            const folded = "%F0%9F%99%8F";             // 🙏
+            const heart = "%F0%9F%AB%B6%F0%9F%8F%BB";  // 🫶🏻
+            const folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
 
             const customerName = props.transaction.customer_name || 'Pelanggan';
             const branchObj = props.transaction.branch || props.transaction.destinationBranch || authStore.userBranch || {};
