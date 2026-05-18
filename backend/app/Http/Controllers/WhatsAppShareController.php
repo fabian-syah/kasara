@@ -59,26 +59,22 @@ class WhatsAppShareController extends Controller
                     ?? ($transaction->user->branch->name ?? ''));
             $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
 
-            // Membangun URL text WhatsApp secara aman dengan Hardcoded Percent-Encoding
-            // Ini menjamin 100% emojis tidak akan rusak (jadi tanda tanya/kotak) di VPS atau mobile device apapun
-            $wave = "%F0%9F%91%8B%F0%9F%8F%BB"; // 👋🏻
-            $pray = "%F0%9F%A4%B2%F0%9F%8F%BB"; // 🤲🏻
-            $pin = "%F0%9F%93%8C"; // 📌
+            // Hardcoded Percent-Encoding khusus untuk Emojis di Backend (UTF-8 safe)
+            $wave = "%F0%9F%91%8B%F0%9F%8F%BB";   // 👋🏻
+            $pray = "%F0%9F%A4%B2%F0%9F%8F%BB";   // 🤲🏻
+            $pin = "%F0%9F%93%8C";               // 📌
             $heart = "%F0%9F%AB%B6%F0%9F%8F%BB"; // 🫶🏻
             $folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
 
-            // Susun teks secara utuh menggunakan emoji asli
-            $message = "Halo Kak *{$customerName}* 👋🏻\n\n";
-            $message .= "Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n";
-            $message .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n";
-            $message .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
-            $message .= "📌 {$driveLink}\n\n";
-            $message .= "*Penting:* \n";
-            $message .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n";
-            $message .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻";
-
-            // Enkode seluruh pesan sekaligus agar UTF-8 emoji terjaga utuh
-            $text = rawurlencode($message);
+            // Lakukan pemisahan enkode teks dan emoji agar tidak terjadi double-encoding (%25)
+            $text = rawurlencode("Halo Kak *{$customerName}* ") . $wave . rawurlencode("\n\n");
+            $text .= rawurlencode("Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n");
+            $text .= rawurlencode("Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ") . $pray . rawurlencode("\n\n");
+            $text .= rawurlencode("Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n");
+            $text .= $pin . rawurlencode(" {$driveLink}\n\n");
+            $text .= rawurlencode("*Penting:* \n");
+            $text .= rawurlencode("Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya ") . $heart . rawurlencode("\n\n");
+            $text .= rawurlencode("Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ") . $folded;
 
             $waUrl = "https://wa.me/{$cleanPhone}?text=" . $text;
 
