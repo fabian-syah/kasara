@@ -673,8 +673,10 @@ const sendWaReceiptFromModal = async () => {
     </style>
 </head>
 <body>
-    <div class="nota-paper">
-        ${cloned.innerHTML}
+    <div id="receipt-modal-print-wrapper">
+        <div class="nota-paper">
+            ${cloned.innerHTML}
+        </div>
     </div>
 </body>
 </html>
