@@ -71,7 +71,7 @@ class TradeIn extends Model
     public static function generateReceiptId()
     {
         $prefix = 'TI' . date('dMy'); // TI13Mar26
-        $latest = self::where('receipt_id', 'like', $prefix . '%')->latest()->first();
+        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->latest()->first();
 
         if (!$latest) {
             $number = 1;

@@ -64,7 +64,7 @@ class UnitExchange extends Model
     public static function generateReceiptId()
     {
         $prefix = 'UE' . date('dMy'); // UE15Mar26
-        $latest = self::where('receipt_id', 'like', $prefix . '%')->latest()->first();
+        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->latest()->first();
 
         if (!$latest) {
             $number = 1;

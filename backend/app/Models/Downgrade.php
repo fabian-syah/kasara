@@ -72,7 +72,7 @@ class Downgrade extends Model
     public static function generateReceiptId()
     {
         $prefix = 'DG' . date('dMy'); // DG19Mar26
-        $latest = self::where('receipt_id', 'like', $prefix . '%')->latest()->first();
+        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->latest()->first();
 
         if (!$latest) {
             $number = 1;

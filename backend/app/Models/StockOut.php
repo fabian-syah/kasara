@@ -301,7 +301,7 @@ class StockOut extends Model
     {
         do {
             $id = 'O' . strtoupper(date('dM')) . '-' . strtoupper(Str::random(3));
-        } while (self::where('receipt_id', $id)->exists());
+        } while (self::withTrashed()->where('receipt_id', $id)->exists());
 
         return $id;
     }
