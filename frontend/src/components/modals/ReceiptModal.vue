@@ -563,14 +563,20 @@ const sendWaReceiptFromModal = async () => {
             if (el.tagName.toLowerCase() === 'style') {
                 compiledStyles += el.outerHTML;
             } else if (el.tagName.toLowerCase() === 'link') {
-                try {
-                    // Fetch external CSS (Tailwind file di production) dan inline agar bisa dibaca Google PDF Engine
-                    const res = await fetch(el.href);
-                    const cssText = await res.text();
-                    compiledStyles += `<style>\n${cssText}\n</style>`;
-                } catch (e) {
-                    console.error('Failed to inline stylesheet:', el.href);
-                    compiledStyles += el.outerHTML; // Fallback
+                const href = el.getAttribute('href') || '';
+                // Only inline stylesheets from our own origin/local site to avoid CSP violations and external PDF engine rendering issues
+                const isLocal = href.startsWith('/') || href.startsWith(window.location.origin) || (!href.startsWith('http://') && !href.startsWith('https://'));
+                if (isLocal) {
+                    try {
+                        // Fetch external CSS (Tailwind file di production) dan inline agar bisa dibaca Google PDF Engine
+                        const res = await fetch(el.href);
+                        const cssText = await res.text();
+                        compiledStyles += `<style>\n${cssText}\n</style>`;
+                    } catch (e) {
+                        console.error('Failed to inline stylesheet:', el.href);
+                    }
+                } else {
+                    console.log('Skipping external stylesheet to prevent CSP/PDF issues:', href);
                 }
             }
         }
