@@ -300,8 +300,7 @@
                                                                 <template v-if="item.is_hp">
                                                                     {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
                                                                     {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
-                                                                    === 'ex_ibox' ? 'Ex iBox' : (item.condition ===
-                                                                    'second' ? 'Second' : item.condition))) : '' }}
+
                                                                 </template>
                                                             </span>
                                                         </div>
