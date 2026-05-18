@@ -689,12 +689,12 @@ const sendWaReceiptFromModal = async () => {
         });
 
         if (response.data && response.data.success) {
-            // Menggunakan Unicode Escape Sequence (100% Aman dari Masalah Encoding File)
-            const wave = encodeURIComponent("\u{1F44B}\u{1F3FB}");   // 👋🏻 (Wave + Light Skin Tone)
-            const pray = encodeURIComponent("\u{1F932}\u{1F3FB}");   // 🤲🏻 (Pray + Light Skin Tone)
-            const pin = encodeURIComponent("\u{1F4CC}");               // 📌
-            const heart = encodeURIComponent("\u{1FAF6}\u{1F3FB}"); // 🫶🏻 (Heart Hands + Light Skin Tone)
-            const folded = encodeURIComponent("\u{1F64F}\u{1F3FB}"); // 🙏🏻 (Folded Hands + Light Skin Tone)
+            // Menggunakan Emoji Dasar (Tanpa Skin Tone Modifier) untuk Kompatibilitas 100%
+            const wave = encodeURIComponent("😁");   // 👋 (Atau 😁 sesuai contoh)
+            const pray = encodeURIComponent("😂😁");   // 🤲 (Atau 😂😁 sesuai contoh)
+            const pin = encodeURIComponent("📌");      // 📌
+            const heart = encodeURIComponent("❤️");    // ❤️
+            const folded = encodeURIComponent("🙏");   // 🙏
 
             const customerName = props.transaction.customer_name || 'Pelanggan';
             const branchObj = props.transaction.branch || props.transaction.destinationBranch || authStore.userBranch || {};
