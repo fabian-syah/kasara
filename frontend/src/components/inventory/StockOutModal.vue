@@ -311,7 +311,7 @@ watch(() => stockOutForm.value.shopee_tracking_no, (newVal) => {
 async function fetchInventoryUsers() {
     isLoadingUsers.value = true;
     try {
-        const response = await usersApi.list({ role: 'inventory' });
+        const response = await usersApi.list({ role: 'inventory', is_active: true });
         inventoryUsers.value = response.data.data || response.data;
     } catch (e) {
         console.error("Failed to load inventory users", e);

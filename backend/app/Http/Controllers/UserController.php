@@ -139,6 +139,10 @@ class UserController extends Controller
         if ($request->has('role'))
             $query->role($request->role);
 
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
         if ($request->boolean('needs_reset')) {
             $query->whereNotNull('pin_reset_requested_at');
         }

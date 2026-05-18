@@ -566,7 +566,7 @@ async function fetchInitialData() {
     try {
         const [dist, user, brd, typ, prd] = await Promise.all([
             distributorsApi.list(),
-            usersApi.list({ role: 'inventory' }), // FILTER BY ROLE
+            usersApi.list({ role: 'inventory', is_active: true }), // FILTER BY ROLE
             brandsApi.list(),
             productTypesApi.list(),
             inventoryApi.getProductsLookup({ type: 'hp' })
@@ -661,7 +661,7 @@ async function updateInventoryAccount() {
         }
 
         // Refresh specifically this user to get pending status
-        const usersRes = await usersApi.list({ role: 'inventory' });
+        const usersRes = await usersApi.list({ role: 'inventory', is_active: true });
         targetUsers.value = (usersRes.data.data || usersRes.data);
 
         showEditAccountModal.value = false;
@@ -687,7 +687,7 @@ async function deleteInventoryAccount(user, event) {
         await inventoryApi.deleteAccount(user.id);
         toast.success("Akun berhasil dihapus!");
         // Refresh list
-        const usersRes = await usersApi.list({ role: 'inventory' });
+        const usersRes = await usersApi.list({ role: 'inventory', is_active: true });
         targetUsers.value = (usersRes.data.data || usersRes.data);
     } catch (e) {
         console.error("Delete error:", e);

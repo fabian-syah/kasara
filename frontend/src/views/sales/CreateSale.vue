@@ -121,7 +121,7 @@ async function refreshAccounts() {
     try {
         const [accRes, usersRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
-            api.get('/users', { params: { role: 'inventory' } })
+            api.get('/users', { params: { role: 'inventory', is_active: true } })
         ]);
         
         const rawAccounts = accRes.data.data || accRes.data;
@@ -223,7 +223,7 @@ onMounted(async () => {
         // Phase 1: Essential data for Step 1
         const [accountsRes, usersRes, userRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
-            api.get('/users', { params: { role: 'inventory' } }),
+            api.get('/users', { params: { role: 'inventory', is_active: true } }),
             api.get('/user')
         ]);
 
