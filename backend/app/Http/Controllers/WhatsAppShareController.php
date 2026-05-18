@@ -16,7 +16,7 @@ class WhatsAppShareController extends Controller
         set_time_limit(150); // Increase execution time for this specific long-running task
         try {
             // 1. Ambil Data Transaksi
-            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
+            $transaction = StockOut::with(['items.product', 'nonHpItems.product', 'user.branch', 'branch', 'destinationBranch', 'paymentMethod'])->findOrFail($id);
 
             // 2. Format Nomor WA
             $phone = $transaction->customer_phone ?: $transaction->customer_wa ?: $transaction->shopee_phone;
@@ -54,12 +54,19 @@ class WhatsAppShareController extends Controller
 
             // 6. Susun Pesan WA
             $customerName = $transaction->customer_name ?: 'Pelanggan';
-            $pesan = "Halo Kak *{$customerName}* 👋😊\n\n";
-            $pesan .= "Terima kasih banyak ya Kak sudah berbelanja di *PSTORE*! Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ✨\n\n";
+            $branchName = $transaction->branch->name 
+                ?? ($transaction->destinationBranch->name 
+                ?? ($transaction->user->branch->name ?? ''));
+            $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
+
+            $pesan = "Halo Kak *{$customerName}*  👋🏻\n\n";
+            $pesan .= "Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n";
+            $pesan .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n";
             $pesan .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
-            $pesan .= "👉 {$driveLink}\n\n";
-            $pesan .= "*Penting:* Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, agar link di atas bisa langsung diklik dengan mudah dari HP Kakak, dan juga untuk mempermudah klaim garansi atau promo menarik kami ke depannya 😉👍\n\n";
-            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ❤️";
+            $pesan .= "📌 {$driveLink}\n\n";
+            $pesan .= "*Penting:* \n";
+            $pesan .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n";
+            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻";
 
             $waUrl = "https://wa.me/{$cleanPhone}?text=" . urlencode($pesan);
 
