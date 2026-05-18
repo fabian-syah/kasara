@@ -67,14 +67,18 @@ class WhatsAppShareController extends Controller
             $heart = "%F0%9F%AB%B6%F0%9F%8F%BB"; // 🫶🏻
             $folded = "%F0%9F%99%8F%F0%9F%8F%BB"; // 🙏🏻
 
-            $text = rawurlencode("Halo Kak *{$customerName}*  ") . $wave . rawurlencode("\n\n");
-            $text .= rawurlencode("Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n");
-            $text .= rawurlencode("Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ") . $pray . rawurlencode("\n\n");
-            $text .= rawurlencode("Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n");
-            $text .= $pin . rawurlencode(" {$driveLink}\n\n");
-            $text .= rawurlencode("*Penting:* \n");
-            $text .= rawurlencode("Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya ") . $heart . rawurlencode("\n\n");
-            $text .= rawurlencode("Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ") . $folded;
+            // Susun teks secara utuh menggunakan emoji asli
+            $message = "Halo Kak *{$customerName}* 👋🏻\n\n";
+            $message .= "Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n";
+            $message .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n";
+            $message .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
+            $message .= "📌 {$driveLink}\n\n";
+            $message .= "*Penting:* \n";
+            $message .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n";
+            $message .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻";
+
+            // Enkode seluruh pesan sekaligus agar UTF-8 emoji terjaga utuh
+            $text = rawurlencode($message);
 
             $waUrl = "https://wa.me/{$cleanPhone}?text=" . $text;
 
