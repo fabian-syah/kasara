@@ -59,14 +59,14 @@ class WhatsAppShareController extends Controller
                 ?? ($transaction->user->branch->name ?? ''));
             $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
 
-            $pesan = "Halo Kak *{$customerName}*  👋🏻\n\n";
+            $pesan = "Halo Kak *{$customerName}*  \u{1F44B}\u{1F3FB}\n\n";
             $pesan .= "Terima kasih banyak ya Kak sudah berbelanja di *{$displayBranch}*!\n\n";
-            $pesan .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n";
+            $pesan .= "Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa \u{1F932}\u{1F3FB}\n\n";
             $pesan .= "Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n";
-            $pesan .= "📌 {$driveLink}\n\n";
+            $pesan .= "\u{1F4CC} {$driveLink}\n\n";
             $pesan .= "*Penting:* \n";
-            $pesan .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n";
-            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻";
+            $pesan .= "Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya \u{1FAF6}\u{1F3FB}\n\n";
+            $pesan .= "Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! \u{1F64F}\u{1F3FB}";
 
             $waUrl = "https://wa.me/{$cleanPhone}?text=" . urlencode($pesan);
 
