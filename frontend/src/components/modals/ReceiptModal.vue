@@ -768,11 +768,31 @@ const sendWaReceiptFromModal = async () => {
             htmlContent: htmlContent
         });
 
-        if (response.data && response.data.success && response.data.wa_url) {
+        if (response.data && response.data.success) {
+            // Re-build WA Message purely in Frontend (JavaScript guarantees 100% perfect emoji UTF-8 encoding)
+            const customerName = props.transaction.customer_name || 'Pelanggan';
+            const branchObj = props.transaction.branch || props.transaction.destinationBranch || authStore.userBranch || {};
+            const branchName = props.transaction.branch_name || branchObj.name || 'CABANG';
+            const displayBranch = branchName ? `PSTORE ${branchName.toUpperCase().replace('PSTORE ', '').replace('PSTORE', '')}` : 'PSTORE';
+            
+            let pesan = `Halo Kak *${customerName}*  👋🏻\n\n`;
+            pesan += `Terima kasih banyak ya Kak sudah berbelanja di *${displayBranch}*!\n\n`;
+            pesan += `Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n`;
+            pesan += `Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n`;
+            pesan += `📌 ${response.data.drive_link}\n\n`;
+            pesan += `*Penting:* \n`;
+            pesan += `Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n`;
+            pesan += `Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻`;
+
+            let cleanPhone = (props.transaction.customer_phone || '').toString().replace(/\D/g, '');
+            if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
+
+            const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(pesan)}`;
+
             if (newWindow) {
-                newWindow.location.href = response.data.wa_url;
+                newWindow.location.href = waUrl;
             } else {
-                window.open(response.data.wa_url, '_blank');
+                window.open(waUrl, '_blank');
             }
             emit('sent');
             if (props.autoSend) {
