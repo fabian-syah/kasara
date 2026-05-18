@@ -54,9 +54,9 @@ class WhatsAppShareController extends Controller
 
             // 6. Susun Pesan WA
             $customerName = $transaction->customer_name ?: 'Pelanggan';
-            $branchName = $transaction->branch->name 
-                ?? ($transaction->destinationBranch->name 
-                ?? ($transaction->user->branch->name ?? ''));
+            $branchName = $transaction->branch->name
+                ?? ($transaction->destinationBranch->name
+                    ?? ($transaction->user->branch->name ?? ''));
             $displayBranch = $branchName ? "PSTORE {$branchName}" : "PSTORE";
 
             $pesan = "Halo Kak *{$customerName}*  \u{1F44B}\u{1F3FB}\n\n";
@@ -88,7 +88,7 @@ class WhatsAppShareController extends Controller
     public static function getDriveLink($id, $htmlContent = null)
     {
         $cacheKey = "receipt_drive_link_{$id}";
-        
+
         // Jika ada htmlContent kiriman baru dari modal web, hapus cache lama 
         // agar PDF di Google Drive selalu ter-update dengan data modal terbaru
         if ($htmlContent) {
@@ -102,20 +102,25 @@ class WhatsAppShareController extends Controller
 
         try {
             $transaction = StockOut::findOrFail($id);
-            
+
             // JIKA JALUR BACKEND CADANGAN (htmlContent kosong), baru panggil template lama
             if (!$htmlContent) {
                 $transaction->load([
-                    'items.product', 'nonHpItems.product', 'user.branch.receiptSetting',
-                    'user.onlineShop.receiptSetting', 'branch.receiptSetting',
-                    'onlineShop.receiptSetting', 'destinationBranch.receiptSetting', 'paymentMethod'
+                    'items.product',
+                    'nonHpItems.product',
+                    'user.branch.receiptSetting',
+                    'user.onlineShop.receiptSetting',
+                    'branch.receiptSetting',
+                    'onlineShop.receiptSetting',
+                    'destinationBranch.receiptSetting',
+                    'paymentMethod'
                 ]);
 
-                $targetLocation = $transaction->branch 
-                    ?? ($transaction->onlineShop 
-                    ?? ($transaction->destinationBranch 
-                    ?? ($transaction->user->branch ?? ($transaction->user->onlineShop ?? null))));
-                    
+                $targetLocation = $transaction->branch
+                    ?? ($transaction->onlineShop
+                        ?? ($transaction->destinationBranch
+                            ?? ($transaction->user->branch ?? ($transaction->user->onlineShop ?? null))));
+
                 $receiptSetting = $targetLocation ? $targetLocation->receiptSetting : null;
                 $logos = self::getBase64Images();
 
@@ -137,7 +142,8 @@ class WhatsAppShareController extends Controller
                 $paymentMethodNames = [];
                 if ($transaction->payment_method_id) {
                     $pm = \App\Models\PaymentMethod::find($transaction->payment_method_id);
-                    if ($pm) $paymentMethodNames[] = $pm->name;
+                    if ($pm)
+                        $paymentMethodNames[] = $pm->name;
                 }
                 $paymentMethodNameFormatted = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
@@ -155,7 +161,7 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbyfmi1NswWMJPQjUluPEdyi7zJpeDHu0xXMBb60ESEE-ZkH3OeqzrltwJOAWrdZ9giHqg/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbxOMguFyQs6qZY-KL1qkU40gWKjG7XcH-gM56WoZBpQzzt5-QFxqocXS2XVeaqBvl0LNQ/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = 'NOTA';
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
@@ -171,7 +177,7 @@ class WhatsAppShareController extends Controller
             if ($response->successful()) {
                 $result = $response->json();
                 $driveLink = $result['url'] ?? null;
-                
+
                 if ($driveLink) {
                     Cache::put($cacheKey, $driveLink, now()->addHours(24));
                     return $driveLink;
@@ -182,7 +188,7 @@ class WhatsAppShareController extends Controller
             } else {
                 Log::error("GDrive HTTP Request Failed for ID {$id}. Status: " . $response->status() . " Body: " . $response->body());
             }
-            
+
             return null;
         } catch (\Exception $e) {
             Log::error("GDrive Generation Failed for ID {$id}: " . $e->getMessage());
@@ -195,10 +201,10 @@ class WhatsAppShareController extends Controller
      */
     private static function getBase64Images()
     {
-        return Cache::rememberForever('receipt_logos_base64_v5', function() {
+        return Cache::rememberForever('receipt_logos_base64_v5', function () {
             $images = [
-                'logo' => 'ps.png', 
-                'shopee' => 'shopee-icon-small.png', 
+                'logo' => 'ps.png',
+                'shopee' => 'shopee-icon-small.png',
                 'tokopedia' => 'tokopedia-icon-small.png'
             ];
             $res = [];
