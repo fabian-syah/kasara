@@ -548,13 +548,31 @@ const sendWaReceiptFromModal = async () => {
         // 2. Bersihkan tombol-tombol yang tidak perlu ikut di PDF
         cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
 
-        // Ubah src gambar relatif menjadi absolute agar Google Apps Script bisa memuatnya
-        cloned.querySelectorAll('img').forEach(img => {
-            const src = img.getAttribute('src');
-            if (src && src.startsWith('/')) {
-                img.src = window.location.origin + src;
+        // Convert local images (like logos) to Base64 so the Google Apps Script PDF engine can render them without needing local network access
+        const images = cloned.querySelectorAll('img');
+        for (const img of images) {
+            const src = img.getAttribute('src') || '';
+            if (src && (src.startsWith('/') || src.startsWith(window.location.origin))) {
+                try {
+                    const absoluteUrl = src.startsWith('/') ? (window.location.origin + src) : src;
+                    const res = await fetch(absoluteUrl);
+                    const blob = await res.blob();
+                    const base64Data = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                    img.src = base64Data;
+                } catch (err) {
+                    console.error('Failed to convert image to base64:', src, err);
+                    // Fallback to absolute URL
+                    if (src.startsWith('/')) {
+                        img.src = window.location.origin + src;
+                    }
+                }
             }
-        });
+        }
 
         // 3. Ambil semua style aktif (Tailwind / CSS internal) dari document
         let compiledStyles = '';
@@ -601,10 +619,27 @@ const sendWaReceiptFromModal = async () => {
             background: #ffffff; 
             color: #0a0a0a;
             width: 100%;
-            max-width: 650px;
+            max-width: 100%;
             box-sizing: border-box;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+        }
+        #receipt-modal-print-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            background: #ffffff !important;
+        }
+        #receipt-modal-print-wrapper > .nota-paper {
+            margin: 0 auto !important;
+            width: 100% !important;
+            max-width: 650px !important;
+            display: block !important;
+            float: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            background: #ffffff !important;
         }
         .nota-paper { 
             box-shadow: none !important;
@@ -612,7 +647,7 @@ const sendWaReceiptFromModal = async () => {
             width: 100% !important;
             max-width: 650px !important;
             padding: 0 !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
             background: #ffffff !important;
         }
 
