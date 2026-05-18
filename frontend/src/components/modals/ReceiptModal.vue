@@ -615,7 +615,7 @@ const sendWaReceiptFromModal = async () => {
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             margin: 0 auto; 
-            padding: 30px; 
+            padding: 45px; 
             background: #ffffff; 
             color: #0a0a0a;
             width: 100%;
@@ -694,11 +694,18 @@ const sendWaReceiptFromModal = async () => {
             display: table !important;
             width: 100% !important;
             table-layout: fixed !important;
+            border: none !important;
+            box-shadow: none !important;
         }
         .signature-area.grid.grid-cols-2 > div {
             display: table-cell !important;
             width: 50% !important;
             vertical-align: top !important;
+            border: none !important;
+            border-right: none !important;
+            border-left: none !important;
+            border-top: none !important;
+            border-bottom: none !important;
         }
         /* Keep background colors visible in PDF */
         th, .bg-neutral-950, .bg-red-600 {
