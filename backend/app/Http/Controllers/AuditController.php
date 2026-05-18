@@ -1201,7 +1201,8 @@ class AuditController extends Controller
                 // 10. Unified Report Summary
                 function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles) {
                     try {
-                        $isGlobalUnrestricted = $isUnrestricted && !in_array('leader', $currentRoles) && !in_array('admin', $currentRoles);
+                        $allowedGlobalRoles = ['super_admin', 'analist', 'analis', 'owner', 'Owner', 'pimpinan', 'management', 'developer', 'pimpinan_pusat'];
+                        $isGlobalUnrestricted = !empty(array_intersect($allowedGlobalRoles, $currentRoles));
 
                         $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
                             $startTS = $startDate . ' 05:00:00';
