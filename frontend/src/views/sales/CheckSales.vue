@@ -979,10 +979,14 @@ const totalBelumLunas = computed(() => activeRecords.value.filter(item => item.s
 }, 0))
 
 const summaryStats = computed(() => {
+    // If backend pre-calculated summary is available, use its totals directly for perfect alignment with dashboard & ranking history!
+    const summary = salesRecords.value?.report_summary;
+    const hasSummary = summary !== undefined && summary !== null;
+
     let baseSales = 0;
     let tradeSelisih = 0;
     let tradeOutgoingTotal = 0;
-    let tradeOutgoingTT = 0; // Tracks outgoing value specific to TT to satisfy explicit exclusion in Omset Bersih
+    let tradeOutgoingTT = 0;
     let tradeIncomingTotal = 0;
     let outlay = 0;
     let hpUnitsIn = 0;
@@ -1105,16 +1109,39 @@ const summaryStats = computed(() => {
         }
     });
 
-    const finalOmset = baseSales + tradeOutgoingTotal;
+    const finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
+    const finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (finalOmset - (outlay + tradeIncomingTotal));
+
+    // Unit HP & Non-HP values fall back to backend report_summary values when available
+    let finalHpUnitsOut = hpUnitsOut;
+    let finalHpUnitsIn = hpUnitsIn;
+    let finalNonHpUnits = nonHpUnits;
+
+    if (hasSummary && summary.dist_map) {
+        const distMap = summary.dist_map;
+        const acts = summary.activities || {};
+        const iphone = parseInt(distMap.iphone) || 0;
+        const android = parseInt(distMap.android) || 0;
+        const appleLux = parseInt(distMap.apple_lux) || 0;
+        
+        finalHpUnitsOut = iphone + android + appleLux;
+        
+        const refundUnits = parseInt(acts.refund) || 0;
+        const abUnits = parseInt(acts.angkat_barang) || 0;
+        const inTtUnits = parseInt(acts.in_tt) || 0;
+        const dgUnits = parseInt(acts.downgrade) || 0;
+        finalHpUnitsIn = refundUnits + abUnits + inTtUnits + dgUnits;
+
+        const nonHpKeys = ['accessories', 'apply', 'debs', 'arcis', 'dokter_pstore', 'laptop', 'tv', 'jaringan', 'sim_card', 'pspatu', 'psshion', 'icloud', 'others'];
+        finalNonHpUnits = nonHpKeys.reduce((sum, key) => sum + (parseInt(distMap[key]) || 0), 0);
+    }
 
     return {
         totalOmset: finalOmset,
-        // FINAL ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER CALCULATOR
-        // Re-integrates finalOmset (Total Omset) as the baseline: Omset Bersih = Total Omset - (Deductions + In TT)
-        omsetBersih: finalOmset - (outlay + tradeIncomingTotal),
-        hpUnitsOut,
-        hpUnitsIn,
-        nonHpUnits
+        omsetBersih: finalOmsetBersih,
+        hpUnitsOut: finalHpUnitsOut,
+        hpUnitsIn: finalHpUnitsIn,
+        nonHpUnits: finalNonHpUnits
     };
 });
 
