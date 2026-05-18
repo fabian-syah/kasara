@@ -633,7 +633,7 @@ const sendWaReceiptFromModal = async () => {
         #receipt-modal-print-wrapper > .nota-paper {
             margin: 0 auto !important;
             width: 100% !important;
-            max-width: 100% !important;
+            max-width: 700px !important;
             display: block !important;
             float: none !important;
             box-shadow: none !important;
@@ -645,7 +645,7 @@ const sendWaReceiptFromModal = async () => {
             box-shadow: none !important;
             border: none !important;
             width: 100% !important;
-            max-width: 100% !important;
+            max-width: 700px !important;
             padding: 0 !important;
             margin: 0 auto !important;
             background: #ffffff !important;
