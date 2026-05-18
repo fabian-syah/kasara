@@ -775,14 +775,21 @@ const sendWaReceiptFromModal = async () => {
             const branchName = props.transaction.branch_name || branchObj.name || 'CABANG';
             const displayBranch = branchName ? `PSTORE ${branchName.toUpperCase().replace('PSTORE ', '').replace('PSTORE', '')}` : 'PSTORE';
             
-            let pesan = `Halo Kak *${customerName}*  👋🏻\n\n`;
+            // Bypass file encoding corruption completely by decoding ASCII percent-encoded strings at runtime
+            const wave = decodeURIComponent("%F0%9F%91%8B%F0%9F%8F%BB");
+            const pray = decodeURIComponent("%F0%9F%A4%B2%F0%9F%8F%BB");
+            const pin = decodeURIComponent("%F0%9F%93%8C");
+            const heart = decodeURIComponent("%F0%9F%AB%B6%F0%9F%8F%BB");
+            const folded = decodeURIComponent("%F0%9F%99%8F%F0%9F%8F%BB");
+
+            let pesan = `Halo Kak *${customerName}*  ${wave}\n\n`;
             pesan += `Terima kasih banyak ya Kak sudah berbelanja di *${displayBranch}*!\n\n`;
-            pesan += `Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa 🤲🏻\n\n`;
+            pesan += `Kami sangat senang bisa melayani Kakak. Semoga produknya awet, berkah, dan bermanfaat yaa ${pray}\n\n`;
             pesan += `Berikut adalah link resmi Google Drive untuk mengunduh Nota Pembelian (PDF) Kakak:\n`;
-            pesan += `📌 ${response.data.drive_link}\n\n`;
+            pesan += `${pin} ${response.data.drive_link}\n\n`;
             pesan += `*Penting:* \n`;
-            pesan += `Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya 🫶🏻\n\n`;
-            pesan += `Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! 🙏🏻`;
+            pesan += `Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya ${heart}\n\n`;
+            pesan += `Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! ${folded}`;
 
             let cleanPhone = (props.transaction.customer_phone || '').toString().replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
