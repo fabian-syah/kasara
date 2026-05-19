@@ -1251,7 +1251,7 @@ class ReportController extends Controller
     public function getDownloadHistory(Request $request)
     {
         $user = auth()->user();
-        $query = ExportLog::with(['user.roles']);
+        $query = ExportLog::with(['user.roles', 'user.branch', 'user.onlineShop', 'user.warehouse', 'user.distributor']);
 
         // Scope logs are now universal as requested by the user
 
@@ -1275,20 +1275,38 @@ class ReportController extends Controller
         $history->getCollection()->transform(function($log) {
             $params = $log->params;
             $locationName = 'Semua Lokasi';
+            $resolvedFromParams = false;
             
             if (!empty($params)) {
                 if (!empty($params['branch_id'])) {
                     $branch = \App\Models\Branch::find($params['branch_id']);
                     $locationName = $branch ? '[Cabang] ' . $branch->name : 'Cabang #' . $params['branch_id'];
+                    $resolvedFromParams = true;
                 } elseif (!empty($params['online_shop_id'])) {
                     $shop = \App\Models\OnlineShop::find($params['online_shop_id']);
                     $locationName = $shop ? '[Toko] ' . $shop->name : 'Toko #' . $params['online_shop_id'];
+                    $resolvedFromParams = true;
                 } elseif (!empty($params['warehouse_id'])) {
                     $warehouse = \App\Models\Warehouse::find($params['warehouse_id']);
                     $locationName = $warehouse ? '[Gudang] ' . $warehouse->name : 'Gudang #' . $params['warehouse_id'];
+                    $resolvedFromParams = true;
                 } elseif (!empty($params['distributor_id'])) {
                     $distributor = \App\Models\Distributor::find($params['distributor_id']);
                     $locationName = $distributor ? '[Distributor] ' . $distributor->name : 'Distributor #' . $params['distributor_id'];
+                    $resolvedFromParams = true;
+                }
+            }
+            
+            // Fallback to user primary assignment if not resolved from params
+            if (!$resolvedFromParams && $log->user) {
+                if ($log->user->branch) {
+                    $locationName = '[Cabang] ' . $log->user->branch->name;
+                } elseif ($log->user->onlineShop) {
+                    $locationName = '[Toko] ' . $log->user->onlineShop->name;
+                } elseif ($log->user->warehouse) {
+                    $locationName = '[Gudang] ' . $log->user->warehouse->name;
+                } elseif ($log->user->distributor) {
+                    $locationName = '[Distributor] ' . $log->user->distributor->name;
                 }
             }
             
