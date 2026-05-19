@@ -113,6 +113,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Inventory Dynamic Routes (Must be below static ones)
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::match(['post', 'put'], '/inventory/{id}', [InventoryController::class, 'update']);
+    Route::patch('/inventory/{id}/reject-return', [InventoryController::class, 'rejectReturn']);
     Route::patch('/inventory/{id}/status', [InventoryController::class, 'updateStatus']);
 
     // Stock Out (Pengeluaran Stok)

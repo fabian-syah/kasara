@@ -1710,6 +1710,97 @@ class InventoryController extends Controller
             'data' => $item
         ]);
     }
+
+    public function rejectReturn(Request $request, $id)
+    {
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:500',
+            'transaction_pin' => 'nullable|string|size:4',
+        ]);
+
+        $pinError = $this->verifyPin($request);
+        if ($pinError)
+            return $pinError;
+
+        return DB::transaction(function () use ($request, $id) {
+            $item = ProductDetail::findOrFail($id);
+
+            if ($item->status !== 'service') {
+                return response()->json(['message' => 'Barang ini bukan retur yang menunggu diproses.'], 422);
+            }
+
+            $returStockOut = $item->stockOuts()
+                ->where('category', 'retur')
+                ->whereNull('confirmed_at')
+                ->latest()
+                ->first();
+
+            if (!$returStockOut) {
+                return response()->json(['message' => 'Data retur untuk barang ini tidak ditemukan.'], 422);
+            }
+
+            $sender = $returStockOut->user;
+            $placementType = null;
+            $placementId = null;
+
+            if ($returStockOut->branch_id || $sender?->branch_id) {
+                $placementType = 'branch';
+                $placementId = $returStockOut->branch_id ?: $sender->branch_id;
+            } elseif ($returStockOut->warehouse_id || $sender?->warehouse_id) {
+                $placementType = 'warehouse';
+                $placementId = $returStockOut->warehouse_id ?: $sender->warehouse_id;
+            } elseif ($returStockOut->online_shop_id || $sender?->online_shop_id) {
+                $placementType = 'online_shop';
+                $placementId = $returStockOut->online_shop_id ?: $sender->online_shop_id;
+            } elseif ($sender?->distributor_id) {
+                $placementType = 'distributor';
+                $placementId = $sender->distributor_id;
+            }
+
+            if (!$placementType || !$placementId) {
+                return response()->json(['message' => 'Lokasi asal retur tidak bisa ditentukan.'], 422);
+            }
+
+            $item->update([
+                'status' => 'available',
+                'placement_type' => $placementType,
+                'placement_id' => $placementId,
+                'user_id' => $sender?->id ?: $item->user_id,
+            ]);
+
+            $notes = trim((string) $returStockOut->notes);
+            $reason = trim((string) $request->rejection_reason);
+            $rejectNote = 'Retur ditolak oleh gudang' . ($reason ? ': ' . $reason : '');
+
+            $returStockOut->update([
+                'status' => 'rejected',
+                'confirmed_at' => now(),
+                'confirmed_by' => Auth::id(),
+                'notes' => $notes ? $notes . "\n" . $rejectNote : $rejectNote,
+            ]);
+
+            InventoryLog::create([
+                'product_id' => $item->product_id,
+                'type' => 'in',
+                'quantity' => 1,
+                'balance_after' => 1,
+                'description' => 'RETUR DITOLAK - Kembali ke lokasi asal (' . ($item->imei ?? '-') . ')',
+                'reference_id' => $returStockOut->receipt_id,
+                'user_id' => Auth::id(),
+                'distributor_id' => $item->distributor_id,
+                'branch_id' => $placementType === 'branch' ? $placementId : null,
+                'warehouse_id' => $placementType === 'warehouse' ? $placementId : null,
+                'online_shop_id' => $placementType === 'online_shop' ? $placementId : null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Retur ditolak dan barang dikembalikan ke lokasi asal.',
+                'data' => $item->fresh(),
+            ]);
+        });
+    }
+
     // Create Dedicated Inventory Account
     public function createAccount(Request $request)
     {

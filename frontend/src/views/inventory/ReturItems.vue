@@ -51,6 +51,7 @@ const isLoadingAccounts = ref(false);
 
 // Accepting state
 const isAccepting = ref(false);
+const isRejecting = ref(false);
 
 // Fetch inventory accounts (gudang role)
 async function fetchInventoryAccounts() {
@@ -145,6 +146,23 @@ async function acceptReturn() {
         toast.error("Gagal menerima barang");
     } finally {
         isAccepting.value = false;
+    }
+}
+
+async function rejectReturn() {
+    if (!selectedItem.value) return;
+    if (!confirm('Tolak retur ini dan kembalikan barang ke lokasi asal?')) return;
+
+    isRejecting.value = true;
+    try {
+        await api.patch(`/inventory/${selectedItem.value.id}/reject-return`);
+        toast.success("Retur ditolak dan barang dikembalikan ke lokasi asal");
+        closeDetail();
+        fetchReturItems();
+    } catch (e) {
+        toast.error(e.response?.data?.message || "Gagal menolak retur");
+    } finally {
+        isRejecting.value = false;
     }
 }
 
@@ -506,11 +524,17 @@ onMounted(() => {
 
                 <!-- Modal Footer -->
                 <div class="sticky bottom-0 bg-surface-800 p-5 border-t border-surface-700 flex gap-3">
-                    <button @click="closeDetail" :disabled="isAccepting"
+                    <button @click="closeDetail" :disabled="isAccepting || isRejecting"
                         class="btn btn-secondary flex-1 h-12 rounded-xl font-bold">
                         Tutup
                     </button>
-                    <button @click="acceptReturn" :disabled="isAccepting || !selectedInventoryAccount"
+                    <button @click="rejectReturn" :disabled="isAccepting || isRejecting"
+                        class="btn bg-red-600 hover:bg-red-700 text-white flex-1 h-12 rounded-xl font-bold disabled:opacity-30 disabled:cursor-not-allowed">
+                        <Loader2 v-if="isRejecting" :size="18" class="animate-spin mr-2" />
+                        <X v-else :size="18" class="mr-2" />
+                        {{ isRejecting ? 'Memproses...' : 'Tolak Retur' }}
+                    </button>
+                    <button @click="acceptReturn" :disabled="isAccepting || isRejecting || !selectedInventoryAccount"
                         class="btn bg-green-600 hover:bg-green-700 text-white flex-1 h-12 rounded-xl font-bold disabled:opacity-30 disabled:cursor-not-allowed">
                         <Loader2 v-if="isAccepting" :size="18" class="animate-spin mr-2" />
                         <CheckCircle v-else :size="18" class="mr-2" />
