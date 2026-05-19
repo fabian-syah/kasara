@@ -38,6 +38,7 @@ const authStore = useAuthStore();
 const returItems = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
+let searchTimer = null;
 
 // Detail modal state
 const showDetail = ref(false);
@@ -71,10 +72,13 @@ async function fetchInventoryAccounts() {
 async function fetchReturItems() {
     isLoading.value = true;
     try {
+        const search = searchQuery.value.trim();
         const response = await api.get('/inventory', {
             params: {
                 status: 'service',
-                type: 'hp'
+                type: 'hp',
+                per_page: search ? -1 : 50,
+                search: search || undefined
             }
         });
         returItems.value = response.data.data || response.data;
@@ -84,6 +88,16 @@ async function fetchReturItems() {
     } finally {
         isLoading.value = false;
     }
+}
+
+function handleSearchInput() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(fetchReturItems, 350);
+}
+
+function clearSearch() {
+    searchQuery.value = '';
+    fetchReturItems();
 }
 
 // Filtered items
@@ -190,9 +204,22 @@ onMounted(() => {
             </button>
         </div>
 
-
-
-
+        <div class="relative">
+            <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
+            <input
+                v-model="searchQuery"
+                @input="handleSearchInput"
+                class="input h-12 pl-11 pr-11"
+                placeholder="Cari IMEI atau nama barang retur..."
+            />
+            <button
+                v-if="searchQuery"
+                @click="clearSearch"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-700 hover:bg-surface-600 flex items-center justify-center text-text-secondary"
+            >
+                <X :size="16" />
+            </button>
+        </div>
 
         <!-- Stats -->
         <div class="card bg-amber-500/10 border-amber-500/30">
