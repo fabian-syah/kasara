@@ -120,6 +120,63 @@ let html5QrCode = null;
 const shopeeItemForms = ref([]);
 const proofImageFile = ref(null);
 const proofImagePreview = ref(null);
+const MAX_PROOF_IMAGE_SIZE = 1500 * 1024;
+
+function loadImage(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Gagal membaca gambar'));
+        };
+        img.src = url;
+    });
+}
+
+function canvasToBlob(canvas, quality) {
+    return new Promise((resolve) => {
+        canvas.toBlob(resolve, 'image/jpeg', quality);
+    });
+}
+
+async function compressProofImage(file) {
+    if (!file.type?.startsWith('image/')) {
+        throw new Error('File bukti harus berupa gambar');
+    }
+
+    const image = await loadImage(file);
+    const maxDimension = 1600;
+    const ratio = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.width * ratio));
+    canvas.height = Math.max(1, Math.round(image.height * ratio));
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    let quality = 0.82;
+    let blob = await canvasToBlob(canvas, quality);
+    while (blob && blob.size > MAX_PROOF_IMAGE_SIZE && quality > 0.45) {
+        quality -= 0.08;
+        blob = await canvasToBlob(canvas, quality);
+    }
+
+    if (!blob) {
+        throw new Error('Gagal memproses gambar');
+    }
+
+    if (blob.size > MAX_PROOF_IMAGE_SIZE) {
+        throw new Error('Gambar masih terlalu besar setelah dikompres');
+    }
+
+    const safeName = file.name.replace(/\.[^.]+$/, '') || 'proof-image';
+    return new File([blob], `${safeName}.jpg`, { type: 'image/jpeg' });
+}
 
 const branches = ref([]);
 const warehouses = ref([]);
@@ -375,7 +432,7 @@ function resetStockOutForm() {
     proofImagePreview.value = null;
 }
 
-function handleFileChange(event) {
+async function handleFileChange(event) {
     const file = event.target.files[0];
     if (file) {
         if (file.size > 10 * 1024 * 1024) {
@@ -383,8 +440,16 @@ function handleFileChange(event) {
             event.target.value = '';
             return;
         }
-        proofImageFile.value = file;
-        proofImagePreview.value = URL.createObjectURL(file);
+        try {
+            const compressedFile = await compressProofImage(file);
+            proofImageFile.value = compressedFile;
+            proofImagePreview.value = URL.createObjectURL(compressedFile);
+        } catch (e) {
+            proofImageFile.value = null;
+            proofImagePreview.value = null;
+            event.target.value = '';
+            toast.error(e.message || "Gagal memproses gambar bukti");
+        }
     }
 }
 
