@@ -1271,6 +1271,31 @@ class ReportController extends Controller
 
         $perPage = $request->query('per_page', 20);
         $history = $query->latest()->paginate($perPage);
+
+        $history->getCollection()->transform(function($log) {
+            $params = $log->params;
+            $locationName = 'Semua Lokasi';
+            
+            if (!empty($params)) {
+                if (!empty($params['branch_id'])) {
+                    $branch = \App\Models\Branch::find($params['branch_id']);
+                    $locationName = $branch ? '[Cabang] ' . $branch->name : 'Cabang #' . $params['branch_id'];
+                } elseif (!empty($params['online_shop_id'])) {
+                    $shop = \App\Models\OnlineShop::find($params['online_shop_id']);
+                    $locationName = $shop ? '[Toko] ' . $shop->name : 'Toko #' . $params['online_shop_id'];
+                } elseif (!empty($params['warehouse_id'])) {
+                    $warehouse = \App\Models\Warehouse::find($params['warehouse_id']);
+                    $locationName = $warehouse ? '[Gudang] ' . $warehouse->name : 'Gudang #' . $params['warehouse_id'];
+                } elseif (!empty($params['distributor_id'])) {
+                    $distributor = \App\Models\Distributor::find($params['distributor_id']);
+                    $locationName = $distributor ? '[Distributor] ' . $distributor->name : 'Distributor #' . $params['distributor_id'];
+                }
+            }
+            
+            $log->location_name = $locationName;
+            return $log;
+        });
+
         return response()->json($history);
     }
 }

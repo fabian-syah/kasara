@@ -575,7 +575,7 @@ onMounted(() => {
                             </td>
                             <td class="px-5 py-3 whitespace-nowrap">
                                 <span class="px-2.5 py-1 rounded-lg bg-surface-900 border border-surface-700 text-[10px] font-black text-text-primary">
-                                    {{ getLocationNameFromParams(log.params) }}
+                                    {{ log.location_name || 'Semua Lokasi' }}
                                 </span>
                             </td>
                             <td class="px-5 py-3 text-text-primary font-medium">{{ log.report_name }}</td>
