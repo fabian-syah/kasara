@@ -1269,7 +1269,22 @@ class ReportController extends Controller
             });
         }
 
-        $history = $query->latest()->take(50)->get();
+        // Filter by request location params if provided
+        if ($request->filled('branch_id')) {
+            $query->where('params->branch_id', $request->query('branch_id'));
+        }
+        if ($request->filled('online_shop_id')) {
+            $query->where('params->online_shop_id', $request->query('online_shop_id'));
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('params->warehouse_id', $request->query('warehouse_id'));
+        }
+        if ($request->filled('distributor_id')) {
+            $query->where('params->distributor_id', $request->query('distributor_id'));
+        }
+
+        $perPage = $request->query('per_page', 20);
+        $history = $query->latest()->paginate($perPage);
         return response()->json($history);
     }
 }

@@ -16,6 +16,10 @@ const authStore = useAuthStore();
 
 const loading = ref(false);
 const downloadLogs = ref([]);
+const currentPage = ref(1);
+const lastPage = ref(1);
+const totalLogs = ref(0);
+const perPage = ref(20);
 
 // Location Filter logic
 const locations = ref([]);
@@ -215,12 +219,66 @@ const fetchDownloadLogs = async () => {
         const res = await axios.get('/reports/download-history', {
             params: {
                 branch_id: selectedBranchId.value || undefined,
+                online_shop_id: selectedOnlineShopId.value || undefined,
+                warehouse_id: selectedWarehouseId.value || undefined,
+                distributor_id: selectedDistributorId.value || undefined,
+                page: currentPage.value,
+                per_page: perPage.value
             }
         });
-        downloadLogs.value = res.data.data || res.data || [];
+        downloadLogs.value = res.data.data || [];
+        currentPage.value = res.data.current_page || 1;
+        lastPage.value = res.data.last_page || 1;
+        totalLogs.value = res.data.total || 0;
     } catch (err) {
         console.error('Error fetching logs:', err);
     }
+};
+
+const changePage = (page) => {
+    if (page >= 1 && page <= lastPage.value) {
+        currentPage.value = page;
+        fetchDownloadLogs();
+    }
+};
+
+const pageRange = computed(() => {
+    const range = [];
+    const maxVisiblePages = 5;
+    let start = Math.max(1, currentPage.value - 2);
+    let end = Math.min(lastPage.value, start + maxVisiblePages - 1);
+    
+    if (end - start + 1 < maxVisiblePages) {
+        start = Math.max(1, end - maxVisiblePages + 1);
+    }
+    
+    for (let i = start; i <= end; i++) {
+        range.push(i);
+    }
+    return range;
+});
+
+const getLocationNameFromParams = (params) => {
+    if (!params) return 'Semua Lokasi';
+    
+    if (params.branch_id) {
+        const loc = locations.value.find(l => l.type === 'branch' && l.id == params.branch_id);
+        return loc ? `[Cabang] ${loc.name}` : `Cabang #${params.branch_id}`;
+    }
+    if (params.online_shop_id) {
+        const loc = locations.value.find(l => l.type === 'online_shop' && l.id == params.online_shop_id);
+        return loc ? `[Toko] ${loc.name}` : `Toko #${params.online_shop_id}`;
+    }
+    if (params.warehouse_id) {
+        const loc = locations.value.find(l => l.type === 'warehouse' && l.id == params.warehouse_id);
+        return loc ? `[Gudang] ${loc.name}` : `Gudang #${params.warehouse_id}`;
+    }
+    if (params.distributor_id) {
+        const loc = locations.value.find(l => l.type === 'distributor' && l.id == params.distributor_id);
+        return loc ? `[Distributor] ${loc.name}` : `Distributor #${params.distributor_id}`;
+    }
+    
+    return 'Semua Lokasi';
 };
 
 const downloadExcel = async (type) => {
@@ -289,6 +347,7 @@ const downloadExcel = async (type) => {
 };
 
 watch(selectedLocationKey, () => {
+    currentPage.value = 1;
     fetchDownloadLogs();
 });
 
@@ -484,7 +543,7 @@ onMounted(() => {
         </div>
 
         <!-- Download History Section -->
-        <div v-if="downloadLogs.length > 0" class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden shadow-sm">
+        <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden shadow-sm">
             <div class="px-5 py-4 border-b border-surface-700 bg-surface-800/50 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <History :size="18" class="text-primary-400" />
@@ -500,12 +559,18 @@ onMounted(() => {
                         <tr>
                             <th class="px-5 py-3 font-bold">Waktu</th>
                             <th class="px-5 py-3 font-bold">User</th>
+                            <th class="px-5 py-3 font-bold">Lokasi</th>
                             <th class="px-5 py-3 font-bold">Nama Laporan</th>
                             <th class="px-5 py-3 font-bold">File</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-700">
-                        <tr v-for="log in downloadLogs.slice(0, 10)" :key="log.id" class="hover:bg-surface-700/30 transition-colors">
+                        <tr v-if="downloadLogs.length === 0">
+                            <td colspan="5" class="px-5 py-8 text-center text-text-secondary italic">
+                                Belum ada riwayat download.
+                            </td>
+                        </tr>
+                        <tr v-else v-for="log in downloadLogs" :key="log.id" class="hover:bg-surface-700/30 transition-colors">
                             <td class="px-5 py-3 text-text-secondary whitespace-nowrap">
                                 {{ new Date(log.created_at).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
                             </td>
@@ -513,14 +578,55 @@ onMounted(() => {
                                 <div class="font-medium text-text-primary">{{ log.user?.name || 'User' }}</div>
                                 <div class="text-[10px] text-text-secondary">{{ log.user?.roles?.[0]?.name }}</div>
                             </td>
+                            <td class="px-5 py-3 whitespace-nowrap">
+                                <span class="px-2.5 py-1 rounded-lg bg-surface-900 border border-surface-700 text-[10px] font-black text-text-primary">
+                                    {{ getLocationNameFromParams(log.params) }}
+                                </span>
+                            </td>
                             <td class="px-5 py-3 text-text-primary font-medium">{{ log.report_name }}</td>
                             <td class="px-5 py-3 text-text-secondary italic text-xs">{{ log.filename }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div v-if="downloadLogs.length > 10" class="px-5 py-3 bg-surface-900/30 text-center">
-                <p class="text-xs text-text-secondary font-medium">Hanya menampilkan 10 download terakhir</p>
+
+            <!-- Pagination Controls -->
+            <div v-if="totalLogs > 0" class="px-5 py-4 bg-surface-900/30 border-t border-surface-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <span class="text-xs text-text-secondary">
+                    Menampilkan <span class="font-bold text-text-primary">{{ (currentPage - 1) * perPage + 1 }}</span> - 
+                    <span class="font-bold text-text-primary">{{ Math.min(currentPage * perPage, totalLogs) }}</span> dari 
+                    <span class="font-bold text-text-primary">{{ totalLogs }}</span> riwayat download
+                </span>
+                
+                <div class="flex items-center gap-1.5" v-if="lastPage > 1">
+                    <button 
+                        @click="changePage(currentPage - 1)" 
+                        :disabled="currentPage === 1"
+                        class="px-3.5 py-1.5 rounded-xl border border-surface-700 bg-surface-900 text-xs font-bold text-text-secondary hover:text-white hover:border-surface-600 disabled:opacity-40 disabled:hover:text-text-secondary disabled:hover:border-surface-700 transition-all active:scale-95"
+                    >
+                        Sebelumnya
+                    </button>
+
+                    <button 
+                        v-for="page in pageRange" 
+                        :key="page" 
+                        @click="changePage(page)"
+                        class="w-9 h-9 rounded-xl border text-xs font-black transition-all active:scale-95 flex items-center justify-center"
+                        :class="page === currentPage 
+                            ? 'bg-primary-500 border-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                            : 'bg-surface-900 border-surface-700 text-text-secondary hover:border-surface-600 hover:text-white'"
+                    >
+                        {{ page }}
+                    </button>
+
+                    <button 
+                        @click="changePage(currentPage + 1)" 
+                        :disabled="currentPage === lastPage"
+                        class="px-3.5 py-1.5 rounded-xl border border-surface-700 bg-surface-900 text-xs font-bold text-text-secondary hover:text-white hover:border-surface-600 disabled:opacity-40 disabled:hover:text-text-secondary disabled:hover:border-surface-700 transition-all active:scale-95"
+                    >
+                        Berikutnya
+                    </button>
+                </div>
             </div>
         </div>
     </div>
