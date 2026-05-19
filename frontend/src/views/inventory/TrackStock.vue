@@ -250,7 +250,7 @@ function formatCurrency(value) {
                                     <p class="text-text-secondary text-xs">Storage / Kapasitas</p>
                                     <p class="text-text-primary">{{ result.storage || '-' }}</p>
                                 </div>
-                                <div v-if="result.rejected_by">
+                                <div v-if="result.rejected_by && !result.is_retur_rejection">
                                     <p class="text-text-secondary text-xs flex items-center gap-1">
                                         <User :size="12" /> Ditolak oleh
                                     </p>

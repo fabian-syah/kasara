@@ -1715,6 +1715,7 @@ class InventoryController extends Controller
     {
         $request->validate([
             'rejection_reason' => 'nullable|string|max:500',
+            'inventory_user_id' => 'nullable|exists:users,id',
             'transaction_pin' => 'nullable|string|size:4',
         ]);
 
@@ -1761,6 +1762,8 @@ class InventoryController extends Controller
                 return response()->json(['message' => 'Lokasi asal retur tidak bisa ditentukan.'], 422);
             }
 
+            $processedBy = $request->inventory_user_id ?: Auth::id();
+
             $item->update([
                 'status' => 'available',
                 'placement_type' => $placementType,
@@ -1775,7 +1778,7 @@ class InventoryController extends Controller
             $returStockOut->update([
                 'status' => 'rejected',
                 'confirmed_at' => now(),
-                'confirmed_by' => Auth::id(),
+                'confirmed_by' => $processedBy,
                 'notes' => $notes ? $notes . "\n" . $rejectNote : $rejectNote,
             ]);
 
@@ -1786,7 +1789,7 @@ class InventoryController extends Controller
                 'balance_after' => 1,
                 'description' => 'RETUR DITOLAK - Kembali ke lokasi asal (' . ($item->imei ?? '-') . ')',
                 'reference_id' => $returStockOut->receipt_id,
-                'user_id' => Auth::id(),
+                'user_id' => $processedBy,
                 'distributor_id' => $item->distributor_id,
                 'branch_id' => $placementType === 'branch' ? $placementId : null,
                 'warehouse_id' => $placementType === 'warehouse' ? $placementId : null,

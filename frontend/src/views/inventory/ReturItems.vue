@@ -151,11 +151,17 @@ async function acceptReturn() {
 
 async function rejectReturn() {
     if (!selectedItem.value) return;
+    if (!selectedInventoryAccount.value) {
+        toast.error("Pilih akun inventory terlebih dahulu");
+        return;
+    }
     if (!confirm('Tolak retur ini dan kembalikan barang ke lokasi asal?')) return;
 
     isRejecting.value = true;
     try {
-        await api.patch(`/inventory/${selectedItem.value.id}/reject-return`);
+        await api.patch(`/inventory/${selectedItem.value.id}/reject-return`, {
+            inventory_user_id: selectedInventoryAccount.value
+        });
         toast.success("Retur ditolak dan barang dikembalikan ke lokasi asal");
         closeDetail();
         fetchReturItems();
@@ -528,7 +534,7 @@ onMounted(() => {
                         class="btn btn-secondary flex-1 h-12 rounded-xl font-bold">
                         Tutup
                     </button>
-                    <button @click="rejectReturn" :disabled="isAccepting || isRejecting"
+                    <button @click="rejectReturn" :disabled="isAccepting || isRejecting || !selectedInventoryAccount"
                         class="btn bg-red-600 hover:bg-red-700 text-white flex-1 h-12 rounded-xl font-bold disabled:opacity-30 disabled:cursor-not-allowed">
                         <Loader2 v-if="isRejecting" :size="18" class="animate-spin mr-2" />
                         <X v-else :size="18" class="mr-2" />
