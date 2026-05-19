@@ -214,7 +214,6 @@ const fetchLocations = async () => {
 };
 
 const fetchDownloadLogs = async () => {
-    if (!authStore.userRole?.toLowerCase().includes('admin') && !authStore.userRole?.toLowerCase().includes('audit') && !authStore.userRole?.toLowerCase().includes('owner') && !authStore.userRole?.toLowerCase().includes('analist')) return;
     try {
         const res = await axios.get('/reports/download-history', {
             params: {
