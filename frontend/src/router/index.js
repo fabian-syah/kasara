@@ -174,6 +174,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/download-center',
+                name: 'DownloadCenter',
+                component: () => import('../views/inventory/DownloadCenter.vue'),
+                meta: {
+                    title: 'Download Center',
+                    menu: 'inventory',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'inventory/stock-in',
                 name: 'StockIn',
                 component: () => import('../views/inventory/StockIn.vue'),

@@ -119,6 +119,7 @@ const menuItems = [
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
+            { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
         ]
     },
