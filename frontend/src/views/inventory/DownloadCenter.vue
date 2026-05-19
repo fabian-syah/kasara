@@ -218,7 +218,11 @@ const fetchDownloadLogs = async () => {
         const res = await axios.get('/reports/download-history', {
             params: {
                 page: currentPage.value,
-                per_page: perPage.value
+                per_page: perPage.value,
+                branch_id: selectedBranchId.value || undefined,
+                online_shop_id: selectedOnlineShopId.value || undefined,
+                warehouse_id: selectedWarehouseId.value || undefined,
+                distributor_id: selectedDistributorId.value || undefined
             }
         });
         downloadLogs.value = res.data.data || [];

@@ -1253,7 +1253,20 @@ class ReportController extends Controller
         $user = auth()->user();
         $query = ExportLog::with(['user.roles', 'user.branch', 'user.onlineShop', 'user.warehouse', 'user.distributor']);
 
-        // Scope logs are now universal as requested by the user
+        if (!$user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+            $accessibleBranchIds = $user->getAccessibleBranchIds();
+            $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+            $accessibleWarehouseIds = $user->getAccessibleWarehouseIds();
+            $accessibleDistributorIds = $user->getAccessibleDistributorIds();
+
+            $query->where(function ($q) use ($user, $accessibleBranchIds, $accessibleOnlineShopIds, $accessibleWarehouseIds, $accessibleDistributorIds) {
+                $q->whereIn('params->branch_id', $accessibleBranchIds)
+                  ->orWhereIn('params->online_shop_id', $accessibleOnlineShopIds)
+                  ->orWhereIn('params->warehouse_id', $accessibleWarehouseIds)
+                  ->orWhereIn('params->distributor_id', $accessibleDistributorIds)
+                  ->orWhere('user_id', $user->id);
+            });
+        }
 
         // Filter by request location params if provided
         if ($request->filled('branch_id')) {
