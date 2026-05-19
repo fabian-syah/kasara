@@ -2737,43 +2737,6 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Download Logs -->
-                <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
-                    <div class="p-6 border-b border-surface-700 flex items-center gap-3">
-                         <History class="text-primary-400" :size="20" />
-                         <h3 class="font-bold text-white">History Download</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                         <table class="w-full text-sm text-left">
-                            <thead class="bg-surface-900/50 text-text-secondary uppercase text-[10px] font-bold">
-                                <tr>
-                                    <th class="px-6 py-4">Waktu</th>
-                                    <th class="px-6 py-4">User</th>
-                                    <th class="px-6 py-4">Laporan</th>
-                                    <th class="px-6 py-4">Filename</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-surface-700/50">
-                                <tr v-for="log in downloadLogs" :key="log.id" class="hover:bg-surface-700/20 transition-colors">
-                                    <td class="px-6 py-4 text-xs tabular-nums text-text-secondary">
-                                        {{ new Date(log.downloaded_at).toLocaleString('id-ID') }}
-                                    </td>
-                                    <td class="px-6 py-4 font-medium text-white">{{ log.user?.name || 'System' }}</td>
-                                    <td class="px-6 py-4">
-                                        <span class="px-2 py-0.5 rounded-lg bg-surface-900 border border-surface-700 text-[10px] font-bold text-primary-400">
-                                            {{ log.report_name }}
-                                        </span>
-                                    </td>
-                                    <td class="px-6 py-4 font-mono text-[10px] text-text-secondary">{{ log.filename }}</td>
-                                </tr>
-                                <tr v-if="downloadLogs.length === 0">
-                                    <td colspan="4" class="px-6 py-8 text-center text-text-secondary italic">Belum ada riwayat download.</td>
-                                </tr>
-                            </tbody>
-                         </table>
-                    </div>
-                </div>
-
                 <div class="flex justify-center pt-6">
                     <button @click="goBack()"
                         class="flex items-center gap-3 px-8 py-4 bg-surface-700 hover:bg-surface-600 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl">
