@@ -1303,6 +1303,46 @@ class StockOutController extends Controller
                     ];
                 }
 
+                // Event 3b: RETUR REJECTED (returned to original sender/location)
+                if ($out->category === 'retur' && $out->status === 'rejected' && $out->confirmed_at) {
+                    $returItem = $out->items->first(function ($i) use ($query, $out) {
+                        if ($query === $out->receipt_id) return true;
+                        return stripos($i->imei, $query) !== false;
+                    }) ?: $out->items->first();
+
+                    if ($returItem) {
+                        $placementName = match ($returItem->placement_type) {
+                            'warehouse' => \App\Models\Warehouse::find($returItem->placement_id)?->name ?? 'Gudang',
+                            'branch' => \App\Models\Branch::find($returItem->placement_id)?->name ?? 'Cabang',
+                            'online_shop' => \App\Models\OnlineShop::find($returItem->placement_id)?->name ?? 'Toko Online',
+                            'distributor' => \App\Models\Distributor::find($returItem->placement_id)?->name ?? 'Distributor',
+                            default => 'Unknown'
+                        };
+
+                        $allEvents[] = [
+                            'type' => 'stock_in',
+                            'sub_type' => 'retur_rejected_return',
+                            'id' => $out->receipt_id,
+                            'imei' => $returItem->imei,
+                            'product_name' => $returItem->product?->name ?? 'Unknown',
+                            'status' => 'available',
+                            'placement_type' => $returItem->placement_type,
+                            'placement_id' => $returItem->placement_id,
+                            'placement_name' => $placementName,
+                            'created_at' => $out->confirmed_at->toDateTimeString(),
+                            'timestamp' => $out->confirmed_at->timestamp,
+                            'input_by' => $out->confirmedBy?->name ?? 'Unknown',
+                            'condition' => $returItem->condition ?? '-',
+                            'selling_price' => $returItem->selling_price ?? 0,
+                            'distributor' => $returItem->distributor?->name ?? '-',
+                            'storage' => $returItem->storage ?? '-',
+                            'rejected_by' => $out->confirmedBy?->name ?? 'Unknown',
+                            'is_arrival' => true,
+                            'is_retur_rejection' => true,
+                        ];
+                    }
+                }
+
                 // Event 4: RETURN TO SENDER / TERIMA BALIK TRANSFER (if transfer rejected and received back by sender)
                 if ($out->category === 'pindah_cabang') {
                     $item = $out->items->first(function ($i) use ($query, $out) {
