@@ -316,14 +316,22 @@ const downloadExcel = async (type) => {
             responseType: 'blob'
         });
         
+        const dateStr = exportMode.value === 'monthly'
+            ? exportMonth.value
+            : (exportStartDate.value === exportEndDate.value
+                ? exportStartDate.value
+                : `${exportStartDate.value}_sd_${exportEndDate.value}`);
+
         let filename = '';
         if (type === 'inventory') {
-            filename = `DATA_INVENTORY_${selectedLocationName.value}.xlsx`;
+            filename = `data inventory ${selectedLocationName.value} ${dateStr}.xlsx`;
+        } else if (type === 'sales') {
+            filename = `data penjualan ${selectedLocationName.value} _ ${dateStr}.xlsx`;
+        } else if (type === 'history') {
+            filename = `history stok ${selectedLocationName.value} _ ${dateStr}.xlsx`;
         } else if (type === 'mutation') {
-            const typeLabel = mutationType.value === 'hp' ? 'HP' : mutationType.value === 'non_hp' ? 'NON_HP' : 'SEMUA';
-            filename = `MUTASI_STOK_${typeLabel}_${exportStartDate.value}.xlsx`;
-        } else {
-            filename = `${type.toUpperCase()}_${exportStartDate.value}_SD_${exportEndDate.value}.xlsx`;
+            const typeSuffix = mutationType.value === 'hp' ? ' HP' : mutationType.value === 'non_hp' ? ' NON_HP' : '';
+            filename = `mutasi stok ${selectedLocationName.value}${typeSuffix} _ ${dateStr}.xlsx`;
         }
         
         const url = window.URL.createObjectURL(new Blob([response.data]));
