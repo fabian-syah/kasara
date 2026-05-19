@@ -1311,6 +1311,14 @@ class StockOutController extends Controller
                     }) ?: $out->items->first();
 
                     if ($returItem) {
+                        $rejectUser = $out->confirmedBy;
+                        if ((!$rejectUser || !$rejectUser->hasRole('inventory')) && $out->return_destination_id) {
+                            $rejectUser = \App\Models\User::role('inventory')
+                                ->where('warehouse_id', $out->return_destination_id)
+                                ->where('is_active', true)
+                                ->first() ?: $rejectUser;
+                        }
+
                         $placementName = match ($returItem->placement_type) {
                             'warehouse' => \App\Models\Warehouse::find($returItem->placement_id)?->name ?? 'Gudang',
                             'branch' => \App\Models\Branch::find($returItem->placement_id)?->name ?? 'Cabang',
@@ -1331,12 +1339,12 @@ class StockOutController extends Controller
                             'placement_name' => $placementName,
                             'created_at' => $out->confirmed_at->toDateTimeString(),
                             'timestamp' => $out->confirmed_at->timestamp,
-                            'input_by' => $out->confirmedBy?->name ?? 'Unknown',
+                            'input_by' => $rejectUser?->name ?? 'Unknown',
                             'condition' => $returItem->condition ?? '-',
                             'selling_price' => $returItem->selling_price ?? 0,
                             'distributor' => $returItem->distributor?->name ?? '-',
                             'storage' => $returItem->storage ?? '-',
-                            'rejected_by' => $out->confirmedBy?->name ?? 'Unknown',
+                            'rejected_by' => $rejectUser?->name ?? 'Unknown',
                             'is_arrival' => true,
                             'is_retur_rejection' => true,
                         ];

@@ -2197,10 +2197,16 @@ class InventoryController extends Controller
                 if ($user->branch_id) {
                     $q->orWhere('branch_id', $user->branch_id);
                 }
+                if ($user->warehouse_id) {
+                    $q->orWhere('warehouse_id', $user->warehouse_id);
+                }
+                if ($user->online_shop_id) {
+                    $q->orWhere('online_shop_id', $user->online_shop_id);
+                }
             });
         }
 
-        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'online_shop_id')
+        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
             ->get()
             ->map(function ($u) {
                 $u->has_pin = !empty($u->transaction_pin);
