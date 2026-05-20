@@ -36,6 +36,28 @@ const hasSearched = ref(false);
 const showReceiptModal = ref(false);
 const currentReceiptData = ref(null);
 const activeImage = ref(null);
+const printableCategories = [
+    'penjualan',
+    'penjualan_offline',
+    'penjualan_store',
+    'bundling',
+    'tukar_unit',
+    'tukar_tambah',
+    'downgrade',
+    'retur',
+    'keluar',
+    'pindah_cabang',
+    'kesalahan_input',
+    'brand_ambassador',
+    'event_sponsorship',
+    'giveaway_customer',
+    'inventaris',
+    'hilang',
+];
+
+const canPrintReceipt = (result) => {
+    return result.type === 'stock_out' && result.order_no && printableCategories.includes(result.category);
+};
 
 const openReceipt = (result) => {
     currentReceiptData.value = {
@@ -516,7 +538,7 @@ function formatCurrency(value) {
                             </div>
 
                             <!-- Attachments & Actions -->
-                            <div v-if="(result.proof_images && result.proof_images.length > 0) || ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)"
+                            <div v-if="(result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result)"
                                 class="mt-6 border-t border-surface-700 pt-4 flex flex-wrap items-center gap-3">
                                 <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Aksi & Bukti:</span>
                                 
@@ -531,7 +553,7 @@ function formatCurrency(value) {
                                 </template>
 
                                 <!-- Print Nota Button -->
-                                <button v-if="['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)"
+                                <button v-if="canPrintReceipt(result)"
                                     @click="openReceipt(result)"
                                     class="flex items-center gap-2 bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 border border-primary-500/30 hover:border-primary-500/50 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95">
                                     <Printer :size="14" />
