@@ -581,114 +581,6 @@
     </div>
 </template>
 
-<style scoped>
-/* Force nota-paper to always show black text on white background, even in dark mode */
-.nota-paper,
-.nota-paper * {
-    color: #000 !important;
-}
-
-.nota-paper {
-    background-color: #fff !important;
-}
-
-.nota-paper h2 {
-    color: #000 !important;
-}
-
-.nota-paper p,
-.nota-paper span,
-.nota-paper div,
-.nota-paper li,
-.nota-paper td,
-.nota-paper th {
-    color: #000 !important;
-}
-
-.nota-paper .text-gray-700,
-.nota-paper .text-gray-600 {
-    color: #374151 !important;
-}
-
-.nota-paper table th {
-    color: #000 !important;
-    font-weight: 700 !important;
-}
-
-.nota-paper table td {
-    color: #000 !important;
-}
-
-.nota-paper .border-black {
-    border-color: #000 !important;
-}
-
-.nota-paper .border-gray-300 {
-    border-color: #d1d5db !important;
-}
-
-.nota-paper .border-gray-400 {
-    border-color: #9ca3af !important;
-}
-
-.nota-paper .bg-gray-50 {
-    background-color: #f9fafb !important;
-}
-
-.nota-paper .border-gray-200 {
-    border-color: #e5e7eb !important;
-}
-
-@media print {
-    body * {
-        visibility: hidden;
-    }
-
-    #receipt-content,
-    #receipt-content * {
-        visibility: visible;
-        color: #000 !important;
-        background-color: transparent !important;
-    }
-
-    #receipt-content .nota-paper {
-        background-color: #fff !important;
-    }
-
-    #receipt-content {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
-
-    .nota-paper {
-        border: none !important;
-        box-shadow: none !important;
-        width: 100%;
-        max-width: none !important;
-        padding: 16px !important;
-    }
-
-    .nota-paper table {
-        border-collapse: collapse !important;
-    }
-
-    .nota-paper table th,
-    .nota-paper table td {
-        border-color: #000 !important;
-        color: #000 !important;
-    }
-
-    .nota-paper img {
-        print-color-adjust: exact;
-        -webkit-print-color-adjust: exact;
-    }
-}
-</style>
-
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
@@ -884,10 +776,6 @@ const openReceipt = (item) => {
     currentReceiptData.value = item
     autoSendReceipt.value = false
     showReceiptModal.value = true
-}
-
-const printReceipt = () => {
-    window.print()
 }
 
 const handleCancelSale = (item) => {

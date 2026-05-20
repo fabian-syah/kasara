@@ -1090,7 +1090,7 @@ const processedReceiptItems = computed(() => {
 
     html,
     body {
-        height: 100% !important;
+        height: auto !important;
         width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -1108,7 +1108,7 @@ const processedReceiptItems = computed(() => {
         top: 0 !important;
         width: 100% !important;
         height: auto !important;
-        min-height: 100% !important;
+        min-height: 0 !important;
         max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -1120,6 +1120,8 @@ const processedReceiptItems = computed(() => {
         align-items: flex-start !important;
         justify-content: flex-start !important;
         transform: none !important;
+        border: 0 !important;
+        outline: 0 !important;
     }
 
     /* CRITICAL FIX: Direct fitting to A4 physical dimensions with free-flowing bottom overflow to prevent clipping signatures */

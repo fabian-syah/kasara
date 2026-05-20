@@ -103,7 +103,6 @@ function clearAllTempStates() {
 
 // Modals State
 const showSuccessModal = ref(false);
-const showReceiptModal = ref(false);
 const lastTransaction = ref(null);
 const showInitialPinSetup = ref(false);
 const showPinModal = ref(false);
@@ -543,7 +542,7 @@ watch(transactionCategory, () => {
         <PinModal :show="showPinModal" :title="pinModalTitle" :mode="pinModalMode" @close="showPinModal = false"
             @success="handlePinSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
-            :auto-send="lastTransaction?.category === 'penjualan' && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
+            :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
             @close="closeSuccessModal" />
 
     </div>
