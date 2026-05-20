@@ -1040,11 +1040,20 @@ class StockOutController extends Controller
 
             // 1. Search STOCK IN (Registration Events)
             $productDetails = ProductDetail::withTrashed()
-                ->with(['product', 'distributor', 'user'])
+                ->with(['product', 'distributor', 'user', 'stockOuts'])
                 ->where('imei', $query)
                 ->get();
 
             foreach ($productDetails as $detail) {
+                // Skip if this product detail is associated with a 'barang_masuk' stock out,
+                // as that stock out event will be rendered instead to avoid duplication.
+                $hasBarangMasuk = $detail->stockOuts->contains(function ($so) {
+                    return $so->category === 'barang_masuk';
+                });
+                if ($hasBarangMasuk) {
+                    continue;
+                }
+
                 $allEvents[] = [
                     'type' => 'stock_in',
                     'sub_type' => 'registration',
