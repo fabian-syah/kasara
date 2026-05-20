@@ -1081,6 +1081,7 @@ class StockOutController extends Controller
                 'confirmedBy',
                 'branch',
                 'onlineShop',
+                'warehouse',
                 'paymentMethod'
             ])
                 ->where('receipt_id', $query)
@@ -1354,6 +1355,8 @@ class StockOutController extends Controller
                     'order_no' => $out->receipt_id,
                     'branch' => $out->branch,
                     'online_shop' => $out->onlineShop,
+                    'warehouse' => $out->warehouse,
+                    'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
                     'original_price' => (float)$out->selling_price,
                     'selling_price' => (float)$out->selling_price,
                     'total_discount' => (float)$out->total_discount,
@@ -1407,6 +1410,10 @@ class StockOutController extends Controller
                         'created_at' => $out->confirmed_at->toDateTimeString(),
                         'timestamp' => $out->confirmed_at->timestamp,
                         'is_rejection' => true,
+                        'branch' => $out->branch,
+                        'online_shop' => $out->onlineShop,
+                        'warehouse' => $out->warehouse,
+                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
                     ];
                 }
 

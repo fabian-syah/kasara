@@ -527,6 +527,16 @@ function formatCurrency(value) {
                                     </div>
                                 </template>
 
+                                <!-- Lokasi Asal -->
+                                <div>
+                                    <p class="text-text-secondary text-xs flex items-center gap-1">
+                                        <MapPin :size="12" /> Lokasi Asal
+                                    </p>
+                                    <p class="text-text-primary">
+                                        {{ result.source_name || result.branch?.name || result.online_shop?.name || result.warehouse?.name || '-' }}
+                                    </p>
+                                </div>
+
                                 <!-- Admin -->
                                 <div>
                                     <p class="text-text-secondary text-xs">Diproses oleh</p>
