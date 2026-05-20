@@ -20,7 +20,8 @@ import {
     Box,
     Printer,
     Eye,
-    X
+    X,
+    Gift
 } from "lucide-vue-next";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 
@@ -77,6 +78,7 @@ const categoryIcons = {
     orderan_online: ShoppingBag,
     penjualan_offline: ShoppingBag,
     penjualan: ShoppingBag,
+    penjualan_store: ShoppingBag,
     bundling: ShoppingBag,
     tukar_unit: ShoppingBag,
     tukar_tambah: ShoppingBag,
@@ -85,6 +87,10 @@ const categoryIcons = {
     brand_ambassador: User,
     event_sponsorship: Calendar,
     keluar: Box,
+    giveaway_customer: Gift,
+    inventaris: Box,
+    hilang: AlertTriangle,
+    refund: RotateCcw,
 };
 
 const categoryLabels = {
@@ -95,6 +101,7 @@ const categoryLabels = {
     orderan_online: 'Orderan Online',
     penjualan_offline: 'Penjualan Offline',
     penjualan: 'Penjualan',
+    penjualan_store: 'Penjualan Store',
     bundling: 'Bundling',
     tukar_unit: 'Tukar Unit',
     tukar_tambah: 'Tukar Tambah',
@@ -103,6 +110,10 @@ const categoryLabels = {
     brand_ambassador: 'Brand Ambassador',
     event_sponsorship: 'Event / Sponsorship',
     keluar: 'Keluar',
+    giveaway_customer: 'Giveaway Customer',
+    inventaris: 'Inventaris',
+    hilang: 'Hilang',
+    refund: 'Refund',
 };
 
 // Search function
@@ -275,9 +286,9 @@ function formatCurrency(value) {
                                     <p class="text-text-primary font-bold">{{ formatCurrency(result.selling_price) }}
                                     </p>
                                 </div>
-                                <div v-if="result.distributor">
-                                    <p class="text-text-secondary text-xs">Distributor</p>
-                                    <p class="text-text-primary">{{ result.distributor }}</p>
+                                <div v-if="result.distributor || result.supplier_name">
+                                    <p class="text-text-secondary text-xs">Distributor / Supplier</p>
+                                    <p class="text-text-primary">{{ result.distributor || result.supplier_name }}</p>
                                 </div>
                                 <div>
                                     <p class="text-text-secondary text-xs flex items-center gap-1">
@@ -302,26 +313,26 @@ function formatCurrency(value) {
                         <div v-else-if="result.type === 'stock_out'" :key="'out-' + result.id"
                             class="card p-6 border-l-4 hover:bg-surface-700/30 transition-all" :class="{
                                 'border-l-blue-500': result.category === 'pindah_cabang',
-                                'border-l-amber-500': result.category === 'kesalahan_input',
-                                'border-l-purple-500': result.category === 'retur' || result.category === 'keluar',
+                                'border-l-amber-500': ['kesalahan_input', 'hilang'].includes(result.category),
+                                'border-l-purple-500': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
                                 'border-l-pink-500': result.category === 'brand_ambassador',
                                 'border-l-cyan-500': result.category === 'event_sponsorship',
                                 'border-l-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                 'border-l-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
-                                'border-l-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
+                                'border-l-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                             }">
 
                             <div class="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6">
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" :class="{
                                         'bg-blue-500/20 text-blue-500': result.category === 'pindah_cabang',
-                                        'bg-amber-500/20 text-amber-500': result.category === 'kesalahan_input',
-                                        'bg-purple-500/20 text-purple-500': result.category === 'retur' || result.category === 'keluar',
+                                        'bg-amber-500/20 text-amber-500': ['kesalahan_input', 'hilang'].includes(result.category),
+                                        'bg-purple-500/20 text-purple-500': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
                                         'bg-pink-500/20 text-pink-500': result.category === 'brand_ambassador',
                                         'bg-cyan-500/20 text-cyan-500': result.category === 'event_sponsorship',
                                         'bg-[#EE4D2D]/20 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                         'bg-indigo-500/20 text-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
-                                        'bg-emerald-500/20 text-emerald-500': ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
+                                        'bg-emerald-500/20 text-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="24" />
                                     </div>
@@ -399,7 +410,7 @@ function formatCurrency(value) {
 
                                 <!-- Retur / Sales -->
                                 <template
-                                    v-if="result.category === 'retur' || ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)">
+                                    v-if="result.category === 'retur' || ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund'].includes(result.category)">
                                     <div>
                                         <p class="text-text-secondary text-xs">Customer</p>
                                         <p class="text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
@@ -529,6 +540,47 @@ function formatCurrency(value) {
                                         <p class="text-text-primary">{{ result.deletion_reason }}</p>
                                     </div>
                                 </template>
+
+                                <!-- Giveaway -->
+                                <template v-if="result.category === 'giveaway_customer'">
+                                    <div>
+                                        <p class="text-text-secondary text-xs">Penerima Giveaway</p>
+                                        <p class="text-text-primary uppercase">{{ result.giveaway_receiver || '-' }}</p>
+                                    </div>
+                                    <div v-if="result.giveaway_phone">
+                                        <p class="text-text-secondary text-xs">No. WA</p>
+                                        <p class="text-text-primary">{{ result.giveaway_phone }}</p>
+                                    </div>
+                                    <div v-if="result.giveaway_address" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Alamat</p>
+                                        <p class="text-text-primary text-xs">{{ result.giveaway_address }}</p>
+                                    </div>
+                                    <div v-if="result.giveaway_notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Catatan Giveaway</p>
+                                        <p class="text-text-primary italic">{{ result.giveaway_notes }}</p>
+                                    </div>
+                                </template>
+
+                                <!-- Hilang / Inventaris -->
+                                <template v-if="['hilang', 'inventaris'].includes(result.category)">
+                                    <div v-if="result.person_in_charge">
+                                        <p class="text-text-secondary text-xs">Penanggung Jawab</p>
+                                        <p class="text-text-primary uppercase">{{ result.person_in_charge }}</p>
+                                    </div>
+                                    <div v-if="result.sub_category">
+                                        <p class="text-text-secondary text-xs">Sub Kategori</p>
+                                        <p class="text-text-primary uppercase">{{ result.sub_category }}</p>
+                                    </div>
+                                    <div v-if="result.loss_chronology" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Kronologi Kehilangan</p>
+                                        <p class="text-text-primary">{{ result.loss_chronology }}</p>
+                                    </div>
+                                    <div v-if="result.notes" class="col-span-full">
+                                        <p class="text-text-secondary text-xs">Keterangan / Notes</p>
+                                        <p class="text-text-primary italic">{{ result.notes }}</p>
+                                    </div>
+                                </template>
+
 
                                 <!-- Lokasi Asal -->
                                 <div>
