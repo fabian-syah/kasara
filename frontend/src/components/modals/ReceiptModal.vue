@@ -680,7 +680,7 @@ const sendWaReceiptFromModal = async () => {
             max-width: 210mm !important;
             min-height: 297mm !important;
             margin: 0 auto !important;
-            padding: 4mm 8mm !important;
+            padding: 8mm 14mm 12mm !important;
             border-radius: 0 !important;
             box-sizing: border-box !important;
             box-shadow: none !important;
@@ -690,9 +690,17 @@ const sendWaReceiptFromModal = async () => {
         }
         .nota-paper > .relative.z-10 {
             flex: 1 1 auto !important;
-            min-height: calc(297mm - 8mm) !important;
+            min-height: calc(297mm - 20mm) !important;
             display: flex !important;
             flex-direction: column !important;
+        }
+        .nota-paper > .absolute.top-0.left-0 {
+            left: -14mm !important;
+            top: -8mm !important;
+        }
+        .nota-paper > .absolute.top-0.right-0 {
+            right: -14mm !important;
+            top: -8mm !important;
         }
         .bg-red-600 { background-color: #dc2626 !important; }
         .text-red-600 { color: #dc2626 !important; }
@@ -707,6 +715,11 @@ const sendWaReceiptFromModal = async () => {
         .flex.flex-col.md\\:flex-row > div:last-child { display: table-cell !important; width: 42% !important; vertical-align: top !important; }
         .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: auto !important; margin-bottom: 12mm !important; }
         .signature-area.grid.grid-cols-2 > div { display: table-cell !important; width: 50% !important; vertical-align: top !important; }
+        .nota-paper .flex.items-center.gap-5.mb-4.mt-6.px-6 {
+            margin-top: 9mm !important;
+            padding-left: 4mm !important;
+            padding-right: 4mm !important;
+        }
         .nota-paper .mb-6 { margin-bottom: 1.1rem !important; }
         .nota-paper .mb-5 { margin-bottom: 1rem !important; }
         .nota-paper .mb-4 { margin-bottom: 0.85rem !important; }
