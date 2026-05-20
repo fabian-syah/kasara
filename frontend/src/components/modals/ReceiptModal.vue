@@ -680,27 +680,27 @@ const sendWaReceiptFromModal = async () => {
             max-width: 210mm !important;
             min-height: 297mm !important;
             margin: 0 auto !important;
-            padding: 8mm 14mm 12mm !important;
+            padding: 0 8mm 12mm !important;
             border-radius: 0 !important;
             box-sizing: border-box !important;
             box-shadow: none !important;
             display: flex !important;
             flex-direction: column !important;
-            overflow: visible !important;
+            overflow: hidden !important;
         }
         .nota-paper > .relative.z-10 {
             flex: 1 1 auto !important;
-            min-height: calc(297mm - 20mm) !important;
+            min-height: calc(297mm - 12mm) !important;
             display: flex !important;
             flex-direction: column !important;
         }
         .nota-paper > .absolute.top-0.left-0 {
-            left: -14mm !important;
-            top: -8mm !important;
+            left: 0 !important;
+            top: 0 !important;
         }
         .nota-paper > .absolute.top-0.right-0 {
-            right: -14mm !important;
-            top: -8mm !important;
+            right: 0 !important;
+            top: 0 !important;
         }
         .bg-red-600 { background-color: #dc2626 !important; }
         .text-red-600 { color: #dc2626 !important; }
@@ -710,13 +710,14 @@ const sendWaReceiptFromModal = async () => {
         .bg-white { background-color: #ffffff !important; }
         .border-neutral-200 { border-color: #e5e7eb !important; border-width: 1px !important; border-style: solid !important; }
         th { background-color: #0a0a0a !important; color: #ffffff !important; }
-        .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 25px !important; margin-bottom: 0 !important; }
+        .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 22px !important; margin-bottom: 0 !important; }
         .flex.flex-col.md\\:flex-row > div:first-child { display: table-cell !important; width: 58% !important; vertical-align: top !important; padding-right: 20px !important; }
         .flex.flex-col.md\\:flex-row > div:last-child { display: table-cell !important; width: 42% !important; vertical-align: top !important; }
-        .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: auto !important; margin-bottom: 12mm !important; }
+        .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 20mm !important; margin-bottom: 0 !important; }
         .signature-area.grid.grid-cols-2 > div { display: table-cell !important; width: 50% !important; vertical-align: top !important; }
         .nota-paper .flex.items-center.gap-5.mb-4.mt-6.px-6 {
-            margin-top: 9mm !important;
+            margin-top: 11mm !important;
+            margin-bottom: 4mm !important;
             padding-left: 4mm !important;
             padding-right: 4mm !important;
         }
