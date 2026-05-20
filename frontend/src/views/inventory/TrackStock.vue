@@ -21,7 +21,8 @@ import {
     Printer,
     Eye,
     X,
-    Gift
+    Gift,
+    Hash
 } from "lucide-vue-next";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 
@@ -252,6 +253,12 @@ function formatCurrency(value) {
 
                             <!-- Details Grid -->
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                <div v-if="result.id && isNaN(result.id)">
+                                    <p class="text-text-secondary text-xs flex items-center gap-1">
+                                        <Hash :size="12" /> No. Transaksi
+                                    </p>
+                                    <p class="text-text-primary font-mono text-xs">{{ result.id }}</p>
+                                </div>
                                 <div>
                                     <p class="text-text-secondary text-xs flex items-center gap-1">
                                         <Smartphone :size="12" /> Kondisi
