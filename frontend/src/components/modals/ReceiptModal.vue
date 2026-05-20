@@ -874,7 +874,7 @@ const displayCustomerPhone = computed(() => {
 
 // Date
 const displayDate = computed(() => {
-    let rawDate = props.transaction.date || props.transaction.created_at;
+    let rawDate = props.transaction.created_at || props.transaction.date;
     if (!rawDate) return '-';
 
     if (typeof rawDate === 'string' && /^[0-9]{2} [A-Za-z]{3,4} [0-9]{4}$/.test(rawDate)) {
@@ -891,6 +891,11 @@ const displayDate = computed(() => {
             minute: '2-digit'
         }).replace(/\./g, ':');
     }
+
+    if (props.transaction.time) {
+        return `${rawDate}, ${String(props.transaction.time).slice(0, 5).replace(/\./g, ':')}`;
+    }
+
     return rawDate;
 });
 

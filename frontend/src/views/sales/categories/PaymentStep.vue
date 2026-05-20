@@ -297,12 +297,17 @@ async function processPayment(pin = null) {
         });
 
         const firstMethod = props.availablePaymentMethods.find(m => m.id === splitPayments.value[0]?.method_id);
+        const now = new Date();
 
         const lastTransaction = {
             id: response.data?.data?.id,
             order_no: response.data?.data?.receipt_id || response.data?.receipt_id || "TRX-" + Date.now(),
             items: cartItems.value.map(item => ({
                 ...item,
+                brand: item.brand || item.product?.brand || item.product?.brandRelation?.name || null,
+                name: item.name || item.product?.name,
+                storage: item.storage || null,
+                condition: item.condition || null,
                 qty: item.quantity || 1,
                 price: item.price,
                 item_discount: item.discount || 0,
@@ -328,12 +333,13 @@ async function processPayment(pin = null) {
             customer_name: customerForm.value.customer_name,
             customer_phone: customerForm.value.customer_phone,
             notes: customerForm.value.notes,
-            date: new Date().toLocaleDateString("id-ID", {
+            created_at: now.toISOString(),
+            date: now.toLocaleDateString("id-ID", {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric'
             }),
-            time: new Date().toLocaleTimeString("id-ID"),
+            time: now.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
         };
 
         emit('transaction-complete', lastTransaction);
