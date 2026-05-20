@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use App\Traits\VerifiesPin;
 use App\Utils\SimpleXLSXGen;
 
@@ -28,6 +29,7 @@ class InventoryController extends Controller
     // Filtered by branch - only super_admin can see all
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
@@ -62,7 +64,8 @@ class InventoryController extends Controller
                     DB::raw('SUM(quantity) as total_quantity'),
                     DB::raw('MAX(id) as id'), 
                     DB::raw('MAX(distributor_id) as distributor_id'),
-                    DB::raw('MAX(cost_price) as cost_price') // Aggregated HPP
+                    DB::raw('MAX(cost_price) as cost_price'), // Aggregated HPP
+                    DB::raw('MAX(selling_price) as selling_price') // Per-branch selling price
                 )
                 ->where('quantity', '>', 0)
                 ->whereHas('product', function ($q) {
@@ -204,11 +207,11 @@ class InventoryController extends Controller
                     $pq->where('name', 'like', "%$s%")
                         ->orWhere('brand', 'like', "%$s%");
 
-                    if (\Schema::hasColumn('products', 'non_imei_category')) {
+                    if (Schema::hasColumn('products', 'non_imei_category')) {
                         $pq->orWhere('non_imei_category', 'like', "%$s%");
                     } else {
                         $pq->orWhereExists(function ($eq) use ($s) {
-                            $eq->select(\DB::raw(1))
+                            $eq->select(DB::raw(1))
                                 ->from('product_types')
                                 ->whereColumn('product_types.name', 'products.name')
                                 ->where('product_types.category', 'like', "%$s%");
@@ -264,8 +267,10 @@ class InventoryController extends Controller
                     $item->latest_distributor = $distName ?? '-';
                     $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
 
-                    // Set prices for Detail Modal
-                    $item->selling_price = $item->product->price ?? ($item->product->selling_price ?? 0);
+                    // Set prices for Detail Modal — use per-branch selling_price from inventory if set, otherwise fall back to product master price
+                    $item->selling_price = ($item->selling_price !== null && (float)$item->selling_price > 0) 
+                        ? (float)$item->selling_price 
+                        : ($item->product->price ?? ($item->product->selling_price ?? 0));
                     $item->price = $item->selling_price;
                 }
 
@@ -319,10 +324,11 @@ class InventoryController extends Controller
                 
                 $res['total_value'] = (float) $totalValueQuery->selectRaw('
                     SUM(
-                        (SELECT COALESCE(price, 0) 
-                         FROM products 
-                         WHERE products.id = inventories.product_id 
-                         LIMIT 1) * inventories.quantity
+                        COALESCE(
+                            NULLIF(inventories.selling_price, 0),
+                            (SELECT price FROM products WHERE products.id = inventories.product_id LIMIT 1),
+                            0
+                        ) * inventories.quantity
                     ) as total
                 ')->value('total') ?? 0;
             }
@@ -332,6 +338,7 @@ class InventoryController extends Controller
 
     public function export(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         
         // --- PREPARE DATA HP ---
@@ -424,7 +431,9 @@ class InventoryController extends Controller
 
             $distName = $distName ?? '-';
 
-            $price = $item->product->price !== null ? (float)$item->product->price : 0.0;
+            $price = ($item->selling_price !== null && (float)$item->selling_price > 0) 
+                ? (float)$item->selling_price 
+                : ($item->product->price !== null ? (float)$item->product->price : 0.0);
             $totalNonHpPrice += ($price * $stok);
 
             $source = 'Masuk Manual';
@@ -510,6 +519,7 @@ class InventoryController extends Controller
 
     private function applyInventoryFilters($query, $request, $type)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         if ($request->search) {
             $search = $request->search;
@@ -558,10 +568,11 @@ class InventoryController extends Controller
 
     public function exportStockInHistory(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         
         // 1. HP STOCK IN (ProductDetail)
-        $hpQuery = ProductDetail::with(['product', 'distributor', 'user', 'placement']);
+        $hpQuery = ProductDetail::withTrashed()->with(['product', 'distributor', 'user', 'placement']);
         $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
         $hpItems = $hpQuery->latest()->get();
 
@@ -631,10 +642,11 @@ class InventoryController extends Controller
 
     public function exportStockHistoryCombined(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // --- 1. STOCK IN HP (Using ProductDetail for specs/IMEI) ---
-        $hpInQuery = ProductDetail::with(['product', 'user', 'distributor', 'placement']);
+        $hpInQuery = ProductDetail::withTrashed()->with(['product', 'user', 'distributor', 'placement']);
         $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
         $hpInItems = $hpInQuery->latest()->get();
 
@@ -721,7 +733,7 @@ class InventoryController extends Controller
                 $outImeis[] = $matches[1];
             }
         }
-        $outDetails = \App\Models\ProductDetail::whereIn('imei', $outImeis)->get()->keyBy('imei');
+        $outDetails = \App\Models\ProductDetail::withTrashed()->whereIn('imei', $outImeis)->get()->keyBy('imei');
 
         $hpOutSheet = [['No', 'Waktu', 'Sumber / Kategori Keluar', 'Merek', 'Produk', 'Spec', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
         foreach ($hpOutItems as $idx => $item) {
@@ -824,6 +836,7 @@ class InventoryController extends Controller
 
     private function applyStockHistoryFilters($query, $request, $type, $mode)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         
         // Filter by Branch/Shop/Warehouse
@@ -870,6 +883,7 @@ class InventoryController extends Controller
     // Stock In History
     public function stockInHistory(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
@@ -992,7 +1006,7 @@ class InventoryController extends Controller
                         
                         $sq->whereNotNull($colName)
                            ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
-                               $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
+                               $exq->select(DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
                                    ->where(function ($nq) use ($excludedKeywords) {
                                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                                    });
@@ -1108,6 +1122,7 @@ class InventoryController extends Controller
 
     public function stockOutHistory(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         // Since HP Stock Out is handled by StockOutController (Receipt based), 
         // this method primarily serves Non-HP (Inventory Log based) history.
@@ -1130,7 +1145,7 @@ class InventoryController extends Controller
                             $sq->whereRaw('LOWER(name) LIKE ?', ["%{$lowKeyword}%"])
                                 ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$lowKeyword}%"]);
 
-                            if (\Schema::hasColumn('products', 'non_imei_category')) {
+                            if (Schema::hasColumn('products', 'non_imei_category')) {
                                 $sq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$lowKeyword}%"]);
                             }
                         })
@@ -1193,7 +1208,7 @@ class InventoryController extends Controller
                         
                         $sq->whereNotNull($colName)
                            ->whereExists(function ($exq) use ($tableName, $colName, $excludedKeywords) {
-                               $exq->select(\DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
+                               $exq->select(DB::raw(1))->from($tableName)->whereColumn("$tableName.id", "inventory_logs.$colName")
                                    ->where(function ($nq) use ($excludedKeywords) {
                                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
                                    });
@@ -1284,6 +1299,7 @@ class InventoryController extends Controller
         ]);
 
         $request->merge(['type' => strtolower($request->type)]);
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // Determine Ownership User (Who 'owns' the stock)
@@ -1364,7 +1380,7 @@ class InventoryController extends Controller
                             'brand' => $brandName,
                             'type' => 'non-hp'
                         ];
-                        if (\Schema::hasColumn('products', 'non_imei_category')) {
+                        if (Schema::hasColumn('products', 'non_imei_category')) {
                             $productParams['non_imei_category'] = $nonImeiCat;
                         }
 
@@ -1381,23 +1397,15 @@ class InventoryController extends Controller
 
                         // If product existed but category was null, update it
                         if ($prod->wasRecentlyCreated === false && $nonImeiCat) {
-                            if (\Schema::hasColumn('products', 'non_imei_category') && is_null($prod->non_imei_category)) {
+                            if (Schema::hasColumn('products', 'non_imei_category') && is_null($prod->non_imei_category)) {
                                 $prod->update(['non_imei_category' => $nonImeiCat]);
                             }
                         }
                         $pId = $prod->id;
                     }
 
-                    if ($pId) {
-                        $p = Product::find($pId);
-                        if ($p && isset($item['selling_price']) && $item['selling_price'] > 0) {
-                            $updatePrices = ['price' => $item['selling_price']];
-                            if (\Schema::hasColumn('products', 'selling_price')) {
-                                $updatePrices['selling_price'] = $item['selling_price'];
-                            }
-                            $p->update($updatePrices);
-                        }
-                    }
+                    // Note: selling_price is now stored per-inventory (per-branch),
+                    // no longer updating global product price to avoid cross-branch contamination.
 
                     if (!$pId)
                         continue;
@@ -1415,11 +1423,24 @@ class InventoryController extends Controller
                             'placement_id' => $request->placement_id,
                             'distributor_id' => $distributorId,
                             'cost_price' => $costPrice,
-                            'user_id' => $ownerUserId,
-                            'notes' => $itemNote
+                            'user_id' => $ownerUserId
                         ],
-                        ['quantity' => 0]
+                        [
+                            'quantity' => 0,
+                            'selling_price' => $sellingPrice,
+                            'notes' => $itemNote
+                        ]
                     );
+
+                    if ($sellingPrice > 0 || $itemNote) {
+                        if ($sellingPrice > 0) {
+                            $inventory->selling_price = $sellingPrice;
+                        }
+                        if ($itemNote) {
+                            $inventory->notes = $itemNote;
+                        }
+                        $inventory->save();
+                    }
 
                     $quantity = $item['quantity'] ?? 1;
                     $inventory->increment('quantity', $quantity);
@@ -1469,7 +1490,7 @@ class InventoryController extends Controller
                     try {
                         event(new \App\Events\StockInEvent($inv));
                     } catch (\Exception $e) {
-                        \Log::error("Event fail: " . $e->getMessage());
+                        Log::error("Event fail: " . $e->getMessage());
                     }
                 }
                 
@@ -1603,7 +1624,7 @@ class InventoryController extends Controller
                         $detail->load(['product', 'distributor', 'user']);
                         event(new \App\Events\StockInEvent($detail));
                     } catch (\Exception $e) {
-                        \Log::error("Failed to broadcast StockInEvent for HP item: " . $e->getMessage());
+                        Log::error("Failed to broadcast StockInEvent for HP item: " . $e->getMessage());
                     }
                 }
 
@@ -1622,7 +1643,7 @@ class InventoryController extends Controller
                 try {
                     event(new \App\Events\StockInEvent($inventory->load(['product', 'user'])));
                 } catch (\Exception $e) {
-                    \Log::error("Failed to broadcast StockInEvent for Non-HP item: " . $e->getMessage());
+                    Log::error("Failed to broadcast StockInEvent for Non-HP item: " . $e->getMessage());
                 }
             }
 
@@ -1656,6 +1677,7 @@ class InventoryController extends Controller
             'transaction_pin' => 'nullable|string|size:4',
         ]);
 
+        /** @var \App\Models\User $targetUser */
         $targetUser = Auth::user();
         if ($request->has('inventory_user_id') && $request->inventory_user_id) {
             $targetUser = \App\Models\User::find($request->inventory_user_id);
@@ -1814,6 +1836,7 @@ class InventoryController extends Controller
             'transaction_pin' => 'nullable|string|size:4'
         ]);
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         if (!$user->branch_id && !$user->warehouse_id && !$user->online_shop_id && !$user->distributor_id && !$user->hasRole('super_admin')) {
             return response()->json(['message' => 'Anda tidak memiliki lokasi fisik untuk membuat akun inventory.'], 403);
@@ -1873,6 +1896,7 @@ class InventoryController extends Controller
 
     public function updateAccount(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $account = \App\Models\User::findOrFail($id);
 
@@ -1945,6 +1969,7 @@ class InventoryController extends Controller
 
     public function togglePin(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         /** @var \App\Models\User $account */
         $account = User::where('id', $id)
@@ -1982,6 +2007,7 @@ class InventoryController extends Controller
 
     public function requestResetPin(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
 
@@ -1997,6 +2023,7 @@ class InventoryController extends Controller
 
     public function update(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         
         // 1. Authorization
@@ -2080,13 +2107,15 @@ class InventoryController extends Controller
             }
             $item->update($data);
         } else {
-            // Non-HP: Update Product Price
-            $product = $item->product;
-            if ($product) {
-                $priceCol = Schema::hasColumn('products', 'price') ? 'price' : 'selling_price';
-                $product->update([$priceCol => $request->selling_price]);
+            // Non-HP: Update per-branch selling price on inventory record
+            $updateData = ['notes' => $request->notes];
+            if ($request->has('selling_price')) {
+                $updateData['selling_price'] = $request->selling_price;
             }
-            $item->update(['notes' => $request->notes]);
+            if ($request->has('cost_price')) {
+                $updateData['cost_price'] = $request->cost_price;
+            }
+            $item->update($updateData);
         }
 
         return response()->json([
@@ -2171,6 +2200,7 @@ class InventoryController extends Controller
             $u->save();
         }
 
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $branchId = $request->branch_id;
         $onlineShopId = $request->online_shop_id;
@@ -2218,6 +2248,7 @@ class InventoryController extends Controller
     // Get Filter Options for Faceted Search
     public function getFilterOptions(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $type = $request->type ?? 'hp';
 
@@ -2347,6 +2378,7 @@ class InventoryController extends Controller
 
     public function getMetaLocations(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
         $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
@@ -2709,6 +2741,7 @@ class InventoryController extends Controller
 
     public function stockSummary(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
@@ -2899,6 +2932,7 @@ class InventoryController extends Controller
 
     public function destroyAccount($id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $account = \App\Models\User::findOrFail($id);
 
@@ -2932,6 +2966,7 @@ class InventoryController extends Controller
      */
     public function voidStockIn(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $type = $request->input('type', 'hp');
 

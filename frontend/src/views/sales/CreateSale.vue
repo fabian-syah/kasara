@@ -182,7 +182,7 @@ async function fetchHeavyData() {
         const nonHpData = (nonHpRes.data?.data || nonHpRes.data || []).map(item => ({
             ...item,
             is_non_hp: true,
-            selling_price: item.product?.selling_price || item.product?.price || 0,
+            selling_price: item.selling_price || item.product?.selling_price || item.product?.price || 0,
             condition: 'new',
             distributor: { name: item.latest_distributor || item.latest_supplier || null }
         }));

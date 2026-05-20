@@ -15,6 +15,7 @@ class Inventory extends Model
         'placement_id',
         'quantity',
         'cost_price',
+        'selling_price',
         'distributor_id',
         'user_id',
         'notes'
