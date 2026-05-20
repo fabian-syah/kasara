@@ -367,10 +367,13 @@ function formatCurrency(value) {
                                             class="text-text-secondary" />
                                         <div class="flex-1">
                                             <p class="text-text-primary text-sm font-medium" :class="{'text-primary-400 font-black': item.type === 'bundle'}">{{ item.product_name }}</p>
-                                            <p class="text-text-secondary text-xs"
-                                                v-if="item.imei && item.imei !== '-'">{{
-                                                    item.imei }}</p>
-                                            <p class="text-text-secondary text-xs" v-else>Qty: {{ item.quantity }}</p>
+                                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-text-secondary text-xs mt-0.5">
+                                                <span v-if="item.imei && item.imei !== '-'">IMEI: {{ item.imei }}</span>
+                                                <span v-else>Qty: {{ item.quantity }}</span>
+                                                <span v-if="item.distributor_name || item.supplier_name" class="px-1.5 py-0.5 rounded bg-surface-600/50 text-primary-400 font-medium text-[10px]">
+                                                    {{ item.distributor_name || item.supplier_name }}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div v-if="item.tracking_no" class="text-xs bg-surface-600 px-2 py-1 rounded">
                                             {{ item.tracking_no }}

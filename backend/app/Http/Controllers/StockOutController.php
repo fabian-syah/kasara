@@ -1039,7 +1039,8 @@ class StockOutController extends Controller
             $allEvents = [];
 
             // 1. Search STOCK IN (Registration Events)
-            $productDetails = ProductDetail::with(['product', 'distributor', 'user'])
+            $productDetails = ProductDetail::withTrashed()
+                ->with(['product', 'distributor', 'user'])
                 ->where('imei', $query)
                 ->get();
 
@@ -1072,6 +1073,9 @@ class StockOutController extends Controller
 
             // 2. Search STOCK OUT (Execution & Arrival Events)
             $stockOuts = StockOut::with([
+                'items' => function ($q) {
+                    $q->withTrashed();
+                },
                 'items.product',
                 'items.distributor',
                 'user.branch',
@@ -1087,7 +1091,7 @@ class StockOutController extends Controller
                 ->where('receipt_id', $query)
                 ->orWhere('shopee_tracking_no', $query)
                 ->orWhereHas('items', function ($q) use ($query) {
-                    $q->where('imei', $query);
+                    $q->withTrashed()->where('imei', $query);
                 })
                 ->orWhere('shopee_items_data', 'like', "%\"{$query}\"%")
                 ->get()
@@ -1119,6 +1123,8 @@ class StockOutController extends Controller
                     'imei' => $i->imei,
                     'product_name' => $i->product?->name,
                     'quantity' => 1,
+                    'distributor_name' => $i->distributor?->name,
+                    'supplier_name' => $i->supplier_name,
                     'notes' => $i->pivot?->notes
                 ])->toArray();
 
@@ -1213,6 +1219,8 @@ class StockOutController extends Controller
                         'brand' => $i->product?->brandRelation?->name ?? ($i->product?->brand ?? '-'),
                         'condition' => $i->condition,
                         'storage' => $i->storage,
+                        'distributor_name' => $i->distributor?->name,
+                        'supplier_name' => $i->supplier_name,
                         'notes' => $i->pivot?->notes
                     ];
                 }
