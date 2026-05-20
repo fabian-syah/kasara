@@ -680,7 +680,7 @@ const sendWaReceiptFromModal = async () => {
             max-width: 210mm !important;
             min-height: 297mm !important;
             margin: 0 auto !important;
-            padding: 0 8mm 12mm !important;
+            padding: 0 0 12mm !important;
             border-radius: 0 !important;
             box-sizing: border-box !important;
             box-shadow: none !important;
@@ -690,7 +690,10 @@ const sendWaReceiptFromModal = async () => {
         }
         .nota-paper > .relative.z-10 {
             flex: 1 1 auto !important;
+            width: calc(100% - 24mm) !important;
             min-height: calc(297mm - 12mm) !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
             display: flex !important;
             flex-direction: column !important;
         }
