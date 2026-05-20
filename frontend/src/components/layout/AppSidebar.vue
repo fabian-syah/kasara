@@ -121,6 +121,7 @@ const menuItems = [
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
+            { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
         ]
     },
     {
@@ -198,7 +199,6 @@ const menuItems = [
         items: [
             { id: "track", path: "/track", label: "Lacak & History IMEI" },
             { id: "questions", path: "/questions", label: "Pertanyaan CS/User" },
-            { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
         ]
     },
 

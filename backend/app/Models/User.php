@@ -9,6 +9,17 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
+/**
+ * Class User
+ * @package App\Models
+ * 
+ * @method bool hasRole(string|array $roles, string|null $guard = null)
+ * @method bool hasAnyRole(string|array $roles)
+ * @method bool hasAllRoles(string|array $roles)
+ * @method bool assignRole(...$roles)
+ * @method bool removeRole($role)
+ * @method bool syncRoles(...$roles)
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
