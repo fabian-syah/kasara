@@ -658,7 +658,42 @@ const sendWaReceiptFromModal = async () => {
     ${compiledStyles}
     <style>
         @page { margin: 0; size: A4 portrait; }
-        body { font-family: 'Inter', sans-serif; margin: 0 auto; padding: 0 !important; background: #ffffff; color: #0a0a0a; width: 100%; }
+        html, body {
+            font-family: 'Inter', sans-serif;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff;
+            color: #0a0a0a;
+            width: 100% !important;
+            min-height: 297mm !important;
+        }
+        #receipt-modal-print-wrapper {
+            width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            overflow: visible !important;
+        }
+        .nota-paper {
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 297mm !important;
+            margin: 0 auto !important;
+            padding: 4mm 8mm !important;
+            border-radius: 0 !important;
+            box-sizing: border-box !important;
+            box-shadow: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+        .nota-paper > .relative.z-10 {
+            flex: 1 1 auto !important;
+            min-height: calc(297mm - 8mm) !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
         .bg-red-600 { background-color: #dc2626 !important; }
         .text-red-600 { color: #dc2626 !important; }
         .bg-neutral-950, .bg-black { background-color: #0a0a0a !important; }
@@ -667,11 +702,32 @@ const sendWaReceiptFromModal = async () => {
         .bg-white { background-color: #ffffff !important; }
         .border-neutral-200 { border-color: #e5e7eb !important; border-width: 1px !important; border-style: solid !important; }
         th { background-color: #0a0a0a !important; color: #ffffff !important; }
-        .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 25px !important; }
+        .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 25px !important; margin-bottom: 0 !important; }
         .flex.flex-col.md\\:flex-row > div:first-child { display: table-cell !important; width: 58% !important; vertical-align: top !important; padding-right: 20px !important; }
         .flex.flex-col.md\\:flex-row > div:last-child { display: table-cell !important; width: 42% !important; vertical-align: top !important; }
-        .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 30px !important; }
+        .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: auto !important; margin-bottom: 12mm !important; }
         .signature-area.grid.grid-cols-2 > div { display: table-cell !important; width: 50% !important; vertical-align: top !important; }
+        .nota-paper .mb-6 { margin-bottom: 1.1rem !important; }
+        .nota-paper .mb-5 { margin-bottom: 1rem !important; }
+        .nota-paper .mb-4 { margin-bottom: 0.85rem !important; }
+        .nota-paper .mt-6 { margin-top: 1.1rem !important; }
+        .nota-paper .gap-6 { gap: 1.2rem !important; }
+        .nota-paper .gap-4 { gap: 0.85rem !important; }
+        .nota-paper .py-4 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+        .nota-paper .py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        .nota-paper .p-4 { padding: 0.9rem !important; }
+        .nota-paper .p-6 { padding: 1.1rem !important; }
+        .nota-paper .px-6 { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
+        .nota-paper, .nota-paper * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            text-shadow: none !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
     </style>
 </head>
 <body>
