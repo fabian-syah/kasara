@@ -686,7 +686,7 @@ const sendWaReceiptFromModal = async () => {
             box-shadow: none !important;
             display: flex !important;
             flex-direction: column !important;
-            overflow: hidden !important;
+            overflow: visible !important;
         }
         .nota-paper > .relative.z-10 {
             flex: 1 1 auto !important;
