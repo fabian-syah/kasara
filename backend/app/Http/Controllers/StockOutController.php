@@ -7,6 +7,7 @@ use App\Models\ProductDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use App\Models\Inventory;
 use App\Models\InventoryLog;
@@ -14,16 +15,16 @@ use App\Models\Product;
 use App\Models\StockOutNonHpItem;
 use App\Models\Branch;
 use App\Models\Warehouse;
-use App\Models\OnlineShop;
 use App\Models\Distributor;
 use App\Traits\VerifiesPin;
 
 class StockOutController extends Controller
 {
-    use \App\Traits\VerifiesPin;
+    use VerifiesPin;
     // List all stock outs
     public function index(Request $request)
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product.brandRelation', 'nonHpDetails.product.brandRelation', 'paymentMethod']);
 
@@ -424,12 +425,13 @@ class StockOutController extends Controller
         DB::beginTransaction();
 
         try {
+            /** @var \App\Models\User|null $user */
             $user = Auth::user();
             if (!$user) {
                 throw new \Exception('User tidak terautentikasi.');
             }
 
-            \Log::info("DEBUG STOCK-OUT: Starting for user " . $user->id, [
+            Log::info("DEBUG STOCK-OUT: Starting for user " . $user->id, [
                 'category' => $request->category,
                 'has_product_detail_ids' => !empty($request->product_detail_ids),
                 'has_non_hp_items' => !empty($request->non_hp_items)
@@ -440,7 +442,7 @@ class StockOutController extends Controller
             try {
                 $userLocation = $user->branch ?: ($user->onlineShop ?: null);
             } catch (\Throwable $e) {
-                \Log::error("DEBUG STOCK-OUT: Failed to resolve user location: " . $e->getMessage());
+                Log::error("DEBUG STOCK-OUT: Failed to resolve user location: " . $e->getMessage());
             }
 
             $reportingDate = StockOut::calculateReportingDate(
@@ -448,7 +450,7 @@ class StockOutController extends Controller
                 $userLocation
             );
 
-            \Log::info("DEBUG STOCK-OUT: Reporting date resolved: " . $reportingDate);
+            Log::info("DEBUG STOCK-OUT: Reporting date resolved: " . $reportingDate);
 
             // Verify HP items availability
             $productDetails = collect();
@@ -463,6 +465,7 @@ class StockOutController extends Controller
             }
 
             // Verify Non-HP items availability and Deduct
+            /** @var \App\Models\User|null $user */
             $user = Auth::user();
             $nonHpDistMap = []; // Temporary storage for distributor inheritance
             if ($request->non_hp_items) {
@@ -741,7 +744,7 @@ class StockOutController extends Controller
                     try {
                         \App\Http\Controllers\WhatsAppShareController::getDriveLink($stockOut->id);
                     } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::warning("Pre-generation failed for StockOut ID {$stockOut->id}: " . $e->getMessage());
+                        Log::warning("Pre-generation failed for StockOut ID {$stockOut->id}: " . $e->getMessage());
                     }
                 })->afterResponse();
             }
@@ -844,7 +847,7 @@ class StockOutController extends Controller
             // Bust Inventory Cache
             \Illuminate\Support\Facades\Cache::increment('inv_version');
 
-            \Log::info("DEBUG STOCK-OUT: Success! Receipt ID: " . $stockOut->receipt_id);
+            Log::info("DEBUG STOCK-OUT: Success! Receipt ID: " . $stockOut->receipt_id);
 
             return response()->json([
                 'message' => 'Stock out successful',
@@ -854,7 +857,7 @@ class StockOutController extends Controller
 
         } catch (\Throwable $e) {
             DB::rollBack();
-            \Log::error("DEBUG STOCK-OUT CRASH: " . $e->getMessage(), [
+            Log::error("DEBUG STOCK-OUT CRASH: " . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
@@ -883,6 +886,7 @@ class StockOutController extends Controller
     // Get Shopee History
     public function shopeeHistory(Request $request)
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         $query = StockOut::with(['items.product.brandRelation', 'user', 'inventoryUser', 'nonHpDetails.product.brandRelation'])
             ->whereIn('category', ['shopee', 'orderan_online', 'cancel_penjualan']);
@@ -1067,7 +1071,18 @@ class StockOutController extends Controller
             }
 
             // 2. Search STOCK OUT (Execution & Arrival Events)
-            $stockOuts = StockOut::with(['items.product', 'items.distributor', 'user', 'inventoryUser', 'destinationBranch', 'destination', 'confirmedBy'])
+            $stockOuts = StockOut::with([
+                'items.product',
+                'items.distributor',
+                'user.branch',
+                'inventoryUser.branch',
+                'destinationBranch',
+                'destination',
+                'confirmedBy',
+                'branch',
+                'onlineShop',
+                'paymentMethod'
+            ])
                 ->where('receipt_id', $query)
                 ->orWhere('shopee_tracking_no', $query)
                 ->orWhereHas('items', function ($q) use ($query) {
@@ -1117,6 +1132,111 @@ class StockOutController extends Controller
                             'type' => 'non-hp',
                             'product_name' => $products[$nhp['product_id']] ?? 'Unknown Product',
                             'quantity' => $nhp['quantity'] ?? 1,
+                            'tracking_no' => $nhp['tracking_no'] ?? null,
+                            'notes' => $nhp['notes'] ?? null
+                        ];
+                    }
+                }
+
+                // Eagerly fetch exchange details if applicable
+                $exchangeInfo = null;
+                $catLower = strtolower($out->category);
+                if ($catLower === 'tukar_tambah') {
+                    $exchangeInfo = \App\Models\TukarTambah::with(['incomingProductType.brand', 'distributor'])
+                        ->where('receipt_id', $out->receipt_id)
+                        ->first();
+                } elseif ($catLower === 'downgrade') {
+                    $exchangeInfo = \App\Models\Downgrade::with(['incomingProductType.brand', 'distributor'])
+                        ->where('receipt_id', $out->receipt_id)
+                        ->first();
+                } elseif ($catLower === 'tukar_unit') {
+                    $exchangeInfo = \App\Models\UnitExchange::with(['incomingProductType.brand', 'distributor'])
+                        ->where('receipt_id', $out->receipt_id)
+                        ->first();
+                } elseif ($catLower === 'refund') {
+                    $exchangeInfo = \App\Models\Refund::where('receipt_id', $out->receipt_id)->first();
+                }
+
+                // Compile proof images list
+                $proofImages = collect([
+                    $out->proof_image,
+                    $exchangeInfo->photo_unit ?? null,
+                    $exchangeInfo->photo_customer ?? null
+                ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray();
+
+                // Build detailed raw items for ReceiptModal
+                $rawItems = [];
+                if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+                    $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
+                    $inImei = $exchangeInfo->incoming_imei ?? '-';
+                    $rawItems[] = [
+                        'type' => 'IN',
+                        'is_hp' => true,
+                        'imei' => $inImei,
+                        'name' => "IN: " . $inProd,
+                        'product_name' => "IN: " . $inProd,
+                        'qty' => 1,
+                        'quantity' => 1,
+                        'price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
+                        'selling_price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
+                        'discount' => 0,
+                        'item_discount' => 0,
+                        'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
+                        'condition' => $exchangeInfo->incoming_condition ?? 'second',
+                        'storage' => $exchangeInfo->incoming_storage ?? '-',
+                        'is_incoming' => true,
+                        'notes' => null
+                    ];
+                }
+
+                // Add outgoing HP items to rawItems
+                foreach ($out->items as $i) {
+                    $isRefundOrAngkat = in_array($catLower, ['refund', 'angkat_barang']);
+                    $pName = ($isRefundOrAngkat ? "IN: " : "") . ($i->product?->name ?? 'Unknown HP');
+                    if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+                        $pName = "OUT: " . ($i->product?->name ?? 'Unknown HP');
+                    }
+                    
+                    $rawItems[] = [
+                        'type' => 'hp',
+                        'is_hp' => true,
+                        'imei' => $i->imei,
+                        'name' => $pName,
+                        'product_name' => $pName,
+                        'qty' => 1,
+                        'quantity' => 1,
+                        'price' => (float)($i->pivot?->selling_price ?? 0),
+                        'selling_price' => (float)($i->pivot?->selling_price ?? 0),
+                        'discount' => (float)($i->pivot?->item_discount ?? 0),
+                        'item_discount' => (float)($i->pivot?->item_discount ?? 0),
+                        'brand' => $i->product?->brandRelation?->name ?? ($i->product?->brand ?? '-'),
+                        'condition' => $i->condition,
+                        'storage' => $i->storage,
+                        'notes' => $i->pivot?->notes
+                    ];
+                }
+
+                // Add Non-HP items to rawItems
+                if (!empty($nonHpItems)) {
+                    $productIds = array_column($nonHpItems, 'product_id');
+                    $products = \App\Models\Product::with('brandRelation')->whereIn('id', $productIds)->get()->keyBy('id');
+                    foreach ($nonHpItems as $nhp) {
+                        $pId = $nhp['product_id'] ?? null;
+                        $prod = $pId ? $products->get($pId) : null;
+                        $rawItems[] = [
+                            'type' => 'non-hp',
+                            'is_hp' => false,
+                            'name' => $prod?->name ?? 'Unknown Product',
+                            'product_name' => $prod?->name ?? 'Unknown Product',
+                            'qty' => (int)($nhp['quantity'] ?? 1),
+                            'quantity' => (int)($nhp['quantity'] ?? 1),
+                            'price' => (float)($nhp['selling_price'] ?? 0),
+                            'selling_price' => (float)($nhp['selling_price'] ?? 0),
+                            'discount' => 0,
+                            'item_discount' => 0,
+                            'brand' => $prod?->brandRelation?->name ?? ($prod?->brand ?? '-'),
+                            'condition' => '-',
+                            'storage' => '-',
                             'tracking_no' => $nhp['tracking_no'] ?? null,
                             'notes' => $nhp['notes'] ?? null
                         ];
@@ -1227,6 +1347,22 @@ class StockOutController extends Controller
                     'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
                     'created_at' => $out->created_at->toDateTimeString(),
                     'timestamp' => $out->created_at->timestamp,
+                    
+                    // Extra properties for multiple proof images and receipt display
+                    'proof_images' => $proofImages,
+                    'proof_image' => $out->proof_image ? asset('storage/' . $out->proof_image) : ($exchangeInfo && $exchangeInfo->photo_unit ? asset('storage/' . $exchangeInfo->photo_unit) : null),
+                    'order_no' => $out->receipt_id,
+                    'branch' => $out->branch,
+                    'online_shop' => $out->onlineShop,
+                    'original_price' => (float)$out->selling_price,
+                    'selling_price' => (float)$out->selling_price,
+                    'total_discount' => (float)$out->total_discount,
+                    'grand_total' => (float)($out->selling_price - $out->total_discount),
+                    'payment_method_name' => $out->paymentMethod?->name ?? '-',
+                    'split_payments_data' => $out->split_payments_data ?? [],
+                    'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                    'sales_account' => $out->sales_account,
+                    'raw_items' => $rawItems,
                 ];
 
                 // Event 2: The ARRIVAL (if confirmed transfer)
@@ -1424,6 +1560,7 @@ class StockOutController extends Controller
     // List incoming transfers for current user's location
     public function indexIncoming()
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if (!$user)
             return response()->json(['data' => []]);
@@ -1511,6 +1648,7 @@ class StockOutController extends Controller
     // List outgoing transfers sent FROM current user's location
     public function indexOutgoing()
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if (!$user)
             return response()->json(['data' => []]);
@@ -1577,6 +1715,7 @@ class StockOutController extends Controller
     // Get asset values for in-transit (incoming) and outgoing transfers
     public function getAssetValues()
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if (!$user) {
             return response()->json(['in_value' => 0, 'out_value' => 0]);
@@ -1808,7 +1947,7 @@ class StockOutController extends Controller
                         'reference_id' => (string)$item->id,
                     ]);
                     
-                    \Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
+                    Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 } else {
                     // Rejected: Set to 'returning' (not active stock yet)
                     $sender = $stockOut->user;
@@ -1822,7 +1961,7 @@ class StockOutController extends Controller
                         'user_id' => $sender->id
                     ]);
                     
-                    \Log::info("DEBUG: HP #{$item->id} marked as returning in Resi {$stockOut->receipt_id}");
+                    Log::info("DEBUG: HP #{$item->id} marked as returning in Resi {$stockOut->receipt_id}");
                 }
             }
 
@@ -2104,6 +2243,7 @@ class StockOutController extends Controller
     // History of Transfers (Incoming and Outgoing)
     public function historyIncoming(Request $request)
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if (!$user)
             return response()->json(['message' => 'Unauthorized'], 401);
@@ -2295,7 +2435,9 @@ class StockOutController extends Controller
             $reportingDate = \Carbon\Carbon::parse($stockOut->reporting_date);
             $fiveDaysAgo = now()->subDays(5)->startOfDay();
 
-            if ($reportingDate->lt($fiveDaysAgo) && !Auth::user()->hasRole('super_admin')) {
+            /** @var \App\Models\User|null $authorizer */
+            $authorizer = Auth::user();
+            if ($reportingDate->lt($fiveDaysAgo) && !($authorizer?->hasRole('super_admin') ?? false)) {
                 throw new \Exception('Hanya penjualan dalam 5 hari terakhir yang dapat dibatalkan.');
             }
 
@@ -2321,7 +2463,7 @@ class StockOutController extends Controller
             // 2. Cleanup INCOMING Items for Exchanges/Refunds (Those not in stock_out_items but linked via transaction models)
             $outgoingIds = [];
             if ($stockOut->category !== 'angkat_barang') {
-                $outgoingIds = $stockOut->items->pluck('id')->toArray();
+                $outgoingIds = collect($stockOut->items)->pluck('id')->toArray();
             }
 
             // Retrieve outgoing product detail IDs from transaction tables directly to be 100% safe
@@ -2367,7 +2509,7 @@ class StockOutController extends Controller
                     || \App\Models\Downgrade::where('outgoing_product_detail_id', $inc->id)
                     ->where('receipt_id', '!=', $receiptId)
                     ->exists()
-                    || \DB::table('stock_out_items')
+                    || DB::table('stock_out_items')
                     ->where('product_detail_id', $inc->id)
                     ->where('stock_out_id', '!=', $stockOut->id)
                     ->exists();

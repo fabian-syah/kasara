@@ -17,8 +17,12 @@ import {
     ArrowUpRight,
     MapPin,
     DollarSign,
-    Box
+    Box,
+    Printer,
+    Eye,
+    X
 } from "lucide-vue-next";
+import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 
 const toast = useToast();
 
@@ -27,6 +31,19 @@ const query = ref("");
 const isLoading = ref(false);
 const results = ref([]);
 const hasSearched = ref(false);
+
+// Receipt & Image Modal States
+const showReceiptModal = ref(false);
+const currentReceiptData = ref(null);
+const activeImage = ref(null);
+
+const openReceipt = (result) => {
+    currentReceiptData.value = {
+        ...result,
+        items: result.raw_items || result.items
+    };
+    showReceiptModal.value = true;
+};
 
 // Category styling for stock out
 // Di dalam <script setup>
@@ -497,9 +514,58 @@ function formatCurrency(value) {
                                     </p>
                                 </div>
                             </div>
+
+                            <!-- Attachments & Actions -->
+                            <div v-if="(result.proof_images && result.proof_images.length > 0) || ['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)"
+                                class="mt-6 border-t border-surface-700 pt-4 flex flex-wrap items-center gap-3">
+                                <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Aksi & Bukti:</span>
+                                
+                                <!-- Proof Image Buttons -->
+                                <template v-if="result.proof_images && result.proof_images.length > 0">
+                                    <button v-for="(img, idx) in result.proof_images" :key="idx"
+                                        @click="activeImage = img"
+                                        class="flex items-center gap-2 bg-surface-700/50 hover:bg-surface-700 text-text-primary border border-surface-600 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95">
+                                        <Eye :size="14" class="text-primary-400" />
+                                        <span>Bukti {{ idx + 1 }}</span>
+                                    </button>
+                                </template>
+
+                                <!-- Print Nota Button -->
+                                <button v-if="['penjualan', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'].includes(result.category)"
+                                    @click="openReceipt(result)"
+                                    class="flex items-center gap-2 bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 border border-primary-500/30 hover:border-primary-500/50 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-95">
+                                    <Printer :size="14" />
+                                    <span>Print Nota</span>
+                                </button>
+                            </div>
                         </div>
                     </template>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Receipt Modal -->
+    <ReceiptModal 
+        :is-open="showReceiptModal" 
+        :transaction="currentReceiptData" 
+        :auto-send="false"
+        @close="showReceiptModal = false" 
+    />
+
+    <!-- Proof Photo Modal (HD Gallery) -->
+    <div v-if="activeImage"
+        class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/95 backdrop-blur-md"
+        @click.self="activeImage = null">
+        <div class="relative w-full max-w-4xl max-h-[90vh] flex flex-col items-center justify-center">
+            <!-- Close Button -->
+            <button @click="activeImage = null"
+                class="absolute -top-14 right-2 p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all backdrop-blur-md border border-white/20 active:scale-95">
+                <X :size="24" />
+            </button>
+            <!-- Image -->
+            <div class="w-full bg-surface-900 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
+                <img :src="activeImage" alt="Foto Bukti" class="max-w-full max-h-[80vh] object-contain" />
             </div>
         </div>
     </div>
@@ -522,5 +588,81 @@ function formatCurrency(value) {
 
 .card {
     @apply bg-surface-800 rounded-2xl p-6 border border-surface-700;
+}
+
+/* Force nota-paper to always show black text on white background, even in dark mode */
+.nota-paper,
+.nota-paper * {
+    color: #000 !important;
+}
+
+.nota-paper {
+    background-color: #fff !important;
+}
+
+.nota-paper h2 {
+    color: #000 !important;
+}
+
+.nota-paper p,
+.nota-paper span,
+.nota-paper div,
+.nota-paper li,
+.nota-paper td,
+.nota-paper th {
+    color: #000 !important;
+}
+
+.nota-paper .text-gray-700,
+.nota-paper .text-gray-600 {
+    color: #374151 !important;
+}
+
+.nota-paper table th {
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+
+.nota-paper table td {
+    color: #000 !important;
+}
+
+.nota-paper .border-black {
+    border-color: #000 !important;
+}
+
+.nota-paper .border-gray-300 {
+    border-color: #d1d5db !important;
+}
+
+.nota-paper .border-gray-400 {
+    border-color: #9ca3af !important;
+}
+
+.nota-paper .bg-gray-50 {
+    background-color: #f9fafb !important;
+}
+
+.nota-paper .border-gray-200 {
+    border-color: #e5e7eb !important;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #receipt-content,
+    #receipt-content * {
+        visibility: visible;
+        color: #000 !important;
+    }
+
+    #receipt-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
 }
 </style>
