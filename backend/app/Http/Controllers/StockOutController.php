@@ -1038,53 +1038,101 @@ class StockOutController extends Controller
 
             $allEvents = [];
 
-            // 1. Search STOCK IN (Registration Events)
-            $productDetails = ProductDetail::withTrashed()
+            // 1. Search STOCK IN (Registration Events) — Use InventoryLog for accurate history
+            // InventoryLog type=in records are permanent and never recreated, unlike ProductDetail
+            
+            // First get the current ProductDetail for status/placement info
+            $currentDetail = ProductDetail::withTrashed()
                 ->with(['product', 'distributor', 'user', 'stockOuts'])
                 ->where('imei', $query)
-                ->get();
+                ->first();
 
-            foreach ($productDetails as $detail) {
-                // Only skip if this ProductDetail was CREATED BY the barang_masuk process
-                // (i.e., created_at matches the barang_masuk stock out created_at within 5 seconds).
-                // If the ProductDetail existed BEFORE the barang_masuk, show it as the original registration.
-                $barangMasukOut = $detail->stockOuts->first(function ($so) {
-                    return $so->category === 'barang_masuk';
-                });
-                if ($barangMasukOut) {
-                    // Skip only if ProductDetail was created at the same time as barang_masuk (same stock-in event)
-                    $pdCreated = $detail->created_at->timestamp;
-                    $bmCreated = $barangMasukOut->created_at->timestamp;
-                    if (abs($pdCreated - $bmCreated) <= 5) {
-                        continue;
+            // Search InventoryLog by IMEI in description OR by reference_id matching ProductDetail
+            $stockInLogQuery = InventoryLog::with(['product', 'user', 'distributor'])
+                ->where('type', 'in')
+                ->where(function ($q) use ($query, $currentDetail) {
+                    $q->where('description', 'like', "%({$query})%");
+                    if ($currentDetail) {
+                        $q->orWhere('reference_id', (string) $currentDetail->id);
                     }
-                }
+                })
+                ->orderBy('created_at');
+            
+            $stockInLogs = $stockInLogQuery->get();
+
+            foreach ($stockInLogs as $log) {
+                $locationName = match (true) {
+                    !empty($log->branch_id) => \App\Models\Branch::find($log->branch_id)?->name ?? 'Unknown Branch',
+                    !empty($log->warehouse_id) => \App\Models\Warehouse::find($log->warehouse_id)?->name ?? 'Unknown Warehouse',
+                    !empty($log->online_shop_id) => \App\Models\OnlineShop::find($log->online_shop_id)?->name ?? 'Unknown Shop',
+                    default => '-'
+                };
 
                 $allEvents[] = [
                     'type' => 'stock_in',
                     'sub_type' => 'registration',
-                    'id' => 'IN-' . $detail->id,
-                    'imei' => $detail->imei,
-                    'product_name' => $detail->product?->name,
-                    'status' => $detail->status,
-                    'placement_type' => $detail->placement_type,
-                    'placement_id' => $detail->placement_id,
-                    'placement_name' => match ($detail->placement_type) {
-                        'branch' => \App\Models\Branch::find($detail->placement_id)?->name ?? 'Unknown Branch',
-                        'warehouse' => \App\Models\Warehouse::find($detail->placement_id)?->name ?? 'Unknown Warehouse',
-                        'online_shop' => \App\Models\OnlineShop::find($detail->placement_id)?->name ?? 'Unknown Shop',
-                        default => $detail->placement_type . ' #' . $detail->placement_id
-                    },
-                    'created_at' => $detail->created_at->toDateTimeString(),
-                    'timestamp' => $detail->created_at->timestamp,
-                    'distributor' => $detail->distributor?->name,
-                    'supplier_name' => $detail->supplier_name,
-                    'input_by' => $detail->user?->name,
-                    'ram' => $detail->ram,
-                    'storage' => $detail->storage,
-                    'selling_price' => $detail->selling_price,
-                    'condition' => $detail->condition,
+                    'id' => 'IN-' . ($log->reference_id ?? $log->id),
+                    'imei' => $query,
+                    'product_name' => $log->product?->name ?? ($currentDetail?->product?->name ?? '-'),
+                    'status' => $currentDetail?->status ?? 'available',
+                    'placement_type' => !empty($log->branch_id) ? 'branch' : (!empty($log->warehouse_id) ? 'warehouse' : 'online_shop'),
+                    'placement_id' => $log->branch_id ?? $log->warehouse_id ?? $log->online_shop_id,
+                    'placement_name' => $locationName,
+                    'created_at' => $log->created_at->toDateTimeString(),
+                    'timestamp' => $log->created_at->timestamp,
+                    'distributor' => $log->distributor?->name ?? ($currentDetail?->distributor?->name ?? null),
+                    'supplier_name' => $log->supplier_name ?? ($currentDetail?->supplier_name ?? null),
+                    'input_by' => $log->user?->name,
+                    'ram' => $currentDetail?->ram,
+                    'storage' => $currentDetail?->storage,
+                    'selling_price' => $currentDetail?->selling_price,
+                    'condition' => $currentDetail?->condition,
                 ];
+            }
+
+            // Fallback: If no InventoryLog found but ProductDetail exists (legacy data without logs)
+            if ($stockInLogs->isEmpty() && $currentDetail) {
+                // Show the original registration event from ProductDetail
+                // Only skip if the ONLY stock-in event is the barang_masuk itself
+                // (i.e., ProductDetail was created at the same time as barang_masuk)
+                $shouldShow = true;
+                $barangMasukOut = $currentDetail->stockOuts->first(fn($so) => $so->category === 'barang_masuk');
+                if ($barangMasukOut) {
+                    $pdTs = $currentDetail->created_at->timestamp;
+                    $bmTs = $barangMasukOut->created_at->timestamp;
+                    // If ProductDetail was created by barang_masuk (same timestamp), skip it
+                    if (abs($pdTs - $bmTs) <= 5) {
+                        $shouldShow = false;
+                    }
+                }
+
+                if ($shouldShow) {
+                    $allEvents[] = [
+                        'type' => 'stock_in',
+                        'sub_type' => 'registration',
+                        'id' => 'IN-' . $currentDetail->id,
+                        'imei' => $currentDetail->imei,
+                        'product_name' => $currentDetail->product?->name,
+                        'status' => $currentDetail->status,
+                        'placement_type' => $currentDetail->placement_type,
+                        'placement_id' => $currentDetail->placement_id,
+                        'placement_name' => match ($currentDetail->placement_type) {
+                            'branch' => \App\Models\Branch::find($currentDetail->placement_id)?->name ?? 'Unknown Branch',
+                            'warehouse' => \App\Models\Warehouse::find($currentDetail->placement_id)?->name ?? 'Unknown Warehouse',
+                            'online_shop' => \App\Models\OnlineShop::find($currentDetail->placement_id)?->name ?? 'Unknown Shop',
+                            default => $currentDetail->placement_type . ' #' . $currentDetail->placement_id
+                        },
+                        'created_at' => $currentDetail->created_at->toDateTimeString(),
+                        'timestamp' => $currentDetail->created_at->timestamp,
+                        'distributor' => $currentDetail->distributor?->name,
+                        'supplier_name' => $currentDetail->supplier_name,
+                        'input_by' => $currentDetail->user?->name,
+                        'ram' => $currentDetail->ram,
+                        'storage' => $currentDetail->storage,
+                        'selling_price' => $currentDetail->selling_price,
+                        'condition' => $currentDetail->condition,
+                    ];
+                }
             }
 
             // 2. Search STOCK OUT (Execution & Arrival Events)
@@ -1344,8 +1392,17 @@ class StockOutController extends Controller
                     $mergedItems = array_values($filteredItems);
                 }
 
-                // Event 1: The STOCK OUT itself or a STOCK IN if category is barang_masuk
+                // Event 1: Skip barang_masuk only if we already have an InventoryLog entry for the same timestamp
                 if ($out->category === 'barang_masuk') {
+                    // Check if there's already a stock_in event from InventoryLog at the same time
+                    $bmTimestamp = $out->created_at->timestamp;
+                    $alreadyHasLog = collect($allEvents)->contains(function ($evt) use ($bmTimestamp) {
+                        return $evt['type'] === 'stock_in' && abs($evt['timestamp'] - $bmTimestamp) <= 5;
+                    });
+                    if ($alreadyHasLog) {
+                        continue;
+                    }
+                    // No matching log — render barang_masuk as stock_in
                     $allEvents[] = [
                         'type' => 'stock_in',
                         'sub_type' => 'registration',
@@ -1353,8 +1410,8 @@ class StockOutController extends Controller
                         'imei' => $query,
                         'product_name' => $out->items->first()?->product?->name ?? 'Mixed Items',
                         'status' => 'available',
-                        'placement_type' => 'branch',
-                        'placement_id' => $out->branch_id,
+                        'placement_type' => $out->branch_id ? 'branch' : ($out->warehouse_id ? 'warehouse' : 'online_shop'),
+                        'placement_id' => $out->branch_id ?? $out->warehouse_id ?? $out->online_shop_id,
                         'placement_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
                         'created_at' => $out->created_at->toDateTimeString(),
                         'timestamp' => $out->created_at->timestamp,
@@ -1365,8 +1422,10 @@ class StockOutController extends Controller
                         'selling_price' => $out->items->first()?->selling_price ?? 0,
                         'storage' => $out->items->first()?->storage ?? '-',
                     ];
-                } else {
-                    $allEvents[] = [
+                    continue;
+                }
+
+                $allEvents[] = [
                         'type' => 'stock_out',
                         'sub_type' => 'departure',
                         'id' => $out->receipt_id,
@@ -1418,7 +1477,6 @@ class StockOutController extends Controller
                         'sales_account' => $out->sales_account,
                         'raw_items' => $rawItems,
                     ];
-                }
 
                 // Event 2: The ARRIVAL (if confirmed transfer)
                 if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
