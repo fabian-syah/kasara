@@ -61,6 +61,26 @@ const canPrintReceipt = (result) => {
     return result.type === 'stock_out' && result.order_no && printableCategories.includes(result.category);
 };
 
+// Categories that should show "Aksi & Bukti" section (only categories from CreateSale)
+const aksiBuktiCategories = [
+    'penjualan_store',
+    'refund',
+    'angkat_barang',
+    'tukar_tambah',
+    'tukar_unit',
+    'downgrade',
+];
+
+// "Aksi & Bukti" only shows when searching by nota (receipt_id) AND category is sales-related
+const showAksiBukti = (result) => {
+    if (result.type !== 'stock_out') return false;
+    if (!aksiBuktiCategories.includes(result.category)) return false;
+    // Only show when searched by nota (receipt_id matches the query)
+    const isNotaSearch = result.id && query.value && result.id.toLowerCase() === query.value.toLowerCase();
+    if (!isNotaSearch) return false;
+    return (result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result);
+};
+
 const openReceipt = (result) => {
     currentReceiptData.value = {
         ...result,
@@ -610,7 +630,7 @@ function formatCurrency(value) {
                             </div>
 
                             <!-- Attachments & Actions -->
-                            <div v-if="(result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result)"
+                            <div v-if="showAksiBukti(result)"
                                 class="mt-6 border-t border-surface-700 pt-4 flex flex-wrap items-center gap-3">
                                 <span class="text-text-secondary text-xs font-bold uppercase tracking-wider">Aksi & Bukti:</span>
                                 
