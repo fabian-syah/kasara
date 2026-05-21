@@ -571,26 +571,46 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
-        // 1. HP STOCK IN (ProductDetail)
-        $hpQuery = ProductDetail::withTrashed()->with(['product', 'distributor', 'user', 'placement']);
+        // 1. HP STOCK IN (Using InventoryLog for accurate timestamps)
+        $hpQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])
+            ->where('type', 'in')
+            ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
         $hpItems = $hpQuery->latest()->get();
 
+        // Pre-fetch ProductDetails for IMEI/spec info
+        $refIds = $hpItems->pluck('reference_id')->filter()->unique()->toArray();
+        $productDetails = ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id');
+
         $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpItems as $idx => $item) {
+            $detail = $productDetails->get($item->reference_id);
+
+            // Location from InventoryLog
+            $locationName = '-';
+            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+
+            // Extract IMEI from description if no ProductDetail
+            $imei = $detail->imei ?? '-';
+            if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
+                $imei = $matches[1];
+            }
+
             $hpSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
-                implode('/', array_filter([$item->ram, $item->storage])),
-                $item->condition,
-                str_replace("'", "", $item->imei ?? '-'),
-                $item->placement ? $item->placement->name : '-',
-                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
-                (float)($item->cost_price ?? 0),
+                $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
+                $detail->condition ?? '-',
+                str_replace("'", "", $imei),
+                $locationName,
+                $item->distributor?->name ?? ($item->supplier_name ?? ($detail->distributor?->name ?? ($detail->supplier_name ?? '-'))),
+                (float)($detail->cost_price ?? ($item->cost_price ?? 0)),
                 $item->user->name ?? '-',
-                $item->notes ?? '-',
+                $item->notes ?: ($item->description ?? '-'),
             ];
         }
 
@@ -645,21 +665,52 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        // --- 1. STOCK IN HP (Using ProductDetail for specs/IMEI) ---
-        $hpInQuery = ProductDetail::withTrashed()->with(['product', 'user', 'distributor', 'placement']);
+        // --- 1. STOCK IN HP (Using InventoryLog for accurate timestamps, joined with ProductDetail for specs) ---
+        $hpInQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])
+            ->where('type', 'in')
+            ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpInQuery, $request, 'hp', 'in');
         $hpInItems = $hpInQuery->latest()->get();
 
+        // Pre-fetch ProductDetails for IMEI/spec info using reference_id
+        $refIds = $hpInItems->pluck('reference_id')->filter()->unique()->toArray();
+        $productDetails = ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id');
+
         $hpInSheet = [['No', 'Waktu', 'Sumber Masuk', 'Kategori', 'Merek', 'Produk', 'Spec', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpInItems as $idx => $item) {
-            $source = 'Masuk Manual';
-            if ($item->trade_in_id) $source = 'Angkat Barang';
-            elseif ($item->tukar_tambah_id) $source = 'Tukar Tambah';
-            elseif ($item->refund_id) $source = 'Refund';
-            elseif ($item->unit_exchange_id) $source = 'Tukar Unit';
-            elseif ($item->downgrade_id) $source = 'Downgrade';
+            $detail = $productDetails->get($item->reference_id);
             
+            // Determine source from description or ProductDetail relations
+            $source = 'Masuk Manual';
+            $desc = strtolower($item->description ?? '');
+            if ($detail) {
+                if ($detail->trade_in_id) $source = 'Angkat Barang';
+                elseif ($detail->tukar_tambah_id) $source = 'Tukar Tambah';
+                elseif ($detail->refund_id) $source = 'Refund';
+                elseif ($detail->unit_exchange_id) $source = 'Tukar Unit';
+                elseif ($detail->downgrade_id) $source = 'Downgrade';
+            } else {
+                if (str_contains($desc, 'angkat barang') || str_contains($desc, 'trade-in') || str_contains($desc, 'angkat_barang')) $source = 'Angkat Barang';
+                elseif (str_contains($desc, 'tukar tambah') || str_contains($desc, 'tukar_tambah')) $source = 'Tukar Tambah';
+                elseif (str_contains($desc, 'refund')) $source = 'Refund';
+                elseif (str_contains($desc, 'tukar unit') || str_contains($desc, 'exchange')) $source = 'Tukar Unit';
+                elseif (str_contains($desc, 'downgrade')) $source = 'Downgrade';
+                elseif (str_contains($desc, 'pindah cabang') || str_contains($desc, 'transfer')) $source = 'Pindah Cabang';
+            }
+
             $category = $item->product->category ?? '-';
+
+            // Location from InventoryLog
+            $locationName = '-';
+            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+
+            // Extract IMEI from description if no ProductDetail
+            $imei = $detail->imei ?? '-';
+            if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
+                $imei = $matches[1];
+            }
 
             $hpInSheet[] = [
                 $idx + 1,
@@ -668,14 +719,14 @@ class InventoryController extends Controller
                 $category,
                 $item->product->brand ?? '-',
                 $item->product->name ?? '-',
-                implode('/', array_filter([$item->ram, $item->storage])),
-                $item->condition ?? '-',
-                str_replace("'", "", $item->imei ?? '-'),
-                $item->placement ? $item->placement->name : '-',
-                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
-                (float)($item->cost_price ?? 0),
+                $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
+                $detail->condition ?? '-',
+                str_replace("'", "", $imei),
+                $locationName,
+                $item->distributor?->name ?? ($item->supplier_name ?? ($detail->distributor?->name ?? ($detail->supplier_name ?? '-'))),
+                (float)($detail->cost_price ?? ($item->cost_price ?? 0)),
                 $item->user->name ?? '-',
-                $item->notes ?? '-',
+                $item->notes ?: ($item->description ?? '-'),
             ];
         }
 
