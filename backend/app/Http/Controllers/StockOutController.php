@@ -1045,13 +1045,19 @@ class StockOutController extends Controller
                 ->get();
 
             foreach ($productDetails as $detail) {
-                // Skip if this product detail is associated with a 'barang_masuk' stock out,
-                // as that stock out event will be rendered instead to avoid duplication.
-                $hasBarangMasuk = $detail->stockOuts->contains(function ($so) {
+                // Only skip if this ProductDetail was CREATED BY the barang_masuk process
+                // (i.e., created_at matches the barang_masuk stock out created_at within 5 seconds).
+                // If the ProductDetail existed BEFORE the barang_masuk, show it as the original registration.
+                $barangMasukOut = $detail->stockOuts->first(function ($so) {
                     return $so->category === 'barang_masuk';
                 });
-                if ($hasBarangMasuk) {
-                    continue;
+                if ($barangMasukOut) {
+                    // Skip only if ProductDetail was created at the same time as barang_masuk (same stock-in event)
+                    $pdCreated = $detail->created_at->timestamp;
+                    $bmCreated = $barangMasukOut->created_at->timestamp;
+                    if (abs($pdCreated - $bmCreated) <= 5) {
+                        continue;
+                    }
                 }
 
                 $allEvents[] = [
