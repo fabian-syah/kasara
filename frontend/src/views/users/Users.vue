@@ -253,7 +253,7 @@ function getAvatarUrl(user) {
     }
     const storageUrl = import.meta.env.VITE_API_BASE_URL
       ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "")
-      : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : 'https://api.stokps.com');
+      : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : '');
 
     // Ensure no double slashes like .com//storage
     const cleanStorageUrl = storageUrl.replace(/\/+$/, "");

@@ -95,7 +95,7 @@ function getAvatarUrl(user) {
         if (photoPath.startsWith('http')) return photoPath;
         const storageUrl = import.meta.env.VITE_API_BASE_URL
             ? import.meta.env.VITE_API_BASE_URL.replace(/\/api\/?$/, "")
-            : 'https://api.stokps.com';
+            : (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "") : '');
         return `${storageUrl.replace(/\/+$/, "")}/storage/${photoPath}`;
     }
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=3b82f6&color=fff`;

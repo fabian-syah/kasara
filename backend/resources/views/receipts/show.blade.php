@@ -65,7 +65,7 @@
     <div id="receipt-content" class="nota-paper">
         <!-- HEADER -->
         <div class="flex items-start gap-4 mb-6 border-b pb-6">
-            <img src="https://api.stokps.com/images/logo-pstore.png" alt="PSTORE" class="w-16 h-auto object-contain shrink-0" />
+            <img src="{{ url('/images/logo-pstore.png') }}" alt="PSTORE" class="w-16 h-auto object-contain shrink-0" />
             <div class="flex-1">
                 <h1 class="text-3xl font-black tracking-tighter text-black leading-none">PSTORE</h1>
                 <p class="text-[10px] leading-tight text-gray-700 mt-2">

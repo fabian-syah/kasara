@@ -74,8 +74,8 @@ Implementation language: PHP (Laravel 12) for backend, JavaScript/Vue 3 for fron
 - [ ] 4. Checkpoint — Security Phase Complete
   - Ensure all security changes are deployed and working. Verify no regressions in authentication, permissions, or frontend functionality. Ask the user if questions arise.
 
-- [ ] 5. Code Quality — Service Layer Extraction
-  - [ ] 5.1 Create service layer directory structure and interfaces
+- [x] 5. Code Quality — Service Layer Extraction
+  - [x] 5.1 Create service layer directory structure and interfaces
     - Create `app/Services/Inventory/` directory with `InventoryServiceInterface.php` and `StockInServiceInterface.php`
     - Create `app/Services/StockOut/StockOutService.php` stub
     - Create `app/Services/Transfer/TransferService.php` stub
@@ -122,7 +122,7 @@ Implementation language: PHP (Laravel 12) for backend, JavaScript/Vue 3 for fron
     - Verify error messages remain identical
     - _Requirements: 7.1, 7.2, 7.4, 7.5_
 
-  - [ ] 6.3 Fix N+1 query issues in inventory endpoints
+  - [x] 6.3 Fix N+1 query issues in inventory endpoints
     - Add eager loading for `distributor`, `product`, `branch`, `inventoryLogs` in inventory index query
     - Remove `Distributor::find()` and `InventoryLog::where()` calls inside loops/transforms
     - Use pre-loaded relationships in data transformation
@@ -172,7 +172,7 @@ Implementation language: PHP (Laravel 12) for backend, JavaScript/Vue 3 for fron
     - Return HTTP 429 with Retry-After header on limit exceeded
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5_
 
-  - [ ] 9.3 Remove hardcoded production URLs
+  - [x] 9.3 Remove hardcoded production URLs
     - Search and replace all hardcoded `https://api.stokps.com` references in backend with `config('app.url')`
     - Search and replace hardcoded URLs in frontend with `import.meta.env.VITE_API_URL`
     - Use Laravel's `url()` helper for generating absolute URLs

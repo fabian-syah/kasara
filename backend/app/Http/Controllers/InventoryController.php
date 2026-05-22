@@ -54,7 +54,7 @@ class InventoryController extends Controller
 
         // 2. Base Query
         if ($type === 'non-hp') {
-            $query = Inventory::with(['product', 'user', 'user.distributor', 'latestLog', 'latestLog.distributor', 'placement'])
+            $query = Inventory::with(['product', 'user', 'user.distributor', 'distributor', 'latestLog', 'latestLog.distributor', 'placement'])
                 ->select(
                     'product_id',
                     'placement_type',
@@ -243,21 +243,12 @@ class InventoryController extends Controller
                     // 3. User distributor fallback
                     $distName = null;
                     if ($item->distributor_id) {
-                        $distName = \App\Models\Distributor::find($item->distributor_id)?->name;
+                        $distName = $item->distributor?->name;
                     }
 
                     if (!$distName) {
-                        // Find the LATEST 'in' log for this specific product and location to get the distributor/supplier
-                        $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                            ->where(function($q) use ($item) {
-                                if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                                elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                                elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                            })
-                            ->where('type', 'in')
-                            ->latest()
-                            ->first();
-
+                        // Use pre-loaded latestLog relationship instead of N+1 query
+                        $lastInLog = $item->latestLog;
                         $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
                     }
                     
@@ -391,7 +382,7 @@ class InventoryController extends Controller
         $hpSheet[] = ['TOTAL', '', '', '', '', '', '', '', '', '', '', $totalHpPrice, '', '', ''];
 
         // --- PREPARE DATA NON-HP ---
-        $nonHpQuery = Inventory::with(['product', 'user', 'placement', 'latestLog']);
+        $nonHpQuery = Inventory::with(['product', 'user', 'user.distributor', 'distributor', 'placement', 'latestLog', 'latestLog.distributor']);
         $this->applyInventoryFilters($nonHpQuery, $request, 'non-hp');
         $nonHpItems = $nonHpQuery->join('products', 'inventories.product_id', '=', 'products.id')
             ->orderBy('products.brand')
@@ -408,21 +399,12 @@ class InventoryController extends Controller
 
             $distName = null;
             if ($item->distributor_id) {
-                $distName = \App\Models\Distributor::find($item->distributor_id)?->name;
+                $distName = $item->distributor?->name;
             }
 
             if (!$distName) {
-                $lastInLog = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                    ->where(function($q) use ($item) {
-                        if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                        elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                        elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                        elseif ($item->placement_type === 'distributor') $q->where('distributor_id', $item->placement_id);
-                    })
-                    ->where('type', 'in')
-                    ->latest()
-                    ->first();
-
+                // Use pre-loaded latestLog relationship instead of N+1 query
+                $lastInLog = $item->latestLog;
                 $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
             }
             
@@ -438,20 +420,8 @@ class InventoryController extends Controller
             $totalNonHpPrice += ($price * $stok);
 
             $source = 'Masuk Manual';
-            $logToUse = \App\Models\InventoryLog::where('product_id', $item->product_id)
-                ->where(function($q) use ($item) {
-                    if ($item->placement_type === 'branch') $q->where('branch_id', $item->placement_id);
-                    elseif ($item->placement_type === 'warehouse') $q->where('warehouse_id', $item->placement_id);
-                    elseif ($item->placement_type === 'online_shop') $q->where('online_shop_id', $item->placement_id);
-                    elseif ($item->placement_type === 'distributor') $q->where('distributor_id', $item->placement_id);
-                })
-                ->where('type', 'in')
-                ->latest()
-                ->first();
-
-            if (!$logToUse) {
-                $logToUse = $item->latestLog;
-            }
+            // Use pre-loaded latestLog relationship instead of N+1 query
+            $logToUse = $item->latestLog;
 
             if ($logToUse) {
                 $desc = strtolower($logToUse->description ?? '');

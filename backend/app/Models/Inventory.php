@@ -37,6 +37,11 @@ class Inventory extends Model
         return $this->morphTo(__FUNCTION__, 'placement_type', 'placement_id');
     }
 
+    public function distributor()
+    {
+        return $this->belongsTo(Distributor::class);
+    }
+
     public function latestLog()
     {
         return $this->hasOne(InventoryLog::class, 'product_id', 'product_id')

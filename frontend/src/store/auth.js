@@ -193,7 +193,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const storageBaseUrl = computed(() => {
-        const url = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
+        const url = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
         return url.replace(/\/api\/?$/, '');
     });
 

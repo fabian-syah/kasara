@@ -34,7 +34,7 @@ const toast = useToast();
 const router = useRouter();
 const authStore = useAuthStore();
 const isDistributorRole = computed(() => ['distributor', 'distribution'].includes((authStore.userRole || '').toLowerCase()));
-const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
+const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
 // Remove '/api' from the end of apiUrl to get the base URL for storage
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 

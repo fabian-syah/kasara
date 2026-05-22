@@ -24,7 +24,7 @@ const authStore = useAuthStore();
 const inventoryStore = useInventoryStore();
 const toast = useToast();
 
-const apiUrl = import.meta.env.VITE_API_URL || 'https://api.stokps.com/api';
+const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 
 // Copying required refs and functions from Inventory.vue

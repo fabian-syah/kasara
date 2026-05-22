@@ -23,7 +23,7 @@ window.Echo = new Echo({
 // -------------------------------------------------
 
 // Konfigurasi Dasar Axios
-axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
+axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api';
 axios.defaults.withCredentials = true; // Penting untuk Sanctum
 
 const app = createApp(App)

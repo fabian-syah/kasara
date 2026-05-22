@@ -24,6 +24,7 @@ let autoRefreshInterval = null;
 let countdownInterval = null;
 
 const isOnline = computed(() => data.value?.server?.status === 'online');
+const displayApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '/api';
 
 const fetchStatus = async () => {
     const start = performance.now();
@@ -426,7 +427,7 @@ onUnmounted(() => {
                         </div>
                         <span class="text-xs text-text-secondary uppercase font-semibold">Web API</span>
                     </div>
-                    <p class="text-sm font-bold text-text-primary truncate">https://api.stokps.com/api/</p>
+                    <p class="text-sm font-bold text-text-primary truncate">{{ displayApiUrl }}</p>
                     <p class="text-xs text-text-secondary mt-1">{{ data.server.os }}</p>
                 </div>
 
