@@ -365,6 +365,11 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
+                                            <button @click="openScreenshot(item)"
+                                                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                title="Screenshot Penjualan">
+                                                <Camera :size="18" />
+                                            </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
                                                 @click="handleCancelSale(item)"
@@ -475,6 +480,11 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
+                                            <button @click="openScreenshot(item)"
+                                                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                title="Screenshot Penjualan">
+                                                <Camera :size="18" />
+                                            </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
                                                 @click="handleCancelSale(item)"
@@ -578,15 +588,23 @@
         <!-- Cancel Sale Modal -->
         <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false"
             @success="fetchData" />
+
+        <!-- Sale Screenshot Modal -->
+        <SaleScreenshot 
+            :is-open="showScreenshotModal" 
+            :sale="selectedSaleForScreenshot" 
+            @close="showScreenshotModal = false" 
+        />
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare, Camera } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
+import SaleScreenshot from '../../components/sales/SaleScreenshot.vue'
 import { getLogicalDate, getTodayLocal } from '../../utils/formatters'
 import { useEscapeKey } from '../../composables/useEscapeKey'
 
@@ -722,6 +740,9 @@ const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
 
+const showScreenshotModal = ref(false)
+const selectedSaleForScreenshot = ref(null)
+
 const autoSendReceipt = ref(false)
 
 const sendWaReceipt = (item) => {
@@ -781,6 +802,11 @@ const openReceipt = (item) => {
 const handleCancelSale = (item) => {
     selectedSaleForCancel.value = item;
     showCancelModal.value = true;
+}
+
+const openScreenshot = (item) => {
+    selectedSaleForScreenshot.value = item;
+    showScreenshotModal.value = true;
 }
 
 const years = computed(() => {
