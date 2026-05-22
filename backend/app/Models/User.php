@@ -131,7 +131,8 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-            $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Branch::where(function ($q) use ($excluded) {
                 foreach ($excluded as $term) {
                     $q->where('name', 'not ilike', '%' . $term . '%');
@@ -157,7 +158,8 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-            $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
                 foreach ($excluded as $term) {
                     $q->where('name', 'not ilike', '%' . $term . '%');
@@ -183,7 +185,8 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-            $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Warehouse::where(function ($q) use ($excluded) {
                 foreach ($excluded as $term) {
                     $q->where('name', 'not ilike', '%' . $term . '%');
@@ -209,7 +212,8 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-            $excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Distributor::where(function ($q) use ($excluded) {
                 foreach ($excluded as $term) {
                     $q->where('name', 'not ilike', '%' . $term . '%');

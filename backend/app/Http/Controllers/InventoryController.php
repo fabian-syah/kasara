@@ -122,7 +122,8 @@ class InventoryController extends Controller
 
         // 3.1 Analist Exclusion (Hide trial/testing branches)
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            /** @var array $excludedKeywords */
+            $excludedKeywords = config('kasara.excluded_keywords');
             $query->where(function ($q) use ($excludedKeywords) {
                 foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
@@ -1038,7 +1039,8 @@ class InventoryController extends Controller
 
         // Analist Exclusion for Stock In History
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            /** @var array $excludedKeywords */
+            $excludedKeywords = config('kasara.excluded_keywords');
             $query->where(function ($q) use ($excludedKeywords) {
                 foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
@@ -1240,7 +1242,8 @@ class InventoryController extends Controller
 
         // Analist Exclusion for Stock Out History
         if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            /** @var array $excludedKeywords */
+            $excludedKeywords = config('kasara.excluded_keywords');
             $query->where(function ($q) use ($excludedKeywords) {
                 foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
                     $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
@@ -2432,7 +2435,8 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
-        $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+        /** @var array $excludedKeywords */
+        $excludedKeywords = config('kasara.excluded_keywords');
 
         // 1. Accessibility Restrictions
         $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);

@@ -22,7 +22,7 @@ class WarehouseController extends Controller
             // Full access (Global)
             if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
                 $query->where(function ($q) {
-                    $hidden = ['trial', 'testing', 'test', 'ANU', 'huft'];
+                    $hidden = config('kasara.excluded_keywords');
                     foreach ($hidden as $name) {
                         $q->where('name', 'not ilike', '%' . $name . '%');
                     }

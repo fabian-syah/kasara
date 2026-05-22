@@ -43,10 +43,15 @@ class AuthController extends Controller
                 $token = $user->createToken('auth_token', ['*'], $expiration)->plainTextToken;
             }
 
+            $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements');
+
             return response()->json([
                 'success' => true,
                 'token' => $token,
-                'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements'),
+                'user' => array_merge($user->toArray(), [
+                    'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                    'roles' => $user->roles->map(fn($r) => ['name' => $r->name])->toArray(),
+                ]),
                 'theme_color' => $user->theme_color,
             ]);
         }
@@ -81,9 +86,16 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+        $user->load(['roles', 'branch', 'warehouse', 'onlineShop', 'placements']);
+
         return response()->json([
             'success' => true,
-            'user' => $request->user()->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements'),
+            'user' => array_merge($user->toArray(), [
+                'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
+                'roles' => $user->roles->map(fn($r) => ['name' => $r->name])->toArray(),
+            ]),
         ]);
     }
 

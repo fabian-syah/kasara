@@ -124,12 +124,7 @@ const menuItems = [
             { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
         ]
     },
-    {
-        id: "transactions",
-        path: "/transactions",
-        label: "Transaksi",
-        icon: Receipt,
-    },
+
     {
         id: "audit",
         label: "Audit",

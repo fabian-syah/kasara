@@ -17,7 +17,7 @@ const POS = () => import('../views/cashier/POS.vue')
 const Inventory = () => import('../views/inventory/Inventory.vue')
 const Products = () => import('../views/products/Products.vue')
 const Users = () => import('../views/users/Users.vue')
-const Transactions = () => import('../views/transactions/Transactions.vue')
+
 const Audit = () => import('../views/audit/Audit.vue')
 const Reports = () => import('../views/reports/Reports.vue')
 
@@ -332,16 +332,7 @@ const routes = [
                     permissions: ['audit.view']
                 }
             },
-            {
-                path: 'transactions',
-                name: 'Transactions',
-                component: Transactions,
-                meta: {
-                    title: 'Transaksi',
-                    menu: 'transactions',
-                    permissions: ['transactions.view']
-                }
-            },
+
             {
                 path: 'audit',
                 redirect: '/audit/report',

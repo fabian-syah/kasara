@@ -323,10 +323,7 @@ function getCategoryColor(category) {
                                             <p class="text-[10px] text-text-secondary">WhatsApp</p>
                                             <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
                                         </div>
-                                        <div v-if="result.transaction_pin">
-                                            <p class="text-[10px] text-text-secondary">PIN Transaksi</p>
-                                            <p class="text-xs text-text-primary font-mono">{{ result.transaction_pin }}</p>
-                                        </div>
+
                                         <div v-if="result.notes" class="col-span-full">
                                             <p class="text-[10px] text-text-secondary">Keterangan</p>
                                             <p class="text-xs text-text-primary italic">{{ result.notes }}</p>

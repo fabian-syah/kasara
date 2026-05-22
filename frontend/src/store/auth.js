@@ -38,41 +38,24 @@ export const useAuthStore = defineStore('auth', () => {
         return userRoles.includes(role);
     })
 
-    // Helper to enrich user object with permissions if missing
+    // Helper to enrich user object with permissions
+    // Backend is the authoritative source of truth for permissions.
+    // Local config is only used as a fallback when offline and backend returned no permissions.
     const enrichUserPermissions = (userData) => {
         if (!userData) return null;
 
-        // Determine role name
-        let roleName = null;
-        if (userData.roles && userData.roles.length > 0) {
-            roleName = userData.roles[0].name;
-        } else {
-            roleName = userData.role;
-        }
-
-        // Check if permissions exist, if not, fill from local config
-        // Also ensure we allow Super Admin bypass by giving '*' if needed, 
-        // though typically router handles that.
-        // Always load permissions from local config to ensure they are up to date with code changes
-        // This overrides backend permissions if they differ, effectively making frontend source of truth for now.
         let permissions = userData.permissions || [];
 
-        if (roleName) {
-            const localPermissions = getPermissionsForRole(roleName);
-            // If we want to merge: permissions = [...new Set([...permissions, ...localPermissions])];
-            // But for now, let's just use the local config as it's the most reliable source in this dev phase.
-            permissions = localPermissions;
+        // Backend is source of truth - only use local fallback when offline
+        if (permissions.length === 0) {
+            const roleName = userData.roles?.[0]?.name || userData.role;
+            if (roleName && !navigator.onLine) {
+                permissions = getPermissionsForRole(roleName);
+                console.warn('Using local permission fallback (offline)');
+            }
         }
 
-        if (permissions.length === 0 && roleName) {
-            console.warn('AuthStore: Permissions missing, falling back to local config for role:', roleName);
-            permissions = getPermissionsForRole(roleName);
-        }
-
-        return {
-            ...userData,
-            permissions
-        };
+        return { ...userData, permissions };
     }
 
     // Actions

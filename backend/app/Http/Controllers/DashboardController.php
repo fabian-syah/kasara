@@ -353,7 +353,7 @@ class DashboardController extends Controller
                 if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
             });
         } elseif ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+            $excludedKeywords = config('kasara.excluded_keywords');
             $leaderboardQuery->where(function($q) use ($excludedKeywords) {
                 $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
                     $bq->where(function($nq) use ($excludedKeywords) {
@@ -508,7 +508,7 @@ class DashboardController extends Controller
 
             $excludeFilter = function ($item) {
                 $name = strtolower($item->name);
-                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                $excludedKeywords = config('kasara.excluded_keywords');
                 foreach ($excludedKeywords as $kw) {
                     if (str_contains($name, $kw)) return false;
                 }

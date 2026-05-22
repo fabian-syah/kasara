@@ -23,7 +23,7 @@ use App\Http\Controllers\ReceiptSettingController;
 
 
 
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:1000,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index']);
@@ -31,9 +31,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 // Protected routes
-// Public Fixer Route (Temporary)
-Route::get('/inventory/fix-data', [InventoryController::class, 'fixMergedImeis']);
-Route::get('/inventory/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -41,6 +38,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/settings/font-size', [AuthController::class, 'updateFontSize']);
     
+    // Admin-only maintenance/debug routes
+    Route::middleware(['role:super_admin'])->prefix('admin')->group(function () {
+        Route::get('/fix-data', [InventoryController::class, 'fixMergedImeis']);
+        Route::get('/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
+        Route::get('/debug-pending', [UserController::class, 'debugPendingDump']);
+    });
+
     // Receipt Settings
     Route::get('/receipt-settings', [ReceiptSettingController::class, 'show']);
     Route::post('/receipt-settings', [ReceiptSettingController::class, 'update']);
@@ -64,9 +68,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Direct POST/PUT for updates (Fix for 422 & 405 issues with file uploads)
     Route::match(['post', 'put'], '/users/{user}', [UserController::class, 'update']);
     Route::apiResource('users', UserController::class)->except(['update']);
-    
-    // DEBUG: Raw data check
-    Route::get('/debug-pending', [UserController::class, 'debugPendingDump']);
     
     Route::post('/branches/{branch}/toggle-status', [BranchController::class, 'toggleStatus']);
     Route::apiResource('branches', BranchController::class);

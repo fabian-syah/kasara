@@ -1453,7 +1453,6 @@ class StockOutController extends Controller
                         'customer_name' => $out->customer_name,
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->notes,
-                        'transaction_pin' => $out->transaction_pin,
                         'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
                         'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
                         'created_at' => $out->created_at->toDateTimeString(),
@@ -1514,7 +1513,6 @@ class StockOutController extends Controller
                         'customer_name' => $out->customer_name,
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->notes,
-                        'transaction_pin' => $out->transaction_pin,
                         'processed_by' => $out->confirmedBy?->name ?? 'Unknown',
                         'status' => 'rejected', // Red "Ditolak" badge
                         'created_at' => $out->confirmed_at->toDateTimeString(),

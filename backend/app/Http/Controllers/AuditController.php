@@ -38,7 +38,7 @@ class AuditController extends Controller
 
             // Global exclusion for super_admin and analist roles
             if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-                $excludedTerms = ['trial', 'huft', 'anu', 'test', 'testing'];
+                $excludedTerms = config('kasara.excluded_keywords');
 
                 if (!empty($branchIds)) {
                     $branchIds = Branch::whereIn('id', $branchIds)

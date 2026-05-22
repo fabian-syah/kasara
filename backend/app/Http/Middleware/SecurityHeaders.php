@@ -19,6 +19,10 @@ class SecurityHeaders
             return $next($request);
         }
 
+        // Generate a cryptographic nonce for CSP script/style allowlisting
+        $nonce = base64_encode(random_bytes(16));
+        $request->attributes->set('csp_nonce', $nonce);
+
         /** @var Response $response */
         $response = $next($request);
  
@@ -44,20 +48,28 @@ class SecurityHeaders
         // 6. Permissions Policy
         $response->headers->set('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(self), payment=()');
  
-        // 7. Strict Content-Security-Policy (CSP)
+        // 7. Nonce-based Content-Security-Policy (CSP)
+        // Removes 'unsafe-inline' and 'unsafe-eval' from script-src, replaced with nonce.
+        // Keeps 'unsafe-inline' for style-src because Tailwind/Vue may inject inline styles
+        // for transitions and dynamic bindings.
+        $appUrl = config('app.url');
+
         $csp = "default-src 'self'; " .
-               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://api.stokps.com; " .
-               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
-               "font-src 'self' https://fonts.gstatic.com data:; " .
-               "img-src 'self' data: blob: https://ui-avatars.com https://api.stokps.com; " .
-               "connect-src 'self' https://api.stokps.com https://www.emsifa.com; " .
-               "object-src 'none'; " .
-               "frame-ancestors 'self'; " .
-               "base-uri 'self'; " .
-               "form-action 'self'; " .
-               "upgrade-insecure-requests";
-        
-        $response->headers->set('Content-Security-Policy', $csp);
+            "script-src 'self' 'nonce-{$nonce}' 'wasm-unsafe-eval' {$appUrl}; " .
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
+            "font-src 'self' https://fonts.gstatic.com data:; " .
+            "img-src 'self' data: blob: https://ui-avatars.com {$appUrl}; " .
+            "connect-src 'self' {$appUrl} https://www.emsifa.com wss:; " .
+            "worker-src 'self' blob:; " .
+            "object-src 'none'; " .
+            "frame-ancestors 'self'; " .
+            "base-uri 'self'; " .
+            "form-action 'self'; " .
+            "upgrade-insecure-requests";
+
+        // Deploy as Report-Only first to monitor violations without breaking production.
+        // Once verified safe, switch to enforcing: Content-Security-Policy
+        $response->headers->set('Content-Security-Policy-Report-Only', $csp);
  
         return $response;
     }

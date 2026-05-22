@@ -33,5 +33,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(1000)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip())->response(function (Request $req, array $headers) {
+                return response()->json([
+                    'message' => 'Too many login attempts. Please try again later.',
+                    'retry_after' => $headers['Retry-After'] ?? 60,
+                ], 429)->withHeaders($headers);
+            });
+        });
+
     }
 }

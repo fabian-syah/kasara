@@ -30,7 +30,7 @@ class ReportController extends Controller
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
         $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
-        $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+        $excludedKeywords = config('kasara.excluded_keywords');
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
@@ -177,7 +177,7 @@ class ReportController extends Controller
                 ->where('product_details.status', 'available')
                 ->whereNull('products.deleted_at')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    $excludedKeywords = config('kasara.excluded_keywords');
                     foreach ($excludedKeywords as $kw) {
                         $q->whereHasMorph('placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class, \App\Models\Distributor::class], function($pq) use ($kw) {
                             $pq->where('name', 'not ilike', "%$kw%");
@@ -232,7 +232,7 @@ class ReportController extends Controller
                 ->where('products.type', 'non-hp')
                 ->whereNull('products.deleted_at')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    $excludedKeywords = config('kasara.excluded_keywords');
                     foreach ($excludedKeywords as $kw) {
                         $q->whereHasMorph('placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class, \App\Models\Distributor::class], function($pq) use ($kw) {
                             $pq->where('name', 'not ilike', "%$kw%");
@@ -741,7 +741,7 @@ class ReportController extends Controller
         $branches = DB::table('branches')
             ->where('is_active', true)
             ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                $excludedKeywords = config('kasara.excluded_keywords');
                 foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
             })
             ->get();
@@ -775,7 +775,7 @@ class ReportController extends Controller
         $shops = DB::table('online_shops')
             ->where('is_active', true)
             ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                $excludedKeywords = config('kasara.excluded_keywords');
                 foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
             })
             ->get();
@@ -848,13 +848,13 @@ class ReportController extends Controller
         return response()->json([
             'branches' => \App\Models\Branch::orderBy('name')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    $excludedKeywords = config('kasara.excluded_keywords');
                     foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
                 })
                 ->get(['id', 'name']),
             'online_shops' => \App\Models\OnlineShop::orderBy('name')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = ['trial', 'anu', 'testing', 'huft', 'test'];
+                    $excludedKeywords = config('kasara.excluded_keywords');
                     foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
                 })
                 ->get(['id', 'name'])
