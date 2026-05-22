@@ -101,8 +101,7 @@ import {
   Warehouse,
   Save,
   Pencil,
-  Truck,
-  AlertTriangle
+  Truck
 } from "lucide-vue-next";
 
 const inventoryStore = useInventoryStore();
