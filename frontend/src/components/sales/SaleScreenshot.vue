@@ -30,10 +30,11 @@
             <!-- Phone Frame -->
             <div class="mx-auto max-w-[380px] rounded-[2rem] bg-gradient-to-b from-[#1a1a2e] to-[#16213e] p-5 shadow-[0_0_60px_rgba(0,0,0,0.5)] border border-white/5">
               
-              <!-- Customer Photo -->
-              <div v-if="customerPhoto" class="flex justify-center mb-5">
-                <div class="w-28 h-36 rounded-2xl overflow-hidden border-2 border-white/10 shadow-lg shadow-black/30">
-                  <img :src="customerPhoto" alt="Customer" class="w-full h-full object-cover" crossorigin="anonymous" />
+              <!-- Proof Photos (All) -->
+              <div v-if="loadedPhotos.length > 0" class="flex flex-col items-center gap-3 mb-5">
+                <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
+                  class="w-full max-w-[280px] rounded-2xl overflow-hidden border-2 border-white/10 shadow-lg shadow-black/30">
+                  <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
                 </div>
               </div>
 
@@ -157,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { X, Download, Share2, Loader2, User as UserIcon } from 'lucide-vue-next'
 import { toPng } from 'html-to-image'
 
@@ -221,8 +222,42 @@ const categoryBadgeClass = computed(() => {
 
 const customerPhoto = computed(() => {
   if (!props.sale?.proof_images || props.sale.proof_images.length === 0) return null
-  // Prefer proof_images[1] (customer photo), fallback to [0]
   return props.sale.proof_images[1] || props.sale.proof_images[0]
+})
+
+// Pre-load all proof images as base64 to avoid CORS issues with html-to-image
+const loadedPhotos = ref([])
+
+const loadProofImages = async () => {
+  loadedPhotos.value = []
+  if (!props.sale?.proof_images || props.sale.proof_images.length === 0) return
+
+  for (const url of props.sale.proof_images) {
+    try {
+      const response = await fetch(url, { mode: 'cors' })
+      if (response.ok) {
+        const blob = await response.blob()
+        const reader = new FileReader()
+        const base64 = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result)
+          reader.readAsDataURL(blob)
+        })
+        loadedPhotos.value.push(base64)
+      }
+    } catch (err) {
+      // If CORS fails, try using the URL directly (will show in browser but may fail in screenshot)
+      loadedPhotos.value.push(url)
+    }
+  }
+}
+
+// Watch for modal open to load images
+watch(() => props.isOpen, (val) => {
+  if (val && props.sale?.proof_images?.length > 0) {
+    loadProofImages()
+  } else {
+    loadedPhotos.value = []
+  }
 })
 
 const saleItems = computed(() => {
