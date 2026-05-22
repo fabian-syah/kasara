@@ -40,19 +40,23 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Helper to enrich user object with permissions
     // Backend is the authoritative source of truth for permissions.
-    // Local config is only used as a fallback when offline and backend returned no permissions.
+    // If backend returns permissions, use them. Otherwise fall back to local role config.
+    // This ensures the app works even before Spatie permissions are fully seeded in the database.
     const enrichUserPermissions = (userData) => {
         if (!userData) return null;
 
         let permissions = userData.permissions || [];
 
-        // Backend is source of truth - only use local fallback when offline
-        if (permissions.length === 0) {
-            const roleName = userData.roles?.[0]?.name || userData.role;
-            if (roleName && !navigator.onLine) {
-                permissions = getPermissionsForRole(roleName);
-                console.warn('Using local permission fallback (offline)');
-            }
+        // If backend returned permissions, use them as source of truth
+        if (permissions.length > 0) {
+            return { ...userData, permissions };
+        }
+
+        // Fallback: derive permissions from role using local config
+        // This keeps the app functional until Spatie permissions are fully configured
+        const roleName = userData.roles?.[0]?.name || userData.role;
+        if (roleName) {
+            permissions = getPermissionsForRole(roleName);
         }
 
         return { ...userData, permissions };
