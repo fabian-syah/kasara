@@ -1426,10 +1426,13 @@ onMounted(() => {
 
                     <div class="bg-surface-800 rounded-2xl p-4 max-h-[200px] overflow-y-auto border border-surface-700">
                         <p class="text-sm text-text-secondary mb-3">IMEI berikut sudah ada di sistem:</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div v-for="item in duplicateDetails.items" :key="item.imei"
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div v-for="item in duplicateDetails.items" :key="item.imei || item"
                                 class="text-sm font-mono text-white/80 bg-surface-900 border border-surface-700 p-2 rounded-xl text-center">
-                                {{ item.imei }}
+                                <div>{{ item.imei || item }}</div>
+                                <div v-if="item.location" class="text-xs text-amber-400 mt-1 font-sans">
+                                    Sudah ada di {{ item.location }}
+                                </div>
                             </div>
                         </div>
                     </div>

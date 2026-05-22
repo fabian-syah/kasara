@@ -154,6 +154,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/failed-inputs',
+                name: 'FailedInputHistory',
+                component: () => import('../views/inventory/FailedInputHistory.vue'),
+                meta: {
+                    title: 'Riwayat Gagal Input',
+                    menu: 'inventory',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'inventory/history/out',
                 name: 'StockOutHistory',
                 component: () => import('../views/inventory/StockOutHistory.vue'),

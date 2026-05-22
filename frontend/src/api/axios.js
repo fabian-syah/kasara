@@ -110,6 +110,7 @@ export const inventory = {
     stockOut: (data) => api.post('/inventory/stock-out', data),
     historyIn: (params) => api.get('/inventory/history/in', { params }),
     historyOut: (params) => api.get('/inventory/history/out', { params }),
+    failedInputs: (params) => api.get('/inventory/failed-inputs', { params }),
     exportHistoryIn: (params) => api.get('/inventory/history/in/export', { params, responseType: 'blob' }),
     exportHistoryOut: (params) => api.get('/inventory/history/out/export', { params, responseType: 'blob' }),
     getProductsLookup: (params) => api.get('/inventory/products-lookup', { params }),

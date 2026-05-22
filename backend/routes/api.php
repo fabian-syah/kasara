@@ -97,6 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/history/in/export', [StockInController::class, 'exportStockInHistory']);
     Route::get('/inventory/history/out/export', [StockInController::class, 'exportStockOutHistory']);
     Route::get('/inventory/history/export', [StockInController::class, 'exportStockHistoryCombined']);
+    Route::get('/inventory/failed-inputs', [StockInController::class, 'failedInputHistory']);
     Route::get('/inventory/export', [InventoryExportController::class, 'export']);
     Route::get('/inventory/filter-options', [InventoryController::class, 'getFilterOptions']);
     Route::get('/inventory/meta-locations', [InventoryController::class, 'getMetaLocations']);

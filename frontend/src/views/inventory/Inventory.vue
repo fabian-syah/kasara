@@ -101,7 +101,8 @@ import {
   Warehouse,
   Save,
   Pencil,
-  Truck
+  Truck,
+  AlertTriangle
 } from "lucide-vue-next";
 
 const inventoryStore = useInventoryStore();
@@ -1049,6 +1050,10 @@ async function exportInventory() {
         <button class="btn btn-secondary" @click="router.push({ name: 'StockInHistory' })" title="Riwayat Masuk" aria-label="Lihat Riwayat Stok Masuk">
           <Calendar :size="16" />
           <span class="hidden sm:inline">Riwayat Masuk</span>
+        </button>
+        <button class="btn btn-secondary" @click="router.push({ name: 'FailedInputHistory' })" title="Riwayat Gagal Input" aria-label="Lihat Riwayat Gagal Input">
+          <AlertTriangle :size="16" />
+          <span class="hidden sm:inline">Gagal Input</span>
         </button>
         <button class="btn btn-secondary" @click="router.push({ name: 'StockOutHistory' })" title="Riwayat Keluar" aria-label="Lihat Riwayat Stok Keluar">
           <ArrowDownUp :size="16" />

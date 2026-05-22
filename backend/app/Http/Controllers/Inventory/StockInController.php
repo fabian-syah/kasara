@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
+use App\Models\FailedStockInput;
 use App\Models\Inventory;
 use App\Models\InventoryLog;
 use App\Models\Product;
@@ -25,36 +26,62 @@ class StockInController extends Controller
 
     public function stockIn(Request $request)
     {
-        $request->validate([
-            'product_id' => 'required_if:type,hp|nullable|exists:products,id',
-            'distributor_id' => 'nullable|exists:distributors,id',
-            'new_distributor_name' => 'nullable|string|max:255',
-            'type' => 'required|in:hp,non-hp,HP,NON-HP',
-            'transaction_pin' => 'nullable|string|min:4|max:6',
-            'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
-            'placement_id' => 'required|integer',
-            'inventory_user_id' => 'nullable|integer|exists:users,id',
-            'items' => 'required_if:type,non-hp|array',
-            'items.*.brand_name' => 'nullable|string',
-            'items.*.brand_id' => 'nullable|integer|exists:brands,id',
-            'items.*.type_name' => 'required_with:items|string',
-            'items.*.quantity' => 'required_with:items|integer|min:1',
-            'items.*.cost_price' => 'nullable|numeric|min:0',
-            'items.*.selling_price' => 'nullable|numeric|min:0',
-            'items.*.notes' => 'nullable|string|max:5000',
-            'quantity' => 'required_without:items|nullable|integer|min:1',
-            'imeis' => 'required_if:type,hp|array',
-            'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:40', 'regex:/^[a-zA-Z0-9]+$/'],
-            'imeis.*.ram' => 'nullable|string',
-            'imeis.*.storage' => 'nullable|string',
-            'storage' => 'nullable|string',
-            'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
-            'imeis.*.cost_price' => 'nullable|numeric|min:0',
-            'imeis.*.selling_price' => 'nullable|numeric|min:0',
-            'imeis.*.notes' => 'nullable|string|max:5000',
-            'notes' => 'nullable|string|max:5000',
-            'category' => 'nullable|string|in:pembelian,retur_customer,pindah_cabang,salah_input,cancel_penjualan',
-        ]);
+        try {
+            $request->validate([
+                'product_id' => 'required_if:type,hp|nullable|exists:products,id',
+                'distributor_id' => 'nullable|exists:distributors,id',
+                'new_distributor_name' => 'nullable|string|max:255',
+                'type' => 'required|in:hp,non-hp,HP,NON-HP',
+                'transaction_pin' => 'nullable|string|min:4|max:6',
+                'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
+                'placement_id' => 'required|integer',
+                'inventory_user_id' => 'nullable|integer|exists:users,id',
+                'items' => 'required_if:type,non-hp|array',
+                'items.*.brand_name' => 'nullable|string',
+                'items.*.brand_id' => 'nullable|integer|exists:brands,id',
+                'items.*.type_name' => 'required_with:items|string',
+                'items.*.quantity' => 'required_with:items|integer|min:1',
+                'items.*.cost_price' => 'nullable|numeric|min:0',
+                'items.*.selling_price' => 'nullable|numeric|min:0',
+                'items.*.notes' => 'nullable|string|max:5000',
+                'quantity' => 'required_without:items|nullable|integer|min:1',
+                'imeis' => 'required_if:type,hp|array',
+                'imeis.*.imei' => ['required_if:type,hp', 'string', 'distinct', 'max:40', 'regex:/^[a-zA-Z0-9]+$/'],
+                'imeis.*.ram' => 'nullable|string',
+                'imeis.*.storage' => 'nullable|string',
+                'storage' => 'nullable|string',
+                'imeis.*.condition' => 'required_if:type,hp|in:new,second,ex_ibox',
+                'imeis.*.cost_price' => 'nullable|numeric|min:0',
+                'imeis.*.selling_price' => 'nullable|numeric|min:0',
+                'imeis.*.notes' => 'nullable|string|max:5000',
+                'notes' => 'nullable|string|max:5000',
+                'category' => 'nullable|string|in:pembelian,retur_customer,pindah_cabang,salah_input,cancel_penjualan',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            // Log validation failure
+            try {
+                $product = $request->product_id ? Product::find($request->product_id) : null;
+                $imei = null;
+                if ($request->type === 'hp' && $request->imeis && count($request->imeis) > 0) {
+                    $imei = $request->imeis[0]['imei'] ?? null;
+                }
+                FailedStockInput::create([
+                    'user_id' => Auth::id(),
+                    'type' => strtolower($request->type ?? 'hp'),
+                    'product_name' => $product?->name ?? $request->type_name ?? null,
+                    'product_id' => $request->product_id,
+                    'imei' => $imei,
+                    'placement_type' => $request->placement_type,
+                    'placement_id' => $request->placement_id,
+                    'quantity' => $request->quantity ?? ($request->imeis ? count($request->imeis) : null),
+                    'error_message' => collect($ve->errors())->flatten()->first() ?? 'Validation failed',
+                    'error_type' => 'validation',
+                ]);
+            } catch (\Exception $logErr) {
+                Log::error("Failed to log validation error: " . $logErr->getMessage());
+            }
+            throw $ve;
+        }
 
         $request->merge(['type' => strtolower($request->type)]);
         /** @var \App\Models\User $user */
@@ -256,7 +283,20 @@ class StockInController extends Controller
 
                     if ($existing) {
                         if ($existing->status === 'available' && !$existing->trashed()) {
-                            $duplicates[] = $item['imei'];
+                            // Get location info of existing item
+                            $existingLocation = '';
+                            if ($existing->placement_type === 'branch') {
+                                $existingLocation = \App\Models\Branch::find($existing->placement_id)?->name ?? 'Unknown';
+                            } elseif ($existing->placement_type === 'warehouse') {
+                                $existingLocation = \App\Models\Warehouse::find($existing->placement_id)?->name ?? 'Unknown';
+                            } elseif ($existing->placement_type === 'online_shop') {
+                                $existingLocation = \App\Models\OnlineShop::find($existing->placement_id)?->name ?? 'Unknown';
+                            }
+                            $duplicates[] = [
+                                'imei' => $item['imei'],
+                                'location' => $existingLocation,
+                                'placement_type' => $existing->placement_type,
+                            ];
                             continue;
                         }
 
@@ -356,11 +396,48 @@ class StockInController extends Controller
                     }
                 }
 
+                // Log duplicates as failed inputs
+                if (count($duplicates) > 0) {
+                    $placementName = null;
+                    if ($request->placement_type && $request->placement_id) {
+                        if ($request->placement_type === 'branch') {
+                            $placementName = \App\Models\Branch::find($request->placement_id)?->name;
+                        } elseif ($request->placement_type === 'warehouse') {
+                            $placementName = \App\Models\Warehouse::find($request->placement_id)?->name;
+                        } elseif ($request->placement_type === 'online_shop') {
+                            $placementName = \App\Models\OnlineShop::find($request->placement_id)?->name;
+                        }
+                    }
+
+                    foreach ($duplicates as $dup) {
+                        try {
+                            FailedStockInput::create([
+                                'user_id' => Auth::id(),
+                                'type' => 'hp',
+                                'product_name' => $product?->name,
+                                'product_id' => $product?->id,
+                                'imei' => $dup['imei'],
+                                'placement_type' => $request->placement_type,
+                                'placement_id' => $request->placement_id,
+                                'placement_name' => $placementName,
+                                'distributor_name' => $supplierName ?? null,
+                                'error_message' => "IMEI sudah ada di " . ($dup['location'] ?: 'inventory'),
+                                'error_type' => 'duplicate',
+                            ]);
+                        } catch (\Exception $logErr) {
+                            Log::error("Failed to log duplicate: " . $logErr->getMessage());
+                        }
+                    }
+                }
+
                 return response()->json([
                     'message' => 'Stock in processed',
                     'success' => true,
                     'inserted_count' => $inserted_count,
-                    'duplicates' => $duplicates
+                    'duplicates' => collect($duplicates)->map(fn($dup) => [
+                        'imei' => $dup['imei'],
+                        'location' => $dup['location'],
+                    ])->toArray()
                 ], 201);
             }
 
@@ -378,8 +455,103 @@ class StockInController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log failed input
+            try {
+                $product = $request->product_id ? Product::find($request->product_id) : null;
+                $placementName = null;
+                if ($request->placement_type && $request->placement_id) {
+                    if ($request->placement_type === 'branch') {
+                        $placementName = \App\Models\Branch::find($request->placement_id)?->name;
+                    } elseif ($request->placement_type === 'warehouse') {
+                        $placementName = \App\Models\Warehouse::find($request->placement_id)?->name;
+                    } elseif ($request->placement_type === 'online_shop') {
+                        $placementName = \App\Models\OnlineShop::find($request->placement_id)?->name;
+                    }
+                }
+
+                $imei = null;
+                if ($request->type === 'hp' && $request->imeis && count($request->imeis) > 0) {
+                    $imei = $request->imeis[0]['imei'] ?? null;
+                }
+
+                FailedStockInput::create([
+                    'user_id' => Auth::id(),
+                    'type' => $request->type ?? 'hp',
+                    'product_name' => $product?->name ?? $request->type_name ?? null,
+                    'product_id' => $request->product_id,
+                    'imei' => $imei,
+                    'placement_type' => $request->placement_type,
+                    'placement_id' => $request->placement_id,
+                    'placement_name' => $placementName,
+                    'distributor_name' => $request->new_distributor_name ?? null,
+                    'condition' => $request->imeis[0]['condition'] ?? null,
+                    'cost_price' => $request->imeis[0]['cost_price'] ?? null,
+                    'selling_price' => $request->imeis[0]['selling_price'] ?? null,
+                    'quantity' => $request->quantity ?? ($request->imeis ? count($request->imeis) : null),
+                    'error_message' => $e->getMessage(),
+                    'error_type' => 'exception',
+                    'request_data' => [
+                        'type' => $request->type,
+                        'product_id' => $request->product_id,
+                        'imeis' => $request->type === 'hp' ? collect($request->imeis)->pluck('imei')->toArray() : null,
+                        'placement_type' => $request->placement_type,
+                        'placement_id' => $request->placement_id,
+                    ],
+                ]);
+            } catch (\Exception $logError) {
+                Log::error("Failed to log failed stock input: " . $logError->getMessage());
+            }
+
             return response()->json(['message' => $e->getMessage()], 500);
         }
+    }
+
+    public function failedInputHistory(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $query = FailedStockInput::with(['user', 'product'])
+            ->orderBy('created_at', 'desc');
+
+        // Role-based filtering
+        $role = strtolower($user->getRoleNames()->first() ?? '');
+        $privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+        $isPrivileged = collect($privilegedRoles)->contains(fn($r) => str_contains($role, $r));
+
+        if (!$isPrivileged) {
+            $query->where('user_id', $user->id);
+        }
+
+        // Type filter
+        if ($request->type) {
+            $query->where('type', $request->type);
+        }
+
+        // Search
+        if ($request->search) {
+            $search = strtolower($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(product_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(imei) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(error_message) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(distributor_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereHas('user', function ($sq) use ($search) {
+                        $sq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+                    });
+            });
+        }
+
+        // Date filter
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        } elseif ($request->month && $request->year) {
+            $query->whereMonth('created_at', $request->month)
+                ->whereYear('created_at', $request->year);
+        }
+
+        return $query->paginate(20);
     }
 
     public function stockInHistory(Request $request)
