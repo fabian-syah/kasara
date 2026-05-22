@@ -84,14 +84,14 @@ Implementation language: PHP (Laravel 12) for backend, JavaScript/Vue 3 for fron
     - Register service bindings in a ServiceProvider
     - _Requirements: 6.1, 6.3_
 
-  - [ ] 5.2 Extract InventoryService from InventoryController
+  - [x] 5.2 Extract InventoryService from InventoryController
     - Create `InventoryService.php` with methods: `getFilteredInventory()`, `calculateTotalValue()`, `getFilterOptions()`, `getMetaLocations()`
     - Create `InventoryFilterService.php` encapsulating all filter logic (also satisfies Req 11)
     - Move business logic from controller to service, keeping controller as thin HTTP layer
     - Verify API responses remain identical
     - _Requirements: 6.2, 6.4, 6.5, 6.6, 11.1, 11.2, 11.3, 11.4, 11.5_
 
-  - [ ] 5.3 Extract StockInService and split InventoryController
+  - [x] 5.3 Extract StockInService and split InventoryController
     - Create `StockInService.php` with `processStockIn()` and `voidStockIn()` methods
     - Create `app/Http/Controllers/Inventory/StockInController.php` (<200 lines)
     - Create `app/Http/Controllers/Inventory/InventoryAccountController.php` (<200 lines)

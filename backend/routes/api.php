@@ -14,6 +14,9 @@ use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ProductTypeController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\Inventory\StockInController;
+use App\Http\Controllers\Inventory\InventoryAccountController;
+use App\Http\Controllers\Inventory\InventoryExportController;
 use App\Http\Controllers\TradeInController;
 use App\Http\Controllers\UnitExchangeController;
 use App\Http\Controllers\FailedTransferController;
@@ -89,27 +92,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Inventory Static Routes (MUST BE ABOVE DYNAMIC ROUTES)
     Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
-    Route::get('/inventory/history/in', [InventoryController::class, 'stockInHistory']);
-    Route::get('/inventory/history/out', [InventoryController::class, 'stockOutHistory']);
-    Route::get('/inventory/history/in/export', [InventoryController::class, 'exportStockInHistory']);
-    Route::get('/inventory/history/out/export', [InventoryController::class, 'exportStockOutHistory']);
-    Route::get('/inventory/history/export', [InventoryController::class, 'exportStockHistoryCombined']);
-    Route::get('/inventory/export', [InventoryController::class, 'export']);
+    Route::get('/inventory/history/in', [StockInController::class, 'stockInHistory']);
+    Route::get('/inventory/history/out', [StockInController::class, 'stockOutHistory']);
+    Route::get('/inventory/history/in/export', [StockInController::class, 'exportStockInHistory']);
+    Route::get('/inventory/history/out/export', [StockInController::class, 'exportStockOutHistory']);
+    Route::get('/inventory/history/export', [StockInController::class, 'exportStockHistoryCombined']);
+    Route::get('/inventory/export', [InventoryExportController::class, 'export']);
     Route::get('/inventory/filter-options', [InventoryController::class, 'getFilterOptions']);
     Route::get('/inventory/meta-locations', [InventoryController::class, 'getMetaLocations']);
     Route::get('/inventory/products-lookup', [InventoryController::class, 'getProducts']);
-    Route::get('/inventory/my-accounts', [InventoryController::class, 'getMyInventoryUsers']);
+    Route::get('/inventory/my-accounts', [InventoryAccountController::class, 'getMyInventoryUsers']);
     Route::get('/inventory/accounts/pending-photos', [InventoryController::class, 'pendingPhotos']);
 
-    Route::post('/inventory/stock-in', [InventoryController::class, 'stockIn']);
-    Route::post('/inventory/account', [InventoryController::class, 'createAccount']);
-    Route::post('/inventory/account/{id}/update', [InventoryController::class, 'updateAccount']);
-    Route::post('/inventory/account/{id}/toggle-pin', [InventoryController::class, 'togglePin']);
-    Route::post('/inventory/account/{id}/request-reset', [InventoryController::class, 'requestResetPin']);
+    Route::post('/inventory/stock-in', [StockInController::class, 'stockIn']);
+    Route::post('/inventory/account', [InventoryAccountController::class, 'createAccount']);
+    Route::post('/inventory/account/{id}/update', [InventoryAccountController::class, 'updateAccount']);
+    Route::post('/inventory/account/{id}/toggle-pin', [InventoryAccountController::class, 'togglePin']);
+    Route::post('/inventory/account/{id}/request-reset', [InventoryAccountController::class, 'requestResetPin']);
     Route::post('/inventory/account/{id}/approve-photo', [InventoryController::class, 'approvePhoto']);
     Route::post('/inventory/account/{id}/reject-photo', [InventoryController::class, 'rejectPhoto']);
-    Route::delete('/inventory/account/{id}', [InventoryController::class, 'destroyAccount']);
-    Route::delete('/inventory/history/in/{id}/void', [InventoryController::class, 'voidStockIn']);
+    Route::delete('/inventory/account/{id}', [InventoryAccountController::class, 'destroyAccount']);
+    Route::delete('/inventory/history/in/{id}/void', [StockInController::class, 'voidStockIn']);
 
     // Inventory Dynamic Routes (Must be below static ones)
     Route::get('/inventory', [InventoryController::class, 'index']);
