@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
 import { useThemeStore } from "../../store/theme";
@@ -30,10 +30,33 @@ const rememberMe = ref(false);
 const isLoading = ref(false);
 const error = ref("");
 
+// Rate limit countdown
+const rateLimitCountdown = ref(0);
+let countdownInterval = null;
+
+const isRateLimited = computed(() => rateLimitCountdown.value > 0);
+
+function startCountdown(seconds) {
+  rateLimitCountdown.value = seconds;
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    rateLimitCountdown.value--;
+    if (rateLimitCountdown.value <= 0) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+      error.value = "";
+    }
+  }, 1000);
+}
+
+onUnmounted(() => {
+  if (countdownInterval) clearInterval(countdownInterval);
+});
+
 const isFormValid = computed(() => form.value.username && form.value.password);
 
 async function handleLogin() {
-  if (!isFormValid.value) return;
+  if (!isFormValid.value || isRateLimited.value) return;
 
   isLoading.value = true;
   error.value = "";
@@ -48,10 +71,24 @@ async function handleLogin() {
     if (result.success) {
       router.push("/");
     } else {
-      error.value = result.error || "Login gagal. Periksa username dan password.";
+      // Check if rate limited (429)
+      if (result.status === 429 || (result.error && result.error.includes('Too many'))) {
+        const retryAfter = result.retryAfter || 60;
+        startCountdown(retryAfter);
+        error.value = `Terlalu banyak percobaan login. Coba lagi dalam ${retryAfter} detik.`;
+      } else {
+        error.value = result.error || "Login gagal. Periksa username dan password.";
+      }
     }
   } catch (err) {
-    error.value = "Terjadi kesalahan. Silakan coba lagi.";
+    // Handle 429 from axios interceptor
+    if (err?.response?.status === 429) {
+      const retryAfter = parseInt(err.response.headers['retry-after'] || err.response.data?.retry_after || 60);
+      startCountdown(retryAfter);
+      error.value = `Terlalu banyak percobaan login. Coba lagi dalam ${retryAfter} detik.`;
+    } else {
+      error.value = "Terjadi kesalahan. Silakan coba lagi.";
+    }
   } finally {
     isLoading.value = false;
   }
@@ -172,7 +209,15 @@ async function handleLogin() {
           <!-- Error Alert -->
           <div v-if="error" class="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-sm flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-2">
              <div class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></div>
-            {{ error }}
+             <div class="flex-1">
+               {{ error }}
+               <div v-if="isRateLimited" class="mt-2 flex items-center gap-2">
+                 <div class="w-full bg-rose-500/20 rounded-full h-1.5">
+                   <div class="bg-rose-500 h-1.5 rounded-full transition-all duration-1000" :style="{ width: `${(rateLimitCountdown / 60) * 100}%` }"></div>
+                 </div>
+                 <span class="text-xs font-bold whitespace-nowrap">{{ rateLimitCountdown }}s</span>
+               </div>
+             </div>
           </div>
 
           <form @submit.prevent="handleLogin" class="space-y-6">
@@ -238,11 +283,14 @@ async function handleLogin() {
             </div>
 
             <!-- Submit Button -->
-            <button type="submit" :disabled="!isFormValid || isLoading" 
+            <button type="submit" :disabled="!isFormValid || isLoading || isRateLimited" 
               class="w-full relative group overflow-hidden rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 p-[1px] disabled:opacity-50 disabled:cursor-not-allowed mt-10 shadow-lg shadow-emerald-500/25 active:scale-[0.98] transition-transform">
               <div class="absolute inset-0 bg-gradient-to-r from-emerald-400 to-teal-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div :class="['relative flex items-center justify-center gap-2 w-full h-full transition-colors py-4 rounded-xl font-bold text-white', themeStore.isDark ? 'bg-neutral-950 group-hover:bg-transparent' : 'bg-transparent']">
                  <Loader2 v-if="isLoading" :size="20" :class="['animate-spin', themeStore.isDark ? 'text-emerald-400 group-hover:text-white' : 'text-white']" />
+                 <template v-else-if="isRateLimited">
+                   <span :class="[themeStore.isDark ? 'text-neutral-500' : 'text-white/70']">Tunggu {{ rateLimitCountdown }} detik...</span>
+                 </template>
                  <template v-else>
                    <span :class="[themeStore.isDark ? 'text-emerald-400 group-hover:text-white transition-colors' : 'text-white']">Masuk Sekarang</span>
                    <ChevronRight :size="18" :class="['transition-transform group-hover:translate-x-1', themeStore.isDark ? 'text-emerald-400 group-hover:text-white' : 'text-white']" />

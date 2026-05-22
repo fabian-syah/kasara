@@ -85,6 +85,13 @@ export const useAuthStore = defineStore('auth', () => {
         } catch (err) {
             console.error('Login Exception:', err); // Log full error
             error.value = err.response?.data?.message || err.message || 'Login failed'
+            
+            // Pass rate limit info if 429
+            if (err.response?.status === 429) {
+                const retryAfter = parseInt(err.response.headers?.['retry-after'] || err.response.data?.retry_after || 60);
+                return { success: false, error: error.value, status: 429, retryAfter }
+            }
+            
             return { success: false, error: error.value }
         } finally {
             isLoading.value = false
