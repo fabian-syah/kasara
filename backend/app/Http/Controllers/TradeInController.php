@@ -20,6 +20,14 @@ class TradeInController extends Controller
     {
         $user = Auth::user();
 
+        // Decode JSON strings from FormData before validation
+        if ($request->has('items') && is_string($request->items)) {
+            $request->merge(['items' => json_decode($request->items, true)]);
+        }
+        if ($request->has('non_hp_items') && is_string($request->non_hp_items)) {
+            $request->merge(['non_hp_items' => json_decode($request->non_hp_items, true)]);
+        }
+
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
@@ -127,15 +135,8 @@ class TradeInController extends Controller
 
                 // Build items list: multi-item mode or single-item (legacy)
                 $itemsList = [];
-                if ($request->has('items') && !empty($request->items)) {
-                    $rawItems = $request->items;
-                    // Handle JSON string (from FormData) or array
-                    if (is_string($rawItems)) {
-                        $rawItems = json_decode($rawItems, true) ?? [];
-                    }
-                    if (is_array($rawItems) && count($rawItems) > 0) {
-                        $itemsList = $rawItems;
-                    }
+                if ($request->has('items') && is_array($request->items) && count($request->items) > 0) {
+                    $itemsList = $request->items;
                 }
                 
                 if (empty($itemsList)) {
@@ -330,9 +331,6 @@ class TradeInController extends Controller
                 // Process non_hp_items (accessories like case, tempered glass, etc.)
                 $nonHpStockOutItems = [];
                 $rawNhpItems = $request->non_hp_items;
-                if (is_string($rawNhpItems)) {
-                    $rawNhpItems = json_decode($rawNhpItems, true) ?? [];
-                }
                 if (!empty($rawNhpItems) && is_array($rawNhpItems)) {
                     foreach ($rawNhpItems as $nhpItem) {
                         $nhpName = $nhpItem['name'] ?? 'Accessories';
@@ -433,7 +431,7 @@ class TradeInController extends Controller
                 foreach ($processedTradeIns as $ti) {
                     $totalQty += ($ti->quantity ?? 1);
                 }
-                $totalQty += collect($rawNhpItems ?? [])->sum(fn($i) => (int)($i['quantity'] ?? 1));
+                $totalQty += collect($request->non_hp_items ?? [])->sum(fn($i) => (int)($i['quantity'] ?? 1));
 
                 $msg = 'Barang angkat berhasil diproses dan masuk inventory.';
                 if (!empty($existedImeis)) {
