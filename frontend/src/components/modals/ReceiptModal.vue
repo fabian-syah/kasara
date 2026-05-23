@@ -942,9 +942,9 @@ const printReceipt = () => {
                 gap: 0.8rem !important;
             }
             .nota-paper .relative.z-10 > div:first-child img {
-                width: 3rem !important;
-                height: 3rem !important;
-                max-height: 3rem !important;
+                width: 5rem !important;
+                height: 5rem !important;
+                max-height: 5rem !important;
             }
             .nota-paper .relative.z-10 > div:first-child .text-2xl {
                 font-size: 1.2rem !important;
