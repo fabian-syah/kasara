@@ -261,11 +261,37 @@ const isImeiTradeIn = computed(() => {
     return cat === 'imei' || cat === 'hp / gadget';
 });
 
+const totalAllItemsPrice = computed(() => {
+    const count = isImeiTradeIn.value 
+        ? tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length || 1
+        : (tradeInForm.value.quantity || 1);
+    let total = (tradeInForm.value.buy_price || 0) * count;
+    
+    for (const item of additionalItems.value) {
+        const itemIsImei = isItemImei(item);
+        const itemCount = itemIsImei 
+            ? (item.imeis_raw || '').split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length || 1
+            : (item.quantity || 1);
+        total += (item.buy_price || 0) * itemCount;
+    }
+    return total;
+});
+
 const isSplitInvalid = computed(() => {
     const count = isImeiTradeIn.value 
         ? tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length 
         : (tradeInForm.value.quantity || 1);
-    const targetAmount = (tradeInForm.value.buy_price || 0) * (count || 1);
+    let targetAmount = (tradeInForm.value.buy_price || 0) * (count || 1);
+    
+    // Add additional items prices
+    for (const item of additionalItems.value) {
+        const itemIsImei = isItemImei(item);
+        const itemCount = itemIsImei 
+            ? (item.imeis_raw || '').split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length || 1
+            : (item.quantity || 1);
+        targetAmount += (item.buy_price || 0) * itemCount;
+    }
+    
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     return totalSplit !== targetAmount;
 });
@@ -450,10 +476,20 @@ async function submitTradeIn(pin = null) {
     const count = isImeiTradeIn.value 
         ? tradeInForm.value.imeis_raw.split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length 
         : (tradeInForm.value.quantity || 1);
-    const targetAmount = (tradeInForm.value.buy_price || 0) * count;
+    let targetAmount = (tradeInForm.value.buy_price || 0) * count;
+    
+    // Add additional items prices
+    for (const item of additionalItems.value) {
+        const itemIsImei = isItemImei(item);
+        const itemCount = itemIsImei 
+            ? (item.imeis_raw || '').split(/[\n,]/).map(i => i.trim()).filter(i => i !== "").length || 1
+            : (item.quantity || 1);
+        targetAmount += (item.buy_price || 0) * itemCount;
+    }
+    
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     if (totalSplit !== targetAmount) {
-        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan harga angkat (${formatCurrency(targetAmount)}).`);
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan total harga angkat (${formatCurrency(targetAmount)}).`);
         return;
     }
 
@@ -903,13 +939,21 @@ async function submitTradeIn(pin = null) {
                 </button>
                 <div>
                     <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
-                        Angkat <span class="text-red-500">*</span></label>
+                        Angkat (Item Utama) <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <span
                             class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
                         <input v-money:buy_price="tradeInForm" type="text"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
                     </div>
+                </div>
+                <!-- Total All Items -->
+                <div v-if="additionalItems.length > 0" class="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-text-secondary uppercase tracking-widest">Total Semua Item</span>
+                        <span class="text-xl font-black text-primary-600">{{ formatCurrency(totalAllItemsPrice) }}</span>
+                    </div>
+                    <p class="text-[10px] text-text-secondary mt-1">Nominal split pembayaran harus sama dengan total ini</p>
                 </div>
                 <div>
                     <div class="flex items-center justify-between mb-2">
