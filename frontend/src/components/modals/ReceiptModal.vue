@@ -834,16 +834,34 @@ const printReceipt = () => {
         styleEl.id = styleId;
         document.head.appendChild(styleEl);
     }
-    const size = paperSize.value === 'A5' ? 'A5 portrait' : 'A4 portrait';
-    const scale = paperSize.value === 'A5' ? '0.7' : '1';
+    const isA5 = paperSize.value === 'A5';
+    const size = isA5 ? 'A5 portrait' : 'A4 portrait';
+    // A5 = 148mm x 210mm, A4 = 210mm x 297mm
+    // Scale ratio: A5 height / A4 height = 210/297 ≈ 0.707
     styleEl.textContent = `
         @media print {
             @page { size: ${size}; margin: 0; }
+            ${isA5 ? `
             .nota-paper {
-                transform: scale(${scale}) !important;
-                transform-origin: top center !important;
-                width: ${paperSize.value === 'A5' ? '148mm' : '210mm'} !important;
+                transform: scale(0.65) !important;
+                transform-origin: top left !important;
+                width: 210mm !important;
+                max-width: 210mm !important;
+                height: auto !important;
+                max-height: 200mm !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                break-after: avoid !important;
             }
+            #receipt-modal-print-wrapper,
+            #receipt-modal-print-wrapper > div,
+            #receipt-content {
+                max-height: 210mm !important;
+                overflow: hidden !important;
+            }
+            ` : ''}
         }
     `;
     window.print();
