@@ -86,6 +86,7 @@ const additionalItems = ref([]);
 
 function addItem() {
     additionalItems.value.push({
+        source: tradeInForm.value.source || 'luar_pstore',
         brand_id: null,
         product_type_id: null,
         storage: "",
@@ -789,64 +790,94 @@ async function submitTradeIn(pin = null) {
                 <!-- Additional Items Section -->
                 <div v-if="additionalItems.length > 0" class="space-y-4 mb-6">
                     <div v-for="(item, idx) in additionalItems" :key="idx"
-                        class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative">
+                        class="p-5 bg-surface-50 dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-700 relative">
                         <button @click="removeItem(idx)" type="button"
-                            class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
-                            <X :size="16" />
+                            class="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors">
+                            <X :size="18" />
                         </button>
-                        <p class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-3">Item Tambahan #{{ idx + 1 }}</p>
-                        <div class="grid grid-cols-2 gap-3">
+                        <p class="text-xs font-black text-primary-500 uppercase tracking-widest mb-4">Item Tambahan #{{ idx + 1 }}</p>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Sumber -->
                             <div>
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Brand</label>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Sumber</label>
+                                <select v-model="item.source"
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option value="luar_pstore">Luar PStore</option>
+                                    <option value="pstore">Ex PStore</option>
+                                </select>
+                            </div>
+                            <!-- Distributor -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Distributor</label>
+                                <select v-model="item.distributor_id"
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option :value="null">Sama dengan utama</option>
+                                    <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                                </select>
+                            </div>
+                            <!-- Brand -->
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Brand <span class="text-red-500">*</span></label>
                                 <select v-model="item.brand_id"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
-                                    <option :value="null" disabled>Pilih</option>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option :value="null" disabled>Pilih Brand</option>
                                     <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                                 </select>
                             </div>
+                            <!-- Tipe -->
                             <div>
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Tipe</label>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Tipe <span class="text-red-500">*</span></label>
                                 <select v-model="item.product_type_id" :disabled="!item.brand_id"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
-                                    <option :value="null" disabled>Pilih</option>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option :value="null" disabled>Pilih Tipe</option>
                                     <option v-for="t in getFilteredTypesForItem(item)" :key="t.id" :value="t.id">{{ t.name }}</option>
                                 </select>
                             </div>
+                            <!-- Kapasitas (IMEI only) -->
                             <div v-if="isItemImei(item)">
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Kapasitas</label>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Kapasitas <span class="text-red-500">*</span></label>
                                 <select v-model="item.storage" :disabled="!item.product_type_id"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
-                                    <option value="" disabled>Pilih</option>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option value="" disabled>Pilih Kapasitas</option>
                                     <option v-for="s in getCapacitiesForItem(item)" :key="s" :value="s">{{ s }}</option>
                                 </select>
                             </div>
+                            <!-- Kondisi (IMEI only) -->
                             <div v-if="isItemImei(item)">
-                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Kondisi</label>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Kondisi <span class="text-red-500">*</span></label>
                                 <select v-model="item.condition"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
-                                    <option value="" disabled>Pilih</option>
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option value="" disabled>Pilih Kondisi</option>
                                     <option value="new">New</option>
-                                    <option value="second">Second</option>
+                                    <option value="second">Second / SCD</option>
                                     <option value="ex_ibox">Ex iBox</option>
                                 </select>
                             </div>
                         </div>
-                        <div v-if="isItemImei(item)" class="mt-3">
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">IMEI</label>
-                            <textarea v-model="item.imeis_raw" rows="2" placeholder="IMEI..."
-                                class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs font-mono focus:border-primary-500 outline-none"></textarea>
+                        
+                        <!-- IMEI (for HP) -->
+                        <div v-if="isItemImei(item)" class="mt-4">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Daftar IMEI (pisahkan tiap baris/koma) <span class="text-red-500">*</span></label>
+                            <textarea v-model="item.imeis_raw" rows="2" placeholder="Masukkan IMEI..."
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs font-mono focus:border-primary-500 outline-none"></textarea>
                         </div>
-                        <div v-else class="mt-3">
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Quantity</label>
-                            <input v-model.number="item.quantity" type="number" min="1"
-                                class="w-24 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none" />
+                        <!-- Quantity (for Non-HP) -->
+                        <div v-if="item.product_type_id && !isItemImei(item)" class="mt-4">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Jumlah Stok <span class="text-red-500">*</span></label>
+                            <div class="flex items-center gap-3">
+                                <input v-model.number="item.quantity" type="number" min="1"
+                                    class="w-28 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none" />
+                                <span class="text-[10px] font-bold text-text-secondary uppercase">Unit</span>
+                            </div>
                         </div>
-                        <div class="mt-3">
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Harga Angkat</label>
+                        <!-- Harga -->
+                        <div class="mt-4">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase tracking-widest mb-1">Harga Angkat (Per Unit) <span class="text-red-500">*</span></label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-text-secondary">Rp</span>
                                 <input v-money:buy_price="item" type="text"
-                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 bg-white dark:bg-surface-800 text-xs font-bold text-primary-600 focus:border-primary-500 outline-none" />
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-9 pr-3 py-2.5 bg-white dark:bg-surface-800 text-sm font-bold text-primary-600 focus:border-primary-500 outline-none" />
                             </div>
                         </div>
                     </div>
