@@ -823,7 +823,7 @@ async function submitDowngrade(pin = null) {
                 </div>
             </div>
 
-            <!-- Additional Items Section -->
+            <!-- Additional Items Section (DISABLED - uncomment when ready)
             <div class="mt-8 space-y-4">
                 <div v-if="additionalItems.length > 0" class="space-y-4 mb-6">
                     <div v-for="(item, idx) in additionalItems" :key="idx"
@@ -895,6 +895,7 @@ async function submitDowngrade(pin = null) {
                     <Plus :size="16" stroke-width="3" /> Tambah Item Lain
                 </button>
             </div>
+            -->
 
             <!-- 4. ALASAN, PEMBAYARAN & SUMMARY -->
             <div class="mt-8 space-y-6">
