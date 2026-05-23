@@ -939,15 +939,6 @@ async function submitTradeIn(pin = null) {
                 <h4
                     class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
                     Pembayaran & Bukti</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button @click="addItem" type="button"
-                    class="w-full py-3 border-2 border-dashed border-primary-300 dark:border-primary-700 rounded-xl text-primary-600 font-bold text-xs uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all flex items-center justify-center gap-2">
-                    <Plus :size="16" stroke-width="3" /> Tambah Item Lain
-                </button>
                 <div>
                     <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga
                         Angkat (Item Utama) <span class="text-red-500">*</span></label>
