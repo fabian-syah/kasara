@@ -836,31 +836,71 @@ const printReceipt = () => {
     }
     const isA5 = paperSize.value === 'A5';
     const size = isA5 ? 'A5 portrait' : 'A4 portrait';
-    // A5 = 148mm x 210mm, A4 = 210mm x 297mm
-    // Scale ratio: A5 height / A4 height = 210/297 ≈ 0.707
+    // A5 = 148mm x 210mm. We want content to fill the full page width and fit in 1 page height.
+    // Strategy: set width to 148mm (A5 width) and let content reflow naturally to fit.
+    // Use smaller fonts/padding to compress everything into 1 page.
     styleEl.textContent = `
         @media print {
             @page { size: ${size}; margin: 0; }
             ${isA5 ? `
-            .nota-paper {
-                transform: scale(0.65) !important;
-                transform-origin: top left !important;
-                width: 210mm !important;
-                max-width: 210mm !important;
-                height: auto !important;
-                max-height: 200mm !important;
-                overflow: hidden !important;
-                page-break-after: avoid !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                break-after: avoid !important;
-            }
             #receipt-modal-print-wrapper,
             #receipt-modal-print-wrapper > div,
             #receipt-content {
+                display: block !important;
+                position: relative !important;
+                width: 148mm !important;
+                max-width: 148mm !important;
+                height: auto !important;
                 max-height: 210mm !important;
                 overflow: hidden !important;
+                padding: 0 !important;
+                margin: 0 !important;
             }
+            .nota-paper {
+                width: 148mm !important;
+                max-width: 148mm !important;
+                height: 210mm !important;
+                max-height: 210mm !important;
+                overflow: hidden !important;
+                padding: 3mm 5mm !important;
+                margin: 0 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                transform: none !important;
+                font-size: 7px !important;
+            }
+            .nota-paper .text-3xl { font-size: 1.1rem !important; }
+            .nota-paper .text-2xl { font-size: 1rem !important; }
+            .nota-paper .text-xl { font-size: 0.9rem !important; }
+            .nota-paper .text-lg { font-size: 0.8rem !important; }
+            .nota-paper .text-base { font-size: 0.7rem !important; }
+            .nota-paper .text-sm { font-size: 0.65rem !important; }
+            .nota-paper .text-xs { font-size: 0.6rem !important; }
+            .nota-paper .text-\\[11px\\] { font-size: 8px !important; }
+            .nota-paper .text-\\[10px\\] { font-size: 7.5px !important; }
+            .nota-paper .text-\\[9px\\] { font-size: 7px !important; }
+            .nota-paper .text-\\[8px\\] { font-size: 6.5px !important; }
+            .nota-paper .text-\\[7px\\] { font-size: 6px !important; }
+            .nota-paper .text-\\[6px\\] { font-size: 5.5px !important; }
+            .nota-paper .mb-6 { margin-bottom: 0.4rem !important; }
+            .nota-paper .mb-5 { margin-bottom: 0.35rem !important; }
+            .nota-paper .mb-4 { margin-bottom: 0.3rem !important; }
+            .nota-paper .mt-6 { margin-top: 0.4rem !important; }
+            .nota-paper .mt-8 { margin-top: 0.5rem !important; }
+            .nota-paper .gap-6 { gap: 0.4rem !important; }
+            .nota-paper .gap-5 { gap: 0.35rem !important; }
+            .nota-paper .gap-4 { gap: 0.3rem !important; }
+            .nota-paper .p-6 { padding: 0.4rem !important; }
+            .nota-paper .p-4 { padding: 0.3rem !important; }
+            .nota-paper .px-6 { padding-left: 0.4rem !important; padding-right: 0.4rem !important; }
+            .nota-paper .py-4 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+            .nota-paper .py-3 { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
+            .nota-paper .w-16 { width: 2.5rem !important; }
+            .nota-paper .h-16 { height: 2.5rem !important; }
+            .nota-paper .w-20 { width: 3rem !important; }
+            .nota-paper .h-20 { height: 3rem !important; }
+            .nota-paper img { max-height: 2.5rem !important; }
+            .nota-paper svg { transform: scale(0.8) !important; }
             ` : ''}
         }
     `;
