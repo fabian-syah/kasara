@@ -1,47 +1,40 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/90" @click.self="$emit('close')">
-        <div class="relative w-full max-w-[420px] max-h-[92vh] flex flex-col rounded-xl overflow-hidden shadow-2xl">
+      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/80" @click.self="$emit('close')">
+        <div class="relative w-full max-w-[420px] max-h-[92vh] flex flex-col rounded-xl overflow-hidden shadow-2xl border border-surface-700">
           
           <!-- Top Bar -->
-          <div class="flex items-center justify-between px-4 py-2.5 bg-neutral-900 border-b border-neutral-800">
-            <span class="text-xs font-semibold text-neutral-400">Bukti Penjualan</span>
+          <div class="flex items-center justify-between px-4 py-2.5 bg-surface-900 border-b border-surface-700">
+            <span class="text-xs font-semibold text-text-secondary">Bukti Penjualan</span>
             <div class="flex items-center gap-1.5">
               <button @click="handleCopyText" :disabled="copying"
-                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-md transition-colors disabled:opacity-40">
+                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-primary-500 hover:bg-primary-600 rounded-md transition-colors disabled:opacity-40">
                 <ClipboardCopy :size="12" />
                 <span>{{ copying ? 'Tersalin!' : 'Copas' }}</span>
               </button>
-              <button @click="handleDownload" :disabled="capturing"
-                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-neutral-700 hover:bg-neutral-600 rounded-md transition-colors disabled:opacity-40">
-                <Loader2 v-if="capturing" :size="12" class="animate-spin" />
-                <Download v-else :size="12" />
-                <span>Simpan</span>
-              </button>
-              <button @click="$emit('close')" class="p-1 text-neutral-500 hover:text-white rounded transition-colors">
+              <button @click="$emit('close')" class="p-1 text-text-secondary hover:text-text-primary rounded transition-colors">
                 <X :size="16" />
               </button>
             </div>
           </div>
 
           <!-- Scrollable Content -->
-          <div class="flex-1 overflow-y-auto bg-neutral-950">
-            <!-- Capturable Area -->
-            <div ref="captureRef" class="bg-neutral-950 p-4 sm:p-5">
-              <div class="mx-auto max-w-[360px] bg-neutral-900 rounded-2xl p-5 border border-neutral-800">
+          <div class="flex-1 overflow-y-auto bg-surface-950">
+            <div class="p-4 sm:p-5">
+              <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
                 <!-- Proof Photos -->
                 <div v-if="loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
-                    class="w-full rounded-xl overflow-hidden border border-neutral-700">
+                    class="w-full rounded-xl overflow-hidden border border-surface-700">
                     <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
                   </div>
                 </div>
 
                 <!-- Store Name -->
                 <div class="text-center mb-4">
-                  <h2 class="text-base font-bold text-white tracking-wide">{{ storeName }}</h2>
+                  <h2 class="text-base font-bold text-text-primary tracking-wide">{{ storeName }}</h2>
                 </div>
 
                 <!-- Category -->
@@ -54,52 +47,52 @@
 
                 <!-- Date -->
                 <div class="text-center mb-4">
-                  <p class="text-[11px] text-neutral-400">{{ formattedDate }}</p>
-                  <p class="text-[10px] text-neutral-600 font-mono mt-0.5">{{ sale?.order_no }}</p>
+                  <p class="text-[11px] text-text-secondary">{{ formattedDate }}</p>
+                  <p class="text-[10px] text-text-secondary/60 font-mono mt-0.5">{{ sale?.order_no || sale?.receipt_id }}</p>
                 </div>
 
                 <!-- Separator -->
-                <div class="h-px bg-neutral-800 my-4"></div>
+                <div class="h-px bg-surface-700 my-4"></div>
 
                 <!-- Customer -->
                 <div class="mb-4">
-                  <p class="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Customer</p>
-                  <div class="flex items-center gap-2.5 bg-neutral-800/50 rounded-lg px-3 py-2.5">
-                    <div class="w-7 h-7 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0">
-                      <UserIcon :size="12" class="text-neutral-400" />
+                  <p class="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">Customer</p>
+                  <div class="flex items-center gap-2.5 bg-surface-900/50 rounded-lg px-3 py-2.5">
+                    <div class="w-7 h-7 rounded-full bg-surface-700 flex items-center justify-center flex-shrink-0">
+                      <UserIcon :size="12" class="text-text-secondary" />
                     </div>
                     <div class="min-w-0">
-                      <p class="text-sm font-semibold text-white truncate">{{ sale?.customer_name || '-' }}</p>
-                      <p class="text-[11px] text-neutral-500">{{ sale?.customer_wa || sale?.customer_phone || '-' }}</p>
+                      <p class="text-sm font-semibold text-text-primary truncate">{{ sale?.customer_name || '-' }}</p>
+                      <p class="text-[11px] text-text-secondary">{{ sale?.customer_wa || sale?.customer_phone || '-' }}</p>
                     </div>
                   </div>
                 </div>
 
                 <!-- Products -->
                 <div class="mb-4">
-                  <p class="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-2">Produk</p>
+                  <p class="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">Produk</p>
                   <div class="space-y-2">
                     <div v-for="(item, idx) in saleItems" :key="idx"
-                      class="bg-neutral-800/50 rounded-lg px-3 py-2.5 border border-neutral-800">
+                      class="bg-surface-900/50 rounded-lg px-3 py-2.5 border border-surface-700">
                       <div class="flex justify-between items-start gap-2">
                         <div class="min-w-0 flex-1">
-                          <p class="text-xs font-semibold text-white truncate">{{ item.name }}</p>
+                          <p class="text-xs font-semibold text-text-primary truncate">{{ item.name }}</p>
                           <div class="flex flex-wrap items-center gap-1 mt-1">
-                            <span v-if="item.brand" class="text-[10px] text-neutral-500">{{ item.brand }}</span>
-                            <span v-if="item.ram || item.storage" class="text-[10px] text-neutral-300 font-medium">
+                            <span v-if="item.brand" class="text-[10px] text-text-secondary">{{ item.brand }}</span>
+                            <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium">
                               {{ [item.ram, item.storage].filter(Boolean).join('/') }} GB
                             </span>
                             <span v-if="item.condition"
                               class="px-1.5 py-0.5 text-[9px] font-semibold rounded"
-                              :class="item.condition === 'new' ? 'bg-emerald-900/50 text-emerald-400' : item.condition === 'ex_ibox' ? 'bg-purple-900/50 text-purple-400' : 'bg-amber-900/50 text-amber-400'">
+                              :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : item.condition === 'ex_ibox' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'">
                               {{ item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
                             </span>
                           </div>
-                          <p v-if="item.imei && item.imei !== '-'" class="text-[10px] text-neutral-600 font-mono mt-1">IMEI: {{ item.imei }}</p>
+                          <p v-if="item.imei && item.imei !== '-'" class="text-[10px] text-text-secondary/70 font-mono mt-1">IMEI: {{ item.imei }}</p>
                         </div>
                         <div class="text-right flex-shrink-0">
-                          <p class="text-xs font-bold text-emerald-400">{{ formatCurrency(item.price) }}</p>
-                          <p v-if="item.qty > 1" class="text-[10px] text-neutral-500 mt-0.5">x{{ item.qty }}</p>
+                          <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(item.price) }}</p>
+                          <p v-if="item.qty > 1" class="text-[10px] text-text-secondary mt-0.5">x{{ item.qty }}</p>
                         </div>
                       </div>
                     </div>
@@ -107,17 +100,17 @@
                 </div>
 
                 <!-- Separator -->
-                <div class="h-px bg-neutral-800 my-4"></div>
+                <div class="h-px bg-surface-700 my-4"></div>
 
                 <!-- Total -->
                 <div class="mb-4">
                   <div v-if="sale?.total_discount > 0" class="flex justify-between items-center mb-1.5">
-                    <span class="text-[11px] text-red-400">Diskon</span>
-                    <span class="text-[11px] text-red-400 font-semibold">-{{ formatCurrency(sale.total_discount) }}</span>
+                    <span class="text-[11px] text-red-500 dark:text-red-400">Diskon</span>
+                    <span class="text-[11px] text-red-500 dark:text-red-400 font-semibold">-{{ formatCurrency(sale.total_discount) }}</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span class="text-xs text-neutral-400 font-semibold">Total</span>
-                    <span class="text-lg font-bold text-white">{{ formatCurrency(sale?.grand_total) }}</span>
+                    <span class="text-xs text-text-secondary font-semibold">Total</span>
+                    <span class="text-lg font-bold text-text-primary">{{ formatCurrency(sale?.grand_total) }}</span>
                   </div>
                 </div>
 
@@ -125,25 +118,25 @@
                 <div class="flex justify-center mb-4">
                   <span class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md"
                     :class="sale?.category === 'cancel_penjualan' 
-                      ? 'bg-red-900/40 text-red-400' 
+                      ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' 
                       : sale?.status === 'Lunas' 
-                        ? 'bg-emerald-900/40 text-emerald-400' 
-                        : 'bg-amber-900/40 text-amber-400'">
+                        ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' 
+                        : 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400'">
                     {{ sale?.category === 'cancel_penjualan' ? 'DIBATALKAN' : sale?.status || 'Lunas' }}
                   </span>
                 </div>
 
                 <!-- Notes -->
                 <div v-if="sale?.notes" class="mb-4">
-                  <div class="bg-neutral-800/50 rounded-lg px-3 py-2.5">
-                    <p class="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider mb-1">Catatan</p>
-                    <p class="text-[11px] text-neutral-300 leading-relaxed">{{ sale.notes }}</p>
+                  <div class="bg-surface-900/50 rounded-lg px-3 py-2.5">
+                    <p class="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1">Catatan</p>
+                    <p class="text-[11px] text-text-primary leading-relaxed">{{ sale.notes }}</p>
                   </div>
                 </div>
 
                 <!-- Footer -->
                 <div class="text-center pt-2">
-                  <p class="text-[9px] text-neutral-700 font-medium uppercase tracking-widest">{{ storeName }} • {{ formattedDateShort }}</p>
+                  <p class="text-[9px] text-text-secondary/50 font-medium uppercase tracking-widest">{{ storeName }} • {{ formattedDateShort }}</p>
                 </div>
               </div>
             </div>
@@ -156,8 +149,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, Download, Loader2, User as UserIcon, ClipboardCopy } from 'lucide-vue-next'
-import { toPng } from 'html-to-image'
+import { X, User as UserIcon, ClipboardCopy } from 'lucide-vue-next'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -166,8 +158,6 @@ const props = defineProps({
 
 defineEmits(['close'])
 
-const captureRef = ref(null)
-const capturing = ref(false)
 const loadedPhotos = ref([])
 
 const categoryLabels = {
@@ -204,13 +194,13 @@ const storeName = computed(() => {
 const categoryClass = computed(() => {
   const cat = props.sale?.category
   switch (cat) {
-    case 'cancel_penjualan': return 'bg-red-900/50 text-red-400'
-    case 'refund': return 'bg-orange-900/50 text-orange-400'
-    case 'angkat_barang': return 'bg-amber-900/50 text-amber-400'
-    case 'tukar_tambah': return 'bg-cyan-900/50 text-cyan-400'
-    case 'tukar_unit': return 'bg-indigo-900/50 text-indigo-400'
-    case 'downgrade': return 'bg-pink-900/50 text-pink-400'
-    default: return 'bg-emerald-900/50 text-emerald-400'
+    case 'cancel_penjualan': return 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400'
+    case 'refund': return 'bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400'
+    case 'angkat_barang': return 'bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400'
+    case 'tukar_tambah': return 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-400'
+    case 'tukar_unit': return 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400'
+    case 'downgrade': return 'bg-pink-100 text-pink-600 dark:bg-pink-900/50 dark:text-pink-400'
+    default: return 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400'
   }
 })
 
@@ -261,24 +251,6 @@ watch(() => props.isOpen, (val) => {
   if (val && props.sale?.proof_images?.length) loadProofImages()
   else loadedPhotos.value = []
 })
-
-const generateImage = async () => {
-  if (!captureRef.value) return null
-  capturing.value = true
-  try {
-    return await toPng(captureRef.value, { quality: 1, pixelRatio: 2, backgroundColor: '#0a0a0a', cacheBust: true })
-  } catch (e) { console.error('Screenshot failed:', e); return null }
-  finally { capturing.value = false }
-}
-
-const handleDownload = async () => {
-  const url = await generateImage()
-  if (!url) return
-  const a = document.createElement('a')
-  a.download = `${props.sale?.order_no || 'bukti'}-penjualan.png`
-  a.href = url
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-}
 
 const copying = ref(false)
 
@@ -339,7 +311,6 @@ const handleCopyText = async () => {
     setTimeout(() => { copying.value = false }, 2000)
   } catch (e) {
     console.error('Copy failed:', e)
-    // Fallback
     const ta = document.createElement('textarea')
     ta.value = text
     document.body.appendChild(ta)
