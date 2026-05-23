@@ -933,6 +933,28 @@ const printReceipt = () => {
             .nota-paper > div.absolute[class*="right-0"][class*="w-20"] {
                 right: 0 !important;
             }
+            /* Header section: keep logo, branch name, social same size as A4 */
+            .nota-paper .relative.z-10 > div:first-child {
+                margin-top: 1.8rem !important;
+                margin-bottom: 0.6rem !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+                gap: 0.8rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child img {
+                width: 3rem !important;
+                height: 3rem !important;
+                max-height: 3rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-2xl {
+                font-size: 1.2rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-\\[10px\\] {
+                font-size: 9px !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-\\[9px\\] {
+                font-size: 8px !important;
+            }
             ` : ''}
         }
     `;
