@@ -1060,6 +1060,9 @@ class StockOutController extends Controller
             
             $stockInLogs = $stockInLogQuery->get();
 
+            // Deduplicate: only keep the latest stock_in log per unique reference_id
+            $stockInLogs = $stockInLogs->unique('reference_id');
+
             foreach ($stockInLogs as $log) {
                 $locationName = match (true) {
                     !empty($log->branch_id) => \App\Models\Branch::find($log->branch_id)?->name ?? 'Unknown Branch',
@@ -1659,6 +1662,15 @@ class StockOutController extends Controller
             // Sort chronologically (Newest first for timeline flow)
             usort($allEvents, function ($a, $b) {
                 return $b['timestamp'] - $a['timestamp'];
+            });
+
+            // Deduplicate events with same id + type + sub_type
+            $seen = [];
+            $allEvents = array_filter($allEvents, function ($evt) use (&$seen) {
+                $key = ($evt['type'] ?? '') . '|' . ($evt['sub_type'] ?? '') . '|' . ($evt['id'] ?? '');
+                if (isset($seen[$key])) return false;
+                $seen[$key] = true;
+                return true;
             });
 
             return response()->json([

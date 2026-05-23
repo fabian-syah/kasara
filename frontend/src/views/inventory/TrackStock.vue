@@ -154,7 +154,7 @@ function getCategoryColor(category) {
             <!-- Results List -->
             <div v-else>
                 <p class="text-xs text-text-secondary mb-3 sm:mb-4">
-                    Ditemukan <span class="text-text-primary font-semibold">{{ results.length }}</span> hasil
+                    Ditemukan <span class="text-text-primary font-semibold">{{ results.length }}</span> riwayat
                 </p>
 
                 <div class="space-y-2.5 sm:space-y-3">
