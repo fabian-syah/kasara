@@ -457,6 +457,7 @@ class StockOutController extends Controller
             if ($request->product_detail_ids) {
                 $productDetails = ProductDetail::whereIn('id', $request->product_detail_ids)
                     ->where('status', 'available')
+                    ->lockForUpdate()
                     ->get();
 
                 if ($productDetails->count() !== count($request->product_detail_ids)) {
