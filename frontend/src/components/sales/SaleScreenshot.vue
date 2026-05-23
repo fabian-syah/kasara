@@ -41,7 +41,7 @@
 
                 <!-- Store Name -->
                 <div class="text-center mb-4">
-                  <h2 class="text-base font-bold text-white tracking-wide">{{ sale?.branch_name || 'KASARA' }}</h2>
+                  <h2 class="text-base font-bold text-white tracking-wide">{{ storeName }}</h2>
                 </div>
 
                 <!-- Category -->
@@ -143,7 +143,7 @@
 
                 <!-- Footer -->
                 <div class="text-center pt-2">
-                  <p class="text-[9px] text-neutral-700 font-medium uppercase tracking-widest">{{ sale?.branch_name || 'KASARA' }} • {{ formattedDateShort }}</p>
+                  <p class="text-[9px] text-neutral-700 font-medium uppercase tracking-widest">{{ storeName }} • {{ formattedDateShort }}</p>
                 </div>
               </div>
             </div>
@@ -187,6 +187,19 @@ const categoryLabels = {
 }
 
 const categoryLabel = computed(() => categoryLabels[props.sale?.category] || props.sale?.category || 'Penjualan')
+
+const storeName = computed(() => {
+  if (!props.sale) return 'KASARA'
+  return props.sale.branch_name 
+    || props.sale.branch?.name 
+    || props.sale.online_shop?.name 
+    || props.sale.onlineShop?.name
+    || props.sale.outlet_name
+    || props.sale.user?.branch?.name
+    || props.sale.inventory_user?.branch?.name
+    || props.sale.inventoryUser?.branch?.name
+    || 'KASARA'
+})
 
 const categoryClass = computed(() => {
   const cat = props.sale?.category
@@ -275,8 +288,8 @@ const handleCopyText = async () => {
   const lines = []
   
   // Nama cabang
-  lines.push(props.sale.branch_name || 'KASARA')
-  lines.push(`No. Nota: ${props.sale.order_no || '-'}`)
+  lines.push(storeName.value)
+  lines.push(`No. Nota: ${props.sale.order_no || props.sale.receipt_id || '-'}`)
   lines.push(`Tanggal: ${formattedDate.value}`)
   lines.push(`Kategori: ${categoryLabel.value}`)
   lines.push('')
