@@ -901,6 +901,22 @@ const printReceipt = () => {
             .nota-paper .h-20 { height: 3rem !important; }
             .nota-paper img { max-height: 2.5rem !important; }
             .nota-paper svg { transform: scale(0.8) !important; }
+            .nota-paper > div.absolute[class*="top-0"][class*="left-0"],
+            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] {
+                width: 5rem !important;
+                height: 5rem !important;
+                top: -3mm !important;
+            }
+            .nota-paper > div.absolute[class*="top-0"][class*="left-0"] {
+                left: -5mm !important;
+            }
+            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] {
+                right: -5mm !important;
+            }
+            .nota-paper > div.absolute[class*="top-0"][class*="left-0"] svg,
+            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] svg {
+                transform: none !important;
+            }
             ` : ''}
         }
     `;
