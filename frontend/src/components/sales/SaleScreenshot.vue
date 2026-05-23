@@ -8,16 +8,16 @@
           <div class="flex items-center justify-between px-4 py-2.5 bg-neutral-900 border-b border-neutral-800">
             <span class="text-xs font-semibold text-neutral-400">Bukti Penjualan</span>
             <div class="flex items-center gap-1.5">
+              <button @click="handleCopyText" :disabled="copying"
+                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-500 rounded-md transition-colors disabled:opacity-40">
+                <ClipboardCopy :size="12" />
+                <span>{{ copying ? 'Tersalin!' : 'Copas' }}</span>
+              </button>
               <button @click="handleDownload" :disabled="capturing"
                 class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-neutral-700 hover:bg-neutral-600 rounded-md transition-colors disabled:opacity-40">
                 <Loader2 v-if="capturing" :size="12" class="animate-spin" />
                 <Download v-else :size="12" />
                 <span>Simpan</span>
-              </button>
-              <button @click="handleShare" :disabled="capturing"
-                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-md transition-colors disabled:opacity-40">
-                <Share2 :size="12" />
-                <span>Kirim</span>
               </button>
               <button @click="$emit('close')" class="p-1 text-neutral-500 hover:text-white rounded transition-colors">
                 <X :size="16" />
@@ -156,7 +156,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, Download, Share2, Loader2, User as UserIcon } from 'lucide-vue-next'
+import { X, Download, Loader2, User as UserIcon, ClipboardCopy } from 'lucide-vue-next'
 import { toPng } from 'html-to-image'
 
 const props = defineProps({
@@ -267,19 +267,75 @@ const handleDownload = async () => {
   document.body.appendChild(a); a.click(); document.body.removeChild(a)
 }
 
-const handleShare = async () => {
-  const url = await generateImage()
-  if (!url) return
-  try {
-    const res = await fetch(url)
-    const blob = await res.blob()
-    if (navigator.share && navigator.canShare) {
-      const file = new File([blob], `${props.sale?.order_no || 'bukti'}.png`, { type: 'image/png' })
-      if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return }
+const copying = ref(false)
+
+const handleCopyText = async () => {
+  if (!props.sale) return
+  
+  const lines = []
+  
+  // Nama cabang
+  lines.push(props.sale.branch_name || 'KASARA')
+  lines.push(`No. Nota: ${props.sale.order_no || '-'}`)
+  lines.push(`Tanggal: ${formattedDate.value}`)
+  lines.push(`Kategori: ${categoryLabel.value}`)
+  lines.push('')
+  
+  // Items
+  saleItems.value.forEach((item, idx) => {
+    const parts = []
+    if (item.brand) parts.push(item.brand)
+    parts.push(item.name)
+    if (item.ram || item.storage) parts.push(`${[item.ram, item.storage].filter(Boolean).join('/')} GB`)
+    if (item.imei && item.imei !== '-') parts.push(`IMEI: ${item.imei}`)
+    parts.push(formatCurrency(item.price))
+    if (item.condition) {
+      const condLabel = item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second'
+      parts.push(`(${condLabel})`)
     }
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-    alert('Disalin ke clipboard!')
-  } catch { handleDownload() }
+    if (item.qty > 1) parts.push(`x${item.qty}`)
+    lines.push(`${idx + 1}. ${parts.join(' | ')}`)
+  })
+  
+  lines.push('')
+  if (props.sale.total_discount > 0) {
+    lines.push(`Diskon: ${formatCurrency(props.sale.total_discount)}`)
+  }
+  lines.push(`Total: ${formatCurrency(props.sale.grand_total)}`)
+  
+  // Customer
+  if (props.sale.customer_name) {
+    lines.push('')
+    lines.push(`Customer: ${props.sale.customer_name}`)
+    if (props.sale.customer_wa || props.sale.customer_phone) {
+      lines.push(`WA: ${props.sale.customer_wa || props.sale.customer_phone}`)
+    }
+  }
+  
+  // Notes
+  if (props.sale.notes) {
+    lines.push('')
+    lines.push(`Catatan: ${props.sale.notes}`)
+  }
+  
+  const text = lines.join('\n')
+  
+  try {
+    await navigator.clipboard.writeText(text)
+    copying.value = true
+    setTimeout(() => { copying.value = false }, 2000)
+  } catch (e) {
+    console.error('Copy failed:', e)
+    // Fallback
+    const ta = document.createElement('textarea')
+    ta.value = text
+    document.body.appendChild(ta)
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+    copying.value = true
+    setTimeout(() => { copying.value = false }, 2000)
+  }
 }
 </script>
 
