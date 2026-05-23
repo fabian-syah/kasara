@@ -503,11 +503,23 @@
                     </div>
 
                     <!-- Footer / Actions (hide on print) -->
-                    <div class="p-4 bg-white border-t border-gray-100 flex gap-3 print:hidden shrink-0">
+                    <div class="p-4 bg-white border-t border-gray-100 flex gap-3 items-center print:hidden shrink-0">
                         <button @click="close"
                             class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 active:scale-95 uppercase tracking-widest">
                             Selesai & Keluar
                         </button>
+                        <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                            <button @click="paperSize = 'A4'" 
+                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all"
+                                :class="paperSize === 'A4' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                A4
+                            </button>
+                            <button @click="paperSize = 'A5'" 
+                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all"
+                                :class="paperSize === 'A5' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                A5
+                            </button>
+                        </div>
                         <button @click="printReceipt"
                             class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
                             <Printer :size="18" />
@@ -549,6 +561,7 @@ const close = () => {
 };
 
 const isGeneratingPDF = ref(false);
+const paperSize = ref('A4');
 
 watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.autoSend) {
@@ -813,6 +826,26 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
+    // Dynamically inject @page size based on selected paper
+    const styleId = 'dynamic-print-page-size';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+    }
+    const size = paperSize.value === 'A5' ? 'A5 portrait' : 'A4 portrait';
+    const scale = paperSize.value === 'A5' ? '0.7' : '1';
+    styleEl.textContent = `
+        @media print {
+            @page { size: ${size}; margin: 0; }
+            .nota-paper {
+                transform: scale(${scale}) !important;
+                transform-origin: top center !important;
+                width: ${paperSize.value === 'A5' ? '148mm' : '210mm'} !important;
+            }
+        }
+    `;
     window.print();
 };
 
@@ -1158,7 +1191,6 @@ const processedReceiptItems = computed(() => {
 @media print {
     @page {
         margin: 0;
-        size: A4 portrait;
     }
 
     /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs */
@@ -1202,7 +1234,7 @@ const processedReceiptItems = computed(() => {
         outline: 0 !important;
     }
 
-    /* CRITICAL FIX: Direct fitting to A4 physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
+    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
@@ -1216,8 +1248,8 @@ const processedReceiptItems = computed(() => {
         display: flex !important;
         flex-direction: column !important;
 
-        width: 210mm !important;
-        max-width: 100% !important;
+        width: 100% !important;
+        max-width: 210mm !important;
         height: auto !important;
         /* Fluid auto height to 100% guarantee 1-page fitting regardless of native browser margins */
         min-height: auto !important;
@@ -1226,8 +1258,7 @@ const processedReceiptItems = computed(() => {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
 
-        transform: none !important;
-        zoom: 1 !important;
+        transform-origin: top center !important;
     }
 
     /* Typography scaling for print - tightly optimized to prevent expansion/overflow on mobile/desktop */
