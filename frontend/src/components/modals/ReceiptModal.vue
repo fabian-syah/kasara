@@ -901,21 +901,37 @@ const printReceipt = () => {
             .nota-paper .h-20 { height: 3rem !important; }
             .nota-paper img { max-height: 2.5rem !important; }
             .nota-paper svg { transform: scale(0.8) !important; }
-            .nota-paper > div.absolute[class*="top-0"][class*="left-0"],
-            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] {
-                width: 5rem !important;
-                height: 5rem !important;
-                top: -3mm !important;
-            }
-            .nota-paper > div.absolute[class*="top-0"][class*="left-0"] {
-                left: -5mm !important;
-            }
-            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] {
-                right: -5mm !important;
-            }
-            .nota-paper > div.absolute[class*="top-0"][class*="left-0"] svg,
-            .nota-paper > div.absolute[class*="top-0"][class*="right-0"] svg {
+            .nota-paper > div.absolute svg {
                 transform: none !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            .nota-paper > div.absolute svg polygon[fill="#dc2626"] {
+                fill: #dc2626 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .nota-paper > div.absolute svg polygon[fill="#0a0a0a"] {
+                fill: #0a0a0a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .nota-paper > div.absolute[class*="top-0"][class*="w-20"] {
+                width: 4.5rem !important;
+                height: 4.5rem !important;
+                top: 0 !important;
+                overflow: visible !important;
+                z-index: 50 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .nota-paper > div.absolute[class*="left-0"][class*="w-20"] {
+                left: 0 !important;
+            }
+            .nota-paper > div.absolute[class*="right-0"][class*="w-20"] {
+                right: 0 !important;
             }
             ` : ''}
         }
