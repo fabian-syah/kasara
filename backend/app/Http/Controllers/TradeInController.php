@@ -24,15 +24,16 @@ class TradeInController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:50',
             'source' => 'required|in:pstore,luar_pstore',
-            'brand_id' => 'required|exists:brands,id',
+            // Single item (legacy support)
+            'brand_id' => 'required_without:items|nullable|exists:brands,id',
             'distributor_id' => 'nullable|exists:distributors,id',
-            'product_type_id' => 'required|exists:product_types,id',
+            'product_type_id' => 'required_without:items|nullable|exists:product_types,id',
             'imeis' => 'nullable|array',
             'imeis.*' => 'nullable|string|max:25',
             'quantity' => 'nullable|integer|min:1',
             'storage' => 'nullable|string|max:50',
             'condition' => 'nullable|in:new,second,ex_ibox',
-            'buy_price' => 'required|numeric|min:0',
+            'buy_price' => 'required_without:items|nullable|numeric|min:0',
             'payment_method_id' => 'nullable|exists:payment_methods,id',
             'split_payments' => 'nullable',
             'reason' => 'nullable|string',
@@ -41,6 +42,23 @@ class TradeInController extends Controller
             'photo_customer' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string|max:10',
             'inventory_user_id' => 'nullable|exists:users,id',
+            // Multi-item support
+            'items' => 'nullable|array',
+            'items.*.brand_id' => 'required_with:items|exists:brands,id',
+            'items.*.product_type_id' => 'required_with:items|exists:product_types,id',
+            'items.*.imeis' => 'nullable|array',
+            'items.*.imeis.*' => 'nullable|string|max:25',
+            'items.*.quantity' => 'nullable|integer|min:1',
+            'items.*.storage' => 'nullable|string|max:50',
+            'items.*.condition' => 'nullable|in:new,second,ex_ibox',
+            'items.*.buy_price' => 'required_with:items|numeric|min:0',
+            'items.*.distributor_id' => 'nullable|exists:distributors,id',
+            'items.*.notes' => 'nullable|string',
+            // Non-IMEI items support
+            'non_hp_items' => 'nullable|array',
+            'non_hp_items.*.name' => 'required_with:non_hp_items|string|max:255',
+            'non_hp_items.*.quantity' => 'nullable|integer|min:1',
+            'non_hp_items.*.price' => 'nullable|numeric|min:0',
         ]);
 
         // PIN Verification using Trait
@@ -60,21 +78,6 @@ class TradeInController extends Controller
                     $photoLog['customer'] = $pathCustomer;
                 }
 
-                // 2. Resolve Product (Master)
-                $productType = \App\Models\ProductType::with('brand')->findOrFail($request->product_type_id);
-                $isImei = in_array(strtolower($productType->category), ['imei', 'hp / gadget', 'hp/gadget']);
-
-                // Find or create a Product record that matches this ProductType
-                $product = \App\Models\Product::firstOrCreate(
-                    ['name' => $productType->name, 'brand' => $productType->brand->name],
-                    [
-                        'type' => $isImei ? 'hp' : 'non-hp',
-                        'has_imei' => $isImei,
-                        'is_active' => true,
-                        'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
-                    ]
-                );
-
                 // Resolve inventory_user_id and target location
                 $inventoryUserId = $request->inventory_user_id;
                 if (!$inventoryUserId && $request->sales_account) {
@@ -82,14 +85,13 @@ class TradeInController extends Controller
                     if ($invUser) $inventoryUserId = $invUser->id;
                 }
                 $inventoryUserId = $inventoryUserId ?? $user->id;
-                
+
                 $targetUser = \App\Models\User::find($inventoryUserId);
                 $branchId = $targetUser->branch_id ?? $user->branch_id;
                 $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
                 $onlineShopId = $targetUser->online_shop_id ?? $user->online_shop_id;
 
                 $receiptId = TradeIn::generateReceiptId();
-                $processedTradeIns = [];
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
@@ -108,10 +110,7 @@ class TradeInController extends Controller
                     }
                 } else if ($request->payment_method_id) {
                     $processedSplits = [
-                        [
-                            'payment_method_id' => $request->payment_method_id,
-                            'amount' => $request->buy_price ?? 0
-                        ]
+                        ['payment_method_id' => $request->payment_method_id, 'amount' => $request->buy_price ?? 0]
                     ];
                 }
 
@@ -126,31 +125,170 @@ class TradeInController extends Controller
                     }
                 }
 
+                // Build items list: multi-item mode or single-item (legacy)
+                $itemsList = [];
+                if ($request->has('items') && !empty($request->items)) {
+                    $rawItems = $request->items;
+                    // Handle JSON string (from FormData) or array
+                    if (is_string($rawItems)) {
+                        $rawItems = json_decode($rawItems, true) ?? [];
+                    }
+                    if (is_array($rawItems) && count($rawItems) > 0) {
+                        $itemsList = $rawItems;
+                    }
+                }
+                
+                if (empty($itemsList)) {
+                    // Legacy single-item mode
+                    $itemsList = [[
+                        'brand_id' => $request->brand_id,
+                        'product_type_id' => $request->product_type_id,
+                        'imeis' => $request->imeis,
+                        'quantity' => $request->quantity,
+                        'storage' => $request->storage,
+                        'condition' => $request->condition,
+                        'buy_price' => $request->buy_price,
+                        'distributor_id' => $request->distributor_id,
+                        'notes' => $request->notes,
+                    ]];
+                }
+
+                $processedTradeIns = [];
                 $existedImeis = [];
-                if ($isImei && $request->has('imeis')) {
-                    foreach ($request->imeis as $imei) {
-                        $existingPd = \App\Models\ProductDetail::where('imei', $imei)->first();
-                        if ($existingPd) {
-                            $existedImeis[] = "$imei ({$existingPd->status})";
+                $allProductDetailIds = [];
+                $totalBuyPrice = 0;
+
+                foreach ($itemsList as $itemData) {
+                    $productType = \App\Models\ProductType::with('brand')->findOrFail($itemData['product_type_id']);
+                    $isImei = in_array(strtolower($productType->category), ['imei', 'hp / gadget', 'hp/gadget']);
+
+                    $product = \App\Models\Product::firstOrCreate(
+                        ['name' => $productType->name, 'brand' => $productType->brand->name],
+                        [
+                            'type' => $isImei ? 'hp' : 'non-hp',
+                            'has_imei' => $isImei,
+                            'is_active' => true,
+                            'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
+                        ]
+                    );
+
+                    $itemBuyPrice = (float)($itemData['buy_price'] ?? 0);
+                    $itemDistributorId = $itemData['distributor_id'] ?? $request->distributor_id;
+                    $itemStorage = $itemData['storage'] ?? null;
+                    $itemCondition = $itemData['condition'] ?? 'second';
+                    $itemNotes = $itemData['notes'] ?? $request->notes;
+
+                    if ($isImei && !empty($itemData['imeis'])) {
+                        foreach ($itemData['imeis'] as $imei) {
+                            if (!$imei) continue;
+
+                            $existingPd = ProductDetail::where('imei', $imei)->first();
+                            if ($existingPd) {
+                                $existedImeis[] = "$imei ({$existingPd->status})";
+                            }
+
+                            $tradeIn = TradeIn::create([
+                                'receipt_id' => $receiptId,
+                                'customer_name' => $request->customer_name,
+                                'customer_phone' => $request->customer_phone,
+                                'source' => $request->source,
+                                'distributor_id' => $itemDistributorId,
+                                'product_type_id' => $itemData['product_type_id'],
+                                'imei' => $imei,
+                                'ram' => $productType->ram,
+                                'storage' => $itemStorage,
+                                'condition' => $itemCondition,
+                                'buy_price' => $itemBuyPrice,
+                                'quantity' => 1,
+                                'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                                'split_payments' => $processedSplits,
+                                'reason' => $request->reason,
+                                'notes' => $itemNotes,
+                                'photo_unit' => $photoLog['unit'] ?? null,
+                                'photo_customer' => $photoLog['customer'] ?? null,
+                                'user_id' => $user->id,
+                                'inventory_user_id' => $inventoryUserId,
+                                'branch_id' => $branchId,
+                            ]);
+
+                            if ($existingPd) {
+                                $existingPd->update([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'ram' => $productType->ram,
+                                    'storage' => $itemStorage,
+                                    'condition' => $itemCondition,
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $itemBuyPrice,
+                                    'selling_price' => $productType->price ?? 0,
+                                    'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                    'distributor_id' => $itemDistributorId,
+                                    'trade_in_id' => $tradeIn->id,
+                                    'notes' => $itemNotes,
+                                ]);
+                                $pd = $existingPd;
+                            } else {
+                                $pd = ProductDetail::create([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'imei' => $imei,
+                                    'ram' => $productType->ram,
+                                    'storage' => $itemStorage,
+                                    'condition' => $itemCondition,
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $itemBuyPrice,
+                                    'selling_price' => $productType->price ?? 0,
+                                    'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                    'distributor_id' => $itemDistributorId,
+                                    'trade_in_id' => $tradeIn->id,
+                                    'notes' => $itemNotes,
+                                ]);
+                            }
+
+                            InventoryLog::create([
+                                'product_id' => $product->id,
+                                'branch_id' => $branchId,
+                                'warehouse_id' => $warehouseId,
+                                'online_shop_id' => $onlineShopId,
+                                'user_id' => $inventoryUserId,
+                                'type' => 'in',
+                                'quantity' => 1,
+                                'reference_id' => $pd->id,
+                                'balance_after' => 1,
+                                'description' => 'ANGKAT BARANG HP: ' . $productType->name . ' (' . $imei . ')',
+                                'supplier_name' => 'Trade-In',
+                                'notes' => $itemNotes,
+                            ]);
+
+                            $allProductDetailIds[] = $pd->id;
+                            $totalBuyPrice += $itemBuyPrice;
+                            $processedTradeIns[] = $tradeIn;
                         }
+                    } else {
+                        // Non-HP or quantity based
+                        $quantity = (int)($itemData['quantity'] ?? 1);
 
                         $tradeIn = TradeIn::create([
                             'receipt_id' => $receiptId,
                             'customer_name' => $request->customer_name,
                             'customer_phone' => $request->customer_phone,
                             'source' => $request->source,
-                            'distributor_id' => $request->distributor_id,
-                            'product_type_id' => $request->product_type_id,
-                            'imei' => $imei,
+                            'distributor_id' => $itemDistributorId,
+                            'product_type_id' => $itemData['product_type_id'],
+                            'imei' => null,
                             'ram' => $productType->ram,
-                            'storage' => $request->storage,
-                            'condition' => $request->condition ?? 'new',
-                            'buy_price' => $request->buy_price,
-                            'quantity' => 1,
+                            'storage' => $itemStorage,
+                            'condition' => $itemCondition,
+                            'buy_price' => $itemBuyPrice,
+                            'quantity' => $quantity,
                             'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
                             'split_payments' => $processedSplits,
                             'reason' => $request->reason,
-                            'notes' => $request->notes,
+                            'notes' => $itemNotes,
                             'photo_unit' => $photoLog['unit'] ?? null,
                             'photo_customer' => $photoLog['customer'] ?? null,
                             'user_id' => $user->id,
@@ -158,43 +296,17 @@ class TradeInController extends Controller
                             'branch_id' => $branchId,
                         ]);
 
-                        if ($existingPd) {
-                            $existingPd->update([
+                        // Add to Inventory (quantity based)
+                        $inventory = \App\Models\Inventory::firstOrCreate(
+                            [
                                 'product_id' => $product->id,
-                                'user_id' => $inventoryUserId,
-                                'ram' => $productType->ram,
-                                'storage' => $request->storage,
-                                'condition' => $request->condition ?? 'new',
-                                'status' => 'available',
                                 'placement_type' => $placementType,
                                 'placement_id' => $placementId,
-                                'cost_price' => $request->buy_price,
-                                'selling_price' => $productType->price ?? 0,
-                                'supplier_name' => 'Trade-In: ' . $request->customer_name,
-                                'distributor_id' => $request->distributor_id,
-                                'trade_in_id' => $tradeIn->id,
-                                'notes' => $request->notes,
-                            ]);
-                            $pd = $existingPd;
-                        } else {
-                            $pd = ProductDetail::create([
-                                'product_id' => $product->id,
-                                'user_id' => $inventoryUserId,
-                                'imei' => $imei,
-                                'ram' => $productType->ram,
-                                'storage' => $request->storage,
-                                'condition' => $request->condition ?? 'new',
-                                'status' => 'available',
-                                'placement_type' => $placementType,
-                                'placement_id' => $placementId,
-                                'cost_price' => $request->buy_price,
-                                'selling_price' => $productType->price ?? 0,
-                                'supplier_name' => 'Trade-In: ' . $request->customer_name,
-                                'distributor_id' => $request->distributor_id,
-                                'trade_in_id' => $tradeIn->id,
-                                'notes' => $request->notes,
-                            ]);
-                        }
+                                'user_id' => $inventoryUserId
+                            ],
+                            ['quantity' => 0]
+                        );
+                        $inventory->increment('quantity', $quantity);
 
                         InventoryLog::create([
                             'product_id' => $product->id,
@@ -203,134 +315,125 @@ class TradeInController extends Controller
                             'online_shop_id' => $onlineShopId,
                             'user_id' => $inventoryUserId,
                             'type' => 'in',
-                            'quantity' => 1,
-                            'reference_id' => $pd->id,
-                            'balance_after' => 1, 
-                            'description' => 'ANGKAT BARANG HP: ' . $productType->name . ' (' . $imei . ')',
+                            'quantity' => $quantity,
+                            'reference_id' => 'Trade-In: ' . $receiptId,
+                            'description' => 'ANGKAT BARANG Non-HP: ' . $productType->name,
+                            'supplier_name' => 'Trade-In',
+                            'notes' => $itemNotes,
+                        ]);
+
+                        $totalBuyPrice += ($itemBuyPrice * $quantity);
+                        $processedTradeIns[] = $tradeIn;
+                    }
+                }
+
+                // Process non_hp_items (accessories like case, tempered glass, etc.)
+                $nonHpStockOutItems = [];
+                $rawNhpItems = $request->non_hp_items;
+                if (is_string($rawNhpItems)) {
+                    $rawNhpItems = json_decode($rawNhpItems, true) ?? [];
+                }
+                if (!empty($rawNhpItems) && is_array($rawNhpItems)) {
+                    foreach ($rawNhpItems as $nhpItem) {
+                        $nhpName = $nhpItem['name'] ?? 'Accessories';
+                        $nhpQty = (int)($nhpItem['quantity'] ?? 1);
+                        $nhpPrice = (float)($nhpItem['price'] ?? 0);
+
+                        // Find or create product for this accessory
+                        $nhpProduct = \App\Models\Product::firstOrCreate(
+                            ['name' => $nhpName, 'type' => 'non-hp'],
+                            [
+                                'brand' => 'Accessories',
+                                'has_imei' => false,
+                                'is_active' => true,
+                                'sku' => 'ACC-' . strtoupper(Str::random(8))
+                            ]
+                        );
+
+                        $inventory = \App\Models\Inventory::firstOrCreate(
+                            [
+                                'product_id' => $nhpProduct->id,
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'user_id' => $inventoryUserId
+                            ],
+                            ['quantity' => 0]
+                        );
+                        $inventory->increment('quantity', $nhpQty);
+
+                        InventoryLog::create([
+                            'product_id' => $nhpProduct->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'online_shop_id' => $onlineShopId,
+                            'user_id' => $inventoryUserId,
+                            'type' => 'in',
+                            'quantity' => $nhpQty,
+                            'reference_id' => 'Trade-In-NHP: ' . $receiptId,
+                            'description' => 'ANGKAT BARANG Acc (Trade-In): ' . $nhpName,
                             'supplier_name' => 'Trade-In',
                             'notes' => $request->notes,
                         ]);
 
-                        $processedTradeIns[] = $tradeIn;
+                        $nonHpStockOutItems[] = [
+                            'product_id' => $nhpProduct->id,
+                            'quantity' => $nhpQty,
+                            'selling_price' => -abs($nhpPrice),
+                        ];
 
-                        $negBuyPrice = -abs((float)$request->buy_price);
-                        // Create StockOut record for reporting
-                        StockOut::create([
-                            'receipt_id' => $receiptId,
-                            'category' => 'angkat_barang',
-                            'customer_name' => $request->customer_name,
-                            'customer_phone' => $request->customer_phone,
-                            'customer_wa' => $request->customer_phone,
-                            'user_id' => $user->id,
-                            'branch_id' => $branchId,
-                            'warehouse_id' => $warehouseId,
-                            'online_shop_id' => $onlineShopId,
-                            'inventory_user_id' => $inventoryUserId,
-                            'sales_account' => $request->sales_account ?? $targetUser?->name,
-                            'status' => 'received',
-                            'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
-                            'proof_image' => $photoLog['unit'] ?? null,
-                            'selling_price' => $negBuyPrice,
-                            'total_amount' => $negBuyPrice,
-                             'paid' => $negBuyPrice,
-                            'transaction_pin' => $request->transaction_pin,
-                            'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
-                            'split_payments' => json_encode($stockOutSplits)
-                        ])->items()->attach($pd->id, ['selling_price' => $negBuyPrice]);
+                        $totalBuyPrice += ($nhpPrice * $nhpQty);
                     }
-                } else {
-                    // Non-HP or fallback quantity based
-                    $quantity = $request->quantity ?? 1;
-                    $tradeIn = TradeIn::create([
-                        'receipt_id' => $receiptId,
-                        'customer_name' => $request->customer_name,
-                        'customer_phone' => $request->customer_phone,
-                        'source' => $request->source,
-                        'distributor_id' => $request->distributor_id,
-                        'product_type_id' => $request->product_type_id,
-                        'imei' => null,
-                        'ram' => $productType->ram,
-                        'storage' => $request->storage,
-                        'condition' => $request->condition ?? 'new',
-                        'buy_price' => $request->buy_price,
-                        'quantity' => $quantity,
-                        'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
-                        'split_payments' => $processedSplits,
-                        'reason' => $request->reason,
-                        'notes' => $request->notes,
-                        'photo_unit' => $photoLog['unit'] ?? null,
-                        'photo_customer' => $photoLog['customer'] ?? null,
-                        'user_id' => $user->id,
-                        'inventory_user_id' => $inventoryUserId,
-                        'branch_id' => $branchId,
-                    ]);
+                }
 
-                    $negBuyPriceTotal = -abs((float)$request->buy_price * $quantity);
-                    // Create StockOut record for reporting
-                    $stockOut = StockOut::create([
-                        'receipt_id' => $receiptId,
-                        'category' => 'angkat_barang',
-                        'customer_name' => $request->customer_name,
-                        'customer_phone' => $request->customer_phone,
-                        'customer_wa' => $request->customer_phone,
-                        'user_id' => $user->id,
-                        'branch_id' => $branchId,
-                        'warehouse_id' => $warehouseId,
-                        'online_shop_id' => $onlineShopId,
-                        'inventory_user_id' => $inventoryUserId,
-                        'sales_account' => $request->sales_account ?? $targetUser?->name,
-                        'status' => 'received',
-                        'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
-                        'proof_image' => $photoLog['unit'] ?? null,
-                        'selling_price' => $negBuyPriceTotal,
-                        'total_amount' => $negBuyPriceTotal,
-                        'paid' => $negBuyPriceTotal,
-                        'transaction_pin' => $request->transaction_pin,
-                        'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
-                        'split_payments' => json_encode($stockOutSplits)
-                    ]);
+                // Create single StockOut record for the entire trade-in transaction
+                $negTotalBuyPrice = -abs($totalBuyPrice);
+                $stockOut = StockOut::create([
+                    'receipt_id' => $receiptId,
+                    'category' => 'angkat_barang',
+                    'customer_name' => $request->customer_name,
+                    'customer_phone' => $request->customer_phone,
+                    'customer_wa' => $request->customer_phone,
+                    'user_id' => $user->id,
+                    'branch_id' => $branchId,
+                    'warehouse_id' => $warehouseId,
+                    'online_shop_id' => $onlineShopId,
+                    'inventory_user_id' => $inventoryUserId,
+                    'sales_account' => $request->sales_account ?? $targetUser?->name,
+                    'status' => 'received',
+                    'notes' => "Angkat Barang Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
+                    'proof_image' => $photoLog['unit'] ?? null,
+                    'selling_price' => $negTotalBuyPrice,
+                    'total_amount' => $negTotalBuyPrice,
+                    'paid' => $negTotalBuyPrice,
+                    'transaction_pin' => $request->transaction_pin,
+                    'payment_method_id' => $request->payment_method_id ?? ($processedSplits[0]['payment_method_id'] ?? null),
+                    'split_payments' => json_encode($stockOutSplits),
+                ]);
 
-                    \App\Models\StockOutNonHpItem::create([
-                        'stock_out_id' => $stockOut->id,
-                        'product_id' => $product->id,
-                        'quantity' => $quantity,
-                        'selling_price' => -abs((float)$request->buy_price),
-                        'distributor_id' => $request->distributor_id
-                    ]);
+                // Attach HP items
+                if (!empty($allProductDetailIds)) {
+                    foreach ($allProductDetailIds as $pdId) {
+                        $stockOut->items()->attach($pdId, ['selling_price' => $negTotalBuyPrice / count($allProductDetailIds)]);
+                    }
+                }
 
-                    // For non-HP, use Inventory model (quantity based)
-                    $inventory = \App\Models\Inventory::firstOrCreate(
-                        [
-                            'product_id' => $product->id,
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'user_id' => $inventoryUserId
-                        ],
-                        ['quantity' => 0]
-                    );
-                    $inventory->increment('quantity', $quantity);
-
-                    InventoryLog::create([
-                        'product_id' => $product->id,
-                        'branch_id' => $branchId,
-                        'warehouse_id' => $warehouseId,
-                        'online_shop_id' => $onlineShopId,
-                        'user_id' => $inventoryUserId,
-                        'type' => 'in',
-                        'quantity' => $quantity,
-                        'reference_id' => 'Trade-In: ' . $receiptId,
-                        'description' => 'ANGKAT BARANG Non-HP: ' . $productType->name,
-                        'supplier_name' => 'Trade-In',
-                        'notes' => $request->notes,
-                    ]);
-
-                    $processedTradeIns[] = $tradeIn;
+                // Attach Non-HP items
+                if (!empty($nonHpStockOutItems)) {
+                    foreach ($nonHpStockOutItems as $nhpSoi) {
+                        \App\Models\StockOutNonHpItem::create([
+                            'stock_out_id' => $stockOut->id,
+                            'product_id' => $nhpSoi['product_id'],
+                            'quantity' => $nhpSoi['quantity'],
+                            'selling_price' => $nhpSoi['selling_price'],
+                        ]);
+                    }
                 }
 
                 $totalQty = 0;
-                foreach($processedTradeIns as $ti) {
+                foreach ($processedTradeIns as $ti) {
                     $totalQty += ($ti->quantity ?? 1);
                 }
+                $totalQty += collect($rawNhpItems ?? [])->sum(fn($i) => (int)($i['quantity'] ?? 1));
 
                 $msg = 'Barang angkat berhasil diproses dan masuk inventory.';
                 if (!empty($existedImeis)) {

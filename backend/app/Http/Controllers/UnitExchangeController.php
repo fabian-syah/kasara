@@ -28,18 +28,34 @@ class UnitExchangeController extends Controller
             'distributor_id' => 'nullable|exists:distributors,id',
             'incoming_source' => 'required|in:ex_pstore,luar_pstore',
 
-            // Incoming
-            'incoming_product_type_id' => 'required|exists:product_types,id',
+            // Single incoming (legacy)
+            'incoming_product_type_id' => 'required_without:incoming_items|nullable|exists:product_types,id',
             'incoming_imei' => 'nullable|string|max:25',
             'incoming_quantity' => 'nullable|integer|min:1',
             'incoming_storage' => 'nullable|string|max:20',
             'incoming_condition' => 'nullable|in:new,second,ex_ibox',
-            'incoming_cost_price' => 'required|numeric|min:0',
+            'incoming_cost_price' => 'required_without:incoming_items|nullable|numeric|min:0',
 
-            // Outgoing
-            'outgoing_product_detail_id' => 'required|exists:product_details,id',
+            // Multi incoming items
+            'incoming_items' => 'nullable|array',
+            'incoming_items.*.product_type_id' => 'required_with:incoming_items|exists:product_types,id',
+            'incoming_items.*.imei' => 'nullable|string|max:25',
+            'incoming_items.*.quantity' => 'nullable|integer|min:1',
+            'incoming_items.*.storage' => 'nullable|string|max:20',
+            'incoming_items.*.condition' => 'nullable|in:new,second,ex_ibox',
+            'incoming_items.*.cost_price' => 'required_with:incoming_items|numeric|min:0',
+            'incoming_items.*.distributor_id' => 'nullable|exists:distributors,id',
+
+            // Single outgoing (legacy)
+            'outgoing_product_detail_id' => 'required_without:outgoing_product_detail_ids|nullable|exists:product_details,id',
             'outgoing_quantity' => 'nullable|integer|min:1',
             'outgoing_price' => 'nullable|numeric|min:0',
+
+            // Multi outgoing items
+            'outgoing_product_detail_ids' => 'nullable|array',
+            'outgoing_product_detail_ids.*' => 'required_with:outgoing_product_detail_ids|exists:product_details,id',
+            'outgoing_prices' => 'nullable|array',
+            'outgoing_prices.*' => 'nullable|numeric|min:0',
 
             'reason' => 'required|string',
             'notes' => 'nullable|string',
@@ -49,6 +65,12 @@ class UnitExchangeController extends Controller
             'inventory_user_id' => 'nullable|exists:users,id',
             'split_payments' => 'nullable',
             'payment_method_id' => 'nullable|exists:payment_methods,id',
+
+            // Non-HP items support
+            'non_hp_items' => 'nullable|array',
+            'non_hp_items.*.name' => 'required_with:non_hp_items|string|max:255',
+            'non_hp_items.*.quantity' => 'nullable|integer|min:1',
+            'non_hp_items.*.price' => 'nullable|numeric|min:0',
         ]);
 
         // PIN Verification using Trait
@@ -110,12 +132,12 @@ class UnitExchangeController extends Controller
                     'customer_name' => $request->customer_name,
                     'customer_phone' => $request->customer_phone,
                     'incoming_source' => $request->incoming_source,
-                    'incoming_product_type_id' => $request->incoming_product_type_id,
-                    'incoming_imei' => $request->incoming_imei,
-                    'incoming_storage' => $request->incoming_storage,
-                    'incoming_condition' => $request->incoming_condition ?? 'new',
-                    'incoming_cost_price' => $request->incoming_cost_price,
-                    'outgoing_product_detail_id' => $request->outgoing_product_detail_id,
+                    'incoming_product_type_id' => $request->incoming_product_type_id ?? ($request->incoming_items[0]['product_type_id'] ?? null),
+                    'incoming_imei' => $request->incoming_imei ?? ($request->incoming_items[0]['imei'] ?? null),
+                    'incoming_storage' => $request->incoming_storage ?? ($request->incoming_items[0]['storage'] ?? null),
+                    'incoming_condition' => $request->incoming_condition ?? ($request->incoming_items[0]['condition'] ?? 'new'),
+                    'incoming_cost_price' => $request->incoming_cost_price ?? ($request->incoming_items[0]['cost_price'] ?? 0),
+                    'outgoing_product_detail_id' => $request->outgoing_product_detail_id ?? ($request->outgoing_product_detail_ids[0] ?? null),
                     'split_payments' => $processedSplits,
                     'reason' => $request->reason,
                     'notes' => $request->notes,
@@ -129,83 +151,179 @@ class UnitExchangeController extends Controller
                     'outgoing_quantity' => $request->outgoing_quantity ?? 1,
                 ]);
 
-                // 3. Handle Incoming Unit (Entry to Inventory)
-                $incomingProductType = ProductType::with('brand')->findOrFail($request->incoming_product_type_id);
-                $isImei = in_array(strtolower($incomingProductType->category), ['imei', 'hp / gadget', 'hp/gadget']);
+                // Build incoming items list
+                $incomingList = [];
+                if ($request->has('incoming_items') && is_array($request->incoming_items) && count($request->incoming_items) > 0) {
+                    $incomingList = $request->incoming_items;
+                } else {
+                    $incomingList = [[
+                        'product_type_id' => $request->incoming_product_type_id,
+                        'imei' => $request->incoming_imei,
+                        'quantity' => $request->incoming_quantity ?? 1,
+                        'storage' => $request->incoming_storage,
+                        'condition' => $request->incoming_condition ?? 'new',
+                        'cost_price' => $request->incoming_cost_price,
+                        'distributor_id' => $request->distributor_id,
+                    ]];
+                }
 
-                // Find or create a Product record for mapping
-                $product = Product::firstOrCreate(
-                    ['name' => $incomingProductType->name, 'brand' => $incomingProductType->brand->name],
-                    [
-                        'type' => $isImei ? 'hp' : 'non-hp',
-                        'has_imei' => $isImei,
-                        'is_active' => true,
-                        'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
-                    ]
-                );
+                // Build outgoing items list
+                $outgoingIds = [];
+                $outgoingPrices = [];
+                if ($request->has('outgoing_product_detail_ids') && is_array($request->outgoing_product_detail_ids)) {
+                    $outgoingIds = $request->outgoing_product_detail_ids;
+                    $outgoingPrices = $request->outgoing_prices ?? [];
+                } else if ($request->outgoing_product_detail_id) {
+                    $outgoingIds = [$request->outgoing_product_detail_id];
+                    $outgoingPrices = [$request->outgoing_price ?? 0];
+                }
 
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
-                $inQty = $request->incoming_quantity ?? 1;
-                $imeiExisted = false;
-                $imeiStatus = null;
-                $productDetail = null;
-                if ($isImei) {
-                    $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
-                    if ($existingPd) {
-                        $imeiExisted = true;
-                        $imeiStatus = $existingPd->status;
-                        $existingPd->update([
+                // 3. Process all INCOMING items
+                $allIncomingPdIds = [];
+                $imeiWarnings = [];
+                $totalOutPrice = 0;
+
+                foreach ($incomingList as $incItem) {
+                    $incomingProductType = ProductType::with('brand')->findOrFail($incItem['product_type_id']);
+                    $isImei = in_array(strtolower($incomingProductType->category), ['imei', 'hp / gadget', 'hp/gadget']);
+
+                    $product = Product::firstOrCreate(
+                        ['name' => $incomingProductType->name, 'brand' => $incomingProductType->brand->name],
+                        [
+                            'type' => $isImei ? 'hp' : 'non-hp',
+                            'has_imei' => $isImei,
+                            'is_active' => true,
+                            'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
+                        ]
+                    );
+
+                    $incImei = $incItem['imei'] ?? null;
+                    $incStorage = $incItem['storage'] ?? null;
+                    $incCondition = $incItem['condition'] ?? 'new';
+                    $incCostPrice = (float)($incItem['cost_price'] ?? 0);
+                    $incDistributorId = $incItem['distributor_id'] ?? $request->distributor_id;
+                    $inQty = (int)($incItem['quantity'] ?? 1);
+
+                    if ($isImei && $incImei) {
+                        $existingPd = ProductDetail::where('imei', $incImei)->first();
+                        if ($existingPd) {
+                            $imeiWarnings[] = "$incImei ({$existingPd->status})";
+                            $existingPd->update([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'storage' => $incStorage,
+                                'condition' => $incCondition,
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $incCostPrice,
+                                'selling_price' => $incomingProductType->price ?? 0,
+                                'supplier_name' => 'Exchange: ' . $request->customer_name,
+                                'distributor_id' => $incDistributorId,
+                                'unit_exchange_id' => $exchange->id,
+                                'notes' => 'Masuk dari Tukar Unit (Update): ' . $receiptId,
+                            ]);
+                            $productDetail = $existingPd;
+                        } else {
+                            $productDetail = ProductDetail::create([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'imei' => $incImei,
+                                'storage' => $incStorage,
+                                'condition' => $incCondition,
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $incCostPrice,
+                                'selling_price' => $incomingProductType->price ?? 0,
+                                'supplier_name' => 'Exchange: ' . $request->customer_name,
+                                'distributor_id' => $incDistributorId,
+                                'unit_exchange_id' => $exchange->id,
+                                'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
+                            ]);
+                        }
+                        $allIncomingPdIds[] = $productDetail->id;
+
+                        InventoryLog::create([
                             'product_id' => $product->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
                             'user_id' => $inventoryUserId,
-                            'storage' => $request->incoming_storage,
-                            'condition' => $request->incoming_condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->incoming_cost_price,
-                            'selling_price' => $incomingProductType->price ?? 0,
-                            'supplier_name' => 'Exchange: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'unit_exchange_id' => $exchange->id,
-                            'notes' => 'Masuk dari Tukar Unit (Update): ' . $receiptId,
+                            'type' => 'in',
+                            'quantity' => 1,
+                            'reference_id' => (string)$productDetail->id,
+                            'description' => 'Tukar Unit (Masuk): ' . $incomingProductType->name . ' (' . $incImei . ')',
+                            'supplier_name' => 'Exchange Customer',
+                            'distributor_id' => $incDistributorId,
+                            'notes' => 'Exchange IN: ' . $receiptId,
                         ]);
-                        $productDetail = $existingPd;
                     } else {
-                        $productDetail = ProductDetail::create([
+                        // Non-HP incoming
+                        $inventoryIn = \App\Models\Inventory::firstOrCreate(
+                            [
+                                'product_id' => $product->id,
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'user_id' => $inventoryUserId
+                            ],
+                            ['quantity' => 0]
+                        );
+                        $inventoryIn->increment('quantity', $inQty);
+
+                        InventoryLog::create([
                             'product_id' => $product->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
                             'user_id' => $inventoryUserId,
-                            'imei' => $request->incoming_imei,
-                            'storage' => $request->incoming_storage,
-                            'condition' => $request->incoming_condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->incoming_cost_price,
-                            'selling_price' => $incomingProductType->price ?? 0,
-                            'supplier_name' => 'Exchange: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'unit_exchange_id' => $exchange->id,
-                            'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
+                            'type' => 'in',
+                            'quantity' => $inQty,
+                            'reference_id' => 'Exchange IN: ' . $receiptId,
+                            'description' => 'Tukar Unit (Masuk Non-HP): ' . $incomingProductType->name,
+                            'supplier_name' => 'Exchange Customer',
+                            'distributor_id' => $incDistributorId,
+                            'notes' => 'Exchange IN: ' . $receiptId,
                         ]);
                     }
-                } else {
-                    $inventoryIn = \App\Models\Inventory::firstOrCreate(
-                        [
-                            'product_id' => $product->id,
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'user_id' => $inventoryUserId
-                        ],
-                        ['quantity' => 0]
-                    );
-                    $inventoryIn->increment('quantity', $inQty);
                 }
 
-                // 4. Create StockOut record for reporting and tracking visibility
-                $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
-                $outPrice = $request->outgoing_price ?? ($outgoingUnit->selling_price ?? 0);
+                // Process non_hp_items (accessories)
+                if ($request->has('non_hp_items') && is_array($request->non_hp_items)) {
+                    foreach ($request->non_hp_items as $nhpItem) {
+                        $nhpName = $nhpItem['name'] ?? 'Accessories';
+                        $nhpQty = (int)($nhpItem['quantity'] ?? 1);
+
+                        $nhpProduct = Product::firstOrCreate(
+                            ['name' => $nhpName, 'type' => 'non-hp'],
+                            ['brand' => 'Accessories', 'has_imei' => false, 'is_active' => true, 'sku' => 'ACC-' . strtoupper(Str::random(8))]
+                        );
+
+                        $inventory = \App\Models\Inventory::firstOrCreate(
+                            ['product_id' => $nhpProduct->id, 'placement_type' => $placementType, 'placement_id' => $placementId, 'user_id' => $inventoryUserId],
+                            ['quantity' => 0]
+                        );
+                        $inventory->increment('quantity', $nhpQty);
+
+                        InventoryLog::create([
+                            'product_id' => $nhpProduct->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'user_id' => $inventoryUserId,
+                            'type' => 'in',
+                            'quantity' => $nhpQty,
+                            'reference_id' => 'Exchange-NHP: ' . $receiptId,
+                            'description' => 'Tukar Unit Acc (Masuk): ' . $nhpName,
+                            'supplier_name' => 'Exchange Customer',
+                            'notes' => 'Exchange IN: ' . $receiptId,
+                        ]);
+                    }
+                }
+
+                // 4. Process all OUTGOING items + Create StockOut
+                $firstOutgoing = !empty($outgoingIds) ? ProductDetail::findOrFail($outgoingIds[0]) : null;
+                $defaultOutPrice = $firstOutgoing?->selling_price ?? 0;
 
                 $stockOut = StockOut::create([
                     'receipt_id' => $receiptId,
@@ -217,11 +335,11 @@ class UnitExchangeController extends Controller
                     'user_id' => $user->id,
                     'inventory_user_id' => $inventoryUserId,
                     'sales_account' => $request->sales_account ?? $targetUser?->name,
-                    'status' => 'received', // Mark as completed
+                    'status' => 'received',
                     'notes' => "Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
-                    'selling_price' => $outPrice,
-                    'total_amount' => $outPrice,
+                    'selling_price' => 0, // Will be updated below
+                    'total_amount' => 0,
                     'transaction_pin' => $request->transaction_pin,
                     'branch_id' => $branchId,
                     'warehouse_id' => $warehouseId,
@@ -230,67 +348,40 @@ class UnitExchangeController extends Controller
                     'split_payments' => $processedSplits,
                 ]);
 
-                // Attach outgoing unit
-                $outQty = $request->outgoing_quantity ?? 1;
-                if ($outgoingUnit->imei) {
-                    $stockOut->items()->attach($request->outgoing_product_detail_id, [
+                foreach ($outgoingIds as $idx => $outPdId) {
+                    $outgoingUnit = ProductDetail::findOrFail($outPdId);
+                    $outPrice = (float)($outgoingPrices[$idx] ?? $outgoingUnit->selling_price ?? 0);
+                    $totalOutPrice += $outPrice;
+
+                    $stockOut->items()->attach($outPdId, [
                         'selling_price' => $outPrice,
                         'item_discount' => 0,
                     ]);
+
                     $outgoingUnit->update([
                         'status' => 'sold',
                         'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Unit: " . $receiptId
                     ]);
-                } else {
-                    \App\Models\StockOutNonHpItem::create([
-                        'stock_out_id' => $stockOut->id,
+
+                    InventoryLog::create([
                         'product_id' => $outgoingUnit->product_id,
-                        'quantity' => $outQty,
-                        'selling_price' => $outPrice,
-                        'distributor_id' => $outgoingUnit->distributor_id
+                        'branch_id' => $branchId,
+                        'warehouse_id' => $warehouseId,
+                        'user_id' => $inventoryUserId,
+                        'type' => 'out',
+                        'quantity' => 1,
+                        'reference_id' => $receiptId,
+                        'description' => 'Tukar Unit (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                        'distributor_id' => $outgoingUnit->distributor_id,
                     ]);
-                    // Decrement from Inventory
-                    $inventoryOut = \App\Models\Inventory::where([
-                        'product_id' => $outgoingUnit->product_id,
-                        'placement_type' => $outgoingUnit->placement_type,
-                        'placement_id' => $outgoingUnit->placement_id,
-                        'user_id' => $inventoryUserId
-                    ])->first();
-                    if ($inventoryOut) $inventoryOut->decrement('quantity', $outQty);
                 }
 
-                // 6. Log both movements
-                // In Log
-                InventoryLog::create([
-                    'product_id' => $product->id,
-                    'branch_id' => $branchId,
-                    'warehouse_id' => $warehouseId,
-                    'user_id' => $inventoryUserId,
-                    'type' => 'in',
-                    'quantity' => $inQty,
-                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('Exchange IN: ' . $receiptId),
-                    'description' => 'Tukar Unit (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
-                    'supplier_name' => 'Exchange Customer',
-                    'distributor_id' => $request->distributor_id,
-                    'notes' => 'Exchange IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
-                ]);
-
-                // Out Log
-                InventoryLog::create([
-                    'product_id' => $outgoingUnit->product_id,
-                    'branch_id' => $branchId,
-                    'warehouse_id' => $warehouseId,
-                    'user_id' => $inventoryUserId,
-                    'type' => 'out',
-                    'quantity' => $outQty,
-                    'reference_id' => $receiptId,
-                    'description' => 'Tukar Unit (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
-                    'distributor_id' => $outgoingUnit->distributor_id,
-                ]);
+                // Update StockOut total
+                $stockOut->update(['selling_price' => $totalOutPrice, 'total_amount' => $totalOutPrice]);
 
                 $msg = 'Tukar unit berhasil diproses.';
-                if ($imeiExisted) {
-                    $msg .= " (Pemberitahuan: IMEI sudah ada di database sebelumnya dengan status: {$imeiStatus})";
+                if (!empty($imeiWarnings)) {
+                    $msg .= " (Pemberitahuan: IMEI berikut sudah ada sebelumnya: " . implode(', ', $imeiWarnings) . ")";
                 }
                 return response()->json([
                     'success' => true,

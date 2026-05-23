@@ -64,6 +64,50 @@ const downgradeForm = ref({
     notes: "",
 });
 
+// Multi-item support: additional incoming items beyond the first one
+const additionalItems = ref([]);
+
+function addItem() {
+    additionalItems.value.push({
+        brand_id: null,
+        product_type_id: null,
+        storage: "",
+        condition: "",
+        imeis_raw: "",
+        quantity: 1,
+        buy_price: 0,
+        distributor_id: downgradeForm.value.distributor_id,
+    });
+}
+
+function removeItem(index) {
+    additionalItems.value.splice(index, 1);
+}
+
+function getFilteredTypesForItem(item) {
+    if (!item.brand_id) return [];
+    return props.productTypes.filter(t => t.brand_id === item.brand_id);
+}
+
+function getCapacitiesForItem(item) {
+    if (!item.product_type_id) return [];
+    const set = new Set();
+    const prices = props.productPrices.filter(p => p.product_type_id === item.product_type_id);
+    prices.forEach(p => { if (p.storage) set.add(p.storage); });
+    if (set.size === 0) {
+        const pt = props.productTypes.find(t => t.id === item.product_type_id);
+        if (pt?.storage) pt.storage.split(/[,]/).forEach(s => { const c = s.trim(); if (c) set.add(c); });
+    }
+    return Array.from(set).sort();
+}
+
+function isItemImei(item) {
+    const pt = props.productTypes.find(t => t.id === item.product_type_id);
+    if (!pt) return true;
+    const cat = pt.category?.toLowerCase();
+    return cat === 'imei' || cat === 'hp / gadget';
+}
+
 // Persistence Logic
 const storageKey = computed(() => {
     const userId = authStore.user?.id || 'guest';
@@ -449,6 +493,43 @@ async function submitDowngrade(pin = null) {
     formData.append('notes', downgradeForm.value.notes);
     formData.append('category', 'downgrade');
 
+    // Multi-item support: if there are additional items, send as items[] array
+    if (additionalItems.value.length > 0) {
+        const allItems = [];
+        
+        // Main item
+        allItems.push({
+            brand_id: downgradeForm.value.incoming_brand_id,
+            product_type_id: downgradeForm.value.incoming_product_type_id,
+            imeis: isImeiDowngrade.value ? [downgradeForm.value.incoming_imei].filter(i => i) : [],
+            quantity: isImeiDowngrade.value ? 1 : (downgradeForm.value.incoming_quantity || 1),
+            storage: downgradeForm.value.incoming_storage,
+            condition: downgradeForm.value.incoming_condition,
+            buy_price: downgradeForm.value.incoming_cost_price,
+            distributor_id: downgradeForm.value.distributor_id,
+        });
+
+        // Additional items
+        for (const item of additionalItems.value) {
+            const itemIsImei = isItemImei(item);
+            const itemImeis = itemIsImei 
+                ? (item.imeis_raw || '').split(/[\n,]/).map(i => i.trim()).filter(i => i !== "")
+                : [];
+            allItems.push({
+                brand_id: item.brand_id,
+                product_type_id: item.product_type_id,
+                imeis: itemImeis,
+                quantity: itemIsImei ? Math.max(1, itemImeis.length) : (item.quantity || 1),
+                storage: item.storage,
+                condition: item.condition,
+                buy_price: item.buy_price,
+                distributor_id: item.distributor_id || downgradeForm.value.distributor_id,
+            });
+        }
+
+        formData.append('items', JSON.stringify(allItems));
+    }
+
     try {
         const response = await api.post('/downgrades', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -498,6 +579,7 @@ async function submitDowngrade(pin = null) {
         emit("transaction-complete", transaction);
 
         // Reset
+        additionalItems.value = [];
         downgradeForm.value = {
             customer_name: "",
             customer_phone: "",
@@ -739,6 +821,79 @@ async function submitDowngrade(pin = null) {
                     </div>
                     <p class="text-[10px] text-text-secondary italic text-center">*Minimal upload salah satu foto</p>
                 </div>
+            </div>
+
+            <!-- Additional Items Section -->
+            <div class="mt-8 space-y-4">
+                <div v-if="additionalItems.length > 0" class="space-y-4 mb-6">
+                    <div v-for="(item, idx) in additionalItems" :key="idx"
+                        class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative">
+                        <button @click="removeItem(idx)" type="button"
+                            class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                            <X :size="16" />
+                        </button>
+                        <p class="text-[10px] font-black text-primary-500 uppercase tracking-widest mb-3">Item Tambahan #{{ idx + 1 }}</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Brand</label>
+                                <select v-model="item.brand_id"
+                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option :value="null" disabled>Pilih</option>
+                                    <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Tipe</label>
+                                <select v-model="item.product_type_id" :disabled="!item.brand_id"
+                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option :value="null" disabled>Pilih</option>
+                                    <option v-for="t in getFilteredTypesForItem(item)" :key="t.id" :value="t.id">{{ t.name }}</option>
+                                </select>
+                            </div>
+                            <div v-if="isItemImei(item)">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Kapasitas</label>
+                                <select v-model="item.storage" :disabled="!item.product_type_id"
+                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option value="" disabled>Pilih</option>
+                                    <option v-for="s in getCapacitiesForItem(item)" :key="s" :value="s">{{ s }}</option>
+                                </select>
+                            </div>
+                            <div v-if="isItemImei(item)">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Kondisi</label>
+                                <select v-model="item.condition"
+                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none">
+                                    <option value="" disabled>Pilih</option>
+                                    <option value="new">New</option>
+                                    <option value="second">Second</option>
+                                    <option value="ex_ibox">Ex iBox</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div v-if="isItemImei(item)" class="mt-3">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">IMEI</label>
+                            <textarea v-model="item.imeis_raw" rows="2" placeholder="IMEI..."
+                                class="w-full border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs font-mono focus:border-primary-500 outline-none"></textarea>
+                        </div>
+                        <div v-else class="mt-3">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Quantity</label>
+                            <input v-model.number="item.quantity" type="number" min="1"
+                                class="w-24 border border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-white dark:bg-surface-800 text-xs focus:border-primary-500 outline-none" />
+                        </div>
+                        <div class="mt-3">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Harga Unit Masuk</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-secondary">Rp</span>
+                                <input v-money:buy_price="item" type="text"
+                                    class="w-full border border-surface-200 dark:border-surface-700 rounded-lg pl-8 pr-3 py-2 bg-white dark:bg-surface-800 text-xs font-bold text-primary-600 focus:border-primary-500 outline-none" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button @click="addItem" type="button"
+                    class="w-full py-3 border-2 border-dashed border-primary-300 dark:border-primary-700 rounded-xl text-primary-600 font-bold text-xs uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all flex items-center justify-center gap-2">
+                    <Plus :size="16" stroke-width="3" /> Tambah Item Lain
+                </button>
             </div>
 
             <!-- 4. ALASAN, PEMBAYARAN & SUMMARY -->
