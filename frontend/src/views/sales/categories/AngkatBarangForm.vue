@@ -107,6 +107,19 @@ function getFilteredTypesForItem(item) {
     return props.productTypes.filter(t => t.brand_id === item.brand_id);
 }
 
+function getFilteredBrandsForItem(item) {
+    const distId = item.distributor_id || tradeInForm.value.distributor_id;
+    if (!distId) return props.brands;
+    const dist = props.distributors.find(d => d.id === distId);
+    if (!dist || !dist.allowed_brands) return props.brands;
+    try {
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        if (!Array.isArray(allowedIds)) return props.brands;
+        const numericIds = allowedIds.map(id => Number(id));
+        return props.brands.filter(b => numericIds.includes(Number(b.id)));
+    } catch { return props.brands; }
+}
+
 function getCapacitiesForItem(item) {
     if (!item.product_type_id) return [];
     const set = new Set();
@@ -122,8 +135,8 @@ function getCapacitiesForItem(item) {
 function isItemImei(item) {
     const pt = props.productTypes.find(t => t.id === item.product_type_id);
     if (!pt) return false; // Don't show IMEI field until type is selected
-    const cat = pt.category?.toLowerCase();
-    return cat === 'imei' || cat === 'hp / gadget';
+    const cat = (pt.category || '').toLowerCase().trim();
+    return cat === 'imei' || cat === 'hp / gadget' || cat === 'hp/gadget';
 }
 
 
@@ -823,7 +836,7 @@ async function submitTradeIn(pin = null) {
                                     <select v-model="item.brand_id"
                                         class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-sm focus:border-primary-500 outline-none">
                                         <option :value="null" disabled>Pilih Brand</option>
-                                        <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                        <option v-for="b in getFilteredBrandsForItem(item)" :key="b.id" :value="b.id">{{ b.name }}</option>
                                     </select>
                                 </div>
                                 <div>
@@ -863,7 +876,7 @@ async function submitTradeIn(pin = null) {
                                     class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-white dark:bg-surface-800 text-sm font-mono focus:border-primary-500 outline-none"></textarea>
                             </div>
                             <!-- Quantity (for Non-HP) -->
-                            <div v-if="item.product_type_id && !isItemImei(item)">
+                            <div v-else-if="item.product_type_id">
                                 <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Jumlah Stok <span class="text-red-500">*</span></label>
                                 <div class="flex items-center gap-4">
                                     <input v-model.number="item.quantity" type="number" min="1"
