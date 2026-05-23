@@ -120,7 +120,7 @@ function getCapacitiesForItem(item) {
 
 function isItemImei(item) {
     const pt = props.productTypes.find(t => t.id === item.product_type_id);
-    if (!pt) return true;
+    if (!pt) return false; // Don't show IMEI field until type is selected
     const cat = pt.category?.toLowerCase();
     return cat === 'imei' || cat === 'hp / gadget';
 }
