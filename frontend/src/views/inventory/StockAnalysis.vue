@@ -94,7 +94,6 @@ async function loadStorageOptions() {
                 '3/32', '4/64', '4/128', '6/128', '8/128', '8/256', '12/256'
             ].map(s => ({ label: s, value: s }))
         }
-        }
     } catch (e) {
         storageOptions.value = []
     }
