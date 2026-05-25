@@ -285,6 +285,7 @@ function getLocationTypeLabel(type) {
                         <tr class="border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Nama Cabang</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe Lokasi</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Merek</th>
                             <th v-if="selectedType" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
                             <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
                             <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
@@ -305,6 +306,7 @@ function getLocationTypeLabel(type) {
                                     {{ getLocationTypeLabel(item.location_type) }}
                                 </span>
                             </td>
+                            <td class="px-5 py-3.5 text-text-primary font-medium">{{ item.brand }}</td>
                             <td v-if="selectedType" class="px-5 py-3.5">
                                 <div>
                                     <span class="text-text-primary">{{ item.product_name }}</span>
