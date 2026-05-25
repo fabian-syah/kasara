@@ -39,17 +39,20 @@ async function loadBrands() {
     try {
         const res = await brandsApi.list({ per_page: -1 })
         const data = res.data?.data || res.data || []
-        brandOptions.value = data.map(b => ({ label: b.name, value: b.name }))
+        brandOptions.value = data.map(b => ({ label: b.name, value: b.name, id: b.id }))
     } catch (e) {
         console.error('Failed to load brands:', e)
     }
 }
 
+const allProductTypes = ref([])
+
 async function loadProductTypes() {
     try {
         const res = await productTypesApi.list({ per_page: -1 })
         const data = res.data?.data || res.data || []
-        typeOptions.value = data.map(t => ({ label: t.name, value: t.id, storages: t.storages || [] }))
+        allProductTypes.value = data
+        updateTypeOptions()
     } catch (e) {
         console.error('Failed to load product types:', e)
     }
@@ -58,9 +61,15 @@ async function loadProductTypes() {
 // When product type changes, update storage options
 function onTypeChange() {
     selectedStorage.value = ''
-    const selected = typeOptions.value.find(t => t.value === selectedType.value)
-    if (selected && selected.storages && selected.storages.length > 0) {
-        storageOptions.value = selected.storages.map(s => ({ label: s, value: s }))
+    const selected = allProductTypes.value.find(t => t.id === selectedType.value)
+    if (selected && selected.storage) {
+        // Parse storage string (comma-separated)
+        const storages = selected.storage.split(/[,]/).map(s => s.trim()).filter(s => s)
+        if (storages.length > 0) {
+            storageOptions.value = storages.map(s => ({ label: s, value: s }))
+        } else {
+            loadStorageOptions()
+        }
     } else {
         loadStorageOptions()
     }
@@ -81,6 +90,25 @@ function onFilterChange() {
     } else {
         clearResults()
     }
+}
+
+function onBrandChange() {
+    selectedType.value = ''
+    selectedStorage.value = ''
+    updateTypeOptions()
+    onFilterChange()
+}
+
+function updateTypeOptions() {
+    let filtered = allProductTypes.value
+    if (selectedBrand.value) {
+        // Find brand id from brandOptions
+        const brandObj = brandOptions.value.find(b => b.value === selectedBrand.value)
+        if (brandObj) {
+            filtered = allProductTypes.value.filter(t => t.brand_id === brandObj.id)
+        }
+    }
+    typeOptions.value = filtered.map(t => ({ label: t.name, value: t.id, storage: t.storage || '' }))
 }
 
 async function loadStorageOptions() {
@@ -187,7 +215,7 @@ function getLocationTypeLabel(type) {
                 <!-- Brand Filter -->
                 <div>
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">Brand</label>
-                    <select v-model="selectedBrand" @change="onFilterChange"
+                    <select v-model="selectedBrand" @change="onBrandChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Brand</option>
                         <option v-for="brand in brandOptions" :key="brand.value" :value="brand.value">
