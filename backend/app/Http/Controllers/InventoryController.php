@@ -1519,8 +1519,65 @@ class InventoryController extends Controller
             ->groupBy($groupByFields)
             ->orderByDesc('qty');
 
-        // Get total for summary before pagination
-        $allResults = (clone $query)->get();
+        // Also query non-HP items from inventories table
+        $nonHpQuery = \App\Models\Inventory::query()
+            ->where('inventories.quantity', '>', 0)
+            ->join('products', 'products.id', '=', 'inventories.product_id');
+
+        // Apply same filters to non-HP
+        if ($request->filled('brand')) {
+            $nonHpQuery->where('products.brand', $request->brand);
+        }
+        if ($request->filled('product_type_id')) {
+            $productType = \App\Models\ProductType::find($request->product_type_id);
+            if ($productType) {
+                $nonHpQuery->where('products.name', $productType->name);
+            }
+        }
+        if ($request->filled('product_name')) {
+            $nonHpQuery->where('products.name', $request->product_name);
+        }
+        // Storage and condition filters don't apply to non-HP (they don't have these fields)
+        // Skip non-HP results if storage or condition filter is active
+        $skipNonHp = $request->filled('storage') || $request->filled('condition');
+
+        // Apply role-based filtering to non-HP
+        if ($user->hasRole(['super_admin', 'analist'])) {
+            // no restriction
+        } elseif ($user->hasRole('audit')) {
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $nonHpQuery->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                $hasConstraint = false;
+                if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'branch')->whereIn('inventories.placement_id', $branchIds)); $hasConstraint = true; }
+                if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'warehouse')->whereIn('inventories.placement_id', $warehouseIds)); $hasConstraint = true; }
+                if (!empty($onlineShopIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'online_shop')->whereIn('inventories.placement_id', $onlineShopIds)); $hasConstraint = true; }
+                if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
+            });
+        }
+
+        $nonHpResults = collect();
+        if (!$skipNonHp) {
+            $nonHpResults = $nonHpQuery->select(
+                'inventories.placement_type',
+                'inventories.placement_id',
+                'products.brand',
+                'products.name as product_name',
+                DB::raw('SUM(inventories.quantity) as qty')
+            )
+                ->groupBy('inventories.placement_type', 'inventories.placement_id', 'products.brand', 'products.name')
+                ->orderByDesc('qty')
+                ->get()
+                ->map(function ($row) {
+                    $row->storage = null;
+                    $row->condition = null;
+                    return $row;
+                });
+        }
+
+        // Merge HP + Non-HP results
+        $allResults = (clone $query)->get()->concat($nonHpResults)->sortByDesc('qty')->values();
         $totalQty = $allResults->sum('qty');
         $totalLocations = $allResults->unique(fn($r) => $r->placement_type . ':' . $r->placement_id)->count();
 
