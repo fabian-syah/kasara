@@ -503,25 +503,25 @@
                     </div>
 
                     <!-- Footer / Actions (hide on print) -->
-                    <div class="p-4 bg-white border-t border-gray-100 flex gap-3 items-center print:hidden shrink-0">
+                    <div class="p-4 bg-white dark:bg-surface-800 border-t border-gray-100 dark:border-surface-700 flex gap-3 items-center print:hidden shrink-0">
                         <button @click="close"
                             class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 active:scale-95 uppercase tracking-widest">
                             Selesai & Keluar
                         </button>
-                        <div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+                        <div class="flex items-center gap-1 bg-gray-100 dark:bg-surface-700 rounded-xl p-1">
                             <button @click="paperSize = 'A4'" 
                                 class="px-3 py-2 text-xs font-bold rounded-lg transition-all"
-                                :class="paperSize === 'A4' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                                :class="paperSize === 'A4' ? 'bg-white dark:bg-surface-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
                                 A4
                             </button>
                             <button @click="alert('Fitur cetak A5 sedang dalam pengembangan. Saat ini hanya tersedia cetak A4.')" 
-                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all text-gray-400 cursor-not-allowed opacity-60"
+                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60"
                                 title="Sedang dalam pengembangan">
                                 A5
                             </button>
                         </div>
                         <button @click="printReceipt"
-                            class="px-4 py-3 text-sm font-bold text-white bg-gray-900 rounded-2xl hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                            class="px-4 py-3 text-sm font-bold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-2xl hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
                             <Printer :size="18" />
                             Cetak
                         </button>
