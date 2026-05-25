@@ -32,7 +32,7 @@ const conditionOptions = [
 
 // Load filter options
 onMounted(async () => {
-    await Promise.all([loadBrands(), loadProductTypes()])
+    await Promise.all([loadBrands(), loadProductTypes(), loadStorageOptions()])
 })
 
 async function loadBrands() {
@@ -76,10 +76,6 @@ function clearResults() {
 }
 
 async function loadStorageOptions() {
-    if (!selectedType.value && !selectedBrand.value) {
-        storageOptions.value = []
-        return
-    }
     try {
         const params = {}
         if (selectedType.value) params.product_type_id = selectedType.value
@@ -90,6 +86,14 @@ async function loadStorageOptions() {
             storageOptions.value = data.storages
                 .filter(s => s)
                 .map(s => ({ label: s, value: s }))
+        }
+        // Fallback: if no storages from API, use common values
+        if (storageOptions.value.length === 0) {
+            storageOptions.value = [
+                '32 GB', '64 GB', '128 GB', '256 GB', '512 GB', '1 TB',
+                '3/32', '4/64', '4/128', '6/128', '8/128', '8/256', '12/256'
+            ].map(s => ({ label: s, value: s }))
+        }
         }
     } catch (e) {
         storageOptions.value = []
