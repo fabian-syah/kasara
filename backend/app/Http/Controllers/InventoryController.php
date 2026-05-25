@@ -1483,24 +1483,40 @@ class InventoryController extends Controller
             });
         }
 
-        // Always group by all fields to show full breakdown
-        $results = $query->select(
+        // Dynamic grouping based on active filters
+        $hasTypeFilter = $request->filled('product_type_id') || $request->filled('product_name');
+        $hasStorageFilter = $request->filled('storage');
+        $hasConditionFilter = $request->filled('condition');
+
+        $selectFields = [
             'product_details.placement_type',
             'product_details.placement_id',
             'products.brand',
-            'products.name as product_name',
-            'product_details.storage',
-            'product_details.condition',
             DB::raw('COUNT(*) as qty')
-        )
-            ->groupBy(
-                'product_details.placement_type',
-                'product_details.placement_id',
-                'products.brand',
-                'products.name',
-                'product_details.storage',
-                'product_details.condition'
-            )
+        ];
+        $groupByFields = [
+            'product_details.placement_type',
+            'product_details.placement_id',
+            'products.brand',
+        ];
+
+        if ($hasTypeFilter) {
+            $selectFields[] = 'products.name as product_name';
+            $groupByFields[] = 'products.name';
+        }
+
+        if ($hasStorageFilter || $hasTypeFilter) {
+            $selectFields[] = 'product_details.storage';
+            $groupByFields[] = 'product_details.storage';
+        }
+
+        if ($hasConditionFilter) {
+            $selectFields[] = 'product_details.condition';
+            $groupByFields[] = 'product_details.condition';
+        }
+
+        $results = $query->select($selectFields)
+            ->groupBy($groupByFields)
             ->orderByDesc('qty');
 
         // Get total for summary before pagination
@@ -1522,9 +1538,9 @@ class InventoryController extends Controller
                 'location_type' => $row->placement_type,
                 'qty' => (int) $row->qty,
                 'brand' => $row->brand,
-                'product_name' => $row->product_name,
-                'storage' => $row->storage,
-                'condition' => $row->condition,
+                'product_name' => $row->product_name ?? null,
+                'storage' => $row->storage ?? null,
+                'condition' => $row->condition ?? null,
             ];
         });
 
