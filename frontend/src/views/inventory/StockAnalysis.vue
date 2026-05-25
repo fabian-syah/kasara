@@ -93,6 +93,10 @@ const pagination = ref({ current_page: 1, last_page: 1, total: 0 })
 
 // Search
 async function handleSearch(page = 1) {
+    if (!selectedBrand.value && !selectedType.value && !selectedStorage.value && !selectedCondition.value) {
+        alert('Pilih minimal 1 filter sebelum mencari.')
+        return
+    }
     loading.value = true
     hasSearched.value = true
     try {
