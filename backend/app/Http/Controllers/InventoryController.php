@@ -1498,11 +1498,21 @@ class InventoryController extends Controller
                 'product_details.storage',
                 'product_details.condition'
             )
-            ->orderByDesc('qty')
-            ->get();
+            ->orderByDesc('qty');
+
+        // Get total for summary before pagination
+        $allResults = (clone $query)->get();
+        $totalQty = $allResults->sum('qty');
+        $totalLocations = $allResults->unique(fn($r) => $r->placement_type . ':' . $r->placement_id)->count();
+
+        // Paginate
+        $perPage = (int) ($request->per_page ?? 20);
+        $page = (int) ($request->page ?? 1);
+        $total = $allResults->count();
+        $paginatedResults = $allResults->slice(($page - 1) * $perPage, $perPage)->values();
 
         // Resolve location names
-        $data = $results->map(function ($row) {
+        $data = $paginatedResults->map(function ($row) {
             $locationName = $this->resolveLocationName($row->placement_type, $row->placement_id);
             return [
                 'location_name' => $locationName,
@@ -1515,15 +1525,16 @@ class InventoryController extends Controller
             ];
         });
 
-        $totalQty = $data->sum('qty');
-        $totalLocations = $data->unique('location_name')->count();
-
         return response()->json([
             'data' => $data->values(),
             'summary' => [
                 'total_qty' => $totalQty,
                 'total_locations' => $totalLocations,
-            ]
+            ],
+            'current_page' => $page,
+            'last_page' => (int) ceil($total / $perPage),
+            'per_page' => $perPage,
+            'total' => $total,
         ]);
     }
 

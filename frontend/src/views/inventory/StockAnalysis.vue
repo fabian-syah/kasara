@@ -88,12 +88,15 @@ async function loadStorageOptions() {
     }
 }
 
+// Pagination
+const pagination = ref({ current_page: 1, last_page: 1, total: 0 })
+
 // Search
-async function handleSearch() {
+async function handleSearch(page = 1) {
     loading.value = true
     hasSearched.value = true
     try {
-        const params = {}
+        const params = { page }
         if (selectedBrand.value) params.brand = selectedBrand.value
         if (selectedType.value) params.product_type_id = selectedType.value
         if (selectedStorage.value) params.storage = selectedStorage.value
@@ -102,6 +105,11 @@ async function handleSearch() {
         const res = await inventory.stockAnalysis(params)
         results.value = res.data?.data || []
         summary.value = res.data?.summary || { total_qty: 0, total_locations: 0 }
+        pagination.value = {
+            current_page: res.data?.current_page || 1,
+            last_page: res.data?.last_page || 1,
+            total: res.data?.total || 0,
+        }
     } catch (e) {
         console.error('Stock analysis error:', e)
         results.value = []
@@ -299,6 +307,23 @@ function getLocationTypeLabel(type) {
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination -->
+            <div v-if="pagination.last_page > 1" class="border-t border-surface-200 dark:border-surface-800 p-4 flex items-center justify-between">
+                <span class="text-xs text-text-secondary">
+                    Halaman {{ pagination.current_page }} dari {{ pagination.last_page }} ({{ pagination.total }} data)
+                </span>
+                <div class="flex gap-2">
+                    <button @click="handleSearch(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-100 dark:bg-surface-800 text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        Sebelumnya
+                    </button>
+                    <button @click="handleSearch(pagination.current_page + 1)" :disabled="pagination.current_page === pagination.last_page"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-surface-100 dark:bg-surface-800 text-text-primary hover:bg-surface-200 dark:hover:bg-surface-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        Selanjutnya
+                    </button>
+                </div>
             </div>
         </div>
 
