@@ -123,7 +123,7 @@ class SalesExport
             // Handle HP Items
             foreach ($so->items as $item) {
                 $storage = !empty($item->storage) ? " {$item->storage}" : "";
-                $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $storage . " [" . ($item->condition === 'new' ? 'Baru' : 'Second') . "]";
+                $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $storage . " [" . match($item->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second' } . "]";
                 $imei = $item->imei ? "'" . $item->imei : '-';
                 $dist = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
                 $itemBase = (float)($item->pivot->selling_price ?? 0);
@@ -163,7 +163,7 @@ class SalesExport
             // Handle Dynamic Exchange Inbound Item (TT/DG)
             if ($exchangeInfo) {
                 $iStorage = !empty($exchangeInfo->incoming_storage) ? " {$exchangeInfo->incoming_storage}" : "";
-                $iName = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . $iStorage . " [" . ($exchangeInfo->incoming_condition ?? 'Second') . "]";
+                $iName = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen') . $iStorage . " [" . match($exchangeInfo->incoming_condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second' } . "]";
                 $iImei = !empty($exchangeInfo->incoming_imei) ? "'" . $exchangeInfo->incoming_imei : '-';
                 $iPrice = (float)($exchangeInfo->incoming_cost_price ?? 0);
                 $dIn = $exchangeInfo->distributor?->name ?? $exchangeInfo->incoming_source ?? 'Konsumen';
