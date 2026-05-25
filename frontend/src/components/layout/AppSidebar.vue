@@ -35,7 +35,8 @@ import {
     HelpCircle,
     MoreHorizontal,
     Trophy,
-    History
+    History,
+    PieChart
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -119,6 +120,7 @@ const menuItems = [
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
+            { id: "stock_analysis", path: "/inventory/stock-analysis", label: "Analisa Stok" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
             { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },

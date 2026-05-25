@@ -184,6 +184,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/stock-analysis',
+                name: 'StockAnalysis',
+                component: () => import('../views/inventory/StockAnalysis.vue'),
+                meta: {
+                    title: 'Analisa Stok',
+                    menu: 'stock_analysis',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'inventory/download-center',
                 name: 'DownloadCenter',
                 component: () => import('../views/inventory/DownloadCenter.vue'),

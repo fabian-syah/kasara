@@ -1393,6 +1393,153 @@ class InventoryController extends Controller
         return response()->json(['success' => true, 'message' => 'Perubahan foto inventory ditolak.']);
     }
 
+    /**
+     * Stock Analysis - Analisa Stok
+     * Returns available stock grouped by location with optional filters.
+     * Access: super_admin, analist (all locations), audit (only assigned branches)
+     */
+    public function stockAnalysis(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        // Authorization check
+        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Base query: available product_details with product info
+        $query = ProductDetail::query()
+            ->where('product_details.status', 'available')
+            ->join('products', 'products.id', '=', 'product_details.product_id')
+            ->whereNull('products.deleted_at');
+
+        // Optional filters
+        if ($request->filled('brand')) {
+            $query->where('products.brand', $request->brand);
+        }
+
+        if ($request->filled('product_type_id')) {
+            $query->where('products.brand_id', $request->product_type_id);
+        }
+
+        if ($request->filled('product_name')) {
+            $query->where('products.name', $request->product_name);
+        }
+
+        if ($request->filled('storage')) {
+            $query->where('product_details.storage', $request->storage);
+        }
+
+        if ($request->filled('condition')) {
+            $query->where('product_details.condition', $request->condition);
+        }
+
+        // Role-based location filtering
+        if ($user->hasRole(['super_admin', 'analist'])) {
+            // See all locations (excluding test/trial branches for analist)
+            if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+                $excludedKeywords = config('kasara.excluded_keywords', []);
+                if (!empty($excludedKeywords)) {
+                    $query->where(function ($q) use ($excludedKeywords) {
+                        $q->where(function ($sq) use ($excludedKeywords) {
+                            $sq->where('product_details.placement_type', '!=', 'branch')
+                                ->orWhereNotIn('product_details.placement_id', function ($subq) use ($excludedKeywords) {
+                                    $subq->select('id')->from('branches');
+                                    foreach ($excludedKeywords as $kw) {
+                                        $subq->where('name', 'ilike', "%$kw%");
+                                    }
+                                });
+                        });
+                    });
+                }
+            }
+        } elseif ($user->hasRole('audit')) {
+            // Audit: only see their accessible locations
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+
+            $query->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                $hasConstraint = false;
+                if (!empty($branchIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'branch')->whereIn('product_details.placement_id', $branchIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($warehouseIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'warehouse')->whereIn('product_details.placement_id', $warehouseIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($onlineShopIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'online_shop')->whereIn('product_details.placement_id', $onlineShopIds));
+                    $hasConstraint = true;
+                }
+                if (!$hasConstraint) {
+                    $q->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        // Group by location + product info to get qty per location
+        $results = $query->select(
+            'product_details.placement_type',
+            'product_details.placement_id',
+            'products.brand',
+            'products.name as product_name',
+            'product_details.storage',
+            'product_details.condition',
+            DB::raw('COUNT(*) as qty')
+        )
+            ->groupBy(
+                'product_details.placement_type',
+                'product_details.placement_id',
+                'products.brand',
+                'products.name',
+                'product_details.storage',
+                'product_details.condition'
+            )
+            ->orderByDesc('qty')
+            ->get();
+
+        // Resolve location names
+        $data = $results->map(function ($row) {
+            $locationName = $this->resolveLocationName($row->placement_type, $row->placement_id);
+            return [
+                'location_name' => $locationName,
+                'location_type' => $row->placement_type,
+                'qty' => (int) $row->qty,
+                'brand' => $row->brand,
+                'product_name' => $row->product_name,
+                'storage' => $row->storage,
+                'condition' => $row->condition,
+            ];
+        });
+
+        $totalQty = $data->sum('qty');
+        $totalLocations = $data->unique('location_name')->count();
+
+        return response()->json([
+            'data' => $data->values(),
+            'summary' => [
+                'total_qty' => $totalQty,
+                'total_locations' => $totalLocations,
+            ]
+        ]);
+    }
+
+    /**
+     * Resolve a placement type + id to a human-readable name.
+     */
+    private function resolveLocationName(string $type, int $id): string
+    {
+        return match ($type) {
+            'branch' => \App\Models\Branch::find($id)?->name ?? "Branch #$id",
+            'warehouse' => \App\Models\Warehouse::find($id)?->name ?? "Warehouse #$id",
+            'online_shop' => \App\Models\OnlineShop::find($id)?->name ?? "Online Shop #$id",
+            'distributor' => \App\Models\Distributor::find($id)?->name ?? "Distributor #$id",
+            default => "$type #$id",
+        };
+    }
 
     // destroyAccount and voidStockIn moved to their respective controllers
 }

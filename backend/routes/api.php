@@ -91,6 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('product-prices', App\Http\Controllers\ProductPriceController::class);
 
     // Inventory Static Routes (MUST BE ABOVE DYNAMIC ROUTES)
+    Route::get('/inventory/stock-analysis', [InventoryController::class, 'stockAnalysis']);
     Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
     Route::get('/inventory/history/in', [StockInController::class, 'stockInHistory']);
     Route::get('/inventory/history/out', [StockInController::class, 'stockOutHistory']);

@@ -108,6 +108,7 @@ export const inventory = {
     transfer: (data) => api.post('/inventory/transfer', data),
     stockIn: (data) => api.post('/inventory/stock-in', data),
     stockOut: (data) => api.post('/inventory/stock-out', data),
+    stockAnalysis: (params) => api.get('/inventory/stock-analysis', { params }),
     historyIn: (params) => api.get('/inventory/history/in', { params }),
     historyOut: (params) => api.get('/inventory/history/out', { params }),
     failedInputs: (params) => api.get('/inventory/failed-inputs', { params }),
