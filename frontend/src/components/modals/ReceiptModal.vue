@@ -514,9 +514,9 @@
                                 :class="paperSize === 'A4' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
                                 A4
                             </button>
-                            <button @click="paperSize = 'A5'" 
-                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all"
-                                :class="paperSize === 'A5' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                            <button @click="alert('Fitur cetak A5 sedang dalam pengembangan. Saat ini hanya tersedia cetak A4.')" 
+                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all text-gray-400 cursor-not-allowed opacity-60"
+                                title="Sedang dalam pengembangan">
                                 A5
                             </button>
                         </div>
