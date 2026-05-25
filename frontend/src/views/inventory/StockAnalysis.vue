@@ -58,14 +58,13 @@ async function loadProductTypes() {
 // When product type changes, update storage options
 function onTypeChange() {
     selectedStorage.value = ''
-    clearResults()
     const selected = typeOptions.value.find(t => t.value === selectedType.value)
     if (selected && selected.storages && selected.storages.length > 0) {
         storageOptions.value = selected.storages.map(s => ({ label: s, value: s }))
     } else {
-        // Load storages dynamically from API based on product type
         loadStorageOptions()
     }
+    onFilterChange()
 }
 
 function clearResults() {
@@ -73,6 +72,15 @@ function clearResults() {
     summary.value = { total_qty: 0, total_locations: 0 }
     hasSearched.value = false
     pagination.value = { current_page: 1, last_page: 1, total: 0 }
+}
+
+function onFilterChange() {
+    // Auto-search if at least one filter is active
+    if (selectedBrand.value || selectedType.value || selectedStorage.value || selectedCondition.value) {
+        handleSearch(1)
+    } else {
+        clearResults()
+    }
 }
 
 async function loadStorageOptions() {
@@ -179,7 +187,7 @@ function getLocationTypeLabel(type) {
                 <!-- Brand Filter -->
                 <div>
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">Brand</label>
-                    <select v-model="selectedBrand" @change="clearResults"
+                    <select v-model="selectedBrand" @change="onFilterChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Brand</option>
                         <option v-for="brand in brandOptions" :key="brand.value" :value="brand.value">
@@ -203,7 +211,7 @@ function getLocationTypeLabel(type) {
                 <!-- Storage/GB Filter -->
                 <div>
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">Kapasitas (GB)</label>
-                    <select v-model="selectedStorage" @change="clearResults"
+                    <select v-model="selectedStorage" @change="onFilterChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Kapasitas</option>
                         <option v-for="s in storageOptions" :key="s.value" :value="s.value">
@@ -215,7 +223,7 @@ function getLocationTypeLabel(type) {
                 <!-- Kondisi Filter -->
                 <div>
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">Kondisi</label>
-                    <select v-model="selectedCondition" @change="clearResults"
+                    <select v-model="selectedCondition" @change="onFilterChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option v-for="c in conditionOptions" :key="c.value" :value="c.value">
                             {{ c.label }}
