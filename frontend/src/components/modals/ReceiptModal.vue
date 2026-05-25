@@ -521,7 +521,7 @@
                             </button>
                         </div>
                         <button @click="printReceipt"
-                            class="px-4 py-3 text-sm font-bold text-white bg-gray-900 dark:bg-white dark:text-gray-900 rounded-2xl hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95">
+                            class="px-4 py-3 text-sm font-bold text-white bg-gray-900 dark:bg-surface-600 dark:text-white rounded-2xl hover:bg-gray-800 dark:hover:bg-surface-500 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95 border border-transparent dark:border-surface-500">
                             <Printer :size="18" />
                             Cetak
                         </button>
