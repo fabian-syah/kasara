@@ -1420,7 +1420,10 @@ class InventoryController extends Controller
         }
 
         if ($request->filled('product_type_id')) {
-            $query->where('products.brand_id', $request->product_type_id);
+            $productType = \App\Models\ProductType::find($request->product_type_id);
+            if ($productType) {
+                $query->where('products.name', $productType->name);
+            }
         }
 
         if ($request->filled('product_name')) {
