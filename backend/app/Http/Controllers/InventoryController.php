@@ -1505,7 +1505,7 @@ class InventoryController extends Controller
             $groupByFields[] = 'products.name';
         }
 
-        if ($hasStorageFilter || $hasTypeFilter) {
+        if ($hasStorageFilter) {
             $selectFields[] = 'product_details.storage';
             $groupByFields[] = 'product_details.storage';
         }

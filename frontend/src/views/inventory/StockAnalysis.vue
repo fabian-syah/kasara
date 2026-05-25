@@ -263,7 +263,7 @@ function getLocationTypeLabel(type) {
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Nama Cabang</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe Lokasi</th>
                             <th v-if="selectedType" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
-                            <th v-if="selectedType || selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
+                            <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
                             <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             <th class="text-center px-5 py-3 font-medium text-text-secondary">Qty</th>
                         </tr>
@@ -285,10 +285,9 @@ function getLocationTypeLabel(type) {
                             <td v-if="selectedType" class="px-5 py-3.5">
                                 <div>
                                     <span class="text-text-primary">{{ item.product_name }}</span>
-                                    <span class="text-text-secondary ml-1 text-xs">({{ item.brand }})</span>
                                 </div>
                             </td>
-                            <td v-if="selectedType || selectedStorage" class="px-5 py-3.5 text-text-secondary">{{ item.storage || '-' }}</td>
+                            <td v-if="selectedStorage" class="px-5 py-3.5 text-text-secondary">{{ item.storage || '-' }}</td>
                             <td v-if="selectedCondition" class="px-5 py-3.5">
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"
                                     :class="{
