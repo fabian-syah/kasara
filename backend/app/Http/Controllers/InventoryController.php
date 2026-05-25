@@ -1483,24 +1483,50 @@ class InventoryController extends Controller
             });
         }
 
-        // Group by location + product info to get qty per location
-        $results = $query->select(
+        // Dynamic grouping based on which filters are applied
+        // If only brand is filtered (no specific type/storage/condition), group by location only
+        $hasTypeFilter = $request->filled('product_type_id') || $request->filled('product_name');
+        $hasStorageFilter = $request->filled('storage');
+        $hasConditionFilter = $request->filled('condition');
+
+        $selectFields = [
             'product_details.placement_type',
             'product_details.placement_id',
             'products.brand',
-            'products.name as product_name',
-            'product_details.storage',
-            'product_details.condition',
             DB::raw('COUNT(*) as qty')
-        )
-            ->groupBy(
-                'product_details.placement_type',
-                'product_details.placement_id',
-                'products.brand',
-                'products.name',
-                'product_details.storage',
-                'product_details.condition'
-            )
+        ];
+        $groupByFields = [
+            'product_details.placement_type',
+            'product_details.placement_id',
+            'products.brand',
+        ];
+
+        // Add product name to grouping if type filter is applied
+        if ($hasTypeFilter) {
+            $selectFields[] = 'products.name as product_name';
+            $groupByFields[] = 'products.name';
+        } else {
+            $selectFields[] = DB::raw("NULL as product_name");
+        }
+
+        // Add storage to grouping if storage filter is applied or type is specified
+        if ($hasStorageFilter || $hasTypeFilter) {
+            $selectFields[] = 'product_details.storage';
+            $groupByFields[] = 'product_details.storage';
+        } else {
+            $selectFields[] = DB::raw("NULL as storage");
+        }
+
+        // Add condition to grouping if condition filter is applied
+        if ($hasConditionFilter) {
+            $selectFields[] = 'product_details.condition';
+            $groupByFields[] = 'product_details.condition';
+        } else {
+            $selectFields[] = DB::raw("NULL as condition");
+        }
+
+        $results = $query->select($selectFields)
+            ->groupBy($groupByFields)
             ->orderByDesc('qty');
 
         // Get total for summary before pagination
