@@ -311,6 +311,7 @@ function getLocationTypeLabel(type) {
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
+                            <th class="text-center px-3 py-3 font-medium text-text-secondary w-12">No</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Nama Cabang</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe Lokasi</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Merek</th>
@@ -318,11 +319,13 @@ function getLocationTypeLabel(type) {
                             <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
                             <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             <th class="text-center px-5 py-3 font-medium text-text-secondary">Qty</th>
+                            <th class="text-center px-5 py-3 font-medium text-text-secondary">OTW</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
                         <tr v-for="(item, idx) in results" :key="idx"
                             class="hover:bg-surface-50 dark:hover:bg-surface-800/30 transition-colors">
+                            <td class="px-3 py-3.5 text-center text-text-secondary text-xs">{{ (pagination.current_page - 1) * 20 + idx + 1 }}</td>
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-2">
                                     <MapPin :size="14" class="text-text-secondary shrink-0" />
@@ -355,6 +358,12 @@ function getLocationTypeLabel(type) {
                                 <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400">
                                     {{ item.qty }}
                                 </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-center">
+                                <span v-if="item.otw_qty > 0" class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    {{ item.otw_qty }}
+                                </span>
+                                <span v-else class="text-text-secondary text-xs">-</span>
                             </td>
                         </tr>
                     </tbody>

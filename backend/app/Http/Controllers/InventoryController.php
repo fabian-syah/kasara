@@ -1593,13 +1593,59 @@ class InventoryController extends Controller
             return [
                 'location_name' => $locationName,
                 'location_type' => $row->placement_type,
+                'placement_id' => $row->placement_id,
                 'qty' => (int) $row->qty,
                 'brand' => $row->brand,
                 'product_name' => $row->product_name ?? null,
                 'storage' => $row->storage ?? null,
                 'condition' => $row->condition ?? null,
+                'otw_qty' => 0,
             ];
         });
+
+        // Calculate OTW (pending incoming transfers) per location
+        $locationIds = $data->pluck('placement_id')->unique()->values();
+        if ($locationIds->isNotEmpty()) {
+            $otwCounts = \App\Models\StockOut::where('category', 'pindah_cabang')
+                ->where('status', 'pending')
+                ->whereIn('destination_id', $locationIds)
+                ->where('destination_type', 'branch')
+                ->select('destination_id', DB::raw('COUNT(DISTINCT id) as transfer_count'))
+                ->groupBy('destination_id')
+                ->pluck('transfer_count', 'destination_id');
+
+            // Count actual items in transit to each location
+            $otwItemCounts = \App\Models\ProductDetail::where('status', 'in_transit')
+                ->where('placement_type', 'branch')
+                ->whereIn('placement_id', $locationIds);
+
+            // Apply same product filters to OTW count
+            if ($request->filled('brand')) {
+                $otwItemCounts->whereHas('product', fn($q) => $q->where('brand', $request->brand));
+            }
+            if ($request->filled('product_type_id')) {
+                $productType = \App\Models\ProductType::find($request->product_type_id);
+                if ($productType) {
+                    $otwItemCounts->whereHas('product', fn($q) => $q->where('name', $productType->name));
+                }
+            }
+            if ($request->filled('storage')) {
+                $otwItemCounts->where('storage', $request->storage);
+            }
+            if ($request->filled('condition')) {
+                $otwItemCounts->where('condition', $request->condition);
+            }
+
+            $otwPerLocation = $otwItemCounts
+                ->select('placement_id', DB::raw('COUNT(*) as qty'))
+                ->groupBy('placement_id')
+                ->pluck('qty', 'placement_id');
+
+            $data = $data->map(function ($item) use ($otwPerLocation) {
+                $item['otw_qty'] = (int) ($otwPerLocation[$item['placement_id']] ?? 0);
+                return $item;
+            });
+        }
 
         return response()->json([
             'data' => $data->values(),
