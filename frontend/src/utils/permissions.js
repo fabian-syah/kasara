@@ -214,7 +214,7 @@ export const ROLE_MENUS = {
     [ROLES.SALES]: ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'sales_ranking', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'support_group', 'track'],
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'retur_items', 'support_group', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'support_group', 'track'],
-    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'reports', 'report_sales', 'support_group', 'track']
+    [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'reports', 'report_sales', 'support_group', 'track']
 }
 
 // Helper functions

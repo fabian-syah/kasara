@@ -69,6 +69,13 @@ const stockOutForm = ref({
     missing_category: '',
     person_in_charge: '',
     loss_chronology: '',
+    // Tukar Unit - incoming item fields
+    incoming_source: 'luar_pstore',
+    incoming_imei: '',
+    incoming_product_name: '',
+    incoming_storage: '',
+    incoming_condition: 'second',
+    incoming_cost_price: 0,
 });
 
 // Modal Searcher
@@ -317,6 +324,7 @@ onUnmounted(onUnmountedLogic);
 // Stock Out Categories
 const stockOutCategories = ref([
     { id: 'orderan_online', name: 'Orderan Online', icon: 'ShoppingBag', color: 'orange', role: 'toko_online' },
+    { id: 'tukar_unit', name: 'Tukar Unit', icon: 'RefreshCw', color: 'teal', role: 'toko_online' },
     { id: 'pindah_cabang', name: 'Pindah Cabang', icon: 'ArrowRightLeft', color: 'blue' },
     { id: 'retur', name: 'Retur Barang', icon: 'RotateCcw', color: 'red' },
     { id: 'kesalahan_input', name: 'Kesalahan Input', icon: 'AlertTriangle', color: 'yellow' },
@@ -496,6 +504,8 @@ const canSubmitStockOut = computed(() => {
     switch (selectedStockOutCategory.value) {
         case 'pindah_cabang':
             return stockOutForm.value.destination_type && stockOutForm.value.destination_id && stockOutForm.value.receiver_name;
+        case 'tukar_unit':
+            return stockOutForm.value.customer_name && stockOutForm.value.customer_phone && stockOutForm.value.notes && stockOutForm.value.selling_price && stockOutForm.value.incoming_product_name && stockOutForm.value.incoming_cost_price;
         case 'kesalahan_input':
             return stockOutForm.value.deletion_reason.length >= 5;
         case 'retur':
@@ -776,6 +786,78 @@ async function submitStockOut(pin = null) {
 
                 <!-- STEP 3: FORMS -->
                 <div v-else class="space-y-4">
+
+                    <!-- Tukar Unit Form -->
+                    <template v-if="selectedStockOutCategory === 'tukar_unit'">
+                        <div class="space-y-4">
+                            <p class="text-xs text-text-secondary bg-surface-700/50 p-3 rounded-xl">
+                                <strong>Barang Keluar:</strong> Item yang sudah dipilih akan keluar dari stok dan diberikan ke customer.
+                            </p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="label">Nama Customer *</label>
+                                    <input v-model="stockOutForm.customer_name" class="input" placeholder="Nama customer..." />
+                                </div>
+                                <div>
+                                    <label class="label">No. WA Customer *</label>
+                                    <input v-model="stockOutForm.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="label">Harga Jual Barang Keluar (Rp) *</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                                    <input v-money:selling_price="stockOutForm" type="text" class="input pl-10 font-bold" />
+                                </div>
+                            </div>
+
+                            <!-- Barang Masuk Section -->
+                            <div class="border-t border-surface-700 pt-4 mt-4">
+                                <h4 class="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-3">Barang Masuk (Dari Customer)</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="label text-xs">Sumber</label>
+                                        <select v-model="stockOutForm.incoming_source" class="input text-sm">
+                                            <option value="luar_pstore">Luar PStore</option>
+                                            <option value="ex_pstore">Ex PStore</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="label text-xs">IMEI Barang Masuk</label>
+                                        <input v-model="stockOutForm.incoming_imei" class="input text-sm font-mono" placeholder="15 digit IMEI..." />
+                                    </div>
+                                    <div>
+                                        <label class="label text-xs">Nama Produk Masuk *</label>
+                                        <input v-model="stockOutForm.incoming_product_name" class="input text-sm" placeholder="cth: iPhone 13 Pro" />
+                                    </div>
+                                    <div>
+                                        <label class="label text-xs">Storage</label>
+                                        <input v-model="stockOutForm.incoming_storage" class="input text-sm" placeholder="cth: 128 GB" />
+                                    </div>
+                                    <div>
+                                        <label class="label text-xs">Kondisi</label>
+                                        <select v-model="stockOutForm.incoming_condition" class="input text-sm">
+                                            <option value="second">Second</option>
+                                            <option value="new">New</option>
+                                            <option value="ex_ibox">Ex iBox</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="label text-xs">Harga Barang Masuk (Rp) *</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs">Rp</span>
+                                            <input v-money:incoming_cost_price="stockOutForm" type="text" class="input pl-9 text-sm font-bold" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="label">Alasan Tukar Unit *</label>
+                                <textarea v-model="stockOutForm.notes" class="input" rows="2" placeholder="Alasan tukar unit..."></textarea>
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- Pindah Cabang Form -->
                     <template v-if="selectedStockOutCategory === 'pindah_cabang'">

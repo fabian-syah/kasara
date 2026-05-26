@@ -843,6 +843,71 @@ class StockOutController extends Controller
                 ]);
             }
 
+            // Handle Tukar Unit incoming item
+            if ($request->category === 'tukar_unit' && $request->filled('incoming_product_name') && $request->filled('incoming_cost_price')) {
+                $incomingProductName = $request->incoming_product_name;
+                $incomingImei = $request->incoming_imei;
+                $incomingStorage = $request->incoming_storage;
+                $incomingCondition = $request->incoming_condition ?? 'second';
+                $incomingCostPrice = (float) $request->incoming_cost_price;
+
+                // Find or create product
+                $incomingProduct = \App\Models\Product::firstOrCreate(
+                    ['name' => $incomingProductName, 'type' => $incomingImei ? 'hp' : 'non-hp'],
+                    ['brand' => 'Unknown', 'has_imei' => !!$incomingImei, 'is_active' => true, 'sku' => 'TU-' . strtoupper(\Illuminate\Support\Str::random(8))]
+                );
+
+                $placementType = $user->online_shop_id ? 'online_shop' : ($user->warehouse_id ? 'warehouse' : 'branch');
+                $placementId = $user->online_shop_id ?? $user->warehouse_id ?? $user->branch_id;
+                $ownerUserId = $request->inventory_user_id ?? $user->id;
+
+                if ($incomingImei) {
+                    // HP item - create ProductDetail
+                    $existingPd = ProductDetail::where('imei', $incomingImei)->first();
+                    if ($existingPd) {
+                        $existingPd->update([
+                            'product_id' => $incomingProduct->id,
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'storage' => $incomingStorage,
+                            'condition' => $incomingCondition,
+                            'cost_price' => $incomingCostPrice,
+                            'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                            'user_id' => $ownerUserId,
+                        ]);
+                    } else {
+                        ProductDetail::create([
+                            'product_id' => $incomingProduct->id,
+                            'imei' => $incomingImei,
+                            'status' => 'available',
+                            'placement_type' => $placementType,
+                            'placement_id' => $placementId,
+                            'storage' => $incomingStorage,
+                            'condition' => $incomingCondition,
+                            'cost_price' => $incomingCostPrice,
+                            'selling_price' => 0,
+                            'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                            'user_id' => $ownerUserId,
+                        ]);
+                    }
+                }
+
+                // Log incoming
+                InventoryLog::create([
+                    'product_id' => $incomingProduct->id,
+                    'branch_id' => $placementType === 'branch' ? $placementId : null,
+                    'warehouse_id' => $placementType === 'warehouse' ? $placementId : null,
+                    'online_shop_id' => $placementType === 'online_shop' ? $placementId : null,
+                    'user_id' => $ownerUserId,
+                    'type' => 'in',
+                    'quantity' => 1,
+                    'reference_id' => $stockOut->receipt_id,
+                    'description' => 'Tukar Unit IN: ' . $incomingProductName . ($incomingImei ? " ($incomingImei)" : ''),
+                    'supplier_name' => 'Tukar Unit Customer',
+                ]);
+            }
+
             DB::commit();
 
             // Bust Inventory Cache
