@@ -1576,8 +1576,23 @@ class InventoryController extends Controller
                 });
         }
 
-        // Merge HP + Non-HP results
-        $allResults = (clone $query)->get()->concat($nonHpResults)->sortByDesc('qty')->values();
+        // Merge HP + Non-HP results then aggregate duplicates
+        $mergedResults = (clone $query)->get()->concat($nonHpResults);
+        
+        // Aggregate by the same grouping keys to prevent duplicate locations
+        $groupKey = function ($row) use ($hasTypeFilter, $hasStorageFilter, $hasConditionFilter) {
+            $key = $row->placement_type . ':' . $row->placement_id . ':' . $row->brand;
+            if ($hasTypeFilter && isset($row->product_name)) $key .= ':' . $row->product_name;
+            if ($hasStorageFilter && isset($row->storage)) $key .= ':' . $row->storage;
+            if ($hasConditionFilter && isset($row->condition)) $key .= ':' . $row->condition;
+            return $key;
+        };
+
+        $allResults = $mergedResults->groupBy($groupKey)->map(function ($group) {
+            $first = $group->first();
+            $first->qty = $group->sum('qty');
+            return $first;
+        })->sortByDesc('qty')->values();
         $totalQty = $allResults->sum('qty');
         $totalLocations = $allResults->unique(fn($r) => $r->placement_type . ':' . $r->placement_id)->count();
 
