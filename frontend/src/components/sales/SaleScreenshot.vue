@@ -39,7 +39,7 @@
                 <div v-if="!loadingPhotos && loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
                     class="w-full rounded-xl overflow-hidden border border-surface-700">
-                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
+                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" :data-is-base64="photo.startsWith('data:')" />
                   </div>
                 </div>
 
@@ -378,6 +378,13 @@ const handleSave = async () => {
       pixelRatio: isMobile ? 1.5 : 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       skipFonts: true,
+      filter: (node) => {
+        // Hide non-base64 images (they cause CORS errors and show as empty boxes)
+        if (node.tagName === 'IMG' && node.getAttribute('data-is-base64') === 'false') {
+          return false
+        }
+        return true
+      }
     })
     
     // Mobile-friendly download
