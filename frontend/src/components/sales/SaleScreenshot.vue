@@ -360,81 +360,74 @@ const handleSave = async () => {
   if (!captureRef.value) return
   saving.value = true
   try {
-    // Wait for photos to finish loading if still in progress
+    // Wait for photos to finish loading
     if (loadingPhotos.value) {
       await new Promise(resolve => {
         const check = setInterval(() => {
           if (!loadingPhotos.value) { clearInterval(check); resolve() }
         }, 100)
-        // Timeout after 10s
         setTimeout(() => { clearInterval(check); resolve() }, 10000)
       })
     }
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    
-    const dataUrl = await toPng(captureRef.value, {
-      quality: isMobile ? 0.9 : 1,
-      pixelRatio: isMobile ? 1.5 : 2,
-      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-      skipFonts: true,
-      filter: (node) => {
-        // Hide non-base64 images (they cause CORS errors and show as empty boxes)
-        if (node.tagName === 'IMG' && node.getAttribute('data-is-base64') === 'false') {
-          return false
-        }
-        return true
+    // Before capture: temporarily hide non-base64 images to avoid CORS errors
+    const imgs = captureRef.value.querySelectorAll('img')
+    const hiddenImgs = []
+    imgs.forEach(img => {
+      const src = img.getAttribute('src') || ''
+      if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+        img.style.display = 'none'
+        hiddenImgs.push(img)
       }
     })
-    
-    // Mobile-friendly download
-    if (isMobile) {
-      // On mobile, open image in new tab for long-press save
-      const w = window.open()
-      if (w) {
-        w.document.write(`<img src="${dataUrl}" style="width:100%;height:auto;" />`)
-        w.document.title = 'Simpan gambar (tekan lama)'
-      } else {
-        // Fallback: try blob download
-        const blob = await (await fetch(dataUrl)).blob()
-        const blobUrl = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = blobUrl
-        a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-        a.click()
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
-      }
-    } else {
+
+    const dataUrl = await toPng(captureRef.value, {
+      quality: 0.92,
+      pixelRatio: 2,
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
+      skipFonts: true,
+    })
+
+    // Restore hidden images
+    hiddenImgs.forEach(img => { img.style.display = '' })
+
+    // Download directly (works on both mobile and desktop)
+    const blob = await (await fetch(dataUrl)).blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
+  } catch (e) {
+    console.error('Save failed:', e)
+    // Last resort: retry without any images
+    try {
+      const imgs = captureRef.value.querySelectorAll('img')
+      imgs.forEach(img => { img.style.display = 'none' })
+      
+      const dataUrl = await toPng(captureRef.value, {
+        quality: 0.92,
+        pixelRatio: 2,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
+        skipFonts: true,
+      })
+      
+      imgs.forEach(img => { img.style.display = '' })
+      
+      const blob = await (await fetch(dataUrl)).blob()
+      const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
+      a.href = blobUrl
       a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-      a.href = dataUrl
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-    }
-  } catch (e) {
-    console.error('Save failed:', e)
-    // Retry without images if CORS blocks
-    try {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-      const dataUrl = await toPng(captureRef.value, {
-        quality: isMobile ? 0.9 : 1,
-        pixelRatio: isMobile ? 1.5 : 2,
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-        skipFonts: true,
-        filter: (node) => node.tagName !== 'IMG'
-      })
-      if (isMobile) {
-        const w = window.open()
-        if (w) { w.document.write(`<img src="${dataUrl}" style="width:100%" />`); w.document.title = 'Simpan (tekan lama)' }
-      } else {
-        const a = document.createElement('a')
-        a.download = `${props.sale?.order_no || 'bukti'}-penjualan.png`
-        a.href = dataUrl
-        document.body.appendChild(a); a.click(); document.body.removeChild(a)
-      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
     } catch {
-      alert('Gagal menyimpan gambar. Coba lagi.')
+      alert('Gagal menyimpan. Coba screenshot manual.')
     }
   } finally {
     saving.value = false
