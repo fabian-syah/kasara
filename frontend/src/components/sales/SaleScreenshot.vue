@@ -338,7 +338,16 @@ const handleSave = async () => {
       quality: 1,
       pixelRatio: 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-      cacheBust: true
+      cacheBust: false,
+      skipFonts: true,
+      fetchRequestInit: { mode: 'no-cors' },
+      filter: (node) => {
+        // Skip images that might fail CORS
+        if (node.tagName === 'IMG' && node.src && node.src.includes('api.stokps.com')) {
+          return false
+        }
+        return true
+      }
     })
     const a = document.createElement('a')
     a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
@@ -348,7 +357,24 @@ const handleSave = async () => {
     document.body.removeChild(a)
   } catch (e) {
     console.error('Save failed:', e)
-    alert('Gagal menyimpan gambar. Coba lagi.')
+    // Fallback: try without images
+    try {
+      const dataUrl = await toPng(captureRef.value, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
+        skipFonts: true,
+        filter: (node) => node.tagName !== 'IMG'
+      })
+      const a = document.createElement('a')
+      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+      a.href = dataUrl
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch (e2) {
+      alert('Gagal menyimpan gambar. Coba lagi.')
+    }
   } finally {
     saving.value = false
   }

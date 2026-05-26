@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'], // Tambahkan login/logout jika tidak pakai prefix api/
+    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout', 'storage/*'],
 
     'allowed_methods' => ['*'],
     'allowed_origins' => [
