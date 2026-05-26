@@ -48,7 +48,7 @@ const salesAccount = ref("");
 const salesAccounts = ref([]);
 const transactionCategory = ref("penjualan_store");
 
-const categoriesPenjualan = [
+const allCategories = [
     { id: "penjualan_store", label: "Penjualan Store", icon: 'ShoppingCart' },
     { id: "angkat_barang", label: "Angkat Barang", icon: 'PackageOpen' },
     { id: "refund", label: "Refund", icon: 'RotateCcw' },
@@ -56,6 +56,14 @@ const categoriesPenjualan = [
     { id: "tukar_tambah", label: "Tukar Tambah", icon: 'TrendingUp' },
     { id: "downgrade", label: "Downgrade", icon: 'TrendingDown' },
 ];
+
+const categoriesPenjualan = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    if (role.includes('toko_online') || role.includes('online')) {
+        return allCategories.filter(c => c.id === 'tukar_unit');
+    }
+    return allCategories;
+});
 
 // Persistence Logic
 const getWizardStorageKey = () => `temp_sale_state_${authStore.user?.id || 'guest'}`;

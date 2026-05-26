@@ -1142,6 +1142,11 @@ const fetchData = async () => {
             branch_id: selectedBranchId.value,
             online_shop_id: selectedOnlineShopId.value
         };
+        // Toko online only sees tukar_unit category
+        const role = (authStore.userRole || '').toLowerCase();
+        if (role.includes('toko_online') || role.includes('online')) {
+            params.category = 'tukar_unit';
+        }
         const response = await axios.get('/audit/sales', { params })
         salesRecords.value = response.data
     } catch (error) {
