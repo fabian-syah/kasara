@@ -844,17 +844,28 @@ class StockOutController extends Controller
             }
 
             // Handle Tukar Unit incoming item
-            if ($request->category === 'tukar_unit' && $request->filled('incoming_product_name') && $request->filled('incoming_cost_price')) {
-                $incomingProductName = $request->incoming_product_name;
+            if ($request->category === 'tukar_unit' && ($request->filled('incoming_product_type_id') || $request->filled('incoming_product_name')) && $request->filled('incoming_cost_price')) {
                 $incomingImei = $request->incoming_imei;
                 $incomingStorage = $request->incoming_storage;
                 $incomingCondition = $request->incoming_condition ?? 'second';
                 $incomingCostPrice = (float) $request->incoming_cost_price;
+                $incomingDistributorId = $request->incoming_distributor_id;
+
+                // Resolve product from product_type_id or product_name
+                $incomingProductName = $request->incoming_product_name;
+                if ($request->filled('incoming_product_type_id')) {
+                    $productType = \App\Models\ProductType::with('brand')->find($request->incoming_product_type_id);
+                    if ($productType) {
+                        $incomingProductName = $productType->name;
+                        $brandName = $productType->brand?->name ?? 'Unknown';
+                    }
+                }
+                $brandName = $brandName ?? 'Unknown';
 
                 // Find or create product
                 $incomingProduct = \App\Models\Product::firstOrCreate(
-                    ['name' => $incomingProductName, 'type' => $incomingImei ? 'hp' : 'non-hp'],
-                    ['brand' => 'Unknown', 'has_imei' => !!$incomingImei, 'is_active' => true, 'sku' => 'TU-' . strtoupper(\Illuminate\Support\Str::random(8))]
+                    ['name' => $incomingProductName, 'brand' => $brandName],
+                    ['type' => $incomingImei ? 'hp' : 'non-hp', 'has_imei' => !!$incomingImei, 'is_active' => true, 'sku' => 'TU-' . strtoupper(\Illuminate\Support\Str::random(8))]
                 );
 
                 $placementType = $user->online_shop_id ? 'online_shop' : ($user->warehouse_id ? 'warehouse' : 'branch');
@@ -874,6 +885,7 @@ class StockOutController extends Controller
                             'condition' => $incomingCondition,
                             'cost_price' => $incomingCostPrice,
                             'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                            'distributor_id' => $incomingDistributorId,
                             'user_id' => $ownerUserId,
                         ]);
                     } else {
@@ -888,6 +900,7 @@ class StockOutController extends Controller
                             'cost_price' => $incomingCostPrice,
                             'selling_price' => 0,
                             'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                            'distributor_id' => $incomingDistributorId,
                             'user_id' => $ownerUserId,
                         ]);
                     }

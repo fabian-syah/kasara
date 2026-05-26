@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { useInventoryStore } from "../../store/inventory";
 import { useToast } from "../../composables/useToast";
-import api, { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi } from "../../api/axios";
+import api, { users as usersApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, brands as brandsApi, productTypes as productTypesApi } from "../../api/axios";
 import { formatCurrency, formatNumber, parseCurrency } from "../../utils/formatters";
 import { Html5Qrcode } from "html5-qrcode";
 import {
@@ -71,12 +71,57 @@ const stockOutForm = ref({
     loss_chronology: '',
     // Tukar Unit - incoming item fields
     incoming_source: 'luar_pstore',
+    incoming_distributor_id: null,
+    incoming_brand_id: null,
+    incoming_product_type_id: null,
     incoming_imei: '',
     incoming_product_name: '',
     incoming_storage: '',
     incoming_condition: 'second',
     incoming_cost_price: 0,
 });
+
+// Tukar Unit dropdown data
+const tukarUnitDistributors = ref([]);
+const tukarUnitBrands = ref([]);
+const tukarUnitAllTypes = ref([]);
+
+const tukarUnitFilteredTypes = computed(() => {
+    if (!stockOutForm.value.incoming_brand_id) return [];
+    return tukarUnitAllTypes.value.filter(t => t.brand_id === stockOutForm.value.incoming_brand_id);
+});
+
+const tukarUnitStorages = computed(() => {
+    if (!stockOutForm.value.incoming_product_type_id) return [];
+    const pt = tukarUnitAllTypes.value.find(t => t.id === stockOutForm.value.incoming_product_type_id);
+    if (pt?.storage) return pt.storage.split(',').map(s => s.trim()).filter(s => s);
+    return [];
+});
+
+function onTukarUnitBrandChange() {
+    stockOutForm.value.incoming_product_type_id = null;
+    stockOutForm.value.incoming_storage = '';
+}
+
+function onTukarUnitTypeChange() {
+    stockOutForm.value.incoming_storage = '';
+    // Set product name from selected type
+    const pt = tukarUnitAllTypes.value.find(t => t.id === stockOutForm.value.incoming_product_type_id);
+    if (pt) stockOutForm.value.incoming_product_name = pt.name;
+}
+
+async function loadTukarUnitData() {
+    try {
+        const [distRes, brandRes, typeRes] = await Promise.all([
+            distributorsApi.list(),
+            brandsApi.list({ per_page: -1 }),
+            productTypesApi.list({ per_page: -1 })
+        ]);
+        tukarUnitDistributors.value = distRes.data?.data || distRes.data || [];
+        tukarUnitBrands.value = brandRes.data?.data || brandRes.data || [];
+        tukarUnitAllTypes.value = typeRes.data?.data || typeRes.data || [];
+    } catch (e) { console.error('Failed to load tukar unit data:', e); }
+}
 
 // Modal Searcher
 const modalSearchQuery = ref("");
@@ -402,6 +447,8 @@ watch(selectedStockOutCategory, (newCat) => {
         if (warehouses.value.length === 0) fetchWarehouses();
     } else if (['shopee', 'orderan_online', 'giveaway'].includes(newCat)) {
         if (provinces.value.length === 0) fetchProvinces();
+    } else if (newCat === 'tukar_unit') {
+        if (tukarUnitBrands.value.length === 0) loadTukarUnitData();
     }
 });
 
@@ -505,7 +552,7 @@ const canSubmitStockOut = computed(() => {
         case 'pindah_cabang':
             return stockOutForm.value.destination_type && stockOutForm.value.destination_id && stockOutForm.value.receiver_name;
         case 'tukar_unit':
-            return stockOutForm.value.customer_name && stockOutForm.value.customer_phone && stockOutForm.value.notes && stockOutForm.value.selling_price && stockOutForm.value.incoming_product_name && stockOutForm.value.incoming_cost_price;
+            return stockOutForm.value.customer_name && stockOutForm.value.customer_phone && stockOutForm.value.notes && stockOutForm.value.selling_price && stockOutForm.value.incoming_product_type_id && stockOutForm.value.incoming_cost_price && stockOutForm.value.incoming_condition;
         case 'kesalahan_input':
             return stockOutForm.value.deletion_reason.length >= 5;
         case 'retur':
@@ -816,26 +863,35 @@ async function submitStockOut(pin = null) {
                                 <h4 class="text-sm font-bold text-emerald-500 uppercase tracking-widest mb-3">Barang Masuk (Dari Customer)</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
-                                        <label class="label text-xs">Sumber</label>
-                                        <select v-model="stockOutForm.incoming_source" class="input text-sm">
-                                            <option value="luar_pstore">Luar PStore</option>
-                                            <option value="ex_pstore">Ex PStore</option>
+                                        <label class="label text-xs">Distributor *</label>
+                                        <select v-model="stockOutForm.incoming_distributor_id" class="input text-sm">
+                                            <option :value="null">-- Pilih Distributor --</option>
+                                            <option v-for="d in tukarUnitDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="label text-xs">IMEI Barang Masuk</label>
-                                        <input v-model="stockOutForm.incoming_imei" class="input text-sm font-mono" placeholder="15 digit IMEI..." />
+                                        <label class="label text-xs">Brand *</label>
+                                        <select v-model="stockOutForm.incoming_brand_id" @change="onTukarUnitBrandChange" class="input text-sm">
+                                            <option :value="null">-- Pilih Brand --</option>
+                                            <option v-for="b in tukarUnitBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                        </select>
                                     </div>
                                     <div>
-                                        <label class="label text-xs">Nama Produk Masuk *</label>
-                                        <input v-model="stockOutForm.incoming_product_name" class="input text-sm" placeholder="cth: iPhone 13 Pro" />
+                                        <label class="label text-xs">Tipe *</label>
+                                        <select v-model="stockOutForm.incoming_product_type_id" @change="onTukarUnitTypeChange" class="input text-sm">
+                                            <option :value="null">-- Pilih Tipe --</option>
+                                            <option v-for="t in tukarUnitFilteredTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="label text-xs">Storage</label>
-                                        <input v-model="stockOutForm.incoming_storage" class="input text-sm" placeholder="cth: 128 GB" />
+                                        <select v-model="stockOutForm.incoming_storage" class="input text-sm">
+                                            <option value="">-- Pilih Storage --</option>
+                                            <option v-for="s in tukarUnitStorages" :key="s" :value="s">{{ s }}</option>
+                                        </select>
                                     </div>
                                     <div>
-                                        <label class="label text-xs">Kondisi</label>
+                                        <label class="label text-xs">Kondisi *</label>
                                         <select v-model="stockOutForm.incoming_condition" class="input text-sm">
                                             <option value="second">Second</option>
                                             <option value="new">New</option>
@@ -843,11 +899,15 @@ async function submitStockOut(pin = null) {
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="label text-xs">Harga Barang Masuk (Rp) *</label>
-                                        <div class="relative">
-                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs">Rp</span>
-                                            <input v-money:incoming_cost_price="stockOutForm" type="text" class="input pl-9 text-sm font-bold" />
-                                        </div>
+                                        <label class="label text-xs">IMEI Barang Masuk</label>
+                                        <input v-model="stockOutForm.incoming_imei" class="input text-sm font-mono" placeholder="15 digit IMEI..." />
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="label text-xs">Harga Barang Masuk (Rp) *</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-xs">Rp</span>
+                                        <input v-money:incoming_cost_price="stockOutForm" type="text" class="input pl-9 text-sm font-bold" />
                                     </div>
                                 </div>
                             </div>
