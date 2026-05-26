@@ -1,0 +1,23 @@
+{
+    frankenphp
+    order php_server before file_server
+}
+
+:8000 {
+    root * /app/public
+
+    # CORS headers for storage files
+    @storage path /storage/*
+    header @storage Access-Control-Allow-Origin "https://stokps.com"
+    header @storage Access-Control-Allow-Methods "GET, OPTIONS"
+    header @storage Access-Control-Allow-Headers "*"
+
+    # Handle OPTIONS preflight for storage
+    @storageOptions {
+        path /storage/*
+        method OPTIONS
+    }
+    respond @storageOptions 204
+
+    php_server
+}

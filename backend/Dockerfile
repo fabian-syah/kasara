@@ -12,6 +12,9 @@ WORKDIR /app
 # Copy semua file dari Windows ke dalam kontainer
 COPY . .
 
+# Copy Caddyfile for CORS on storage
+COPY Caddyfile /etc/caddy/Caddyfile
+
 # Buat folder dan beri izin akses (Ini dijalankan saat build kontainer)
 RUN mkdir -p storage bootstrap/cache
 RUN chmod -R 777 storage bootstrap/cache
