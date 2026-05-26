@@ -1072,6 +1072,11 @@ const handlePeriodChange = () => {
 }
 
 const handleDateChange = () => {
+    // Enforce min date restriction (iOS/Android ignore min attribute)
+    if (getMinDate.value && filters.value.start_date < getMinDate.value) {
+        alert('Anda hanya bisa melihat data 7 hari terakhir.');
+        filters.value.start_date = getMinDate.value;
+    }
     if (selectedPeriod.value === 'daily') {
         filters.value.end_date = filters.value.start_date;
     }

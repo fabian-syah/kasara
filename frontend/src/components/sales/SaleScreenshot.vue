@@ -5,18 +5,18 @@
         <div class="relative w-full max-w-[420px] max-h-[92vh] flex flex-col rounded-xl overflow-hidden shadow-2xl border border-surface-700">
           
           <!-- Top Bar -->
-          <div class="flex items-center justify-between px-4 py-2.5 bg-surface-900 border-b border-surface-700">
-            <span class="text-xs font-semibold text-text-secondary">Bukti Penjualan</span>
-            <div class="flex items-center gap-1.5">
+          <div class="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-surface-900 border-b border-surface-700 gap-2">
+            <span class="text-[10px] sm:text-xs font-semibold text-text-secondary shrink-0">Bukti Penjualan</span>
+            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <button @click="handleCopyText" :disabled="copying"
-                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white bg-primary-500 hover:bg-primary-600 rounded-md transition-colors disabled:opacity-40">
-                <ClipboardCopy :size="12" />
-                <span>{{ copying ? 'Tersalin!' : 'Copas' }}</span>
+                class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-white bg-primary-500 hover:bg-primary-600 rounded-md transition-colors disabled:opacity-40">
+                <ClipboardCopy :size="11" />
+                <span>{{ copying ? 'OK!' : 'Copas' }}</span>
               </button>
               <button @click="handleSave" :disabled="saving"
-                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
-                <Download :size="12" />
-                <span>{{ saving ? 'Menyimpan...' : 'Simpan' }}</span>
+                class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
+                <Download :size="11" />
+                <span>{{ saving ? '...' : 'Simpan' }}</span>
               </button>
               <button @click="$emit('close')" class="p-1 text-text-secondary hover:text-text-primary rounded transition-colors">
                 <X :size="16" />
