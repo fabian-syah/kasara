@@ -245,8 +245,15 @@ const loadProofImages = async () => {
   if (!props.sale?.proof_images?.length) return
   for (const url of props.sale.proof_images) {
     try {
-      // Try direct fetch first
-      const res = await fetch(url, { mode: 'cors' })
+      // Convert storage URL to proxy URL for CORS-safe fetch
+      let fetchUrl = url
+      if (url.includes('/storage/')) {
+        const storagePath = url.split('/storage/')[1]
+        if (storagePath) {
+          fetchUrl = url.replace(/\/storage\//, '/api/storage-proxy/')
+        }
+      }
+      const res = await fetch(fetchUrl, { mode: 'cors' })
       if (res.ok) {
         const blob = await res.blob()
         const base64 = await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
@@ -255,28 +262,8 @@ const loadProofImages = async () => {
         loadedPhotos.value.push(url)
       }
     } catch { 
-      // CORS blocked - use img tag with crossorigin attribute workaround
-      // Try loading via a hidden img element to get base64
-      try {
-        const base64 = await new Promise((resolve, reject) => {
-          const img = new Image()
-          img.crossOrigin = 'anonymous'
-          img.onload = () => {
-            const canvas = document.createElement('canvas')
-            canvas.width = img.naturalWidth
-            canvas.height = img.naturalHeight
-            const ctx = canvas.getContext('2d')
-            ctx.drawImage(img, 0, 0)
-            resolve(canvas.toDataURL('image/jpeg', 0.9))
-          }
-          img.onerror = () => reject(new Error('img load failed'))
-          img.src = url
-        })
-        loadedPhotos.value.push(base64)
-      } catch {
-        // All methods failed - push URL for display only (won't be in screenshot)
-        loadedPhotos.value.push(url)
-      }
+      // All methods failed - push URL for display only
+      loadedPhotos.value.push(url)
     }
   }
 }

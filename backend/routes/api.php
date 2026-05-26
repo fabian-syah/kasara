@@ -28,6 +28,21 @@ use App\Http\Controllers\ReceiptSettingController;
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
+// Public storage proxy with CORS headers (for screenshot capture)
+Route::get('/storage-proxy/{path}', function ($path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath)) {
+        return response()->json(['message' => 'File not found'], 404);
+    }
+    $mime = mime_content_type($fullPath);
+    return response()->file($fullPath, [
+        'Content-Type' => $mime,
+        'Access-Control-Allow-Origin' => '*',
+        'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*');
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index']);
     // ... other protected routes
