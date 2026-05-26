@@ -243,9 +243,10 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
 const loadProofImages = async () => {
   loadedPhotos.value = []
   if (!props.sale?.proof_images?.length) return
-  for (const url of props.sale.proof_images) {
-    try {
-      // Convert storage URL to proxy URL for CORS-safe fetch
+  
+  // Fetch all images in parallel for speed
+  const results = await Promise.allSettled(
+    props.sale.proof_images.map(async (url) => {
       let fetchUrl = url
       if (url.includes('/storage/')) {
         const storagePath = url.split('/storage/')[1]
@@ -256,16 +257,15 @@ const loadProofImages = async () => {
       const res = await fetch(fetchUrl, { mode: 'cors' })
       if (res.ok) {
         const blob = await res.blob()
-        const base64 = await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
-        loadedPhotos.value.push(base64)
-      } else {
-        loadedPhotos.value.push(url)
+        return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
       }
-    } catch { 
-      // All methods failed - push URL for display only
-      loadedPhotos.value.push(url)
-    }
-  }
+      return url // fallback to original URL
+    })
+  )
+  
+  loadedPhotos.value = results.map((r, i) => 
+    r.status === 'fulfilled' ? r.value : props.sale.proof_images[i]
+  )
 }
 
 watch(() => props.isOpen, (val) => {
