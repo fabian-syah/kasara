@@ -60,6 +60,7 @@ const newNonHpItem = ref({ product_id: null, quantity: 1, selling_price: 0 });
 // Categories
 const allCategories = [
     { id: 'pindah_cabang', name: 'Pindah Cabang', icon: Building2, color: 'blue' },
+    { id: 'tukar_unit', name: 'Tukar Unit', icon: RotateCcw, color: 'teal' },
     { id: 'kesalahan_input', name: 'Kesalahan Input', icon: AlertTriangle, color: 'amber' },
     { id: 'retur', name: 'Retur', icon: RotateCcw, color: 'purple' },
     { id: 'shopee', name: 'Shopee', icon: ShoppingBag, color: 'orange' },
@@ -75,6 +76,10 @@ const allCategories = [
 ];
 
 const categories = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    if (role.includes('toko_online') || role.includes('online')) {
+        return allCategories.filter(c => c.id === 'tukar_unit');
+    }
     return allCategories;
 });
 
@@ -729,6 +734,8 @@ const canSubmit = computed(() => {
     switch (selectedCategory.value) {
         case 'pindah_cabang':
             return form.value.destination_type && form.value.destination_id && form.value.receiver_name;
+        case 'tukar_unit':
+            return form.value.customer_name && form.value.customer_phone && form.value.selling_price && form.value.notes;
         case 'kesalahan_input':
             return form.value.deletion_reason;
         case 'retur':
@@ -1255,6 +1262,29 @@ onMounted(() => {
                                 <ScanBarcode :size="20" />
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Tukar Unit Details -->
+                <div v-if="selectedCategory === 'tukar_unit'" class="space-y-4">
+                    <div>
+                        <label class="label">Nama Customer *</label>
+                        <input v-model="form.customer_name" class="input" placeholder="Nama customer..." />
+                    </div>
+                    <div>
+                        <label class="label">No. WA Customer *</label>
+                        <input v-model="form.customer_phone" class="input" placeholder="08xxxxxxxxxx" />
+                    </div>
+                    <div>
+                        <label class="label text-emerald-500">Harga Jual (Rp) *</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm">Rp</span>
+                            <input v-money:selling_price="form" type="text" class="input pl-10 bg-surface-800 font-bold" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="label">Alasan Tukar Unit *</label>
+                        <textarea v-model="form.notes" class="input" rows="3" placeholder="Alasan tukar unit..."></textarea>
                     </div>
                 </div>
 
