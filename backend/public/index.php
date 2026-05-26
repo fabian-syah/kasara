@@ -16,6 +16,21 @@ if (str_starts_with($requestUri, '/storage/')) {
         http_response_code(204);
         exit;
     }
+
+    // Serve the file directly with CORS headers
+    $filePath = __DIR__ . '/../storage/app/public/' . substr($requestUri, 9); // Remove '/storage/'
+    $filePath = realpath($filePath);
+    
+    // Security: ensure file is within storage directory
+    $storageDir = realpath(__DIR__ . '/../storage/app/public');
+    if ($filePath && str_starts_with($filePath, $storageDir) && is_file($filePath)) {
+        $mime = mime_content_type($filePath);
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($filePath));
+        header('Cache-Control: public, max-age=86400');
+        readfile($filePath);
+        exit;
+    }
 }
 
 // Determine if the application is in maintenance mode...
