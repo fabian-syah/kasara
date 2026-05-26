@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 dark:bg-black/80" @click.self="$emit('close')">
-        <div class="relative w-full sm:max-w-[420px] h-[95vh] sm:h-auto sm:max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden shadow-2xl border border-surface-700 bg-surface-950">
+      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 dark:bg-black/80" @click.self="$emit('close')" style="touch-action: manipulation;">
+        <div class="relative w-full sm:max-w-[420px] h-full sm:h-auto sm:max-h-[92vh] flex flex-col sm:rounded-xl overflow-hidden shadow-2xl border-t sm:border border-surface-700 bg-surface-950">
           
-          <!-- Top Bar -->
-          <div class="flex items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 bg-surface-900 border-b border-surface-700 gap-2 shrink-0 safe-area-top">
+          <!-- Top Bar - sticky -->
+          <div class="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 bg-surface-900 border-b border-surface-700 gap-2 shrink-0">
             <span class="text-[10px] sm:text-xs font-semibold text-text-secondary shrink-0">Bukti Penjualan</span>
             <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <button @click="handleCopyText" :disabled="copying"
@@ -252,10 +252,10 @@ const loadProofImages = async () => {
   if (!props.sale?.proof_images?.length) return
   loadingPhotos.value = true
   
-  // Fetch all images in parallel for speed
+  // Fetch all images in parallel
   const results = await Promise.allSettled(
     props.sale.proof_images.map(async (url) => {
-      // Try proxy URL first
+      // Try proxy URL first (works on desktop, may fail on mobile)
       let fetchUrl = url
       if (url.includes('/storage/')) {
         fetchUrl = url.replace(/\/storage\//, '/api/storage-proxy/')
@@ -269,16 +269,8 @@ const loadProofImages = async () => {
         }
       } catch {}
       
-      // Fallback: try original URL without cors mode (might work on some browsers)
-      try {
-        const res = await fetch(url)
-        if (res.ok) {
-          const blob = await res.blob()
-          return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
-        }
-      } catch {}
-      
-      // Last resort: return URL (will show in modal but not in saved image)
+      // Fallback: just use the URL directly - photo will show in modal
+      // but may not appear in saved PNG on mobile due to CORS
       return url
     })
   )
