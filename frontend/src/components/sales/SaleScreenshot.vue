@@ -255,18 +255,30 @@ const loadProofImages = async () => {
   // Fetch all images in parallel for speed
   const results = await Promise.allSettled(
     props.sale.proof_images.map(async (url) => {
+      // Try proxy URL first
       let fetchUrl = url
       if (url.includes('/storage/')) {
-        const storagePath = url.split('/storage/')[1]
-        if (storagePath) {
-          fetchUrl = url.replace(/\/storage\//, '/api/storage-proxy/')
+        fetchUrl = url.replace(/\/storage\//, '/api/storage-proxy/')
+      }
+      
+      try {
+        const res = await fetch(fetchUrl, { mode: 'cors' })
+        if (res.ok) {
+          const blob = await res.blob()
+          return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
         }
-      }
-      const res = await fetch(fetchUrl, { mode: 'cors' })
-      if (res.ok) {
-        const blob = await res.blob()
-        return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
-      }
+      } catch {}
+      
+      // Fallback: try original URL without cors mode (might work on some browsers)
+      try {
+        const res = await fetch(url)
+        if (res.ok) {
+          const blob = await res.blob()
+          return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
+        }
+      } catch {}
+      
+      // Last resort: return URL (will show in modal but not in saved image)
       return url
     })
   )
@@ -374,16 +386,6 @@ const handleSave = async () => {
       pixelRatio: isMobile ? 1.5 : 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       skipFonts: true,
-      filter: (node) => {
-        // Skip img tags with external URLs (CORS blocked on mobile)
-        if (node.tagName === 'IMG') {
-          const src = node.getAttribute('src') || ''
-          if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
-            return false
-          }
-        }
-        return true
-      }
     })
     
     // Mobile-friendly download
@@ -413,7 +415,28 @@ const handleSave = async () => {
     }
   } catch (e) {
     console.error('Save failed:', e)
-    alert('Gagal menyimpan gambar. Coba lagi.')
+    // Retry without images if CORS blocks
+    try {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const dataUrl = await toPng(captureRef.value, {
+        quality: isMobile ? 0.9 : 1,
+        pixelRatio: isMobile ? 1.5 : 2,
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
+        skipFonts: true,
+        filter: (node) => node.tagName !== 'IMG'
+      })
+      if (isMobile) {
+        const w = window.open()
+        if (w) { w.document.write(`<img src="${dataUrl}" style="width:100%" />`); w.document.title = 'Simpan (tekan lama)' }
+      } else {
+        const a = document.createElement('a')
+        a.download = `${props.sale?.order_no || 'bukti'}-penjualan.png`
+        a.href = dataUrl
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+      }
+    } catch {
+      alert('Gagal menyimpan gambar. Coba lagi.')
+    }
   } finally {
     saving.value = false
   }
