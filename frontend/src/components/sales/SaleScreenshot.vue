@@ -356,17 +356,26 @@ const handleSave = async () => {
   if (!captureRef.value) return
   saving.value = true
   try {
-    // Always skip external images to avoid CORS issues
+    // Wait for photos to finish loading if still in progress
+    if (loadingPhotos.value) {
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (!loadingPhotos.value) { clearInterval(check); resolve() }
+        }, 100)
+        // Timeout after 10s
+        setTimeout(() => { clearInterval(check); resolve() }, 10000)
+      })
+    }
+
     const dataUrl = await toPng(captureRef.value, {
       quality: 1,
       pixelRatio: 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       skipFonts: true,
       filter: (node) => {
-        // Skip img tags with external URLs (CORS blocked)
+        // Skip img tags with external URLs (CORS blocked on mobile)
         if (node.tagName === 'IMG') {
           const src = node.getAttribute('src') || ''
-          // Only allow base64/data URLs and blob URLs
           if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
             return false
           }
@@ -374,12 +383,25 @@ const handleSave = async () => {
         return true
       }
     })
-    const a = document.createElement('a')
-    a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-    a.href = dataUrl
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+    
+    // Mobile-friendly download
+    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      // On mobile, open in new tab (download attribute doesn't always work)
+      const blob = await (await fetch(dataUrl)).blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    } else {
+      const a = document.createElement('a')
+      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+      a.href = dataUrl
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }
   } catch (e) {
     console.error('Save failed:', e)
     alert('Gagal menyimpan gambar. Coba lagi.')
