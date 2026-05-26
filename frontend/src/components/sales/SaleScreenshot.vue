@@ -13,6 +13,11 @@
                 <ClipboardCopy :size="12" />
                 <span>{{ copying ? 'Tersalin!' : 'Copas' }}</span>
               </button>
+              <button @click="handleSave" :disabled="saving"
+                class="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
+                <Download :size="12" />
+                <span>{{ saving ? 'Menyimpan...' : 'Simpan' }}</span>
+              </button>
               <button @click="$emit('close')" class="p-1 text-text-secondary hover:text-text-primary rounded transition-colors">
                 <X :size="16" />
               </button>
@@ -21,7 +26,7 @@
 
           <!-- Scrollable Content -->
           <div class="flex-1 overflow-y-auto bg-surface-950">
-            <div class="p-4 sm:p-5">
+            <div ref="captureRef" class="p-4 sm:p-5">
               <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
                 <!-- Proof Photos -->
@@ -149,7 +154,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { X, User as UserIcon, ClipboardCopy } from 'lucide-vue-next'
+import { X, User as UserIcon, ClipboardCopy, Download } from 'lucide-vue-next'
+import { toPng } from 'html-to-image'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -158,6 +164,8 @@ const props = defineProps({
 
 defineEmits(['close'])
 
+const captureRef = ref(null)
+const saving = ref(false)
 const loadedPhotos = ref([])
 
 const categoryLabels = {
@@ -319,6 +327,30 @@ const handleCopyText = async () => {
     document.body.removeChild(ta)
     copying.value = true
     setTimeout(() => { copying.value = false }, 2000)
+  }
+}
+
+const handleSave = async () => {
+  if (!captureRef.value) return
+  saving.value = true
+  try {
+    const dataUrl = await toPng(captureRef.value, {
+      quality: 1,
+      pixelRatio: 2,
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
+      cacheBust: true
+    })
+    const a = document.createElement('a')
+    a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+    a.href = dataUrl
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch (e) {
+    console.error('Save failed:', e)
+    alert('Gagal menyimpan gambar. Coba lagi.')
+  } finally {
+    saving.value = false
   }
 }
 </script>
