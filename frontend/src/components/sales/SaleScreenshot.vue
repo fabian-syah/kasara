@@ -29,8 +29,14 @@
             <div ref="captureRef" class="p-4 sm:p-5">
               <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
+                <!-- Proof Photos Loading -->
+                <div v-if="loadingPhotos" class="flex items-center justify-center gap-2 py-6 mb-5 bg-surface-900/50 rounded-xl border border-surface-700">
+                  <svg class="animate-spin h-4 w-4 text-primary-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span class="text-xs text-text-secondary">Memuat foto bukti...</span>
+                </div>
+
                 <!-- Proof Photos -->
-                <div v-if="loadedPhotos.length > 0" class="space-y-3 mb-5">
+                <div v-if="!loadingPhotos && loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
                     class="w-full rounded-xl overflow-hidden border border-surface-700">
                     <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
@@ -166,6 +172,7 @@ defineEmits(['close'])
 
 const captureRef = ref(null)
 const saving = ref(false)
+const loadingPhotos = ref(false)
 const loadedPhotos = ref([])
 
 const categoryLabels = {
@@ -243,6 +250,7 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
 const loadProofImages = async () => {
   loadedPhotos.value = []
   if (!props.sale?.proof_images?.length) return
+  loadingPhotos.value = true
   
   // Fetch all images in parallel for speed
   const results = await Promise.allSettled(
@@ -259,18 +267,19 @@ const loadProofImages = async () => {
         const blob = await res.blob()
         return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
       }
-      return url // fallback to original URL
+      return url
     })
   )
   
   loadedPhotos.value = results.map((r, i) => 
     r.status === 'fulfilled' ? r.value : props.sale.proof_images[i]
   )
+  loadingPhotos.value = false
 }
 
 watch(() => props.isOpen, (val) => {
   if (val && props.sale?.proof_images?.length) loadProofImages()
-  else loadedPhotos.value = []
+  else { loadedPhotos.value = []; loadingPhotos.value = false }
 })
 
 const copying = ref(false)
