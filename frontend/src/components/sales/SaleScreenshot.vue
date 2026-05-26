@@ -391,8 +391,15 @@ const handleSave = async () => {
     // Restore hidden images
     hiddenImgs.forEach(img => { img.style.display = '' })
 
-    // Download directly (works on both mobile and desktop)
-    const blob = await (await fetch(dataUrl)).blob()
+    // Download directly without fetch (avoids CSP issues with data: URLs)
+    const byteString = atob(dataUrl.split(',')[1])
+    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0]
+    const ab = new ArrayBuffer(byteString.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i)
+    }
+    const blob = new Blob([ab], { type: mimeString })
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
@@ -417,7 +424,12 @@ const handleSave = async () => {
       
       imgs.forEach(img => { img.style.display = '' })
       
-      const blob = await (await fetch(dataUrl)).blob()
+      const byteStr = atob(dataUrl.split(',')[1])
+      const mime = dataUrl.split(',')[0].split(':')[1].split(';')[0]
+      const arr = new ArrayBuffer(byteStr.length)
+      const u8 = new Uint8Array(arr)
+      for (let i = 0; i < byteStr.length; i++) u8[i] = byteStr.charCodeAt(i)
+      const blob = new Blob([arr], { type: mime })
       const blobUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = blobUrl

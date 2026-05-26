@@ -59,7 +59,7 @@ class SecurityHeaders
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " .
             "font-src 'self' https://fonts.gstatic.com data:; " .
             "img-src 'self' data: blob: https://ui-avatars.com {$appUrl}; " .
-            "connect-src 'self' {$appUrl} https://fonts.googleapis.com https://fonts.gstatic.com https://www.emsifa.com wss:; " .
+            "connect-src 'self' data: blob: {$appUrl} https://fonts.googleapis.com https://fonts.gstatic.com https://www.emsifa.com wss:; " .
             "worker-src 'self' blob:; " .
             "object-src 'none'; " .
             "frame-ancestors 'self'; " .
