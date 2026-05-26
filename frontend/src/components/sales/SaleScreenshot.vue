@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-6 bg-black/60 dark:bg-black/80" @click.self="$emit('close')">
-        <div class="relative w-full max-w-[420px] max-h-[92vh] flex flex-col rounded-xl overflow-hidden shadow-2xl border border-surface-700">
+      <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 dark:bg-black/80" @click.self="$emit('close')">
+        <div class="relative w-full sm:max-w-[420px] h-[95vh] sm:h-auto sm:max-h-[92vh] flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden shadow-2xl border border-surface-700 bg-surface-950">
           
           <!-- Top Bar -->
-          <div class="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-surface-900 border-b border-surface-700 gap-2">
+          <div class="flex items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 bg-surface-900 border-b border-surface-700 gap-2 shrink-0 safe-area-top">
             <span class="text-[10px] sm:text-xs font-semibold text-text-secondary shrink-0">Bukti Penjualan</span>
             <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <button @click="handleCopyText" :disabled="copying"
@@ -13,7 +13,7 @@
                 <ClipboardCopy :size="11" />
                 <span>{{ copying ? 'OK!' : 'Copas' }}</span>
               </button>
-              <button @click="handleSave" :disabled="saving"
+              <button @click="handleSave" :disabled="saving || loadingPhotos"
                 class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
                 <Download :size="11" />
                 <span>{{ saving ? '...' : 'Simpan' }}</span>
@@ -25,7 +25,7 @@
           </div>
 
           <!-- Scrollable Content -->
-          <div class="flex-1 overflow-y-auto bg-surface-950">
+          <div class="flex-1 overflow-y-auto bg-surface-950 overscroll-contain">
             <div ref="captureRef" class="p-4 sm:p-5">
               <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
@@ -367,9 +367,11 @@ const handleSave = async () => {
       })
     }
 
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    
     const dataUrl = await toPng(captureRef.value, {
-      quality: 1,
-      pixelRatio: 2,
+      quality: isMobile ? 0.9 : 1,
+      pixelRatio: isMobile ? 1.5 : 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       skipFonts: true,
       filter: (node) => {
@@ -385,15 +387,22 @@ const handleSave = async () => {
     })
     
     // Mobile-friendly download
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // On mobile, open in new tab (download attribute doesn't always work)
-      const blob = await (await fetch(dataUrl)).blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-      a.click()
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+    if (isMobile) {
+      // On mobile, open image in new tab for long-press save
+      const w = window.open()
+      if (w) {
+        w.document.write(`<img src="${dataUrl}" style="width:100%;height:auto;" />`)
+        w.document.title = 'Simpan gambar (tekan lama)'
+      } else {
+        // Fallback: try blob download
+        const blob = await (await fetch(dataUrl)).blob()
+        const blobUrl = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = blobUrl
+        a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+        a.click()
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
+      }
     } else {
       const a = document.createElement('a')
       a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
