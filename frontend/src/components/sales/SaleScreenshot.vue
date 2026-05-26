@@ -251,7 +251,10 @@ const loadProofImages = async () => {
         const base64 = await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
         loadedPhotos.value.push(base64)
       }
-    } catch { loadedPhotos.value.push(url) }
+    } catch { 
+      // Fallback: push URL for display (img tag can show cross-origin), but mark it
+      loadedPhotos.value.push(url) 
+    }
   }
 }
 
@@ -340,14 +343,7 @@ const handleSave = async () => {
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       cacheBust: false,
       skipFonts: true,
-      fetchRequestInit: { mode: 'no-cors' },
-      filter: (node) => {
-        // Skip images that might fail CORS
-        if (node.tagName === 'IMG' && node.src && node.src.includes('api.stokps.com')) {
-          return false
-        }
-        return true
-      }
+      includeQueryParams: true,
     })
     const a = document.createElement('a')
     a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
@@ -357,14 +353,20 @@ const handleSave = async () => {
     document.body.removeChild(a)
   } catch (e) {
     console.error('Save failed:', e)
-    // Fallback: try without images
+    // Fallback: try without external images
     try {
       const dataUrl = await toPng(captureRef.value, {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
         skipFonts: true,
-        filter: (node) => node.tagName !== 'IMG'
+        filter: (node) => {
+          // Skip external images that cause CORS issues
+          if (node.tagName === 'IMG' && node.src && !node.src.startsWith('data:')) {
+            return false
+          }
+          return true
+        }
       })
       const a = document.createElement('a')
       a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
