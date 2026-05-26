@@ -337,13 +337,23 @@ const handleSave = async () => {
   if (!captureRef.value) return
   saving.value = true
   try {
+    // Always skip external images to avoid CORS issues
     const dataUrl = await toPng(captureRef.value, {
       quality: 1,
       pixelRatio: 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-      cacheBust: false,
       skipFonts: true,
-      includeQueryParams: true,
+      filter: (node) => {
+        // Skip img tags with external URLs (CORS blocked)
+        if (node.tagName === 'IMG') {
+          const src = node.getAttribute('src') || ''
+          // Only allow base64/data URLs and blob URLs
+          if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
+            return false
+          }
+        }
+        return true
+      }
     })
     const a = document.createElement('a')
     a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
@@ -353,30 +363,7 @@ const handleSave = async () => {
     document.body.removeChild(a)
   } catch (e) {
     console.error('Save failed:', e)
-    // Fallback: try without external images
-    try {
-      const dataUrl = await toPng(captureRef.value, {
-        quality: 1,
-        pixelRatio: 2,
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-        skipFonts: true,
-        filter: (node) => {
-          // Skip external images that cause CORS issues
-          if (node.tagName === 'IMG' && node.src && !node.src.startsWith('data:')) {
-            return false
-          }
-          return true
-        }
-      })
-      const a = document.createElement('a')
-      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-      a.href = dataUrl
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    } catch (e2) {
-      alert('Gagal menyimpan gambar. Coba lagi.')
-    }
+    alert('Gagal menyimpan gambar. Coba lagi.')
   } finally {
     saving.value = false
   }
