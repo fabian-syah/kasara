@@ -3459,9 +3459,11 @@ class AuditController extends Controller
             ]);
 
             // Build Sheet 2: HP (IMEI items detail)
+            // Striping per customer group (same order_no = same color)
             $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk', 'Uang Keluar']];
             $rows2 = $export->collection();
-            $imeiRowIdx = 0;
+            $imeiStriped = false;
+            $imeiLastOrderNo = null;
             foreach ($rows2 as $row) {
                 $prodKeluar = $row['produk_keluar'] ?? '';
                 $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
@@ -3470,6 +3472,13 @@ class AuditController extends Controller
                 if (!$prodKeluar && !$prodMasuk) continue;
                 if (!$imeiKeluar && !($row['imei_masuk'] ?? '')) continue;
                 
+                // Toggle stripe when order_no changes (new transaction/customer)
+                $currentOrderNo = $row['order_no'] ?? '';
+                if ($currentOrderNo !== $imeiLastOrderNo) {
+                    $imeiStriped = !$imeiStriped;
+                    $imeiLastOrderNo = $currentOrderNo;
+                }
+
                 $uangMasuk = '';
                 $uangKeluar = '';
                 $cat = strtolower($row['category'] ?? '');
@@ -3492,14 +3501,15 @@ class AuditController extends Controller
                     $uangMasuk !== '' ? (float)$uangMasuk : '',
                     $uangKeluar !== '' ? (float)$uangKeluar : '',
                 ];
-                $imeiRow['__bg_striped'] = ($imeiRowIdx % 2 === 1);
+                $imeiRow['__bg_striped'] = $imeiStriped;
                 $imeiSheetData[] = $imeiRow;
-                $imeiRowIdx++;
             }
 
             // Build Sheet 3: Non-HP items
+            // Striping per customer group (same order_no = same color)
             $nonHpSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Distributor', 'Produk Keluar', 'Qty', 'Harga Satuan', 'Total Penjualan']];
-            $nhpRowIdx = 0;
+            $nhpStriped = false;
+            $nhpLastOrderNo = null;
             foreach ($rows2 as $row) {
                 $cat = strtolower($row['category'] ?? '');
                 $prodKeluar = $row['produk_keluar'] ?? '';
@@ -3508,6 +3518,13 @@ class AuditController extends Controller
                 // Non-HP: has product but no IMEI
                 if (!$prodKeluar || ($imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5)) continue;
                 
+                // Toggle stripe when order_no changes (new transaction/customer)
+                $currentOrderNo = $row['order_no'] ?? '';
+                if ($currentOrderNo !== $nhpLastOrderNo) {
+                    $nhpStriped = !$nhpStriped;
+                    $nhpLastOrderNo = $currentOrderNo;
+                }
+
                 $nhpRow = [
                     $row['waktu'] ?? '',
                     $row['customer'] ?? '',
@@ -3518,9 +3535,8 @@ class AuditController extends Controller
                     (float)($row['harga_satuan_keluar'] ?? 0),
                     (float)($row['total_penjualan'] ?? 0),
                 ];
-                $nhpRow['__bg_striped'] = ($nhpRowIdx % 2 === 1);
+                $nhpRow['__bg_striped'] = $nhpStriped;
                 $nonHpSheetData[] = $nhpRow;
-                $nhpRowIdx++;
             }
 
             return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
