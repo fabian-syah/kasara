@@ -3525,15 +3525,19 @@ class AuditController extends Controller
                     $nhpLastOrderNo = $currentOrderNo;
                 }
 
+                $qty = $row['qty_keluar'] ?? 1;
+                $hargaSatuan = (float)($row['harga_satuan_keluar'] ?? 0);
+                $totalNhp = $hargaSatuan * (int)$qty;
+
                 $nhpRow = [
                     $row['waktu'] ?? '',
                     $row['customer'] ?? '',
                     ($row['whatsapp'] ?? '') . "\u{200B}",
                     $row['distributor_keluar'] ?? '',
                     $prodKeluar,
-                    $row['qty_keluar'] ?? 1,
-                    (float)($row['harga_satuan_keluar'] ?? 0),
-                    (float)($row['total_penjualan'] ?? 0),
+                    $qty,
+                    $hargaSatuan,
+                    $totalNhp,
                 ];
                 $nhpRow['__bg_striped'] = $nhpStriped;
                 $nonHpSheetData[] = $nhpRow;
