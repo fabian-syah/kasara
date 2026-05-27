@@ -3456,7 +3456,65 @@ class AuditController extends Controller
                 ]
             ]);
 
-            return response((string) \App\Utils\SimpleXLSXGen::fromArray($xlsxData), 200, [
+            // Build Sheet 2: IMEI (HP items detail)
+            $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk']];
+            $rows2 = $export->collection();
+            foreach ($rows2 as $row) {
+                $prodKeluar = $row['produk_keluar'] ?? '';
+                $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
+                $prodMasuk = $row['produk_masuk'] ?? '';
+                
+                if (!$prodKeluar && !$prodMasuk) continue;
+                if (!$imeiKeluar && !($row['imei_masuk'] ?? '')) continue;
+                
+                $uangMasuk = '';
+                $cat = strtolower($row['category'] ?? '');
+                if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan', 'shopee', 'orderan_online'])) {
+                    $uangMasuk = (float)($row['total_penjualan'] ?? 0);
+                } elseif (in_array($cat, ['tukar_tambah', 'downgrade'])) {
+                    // Selisih = total penjualan (bisa negatif untuk downgrade)
+                    $uangMasuk = (float)($row['total_penjualan'] ?? 0);
+                } elseif (in_array($cat, ['angkat_barang', 'refund'])) {
+                    $uangMasuk = (float)($row['total_pengeluaran'] ?? 0);
+                }
+
+                $imeiSheetData[] = [
+                    $row['waktu'] ?? '',
+                    $row['customer'] ?? '',
+                    ($row['whatsapp'] ?? '') . "\u{200B}",
+                    $prodKeluar ?: $prodMasuk,
+                    ($imeiKeluar ?: str_replace("'", "", $row['imei_masuk'] ?? '')) . "\u{200B}",
+                    $uangMasuk !== '' ? (float)$uangMasuk : '',
+                ];
+            }
+
+            // Build Sheet 3: Non-HP items
+            $nonHpSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Distributor', 'Produk Keluar', 'Qty', 'Harga Satuan', 'Total Penjualan']];
+            foreach ($rows2 as $row) {
+                $cat = strtolower($row['category'] ?? '');
+                $prodKeluar = $row['produk_keluar'] ?? '';
+                $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
+                
+                // Non-HP: has product but no IMEI
+                if (!$prodKeluar || ($imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5)) continue;
+                
+                $nonHpSheetData[] = [
+                    $row['waktu'] ?? '',
+                    $row['customer'] ?? '',
+                    ($row['whatsapp'] ?? '') . "\u{200B}",
+                    $row['distributor_keluar'] ?? '',
+                    $prodKeluar,
+                    $row['qty_keluar'] ?? 1,
+                    (float)($row['harga_satuan_keluar'] ?? 0),
+                    (float)($row['total_penjualan'] ?? 0),
+                ];
+            }
+
+            return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
+                'Penjualan' => $xlsxData,
+                'IMEI' => $imeiSheetData,
+                'Non-HP' => $nonHpSheetData,
+            ]), 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
                 'Cache-Control' => 'max-age=0',
