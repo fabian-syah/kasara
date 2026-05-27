@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\StockOut;
-use App\Models\StockOutNonHpItem;
 use App\Models\Product;
 use App\Models\ProductDetail;
 use App\Models\User;
@@ -18,8 +17,9 @@ use App\Models\Inventory;
 use App\Models\PaymentMethod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Octane\Facades\Octane;
-use Illuminate\Support\Collection;
 
 class AuditController extends Controller
 {
@@ -2258,11 +2258,13 @@ class AuditController extends Controller
             return response()->json(['message' => 'Invalid path'], 403);
         }
 
-        if (!\Storage::disk('public')->exists($path)) {
+        if (!Storage::disk('public')->exists($path)) {
             return response()->json(['message' => 'File not found in storage: ' . $path], 404);
         }
 
-        return \Storage::disk('public')->download($path);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        return $disk->download($path);
     }
 
     public function inventory(Request $request)
@@ -3459,6 +3461,7 @@ class AuditController extends Controller
             // Build Sheet 2: HP (IMEI items detail)
             $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk', 'Uang Keluar']];
             $rows2 = $export->collection();
+            $imeiRowIdx = 0;
             foreach ($rows2 as $row) {
                 $prodKeluar = $row['produk_keluar'] ?? '';
                 $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
@@ -3480,7 +3483,7 @@ class AuditController extends Controller
                     $uangKeluar = abs((float)($row['total_pengeluaran'] ?? 0));
                 }
 
-                $imeiSheetData[] = [
+                $imeiRow = [
                     $row['waktu'] ?? '',
                     $row['customer'] ?? '',
                     ($row['whatsapp'] ?? '') . "\u{200B}",
@@ -3489,10 +3492,14 @@ class AuditController extends Controller
                     $uangMasuk !== '' ? (float)$uangMasuk : '',
                     $uangKeluar !== '' ? (float)$uangKeluar : '',
                 ];
+                $imeiRow['__bg_striped'] = ($imeiRowIdx % 2 === 1);
+                $imeiSheetData[] = $imeiRow;
+                $imeiRowIdx++;
             }
 
             // Build Sheet 3: Non-HP items
             $nonHpSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Distributor', 'Produk Keluar', 'Qty', 'Harga Satuan', 'Total Penjualan']];
+            $nhpRowIdx = 0;
             foreach ($rows2 as $row) {
                 $cat = strtolower($row['category'] ?? '');
                 $prodKeluar = $row['produk_keluar'] ?? '';
@@ -3501,7 +3508,7 @@ class AuditController extends Controller
                 // Non-HP: has product but no IMEI
                 if (!$prodKeluar || ($imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5)) continue;
                 
-                $nonHpSheetData[] = [
+                $nhpRow = [
                     $row['waktu'] ?? '',
                     $row['customer'] ?? '',
                     ($row['whatsapp'] ?? '') . "\u{200B}",
@@ -3511,6 +3518,9 @@ class AuditController extends Controller
                     (float)($row['harga_satuan_keluar'] ?? 0),
                     (float)($row['total_penjualan'] ?? 0),
                 ];
+                $nhpRow['__bg_striped'] = ($nhpRowIdx % 2 === 1);
+                $nonHpSheetData[] = $nhpRow;
+                $nhpRowIdx++;
             }
 
             return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
@@ -3523,7 +3533,7 @@ class AuditController extends Controller
                 'Cache-Control' => 'max-age=0',
             ]);
         } catch (\Throwable $e) {
-            \Log::error('Export Sales Error: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('Export Sales Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
