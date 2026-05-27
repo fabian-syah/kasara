@@ -86,6 +86,18 @@ const tukarUnitDistributors = ref([]);
 const tukarUnitBrands = ref([]);
 const tukarUnitAllTypes = ref([]);
 
+const tukarUnitFilteredBrands = computed(() => {
+    if (!stockOutForm.value.incoming_distributor_id) return tukarUnitBrands.value;
+    const dist = tukarUnitDistributors.value.find(d => d.id === stockOutForm.value.incoming_distributor_id);
+    if (!dist || !dist.allowed_brands) return tukarUnitBrands.value;
+    try {
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        if (!Array.isArray(allowedIds)) return tukarUnitBrands.value;
+        const numericIds = allowedIds.map(id => Number(id));
+        return tukarUnitBrands.value.filter(b => numericIds.includes(Number(b.id)));
+    } catch { return tukarUnitBrands.value; }
+});
+
 const tukarUnitFilteredTypes = computed(() => {
     if (!stockOutForm.value.incoming_brand_id) return [];
     return tukarUnitAllTypes.value.filter(t => t.brand_id === stockOutForm.value.incoming_brand_id);
@@ -99,6 +111,12 @@ const tukarUnitStorages = computed(() => {
 });
 
 function onTukarUnitBrandChange() {
+    stockOutForm.value.incoming_product_type_id = null;
+    stockOutForm.value.incoming_storage = '';
+}
+
+function onTukarUnitDistributorChange() {
+    stockOutForm.value.incoming_brand_id = null;
     stockOutForm.value.incoming_product_type_id = null;
     stockOutForm.value.incoming_storage = '';
 }
@@ -864,7 +882,7 @@ async function submitStockOut(pin = null) {
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
                                         <label class="label text-xs">Distributor *</label>
-                                        <select v-model="stockOutForm.incoming_distributor_id" class="input text-sm">
+                                        <select v-model="stockOutForm.incoming_distributor_id" @change="onTukarUnitDistributorChange" class="input text-sm">
                                             <option :value="null">-- Pilih Distributor --</option>
                                             <option v-for="d in tukarUnitDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
                                         </select>
@@ -873,7 +891,7 @@ async function submitStockOut(pin = null) {
                                         <label class="label text-xs">Brand *</label>
                                         <select v-model="stockOutForm.incoming_brand_id" @change="onTukarUnitBrandChange" class="input text-sm">
                                             <option :value="null">-- Pilih Brand --</option>
-                                            <option v-for="b in tukarUnitBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                            <option v-for="b in tukarUnitFilteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
                                         </select>
                                     </div>
                                     <div>

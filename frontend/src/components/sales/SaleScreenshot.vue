@@ -50,7 +50,7 @@
 
                 <!-- Category -->
                 <div class="flex justify-center mb-3">
-                  <span class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md"
+                  <span class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md whitespace-nowrap"
                     :class="categoryClass">
                     {{ categoryLabel }}
                   </span>
@@ -85,10 +85,12 @@
                   <div class="space-y-2">
                     <div v-for="(item, idx) in saleItems" :key="idx"
                       class="bg-surface-900/50 rounded-lg px-3 py-2.5 border border-surface-700">
-                      <div class="flex justify-between items-start gap-2">
-                        <div class="min-w-0 flex-1">
-                          <p class="text-xs font-semibold text-text-primary truncate">{{ item.name }}</p>
-                          <div class="flex flex-wrap items-center gap-1 mt-1">
+                      <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-start gap-2">
+                          <p class="text-xs font-semibold text-text-primary break-words flex-1 min-w-0">{{ item.name }}</p>
+                          <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-right">{{ formatCurrency(item.price) }}</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1">
                             <span v-if="item.brand" class="text-[10px] text-text-secondary">{{ item.brand }}</span>
                             <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium">
                               {{ [item.ram, item.storage].filter(Boolean).join('/') }} GB
@@ -98,13 +100,9 @@
                               :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : item.condition === 'ex_ibox' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'">
                               {{ item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
                             </span>
-                          </div>
-                          <p v-if="item.imei && item.imei !== '-'" class="text-[10px] text-text-secondary/70 font-mono mt-1">IMEI: {{ item.imei }}</p>
                         </div>
-                        <div class="text-right flex-shrink-0">
-                          <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(item.price) }}</p>
-                          <p v-if="item.qty > 1" class="text-[10px] text-text-secondary mt-0.5">x{{ item.qty }}</p>
-                        </div>
+                        <p v-if="item.imei && item.imei !== '-'" class="text-[9px] text-text-secondary/70 font-mono break-all">IMEI: {{ item.imei }}</p>
+                        <p v-if="item.qty > 1" class="text-[10px] text-text-secondary">x{{ item.qty }}</p>
                       </div>
                     </div>
                   </div>
@@ -127,7 +125,7 @@
 
                 <!-- Status -->
                 <div class="flex justify-center mb-4">
-                  <span class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md"
+                  <span class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md whitespace-nowrap"
                     :class="sale?.category === 'cancel_penjualan' 
                       ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' 
                       : sale?.status === 'Lunas' 
