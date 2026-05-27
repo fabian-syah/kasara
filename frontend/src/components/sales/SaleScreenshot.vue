@@ -84,13 +84,13 @@
                   <p class="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">Produk</p>
                   <div class="space-y-2">
                     <div v-for="(item, idx) in saleItems" :key="idx"
-                      class="bg-surface-900/50 rounded-lg px-3 py-2.5 border border-surface-700">
-                      <div class="flex flex-col gap-1">
-                        <div class="flex justify-between items-start gap-2">
-                          <p class="text-xs font-semibold text-text-primary break-words flex-1 min-w-0">{{ item.name }}</p>
-                          <p class="text-xs font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-right">{{ formatCurrency(item.price) }}</p>
+                      class="bg-surface-900/50 rounded-lg px-3 py-2.5 border border-surface-700 overflow-hidden">
+                      <div style="display:block;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                          <span class="text-xs font-semibold text-text-primary" style="word-break:break-word;flex:1;min-width:0;">{{ item.name }}</span>
+                          <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400" style="white-space:nowrap;flex-shrink:0;">{{ formatCurrency(item.price) }}</span>
                         </div>
-                        <div class="flex flex-wrap items-center gap-1">
+                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;">
                             <span v-if="item.brand" class="text-[10px] text-text-secondary">{{ item.brand }}</span>
                             <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium">
                               {{ [item.ram, item.storage].filter(Boolean).join('/') }} GB
@@ -101,8 +101,8 @@
                               {{ item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
                             </span>
                         </div>
-                        <p v-if="item.imei && item.imei !== '-'" class="text-[9px] text-text-secondary/70 font-mono break-all">IMEI: {{ item.imei }}</p>
-                        <p v-if="item.qty > 1" class="text-[10px] text-text-secondary">x{{ item.qty }}</p>
+                        <p v-if="item.imei && item.imei !== '-'" class="text-[9px] text-text-secondary/70 font-mono" style="word-break:break-all;margin-top:4px;">IMEI: {{ item.imei }}</p>
+                        <p v-if="item.qty > 1" class="text-[10px] text-text-secondary" style="margin-top:2px;">x{{ item.qty }}</p>
                       </div>
                     </div>
                   </div>
@@ -364,9 +364,12 @@ const handleSave = async () => {
         const check = setInterval(() => {
           if (!loadingPhotos.value) { clearInterval(check); resolve() }
         }, 100)
-        setTimeout(() => { clearInterval(check); resolve() }, 10000)
+        setTimeout(() => { clearInterval(check); resolve() }, 15000)
       })
     }
+    
+    // Wait for images to render in DOM
+    await new Promise(r => setTimeout(r, 500))
 
     // Before capture: temporarily hide non-base64 images to avoid CORS errors
     const imgs = captureRef.value.querySelectorAll('img')
