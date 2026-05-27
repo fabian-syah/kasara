@@ -90,7 +90,7 @@
                           <td style="vertical-align:top;padding:0 4px 0 0;">
                             <span class="text-xs font-semibold text-text-primary" style="display:block;word-break:break-word;">{{ item.name }}</span>
                             <span v-if="item.brand" class="text-[10px] text-text-secondary" style="display:inline;">{{ item.brand }}&nbsp;</span>
-                            <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium" style="display:inline;">{{ [item.ram, item.storage].filter(Boolean).join('/') }} GB&nbsp;</span>
+                            <span v-if="item.storage" class="text-[10px] text-text-primary font-medium" style="display:inline;">{{ item.storage }}{{ !item.storage.toString().toLowerCase().includes('gb') && !item.storage.toString().toLowerCase().includes('tb') ? ' GB' : '' }}&nbsp;</span>
                             <span v-if="item.condition" class="text-[9px] font-semibold" style="display:inline;"
                               :class="item.condition === 'new' ? 'text-emerald-600' : item.condition === 'ex_ibox' ? 'text-purple-600' : 'text-amber-600'">
                               {{ item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
