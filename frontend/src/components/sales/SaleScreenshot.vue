@@ -85,25 +85,24 @@
                   <div class="space-y-2">
                     <div v-for="(item, idx) in saleItems" :key="idx"
                       class="bg-surface-900/50 rounded-lg px-3 py-2.5 border border-surface-700 overflow-hidden">
-                      <div style="display:block;">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                          <span class="text-xs font-semibold text-text-primary" style="word-break:break-word;flex:1;min-width:0;">{{ item.name }}</span>
-                          <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400" style="white-space:nowrap;flex-shrink:0;">{{ formatCurrency(item.price) }}</span>
-                        </div>
-                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:4px;">
-                            <span v-if="item.brand" class="text-[10px] text-text-secondary">{{ item.brand }}</span>
-                            <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium">
-                              {{ [item.ram, item.storage].filter(Boolean).join('/') }} GB
-                            </span>
-                            <span v-if="item.condition"
-                              class="px-1.5 py-0.5 text-[9px] font-semibold rounded"
-                              :class="item.condition === 'new' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : item.condition === 'ex_ibox' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'">
+                      <table style="width:100%;border-collapse:collapse;">
+                        <tr>
+                          <td style="vertical-align:top;padding:0 4px 0 0;">
+                            <span class="text-xs font-semibold text-text-primary" style="display:block;word-break:break-word;">{{ item.name }}</span>
+                            <span v-if="item.brand" class="text-[10px] text-text-secondary" style="display:inline;">{{ item.brand }}&nbsp;</span>
+                            <span v-if="item.ram || item.storage" class="text-[10px] text-text-primary font-medium" style="display:inline;">{{ [item.ram, item.storage].filter(Boolean).join('/') }} GB&nbsp;</span>
+                            <span v-if="item.condition" class="text-[9px] font-semibold" style="display:inline;"
+                              :class="item.condition === 'new' ? 'text-emerald-600' : item.condition === 'ex_ibox' ? 'text-purple-600' : 'text-amber-600'">
                               {{ item.condition === 'new' ? 'Baru' : item.condition === 'ex_ibox' ? 'Ex iBox' : 'Second' }}
                             </span>
-                        </div>
-                        <p v-if="item.imei && item.imei !== '-'" class="text-[9px] text-text-secondary/70 font-mono" style="word-break:break-all;margin-top:4px;">IMEI: {{ item.imei }}</p>
-                        <p v-if="item.qty > 1" class="text-[10px] text-text-secondary" style="margin-top:2px;">x{{ item.qty }}</p>
-                      </div>
+                            <span v-if="item.imei && item.imei !== '-'" class="text-[9px] text-text-secondary/70 font-mono" style="display:block;word-break:break-all;margin-top:2px;">IMEI: {{ item.imei }}</span>
+                          </td>
+                          <td style="vertical-align:top;white-space:nowrap;text-align:right;padding:0;">
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(item.price) }}</span>
+                            <span v-if="item.qty > 1" class="text-[10px] text-text-secondary" style="display:block;">x{{ item.qty }}</span>
+                          </td>
+                        </tr>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -363,13 +362,13 @@ const handleSave = async () => {
       await new Promise(resolve => {
         const check = setInterval(() => {
           if (!loadingPhotos.value) { clearInterval(check); resolve() }
-        }, 100)
-        setTimeout(() => { clearInterval(check); resolve() }, 15000)
+        }, 200)
+        setTimeout(() => { clearInterval(check); resolve() }, 20000)
       })
     }
     
-    // Wait for images to render in DOM
-    await new Promise(r => setTimeout(r, 500))
+    // Wait extra time for images to fully render in DOM after loading
+    await new Promise(r => setTimeout(r, 1000))
 
     // Before capture: temporarily hide non-base64 images to avoid CORS errors
     const imgs = captureRef.value.querySelectorAll('img')
