@@ -3456,8 +3456,8 @@ class AuditController extends Controller
                 ]
             ]);
 
-            // Build Sheet 2: IMEI (HP items detail)
-            $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk']];
+            // Build Sheet 2: HP (IMEI items detail)
+            $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk', 'Uang Keluar']];
             $rows2 = $export->collection();
             foreach ($rows2 as $row) {
                 $prodKeluar = $row['produk_keluar'] ?? '';
@@ -3468,14 +3468,16 @@ class AuditController extends Controller
                 if (!$imeiKeluar && !($row['imei_masuk'] ?? '')) continue;
                 
                 $uangMasuk = '';
+                $uangKeluar = '';
                 $cat = strtolower($row['category'] ?? '');
                 if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan', 'shopee', 'orderan_online'])) {
                     $uangMasuk = (float)($row['total_penjualan'] ?? 0);
-                } elseif (in_array($cat, ['tukar_tambah', 'downgrade'])) {
-                    // Selisih = total penjualan (bisa negatif untuk downgrade)
+                } elseif (in_array($cat, ['tukar_tambah'])) {
                     $uangMasuk = (float)($row['total_penjualan'] ?? 0);
+                } elseif (in_array($cat, ['downgrade'])) {
+                    $uangKeluar = abs((float)($row['total_pengeluaran'] ?? 0));
                 } elseif (in_array($cat, ['angkat_barang', 'refund'])) {
-                    $uangMasuk = (float)($row['total_pengeluaran'] ?? 0);
+                    $uangKeluar = abs((float)($row['total_pengeluaran'] ?? 0));
                 }
 
                 $imeiSheetData[] = [
@@ -3485,6 +3487,7 @@ class AuditController extends Controller
                     $prodKeluar ?: $prodMasuk,
                     ($imeiKeluar ?: str_replace("'", "", $row['imei_masuk'] ?? '')) . "\u{200B}",
                     $uangMasuk !== '' ? (float)$uangMasuk : '',
+                    $uangKeluar !== '' ? (float)$uangKeluar : '',
                 ];
             }
 
@@ -3512,7 +3515,7 @@ class AuditController extends Controller
 
             return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
                 'Penjualan' => $xlsxData,
-                'IMEI' => $imeiSheetData,
+                'HP' => $imeiSheetData,
                 'Non-HP' => $nonHpSheetData,
             ]), 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
