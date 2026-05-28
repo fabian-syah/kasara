@@ -3567,6 +3567,15 @@ class AuditController extends Controller
                 }
             }
 
+            // Add notes at the bottom of HP sheet (skip 2 rows, put in Nama Customer & WhatsApp columns)
+            $imeiSheetData[] = ['', '', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '* Untuk penjualan dan bundling yang tertera harga jual real nya', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '** Untuk tukar tambah yang tertera adalah harga jual barang yang keluar', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '*** Untuk tukar unit harga tertera nya "kosong"', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '**** Untuk refund dan angkat barang tertera di uang keluar', '', '', '', '', ''];
+            $imeiSheetData[] = ['', '***** Untuk downgrade harga selisih refund yang tertera di uang keluar', '', '', '', '', ''];
+
             // Build Sheet 3: Non-HP items
             // Striping per customer group (same order_no = same color)
             $nonHpSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Distributor', 'Produk Keluar', 'Qty', 'Harga Satuan', 'Total Penjualan']];
