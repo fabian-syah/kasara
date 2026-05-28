@@ -3614,6 +3614,12 @@ class AuditController extends Controller
                 $nonHpSheetData[] = $nhpRow;
             }
 
+            // Add notes at the bottom of Non-HP sheet (skip 2 rows, put in Nama Customer column)
+            $nonHpSheetData[] = ['', '', '', '', '', '', '', ''];
+            $nonHpSheetData[] = ['', '', '', '', '', '', '', ''];
+            $nonHpSheetData[] = ['', '* Produk non HP yang tertera disini khusus yang terjual saja', '', '', '', '', '', ''];
+            $nonHpSheetData[] = ['', '** Untuk transaksi barang masuk non HP dari refund dll bisa di lihat di sheet "Penjualan" untuk keterangan lebih lengkapnya', '', '', '', '', '', ''];
+
             return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
                 'Penjualan' => $xlsxData,
                 'HP' => $imeiSheetData,
