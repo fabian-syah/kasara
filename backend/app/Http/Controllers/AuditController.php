@@ -3462,47 +3462,104 @@ class AuditController extends Controller
             // Striping per customer group (same order_no = same color)
             $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk', 'Uang Keluar']];
             $rows2 = $export->collection();
+            
+            // Group rows by order_no to combine multi-row transactions
+            $groupedByOrder = [];
+            foreach ($rows2 as $row) {
+                $orderNo = $row['order_no'] ?? '';
+                if (!$orderNo) continue;
+                $groupedByOrder[$orderNo][] = $row;
+            }
+
             $imeiStriped = false;
             $imeiLastOrderNo = null;
-            foreach ($rows2 as $row) {
-                $prodKeluar = $row['produk_keluar'] ?? '';
-                $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
-                $prodMasuk = $row['produk_masuk'] ?? '';
+            $combinedCategories = ['tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang'];
+
+            foreach ($groupedByOrder as $orderNo => $orderRows) {
+                $firstRow = $orderRows[0];
+                $cat = strtolower($firstRow['category'] ?? '');
                 
-                if (!$prodKeluar && !$prodMasuk) continue;
-                if (!$imeiKeluar && !($row['imei_masuk'] ?? '')) continue;
+                // Collect all IMEI items (outgoing + incoming) for this transaction
+                $outProducts = [];
+                $inProducts = [];
+                $outImeis = [];
+                $inImeis = [];
                 
-                // Toggle stripe when order_no changes (new transaction/customer)
-                $currentOrderNo = $row['order_no'] ?? '';
-                if ($currentOrderNo !== $imeiLastOrderNo) {
+                foreach ($orderRows as $row) {
+                    $prodKeluar = $row['produk_keluar'] ?? '';
+                    $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
+                    $prodMasuk = $row['produk_masuk'] ?? '';
+                    $imeiMasuk = str_replace("'", "", $row['imei_masuk'] ?? '');
+                    
+                    // Only HP items (has real IMEI, length > 5, not just '-')
+                    if ($prodKeluar && $imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5) {
+                        $outProducts[] = $prodKeluar;
+                        $outImeis[] = $imeiKeluar;
+                    }
+                    if ($prodMasuk && $imeiMasuk && $imeiMasuk !== '-' && strlen($imeiMasuk) > 5) {
+                        $inProducts[] = $prodMasuk;
+                        $inImeis[] = $imeiMasuk;
+                    }
+                }
+                
+                // Skip if no HP items at all
+                if (empty($outImeis) && empty($inImeis)) continue;
+                
+                // Toggle stripe when order changes
+                if ($orderNo !== $imeiLastOrderNo) {
                     $imeiStriped = !$imeiStriped;
-                    $imeiLastOrderNo = $currentOrderNo;
+                    $imeiLastOrderNo = $orderNo;
                 }
 
+                // Determine uang masuk / keluar
                 $uangMasuk = '';
                 $uangKeluar = '';
-                $cat = strtolower($row['category'] ?? '');
-                if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan', 'shopee', 'orderan_online'])) {
-                    $uangMasuk = (float)($row['total_penjualan'] ?? 0);
-                } elseif (in_array($cat, ['tukar_tambah'])) {
-                    $uangMasuk = (float)($row['total_penjualan'] ?? 0);
+                if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan', 'shopee', 'orderan_online', 'tukar_tambah', 'tukar_unit'])) {
+                    $uangMasuk = (float)($firstRow['total_penjualan'] ?? 0);
                 } elseif (in_array($cat, ['downgrade'])) {
-                    $uangKeluar = abs((float)($row['total_pengeluaran'] ?? 0));
+                    $uangKeluar = abs((float)($firstRow['total_pengeluaran'] ?? 0));
                 } elseif (in_array($cat, ['angkat_barang', 'refund'])) {
-                    $uangKeluar = abs((float)($row['total_pengeluaran'] ?? 0));
+                    $uangKeluar = abs((float)($firstRow['total_pengeluaran'] ?? 0));
                 }
 
-                $imeiRow = [
-                    $row['waktu'] ?? '',
-                    $row['customer'] ?? '',
-                    ($row['whatsapp'] ?? '') . "\u{200B}",
-                    $prodKeluar ?: $prodMasuk,
-                    ($imeiKeluar ?: str_replace("'", "", $row['imei_masuk'] ?? '')) . "\u{200B}",
-                    $uangMasuk !== '' ? (float)$uangMasuk : '',
-                    $uangKeluar !== '' ? (float)$uangKeluar : '',
-                ];
-                $imeiRow['__bg_striped'] = $imeiStriped;
-                $imeiSheetData[] = $imeiRow;
+                if (in_array($cat, $combinedCategories)) {
+                    // Combined format: CATEGORY Product_Out Product_In
+                    $catLabel = strtoupper($cat);
+                    $prodParts = [];
+                    foreach ($outProducts as $p) $prodParts[] = $p;
+                    foreach ($inProducts as $p) $prodParts[] = $p;
+                    $combinedProd = $catLabel . ' ' . implode(' ', $prodParts);
+                    
+                    // Combine all IMEIs
+                    $allImeis = array_merge($outImeis, $inImeis);
+                    
+                    $imeiRow = [
+                        $firstRow['waktu'] ?? '',
+                        $firstRow['customer'] ?? '',
+                        ($firstRow['whatsapp'] ?? '') . "\u{200B}",
+                        $combinedProd,
+                        implode('; ', $allImeis) . "\u{200B}",
+                        $uangMasuk !== '' ? (float)$uangMasuk : '',
+                        $uangKeluar !== '' ? (float)$uangKeluar : '',
+                    ];
+                    $imeiRow['__bg_striped'] = $imeiStriped;
+                    $imeiSheetData[] = $imeiRow;
+                } else {
+                    // Normal sales: one row per IMEI item
+                    foreach ($outImeis as $idx => $imei) {
+                        $imeiRow = [
+                            $firstRow['waktu'] ?? '',
+                            $firstRow['customer'] ?? '',
+                            ($firstRow['whatsapp'] ?? '') . "\u{200B}",
+                            $outProducts[$idx] ?? '',
+                            $imei . "\u{200B}",
+                            ($idx === 0 && $uangMasuk !== '') ? (float)$uangMasuk : '',
+                            ($idx === 0 && $uangKeluar !== '') ? (float)$uangKeluar : '',
+                        ];
+                        $imeiRow['__bg_striped'] = $imeiStriped;
+                        $imeiSheetData[] = $imeiRow;
+                    }
+                }
             }
 
             // Build Sheet 3: Non-HP items
