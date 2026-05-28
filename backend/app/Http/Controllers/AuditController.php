@@ -3530,15 +3530,17 @@ class AuditController extends Controller
                     foreach ($inProducts as $p) $prodParts[] = $p;
                     $combinedProd = $catLabel . ' ' . implode(' ', $prodParts);
                     
-                    // Combine all IMEIs
-                    $allImeis = array_merge($outImeis, $inImeis);
+                    // Combine IMEIs with out/in labels
+                    $imeiParts = [];
+                    foreach ($outImeis as $oi) $imeiParts[] = $oi . ' out';
+                    foreach ($inImeis as $ii) $imeiParts[] = $ii . ' in';
                     
                     $imeiRow = [
                         $firstRow['waktu'] ?? '',
                         $firstRow['customer'] ?? '',
                         ($firstRow['whatsapp'] ?? '') . "\u{200B}",
                         $combinedProd,
-                        implode('; ', $allImeis) . "\u{200B}",
+                        implode(' ', $imeiParts) . "\u{200B}",
                         $uangMasuk !== '' ? (float)$uangMasuk : '',
                         $uangKeluar !== '' ? (float)$uangKeluar : '',
                     ];
