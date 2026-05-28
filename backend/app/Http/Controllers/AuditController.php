@@ -3484,6 +3484,7 @@ class AuditController extends Controller
                 $inProducts = [];
                 $outImeis = [];
                 $inImeis = [];
+                $outPrices = [];
                 
                 foreach ($orderRows as $row) {
                     $prodKeluar = $row['produk_keluar'] ?? '';
@@ -3495,6 +3496,7 @@ class AuditController extends Controller
                     if ($prodKeluar && $imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5) {
                         $outProducts[] = $prodKeluar;
                         $outImeis[] = $imeiKeluar;
+                        $outPrices[] = (float)($row['harga_satuan_keluar'] ?? 0);
                     }
                     if ($prodMasuk && $imeiMasuk && $imeiMasuk !== '-' && strlen($imeiMasuk) > 5) {
                         $inProducts[] = $prodMasuk;
@@ -3547,16 +3549,17 @@ class AuditController extends Controller
                     $imeiRow['__bg_striped'] = $imeiStriped;
                     $imeiSheetData[] = $imeiRow;
                 } else {
-                    // Normal sales: one row per IMEI item
+                    // Normal sales (including bundling): one row per IMEI item with per-item price
                     foreach ($outImeis as $idx => $imei) {
+                        $itemPrice = $outPrices[$idx] ?? 0;
                         $imeiRow = [
                             $firstRow['waktu'] ?? '',
                             $firstRow['customer'] ?? '',
                             ($firstRow['whatsapp'] ?? '') . "\u{200B}",
                             $outProducts[$idx] ?? '',
                             $imei . "\u{200B}",
-                            ($idx === 0 && $uangMasuk !== '') ? (float)$uangMasuk : '',
-                            ($idx === 0 && $uangKeluar !== '') ? (float)$uangKeluar : '',
+                            $itemPrice > 0 ? (float)$itemPrice : '',
+                            '',
                         ];
                         $imeiRow['__bg_striped'] = $imeiStriped;
                         $imeiSheetData[] = $imeiRow;
