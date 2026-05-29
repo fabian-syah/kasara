@@ -35,11 +35,11 @@
                   <span class="text-xs text-text-secondary">Memuat foto...</span>
                 </div>
 
-                <!-- Proof Photos -->
+                <!-- Proof Photos using background-image (works better on iOS for capture) -->
                 <div v-if="!loadingPhotos && loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
-                    class="w-full rounded-xl overflow-hidden border border-surface-700">
-                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
+                    class="w-full rounded-xl overflow-hidden border border-surface-700"
+                    :style="{ backgroundImage: `url(${photo})`, backgroundSize: 'cover', backgroundPosition: 'center', paddingBottom: photoAspects[idx] || '75%' }">
                   </div>
                 </div>
 
@@ -158,7 +158,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { X, User as UserIcon, ClipboardCopy, Download } from 'lucide-vue-next'
-import html2canvas from 'html2canvas'
+import { toPng } from 'html-to-image'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -171,6 +171,7 @@ const captureRef = ref(null)
 const saving = ref(false)
 const loadingPhotos = ref(false)
 const loadedPhotos = ref([])
+const photoAspects = ref([])
 
 const categoryLabels = {
   penjualan: 'Penjualan',
@@ -244,54 +245,70 @@ const formattedDateShort = computed(() => {
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(val) || 0)
 
 /**
- * Convert image URL to base64 via backend JSON endpoint.
- * Returns base64 data URL directly from server - works on all platforms including iOS Safari.
+ * Fetch image as base64 from backend JSON endpoint.
+ * Returns { data: base64string, aspect: paddingBottom% }
  */
-const imgToBase64 = (url) => {
-  return new Promise((resolve) => {
-    // Extract storage path from URL
-    let storagePath = ''
-    if (url.includes('/storage/')) {
-      storagePath = url.split('/storage/')[1]
-    } else {
-      resolve(null)
-      return
-    }
-    
-    // Build the base64 JSON endpoint URL
-    const apiBase = url.split('/storage/')[0]
-    const base64Url = `${apiBase}/api/storage-base64/${storagePath}`
-    
+const fetchImageBase64 = async (url) => {
+  let storagePath = ''
+  if (url.includes('/storage/')) {
+    storagePath = url.split('/storage/')[1]
+  } else {
+    return null
+  }
+  
+  const apiBase = url.split('/storage/')[0]
+  const base64Url = `${apiBase}/api/storage-base64/${storagePath}`
+  
+  try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => { controller.abort(); resolve(null) }, 8000)
+    const timeout = setTimeout(() => controller.abort(), 10000)
     
-    fetch(base64Url, { signal: controller.signal })
-      .then(res => {
-        if (!res.ok) throw new Error('fetch failed')
-        return res.json()
-      })
-      .then(json => {
-        clearTimeout(timeout)
-        resolve(json.data || null)
-      })
-      .catch(() => {
-        clearTimeout(timeout)
-        resolve(null)
-      })
-  })
+    const res = await fetch(base64Url, { signal: controller.signal })
+    clearTimeout(timeout)
+    
+    if (!res.ok) return null
+    const json = await res.json()
+    if (!json.data) return null
+    
+    // Get image dimensions to calculate aspect ratio
+    const aspect = await new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const ratio = (img.naturalHeight / img.naturalWidth) * 100
+        resolve(`${ratio}%`)
+      }
+      img.onerror = () => resolve('75%')
+      setTimeout(() => resolve('75%'), 3000)
+      img.src = json.data
+    })
+    
+    return { data: json.data, aspect }
+  } catch {
+    return null
+  }
 }
 
 // Load images as base64 when modal opens
 const loadProofImages = async () => {
   loadedPhotos.value = []
+  photoAspects.value = []
   if (!props.sale?.proof_images?.length) return
   loadingPhotos.value = true
   
   const results = await Promise.all(
-    props.sale.proof_images.map(url => imgToBase64(url))
+    props.sale.proof_images.map(url => fetchImageBase64(url))
   )
   
-  loadedPhotos.value = results.filter(Boolean)
+  const photos = []
+  const aspects = []
+  for (const r of results) {
+    if (r) {
+      photos.push(r.data)
+      aspects.push(r.aspect)
+    }
+  }
+  loadedPhotos.value = photos
+  photoAspects.value = aspects
   loadingPhotos.value = false
 }
 
@@ -300,6 +317,7 @@ watch(() => props.isOpen, (val) => {
     loadProofImages()
   } else {
     loadedPhotos.value = []
+    photoAspects.value = []
     loadingPhotos.value = false
   }
 })
@@ -371,37 +389,93 @@ const handleCopyText = async () => {
 const handleSave = async () => {
   if (!captureRef.value) return
   saving.value = true
+  
   try {
-    // Small delay for DOM to settle
-    await new Promise(r => setTimeout(r, 150))
+    // Wait for DOM to settle
+    await new Promise(r => setTimeout(r, 200))
+    
+    // Detect iOS/Safari
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const needsRetry = isSafari || isIOS
+    
+    const options = {
+      quality: 0.92,
+      pixelRatio: needsRetry ? 1.5 : 2,
+      backgroundColor: '#0a0a0a',
+      skipFonts: true,
+      cacheBust: true,
+    }
 
-    const canvas = await html2canvas(captureRef.value, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-      logging: false,
-    })
-
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        alert('Gagal menyimpan. Coba screenshot manual.')
-        saving.value = false
-        return
+    let dataUrl = ''
+    
+    if (needsRetry) {
+      // iOS/Safari fix: call toPng multiple times until images render
+      // Known workaround for Safari's SVG foreignObject image loading bug
+      const maxAttempts = 5
+      let lastSize = 0
+      
+      for (let i = 0; i < maxAttempts; i++) {
+        dataUrl = await toPng(captureRef.value, options)
+        const currentSize = dataUrl.length
+        
+        // If size increased significantly from previous attempt, images loaded
+        if (i > 0 && currentSize > lastSize * 1.2) {
+          break
+        }
+        lastSize = currentSize
+        
+        // Small delay between attempts for Safari to process
+        if (i < maxAttempts - 1) {
+          await new Promise(r => setTimeout(r, 200))
+        }
       }
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
+    } else {
+      dataUrl = await toPng(captureRef.value, options)
+    }
+
+    if (!dataUrl) {
+      alert('Gagal menyimpan. Coba screenshot manual.')
       saving.value = false
-    }, 'image/png')
+      return
+    }
+
+    // Convert data URL to blob
+    const byteString = atob(dataUrl.split(',')[1])
+    const ab = new ArrayBuffer(byteString.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i)
+    }
+    const blob = new Blob([ab], { type: 'image/png' })
+    
+    // For iOS: use Web Share API if available (more reliable than download link)
+    if (isIOS && navigator.share && navigator.canShare) {
+      const file = new File([blob], `${props.sale?.order_no || 'bukti'}-penjualan.png`, { type: 'image/png' })
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] })
+          saving.value = false
+          return
+        } catch {
+          // User cancelled share or not supported, fall through to download
+        }
+      }
+    }
+    
+    // Standard download
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
   } catch (e) {
     console.error('Save failed:', e)
     alert('Gagal menyimpan. Coba screenshot manual.')
+  } finally {
     saving.value = false
   }
 }
