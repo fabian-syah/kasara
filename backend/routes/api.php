@@ -43,14 +43,64 @@ Route::get('/storage-proxy/{path}', function ($path) {
     ]);
 })->where('path', '.*');
 
-// Return image as base64 JSON (for iOS Safari which has issues with blob/fetch CORS)
+// Return image as base64 JSON (resized for mobile screenshot capture)
 Route::get('/storage-base64/{path}', function ($path) {
     $fullPath = storage_path('app/public/' . $path);
     if (!file_exists($fullPath)) {
         return response()->json(['error' => 'not found'], 404);
     }
     $mime = mime_content_type($fullPath);
-    $data = base64_encode(file_get_contents($fullPath));
+    
+    // Resize image to max 400px width to keep base64 small for iOS
+    $maxWidth = 400;
+    $resized = false;
+    
+    if (str_starts_with($mime, 'image/') && extension_loaded('gd')) {
+        try {
+            $info = getimagesize($fullPath);
+            if ($info && $info[0] > $maxWidth) {
+                $origWidth = $info[0];
+                $origHeight = $info[1];
+                $newWidth = $maxWidth;
+                $newHeight = (int)($origHeight * ($maxWidth / $origWidth));
+                
+                $source = null;
+                switch ($info[2]) {
+                    case IMAGETYPE_JPEG: $source = imagecreatefromjpeg($fullPath); break;
+                    case IMAGETYPE_PNG: $source = imagecreatefrompng($fullPath); break;
+                    case IMAGETYPE_WEBP: $source = imagecreatefromwebp($fullPath); break;
+                }
+                
+                if ($source) {
+                    $thumb = imagecreatetruecolor($newWidth, $newHeight);
+                    // Preserve transparency for PNG
+                    if ($info[2] === IMAGETYPE_PNG) {
+                        imagealphablending($thumb, false);
+                        imagesavealpha($thumb, true);
+                    }
+                    imagecopyresampled($thumb, $source, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+                    
+                    ob_start();
+                    imagejpeg($thumb, null, 75);
+                    $imageData = ob_get_clean();
+                    
+                    imagedestroy($source);
+                    imagedestroy($thumb);
+                    
+                    $data = base64_encode($imageData);
+                    $resized = true;
+                    $mime = 'image/jpeg';
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fall through to raw file
+        }
+    }
+    
+    if (!$resized) {
+        $data = base64_encode(file_get_contents($fullPath));
+    }
+    
     return response()->json(['data' => "data:{$mime};base64,{$data}"], 200, [
         'Access-Control-Allow-Origin' => '*',
         'Cache-Control' => 'public, max-age=86400',

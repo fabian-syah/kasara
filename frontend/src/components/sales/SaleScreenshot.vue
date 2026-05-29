@@ -158,7 +158,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { X, User as UserIcon, ClipboardCopy, Download } from 'lucide-vue-next'
-import { toPng } from 'html-to-image'
+import html2canvas from 'html2canvas'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false },
@@ -373,38 +373,35 @@ const handleSave = async () => {
   saving.value = true
   try {
     // Small delay for DOM to settle
-    await new Promise(r => setTimeout(r, 100))
+    await new Promise(r => setTimeout(r, 150))
 
-    const dataUrl = await toPng(captureRef.value, {
-      quality: 0.92,
-      pixelRatio: 2,
+    const canvas = await html2canvas(captureRef.value, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-      skipFonts: true,
-      // Since all images are already base64, no CORS issues
-      cacheBust: false,
+      logging: false,
     })
 
-    // Convert to blob and download
-    const byteString = atob(dataUrl.split(',')[1])
-    const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0]
-    const ab = new ArrayBuffer(byteString.length)
-    const ia = new Uint8Array(ab)
-    for (let i = 0; i < byteString.length; i++) {
-      ia[i] = byteString.charCodeAt(i)
-    }
-    const blob = new Blob([ab], { type: mimeString })
-    const blobUrl = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = blobUrl
-    a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        alert('Gagal menyimpan. Coba screenshot manual.')
+        saving.value = false
+        return
+      }
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = blobUrl
+      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
+      saving.value = false
+    }, 'image/png')
   } catch (e) {
     console.error('Save failed:', e)
     alert('Gagal menyimpan. Coba screenshot manual.')
-  } finally {
     saving.value = false
   }
 }
