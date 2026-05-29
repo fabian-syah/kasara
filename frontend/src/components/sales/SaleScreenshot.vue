@@ -13,7 +13,7 @@
                 <ClipboardCopy :size="11" />
                 <span>{{ copying ? 'OK!' : 'Copas' }}</span>
               </button>
-              <button @click="handleSave" :disabled="saving || loadingPhotos"
+              <button @click="handleSave" :disabled="saving"
                 class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
                 <Download :size="11" />
                 <span>{{ saving ? '...' : 'Simpan' }}</span>
@@ -29,17 +29,11 @@
             <div ref="captureRef" class="p-4 sm:p-5">
               <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
-                <!-- Proof Photos Loading -->
-                <div v-if="loadingPhotos" class="flex items-center justify-center gap-2 py-6 mb-5 bg-surface-900/50 rounded-xl border border-surface-700">
-                  <svg class="animate-spin h-4 w-4 text-primary-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  <span class="text-xs text-text-secondary">Memuat foto bukti...</span>
-                </div>
-
                 <!-- Proof Photos -->
-                <div v-if="!loadingPhotos && loadedPhotos.length > 0" class="space-y-3 mb-5">
+                <div v-if="loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
                     class="w-full rounded-xl overflow-hidden border border-surface-700">
-                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" :data-is-base64="photo.startsWith('data:')" />
+                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" crossorigin="anonymous" />
                   </div>
                 </div>
 
@@ -169,7 +163,6 @@ defineEmits(['close'])
 
 const captureRef = ref(null)
 const saving = ref(false)
-const loadingPhotos = ref(false)
 const loadedPhotos = ref([])
 
 const categoryLabels = {
@@ -243,44 +236,51 @@ const formattedDateShort = computed(() => {
 
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(val) || 0)
 
-// Load images as base64 to bypass CORS
+/**
+ * Convert image URL to base64 using canvas (fast, no proxy needed).
+ * Works because we set crossorigin="anonymous" on img tags and Cloudflare handles CORS.
+ */
+const imgToBase64 = (url) => {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
+      } catch {
+        resolve(null)
+      }
+    }
+    img.onerror = () => resolve(null)
+    // Timeout: if image doesn't load in 3 seconds, skip it
+    setTimeout(() => resolve(null), 3000)
+    img.src = url
+  })
+}
+
+// Load images as base64 when modal opens
 const loadProofImages = async () => {
   loadedPhotos.value = []
   if (!props.sale?.proof_images?.length) return
-  loadingPhotos.value = true
   
-  // Fetch all images in parallel
-  const results = await Promise.allSettled(
-    props.sale.proof_images.map(async (url) => {
-      // Try proxy URL first (works on desktop, may fail on mobile)
-      let fetchUrl = url
-      if (url.includes('/storage/')) {
-        fetchUrl = url.replace(/\/storage\//, '/api/storage-proxy/')
-      }
-      
-      try {
-        const res = await fetch(fetchUrl, { mode: 'cors' })
-        if (res.ok) {
-          const blob = await res.blob()
-          return await new Promise(r => { const fr = new FileReader(); fr.onloadend = () => r(fr.result); fr.readAsDataURL(blob) })
-        }
-      } catch {}
-      
-      // Fallback: just use the URL directly - photo will show in modal
-      // but may not appear in saved PNG on mobile due to CORS
-      return url
-    })
+  const results = await Promise.all(
+    props.sale.proof_images.map(url => imgToBase64(url))
   )
   
-  loadedPhotos.value = results.map((r, i) => 
-    r.status === 'fulfilled' ? r.value : props.sale.proof_images[i]
-  )
-  loadingPhotos.value = false
+  loadedPhotos.value = results.filter(Boolean)
 }
 
 watch(() => props.isOpen, (val) => {
-  if (val && props.sale?.proof_images?.length) loadProofImages()
-  else { loadedPhotos.value = []; loadingPhotos.value = false }
+  if (val && props.sale?.proof_images?.length) {
+    loadProofImages()
+  } else {
+    loadedPhotos.value = []
+  }
 })
 
 const copying = ref(false)
@@ -289,15 +289,12 @@ const handleCopyText = async () => {
   if (!props.sale) return
   
   const lines = []
-  
-  // Nama cabang
   lines.push(storeName.value)
   lines.push(`No. Nota: ${props.sale.order_no || props.sale.receipt_id || '-'}`)
   lines.push(`Tanggal: ${formattedDate.value}`)
   lines.push(`Kategori: ${categoryLabel.value}`)
   lines.push('')
   
-  // Items
   saleItems.value.forEach((item, idx) => {
     const parts = []
     if (item.brand) parts.push(item.brand)
@@ -319,7 +316,6 @@ const handleCopyText = async () => {
   }
   lines.push(`Total: ${formatCurrency(props.sale.grand_total)}`)
   
-  // Customer
   if (props.sale.customer_name) {
     lines.push('')
     lines.push(`Customer: ${props.sale.customer_name}`)
@@ -328,7 +324,6 @@ const handleCopyText = async () => {
     }
   }
   
-  // Notes
   if (props.sale.notes) {
     lines.push('')
     lines.push(`Catatan: ${props.sale.notes}`)
@@ -340,8 +335,7 @@ const handleCopyText = async () => {
     await navigator.clipboard.writeText(text)
     copying.value = true
     setTimeout(() => { copying.value = false }, 2000)
-  } catch (e) {
-    console.error('Copy failed:', e)
+  } catch {
     const ta = document.createElement('textarea')
     ta.value = text
     document.body.appendChild(ta)
@@ -357,41 +351,19 @@ const handleSave = async () => {
   if (!captureRef.value) return
   saving.value = true
   try {
-    // Wait for photos to finish loading
-    if (loadingPhotos.value) {
-      await new Promise(resolve => {
-        const check = setInterval(() => {
-          if (!loadingPhotos.value) { clearInterval(check); resolve() }
-        }, 200)
-        setTimeout(() => { clearInterval(check); resolve() }, 20000)
-      })
-    }
-    
-    // Wait extra time for images to fully render in DOM after loading
-    await new Promise(r => setTimeout(r, 1000))
-
-    // Before capture: temporarily hide non-base64 images to avoid CORS errors
-    const imgs = captureRef.value.querySelectorAll('img')
-    const hiddenImgs = []
-    imgs.forEach(img => {
-      const src = img.getAttribute('src') || ''
-      if (src && !src.startsWith('data:') && !src.startsWith('blob:')) {
-        img.style.display = 'none'
-        hiddenImgs.push(img)
-      }
-    })
+    // Small delay for DOM to settle
+    await new Promise(r => setTimeout(r, 100))
 
     const dataUrl = await toPng(captureRef.value, {
       quality: 0.92,
       pixelRatio: 2,
       backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
       skipFonts: true,
+      // Since all images are already base64, no CORS issues
+      cacheBust: false,
     })
 
-    // Restore hidden images
-    hiddenImgs.forEach(img => { img.style.display = '' })
-
-    // Download directly without fetch (avoids CSP issues with data: URLs)
+    // Convert to blob and download
     const byteString = atob(dataUrl.split(',')[1])
     const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0]
     const ab = new ArrayBuffer(byteString.length)
@@ -410,37 +382,7 @@ const handleSave = async () => {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
   } catch (e) {
     console.error('Save failed:', e)
-    // Last resort: retry without any images
-    try {
-      const imgs = captureRef.value.querySelectorAll('img')
-      imgs.forEach(img => { img.style.display = 'none' })
-      
-      const dataUrl = await toPng(captureRef.value, {
-        quality: 0.92,
-        pixelRatio: 2,
-        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-surface-950').trim() || '#0a0a0a',
-        skipFonts: true,
-      })
-      
-      imgs.forEach(img => { img.style.display = '' })
-      
-      const byteStr = atob(dataUrl.split(',')[1])
-      const mime = dataUrl.split(',')[0].split(':')[1].split(';')[0]
-      const arr = new ArrayBuffer(byteStr.length)
-      const u8 = new Uint8Array(arr)
-      for (let i = 0; i < byteStr.length; i++) u8[i] = byteStr.charCodeAt(i)
-      const blob = new Blob([arr], { type: mime })
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = `${props.sale?.order_no || props.sale?.receipt_id || 'bukti'}-penjualan.png`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 3000)
-    } catch {
-      alert('Gagal menyimpan. Coba screenshot manual.')
-    }
+    alert('Gagal menyimpan. Coba screenshot manual.')
   } finally {
     saving.value = false
   }
