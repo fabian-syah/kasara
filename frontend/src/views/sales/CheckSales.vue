@@ -244,7 +244,10 @@
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs" v-if="idx === 0"
-                                        :rowspan="item.items.length">{{ item.order_no }}</td>
+                                        :rowspan="item.items.length">
+                                        <div>{{ item.order_no }}</div>
+                                        <button @click="openScreenshot(item)" class="text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold mt-1">Screenshot Nota</button>
+                                    </td>
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         item.customer_name }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
@@ -365,11 +368,6 @@
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
-                                            <button @click="openScreenshot(item)"
-                                                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
-                                                title="Screenshot Penjualan">
-                                                <Camera :size="18" />
-                                            </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
                                                 @click="handleCancelSale(item)"
@@ -385,7 +383,10 @@
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
                                     <td class="px-6 py-4 text-text-primary">{{ index + 1 }}</td>
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
-                                    <td class="px-6 py-4 font-mono text-xs text-text-primary">{{ item.order_no }}</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-text-primary">
+                                        <div>{{ item.order_no }}</div>
+                                        <button @click="openScreenshot(item)" class="text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold mt-1">Screenshot Nota</button>
+                                    </td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1 items-start">
@@ -479,11 +480,6 @@
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
-                                            </button>
-                                            <button @click="openScreenshot(item)"
-                                                class="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
-                                                title="Screenshot Penjualan">
-                                                <Camera :size="18" />
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
@@ -600,7 +596,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare, Camera } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
