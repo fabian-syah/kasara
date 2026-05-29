@@ -13,10 +13,10 @@
                 <ClipboardCopy :size="11" />
                 <span>{{ copying ? 'OK!' : 'Copas' }}</span>
               </button>
-              <button @click="handleSave" :disabled="saving"
+              <button @click="handleSave" :disabled="saving || loadingPhotos"
                 class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 text-[10px] sm:text-[11px] font-semibold text-text-primary bg-surface-700 hover:bg-surface-600 rounded-md transition-colors disabled:opacity-40">
                 <Download :size="11" />
-                <span>{{ saving ? '...' : 'Simpan' }}</span>
+                <span>{{ loadingPhotos ? 'Load...' : saving ? '...' : 'Simpan' }}</span>
               </button>
               <button @click="$emit('close')" class="p-1 text-text-secondary hover:text-text-primary rounded transition-colors">
                 <X :size="16" />
@@ -29,11 +29,17 @@
             <div ref="captureRef" class="p-4 sm:p-5">
               <div class="mx-auto max-w-[360px] bg-surface-800 rounded-2xl p-5 border border-surface-700">
 
+                <!-- Proof Photos Loading -->
+                <div v-if="loadingPhotos" class="flex items-center justify-center gap-2 py-4 mb-4 bg-surface-900/50 rounded-xl border border-surface-700">
+                  <svg class="animate-spin h-4 w-4 text-primary-500" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  <span class="text-xs text-text-secondary">Memuat foto...</span>
+                </div>
+
                 <!-- Proof Photos -->
-                <div v-if="loadedPhotos.length > 0" class="space-y-3 mb-5">
+                <div v-if="!loadingPhotos && loadedPhotos.length > 0" class="space-y-3 mb-5">
                   <div v-for="(photo, idx) in loadedPhotos" :key="idx" 
                     class="w-full rounded-xl overflow-hidden border border-surface-700">
-                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" crossorigin="anonymous" />
+                    <img :src="photo" :alt="'Bukti ' + (idx + 1)" class="w-full h-auto object-cover" />
                   </div>
                 </div>
 
@@ -163,6 +169,7 @@ defineEmits(['close'])
 
 const captureRef = ref(null)
 const saving = ref(false)
+const loadingPhotos = ref(false)
 const loadedPhotos = ref([])
 
 const categoryLabels = {
@@ -237,29 +244,38 @@ const formattedDateShort = computed(() => {
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(val) || 0)
 
 /**
- * Convert image URL to base64 using canvas (fast, no proxy needed).
- * Works because we set crossorigin="anonymous" on img tags and Cloudflare handles CORS.
+ * Convert image URL to base64 via backend proxy (bypasses CORS).
+ * Uses the /api/storage-proxy/ endpoint which adds CORS headers.
  */
 const imgToBase64 = (url) => {
   return new Promise((resolve) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    img.onload = () => {
-      try {
-        const canvas = document.createElement('canvas')
-        canvas.width = img.naturalWidth
-        canvas.height = img.naturalHeight
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0)
-        resolve(canvas.toDataURL('image/jpeg', 0.85))
-      } catch {
-        resolve(null)
-      }
+    // Convert storage URL to proxy URL
+    let proxyUrl = url
+    if (url.includes('/storage/')) {
+      const storagePath = url.split('/storage/')[1]
+      const apiBase = url.split('/storage/')[0].replace('://api.', '://api.')
+      proxyUrl = `${apiBase}/api/storage-proxy/${storagePath}`
     }
-    img.onerror = () => resolve(null)
-    // Timeout: if image doesn't load in 3 seconds, skip it
-    setTimeout(() => resolve(null), 3000)
-    img.src = url
+    
+    const controller = new AbortController()
+    const timeout = setTimeout(() => { controller.abort(); resolve(null) }, 5000)
+    
+    fetch(proxyUrl, { signal: controller.signal })
+      .then(res => {
+        if (!res.ok) throw new Error('fetch failed')
+        return res.blob()
+      })
+      .then(blob => {
+        clearTimeout(timeout)
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(blob)
+      })
+      .catch(() => {
+        clearTimeout(timeout)
+        resolve(null)
+      })
   })
 }
 
@@ -267,12 +283,14 @@ const imgToBase64 = (url) => {
 const loadProofImages = async () => {
   loadedPhotos.value = []
   if (!props.sale?.proof_images?.length) return
+  loadingPhotos.value = true
   
   const results = await Promise.all(
     props.sale.proof_images.map(url => imgToBase64(url))
   )
   
   loadedPhotos.value = results.filter(Boolean)
+  loadingPhotos.value = false
 }
 
 watch(() => props.isOpen, (val) => {
@@ -280,6 +298,7 @@ watch(() => props.isOpen, (val) => {
     loadProofImages()
   } else {
     loadedPhotos.value = []
+    loadingPhotos.value = false
   }
 })
 
