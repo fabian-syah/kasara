@@ -449,7 +449,21 @@ const handleSave = async () => {
     }
     const blob = new Blob([ab], { type: 'image/png' })
     
-    // Standard download
+    // iOS: use Web Share API so user can "Simpan Gambar" to gallery
+    if (isIOS && navigator.share && navigator.canShare) {
+      const file = new File([blob], `${props.sale?.order_no || 'bukti'}-penjualan.png`, { type: 'image/png' })
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] })
+        } catch {
+          // User cancelled - that's fine
+        }
+        saving.value = false
+        return
+      }
+    }
+
+    // Standard download (Android, Desktop)
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
