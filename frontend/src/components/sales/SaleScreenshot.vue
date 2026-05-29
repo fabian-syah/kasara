@@ -244,33 +244,35 @@ const formattedDateShort = computed(() => {
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(val) || 0)
 
 /**
- * Convert image URL to base64 via backend proxy (bypasses CORS).
- * Uses the /api/storage-proxy/ endpoint which adds CORS headers.
+ * Convert image URL to base64 via backend JSON endpoint.
+ * Returns base64 data URL directly from server - works on all platforms including iOS Safari.
  */
 const imgToBase64 = (url) => {
   return new Promise((resolve) => {
-    // Convert storage URL to proxy URL
-    let proxyUrl = url
+    // Extract storage path from URL
+    let storagePath = ''
     if (url.includes('/storage/')) {
-      const storagePath = url.split('/storage/')[1]
-      const apiBase = url.split('/storage/')[0].replace('://api.', '://api.')
-      proxyUrl = `${apiBase}/api/storage-proxy/${storagePath}`
+      storagePath = url.split('/storage/')[1]
+    } else {
+      resolve(null)
+      return
     }
     
-    const controller = new AbortController()
-    const timeout = setTimeout(() => { controller.abort(); resolve(null) }, 5000)
+    // Build the base64 JSON endpoint URL
+    const apiBase = url.split('/storage/')[0]
+    const base64Url = `${apiBase}/api/storage-base64/${storagePath}`
     
-    fetch(proxyUrl, { signal: controller.signal })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => { controller.abort(); resolve(null) }, 8000)
+    
+    fetch(base64Url, { signal: controller.signal })
       .then(res => {
         if (!res.ok) throw new Error('fetch failed')
-        return res.blob()
+        return res.json()
       })
-      .then(blob => {
+      .then(json => {
         clearTimeout(timeout)
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result)
-        reader.onerror = () => resolve(null)
-        reader.readAsDataURL(blob)
+        resolve(json.data || null)
       })
       .catch(() => {
         clearTimeout(timeout)

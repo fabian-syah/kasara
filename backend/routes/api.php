@@ -43,6 +43,20 @@ Route::get('/storage-proxy/{path}', function ($path) {
     ]);
 })->where('path', '.*');
 
+// Return image as base64 JSON (for iOS Safari which has issues with blob/fetch CORS)
+Route::get('/storage-base64/{path}', function ($path) {
+    $fullPath = storage_path('app/public/' . $path);
+    if (!file_exists($fullPath)) {
+        return response()->json(['error' => 'not found'], 404);
+    }
+    $mime = mime_content_type($fullPath);
+    $data = base64_encode(file_get_contents($fullPath));
+    return response()->json(['data' => "data:{$mime};base64,{$data}"], 200, [
+        'Access-Control-Allow-Origin' => '*',
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*');
+
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index']);
     // ... other protected routes
