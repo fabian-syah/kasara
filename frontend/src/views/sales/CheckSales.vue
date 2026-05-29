@@ -246,7 +246,7 @@
                                     <td class="px-6 py-4 font-mono text-xs" v-if="idx === 0"
                                         :rowspan="item.items.length">
                                         <div>{{ item.order_no }}</div>
-                                        <button @click="openScreenshot(item)" class="text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold mt-1">Screenshot Nota</button>
+                                        <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
                                     </td>
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         item.customer_name }}</td>
@@ -385,7 +385,7 @@
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">
                                         <div>{{ item.order_no }}</div>
-                                        <button @click="openScreenshot(item)" class="text-[10px] text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold mt-1">Screenshot Nota</button>
+                                        <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
                                     </td>
                                     <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
                                     <td class="px-6 py-4">
