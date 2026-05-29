@@ -449,20 +449,6 @@ const handleSave = async () => {
     }
     const blob = new Blob([ab], { type: 'image/png' })
     
-    // For iOS: use Web Share API if available (more reliable than download link)
-    if (isIOS && navigator.share && navigator.canShare) {
-      const file = new File([blob], `${props.sale?.order_no || 'bukti'}-penjualan.png`, { type: 'image/png' })
-      if (navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] })
-          saving.value = false
-          return
-        } catch {
-          // User cancelled share or not supported, fall through to download
-        }
-      }
-    }
-    
     // Standard download
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
