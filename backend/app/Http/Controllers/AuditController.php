@@ -1931,7 +1931,7 @@ class AuditController extends Controller
                         $details[] = [
                             'name' => "IN: " . $inProd,
                             'qty' => 1,
-                            'price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
+                            'price' => (float) ($exchangeInfo->incoming_cost_price ?? 0),
                             'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
                             'type' => 'IN',
                             'is_hp' => true,
@@ -2102,9 +2102,12 @@ class AuditController extends Controller
                 }
                 $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function ($sp) use ($isNeg) {
-                    if ($isNeg) {
+                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function ($sp) use ($catLower) {
+                    // Hanya negate untuk refund/angkat_barang (uang keluar)
+                    if (in_array($catLower, ['refund', 'angkat_barang'])) {
                         $sp['amount'] = -abs((float) ($sp['amount'] ?? 0));
+                    } else {
+                        $sp['amount'] = abs((float) ($sp['amount'] ?? 0));
                     }
                     return $sp;
                 })->toArray();
@@ -2123,7 +2126,15 @@ class AuditController extends Controller
                     $priceOut = $pOut;
                 }
 
-                $finalPrice = $isNeg ? -abs($rawSellingPrice) : $rawSellingPrice;
+                // Tukar Tambah: selisih harga = uang masuk ke toko (positif)
+                // Refund/Angkat Barang: uang keluar dari toko (negatif)
+                if (in_array($catLower, ['refund', 'angkat_barang'])) {
+                    $finalPrice = -abs($rawSellingPrice);
+                } elseif ($catLower === 'tukar_tambah' || $catLower === 'downgrade') {
+                    $finalPrice = abs($rawSellingPrice);
+                } else {
+                    $finalPrice = $rawSellingPrice;
+                }
 
                 $cash = 0;
                 $transfer = 0;
@@ -2135,7 +2146,12 @@ class AuditController extends Controller
                         foreach ($splits as $sp) {
                             $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
                             $amt = (float) ($sp['amount'] ?? 0);
-                            if ($isNeg) $amt = -abs($amt);
+                            // Hanya negate untuk refund/angkat_barang
+                            if (in_array($catLower, ['refund', 'angkat_barang'])) {
+                                $amt = -abs($amt);
+                            } else {
+                                $amt = abs($amt);
+                            }
                             
                             $pm = $pmId ? $paymentMethods->get($pmId) : null;
                             $pmCat = strtolower($pm->category ?? '');
@@ -2196,7 +2212,7 @@ class AuditController extends Controller
                     'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
-                    'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline') ? 'Lunas' : ($isNeg ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
+                    'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
                     'proof_images' => collect([
                         $trx->proof_image,
