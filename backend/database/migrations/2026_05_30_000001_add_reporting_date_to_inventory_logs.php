@@ -13,14 +13,14 @@ return new class extends Migration
             $table->date('reporting_date')->nullable()->after('notes')->index();
         });
 
-        // Backfill existing data: set reporting_date based on created_at with 5AM shift (PostgreSQL)
+        // Backfill ALL data: set reporting_date based on created_at with 5AM shift
+        // created_at sudah dalam WIB (Asia/Jakarta) karena app timezone = Asia/Jakarta
         DB::statement("
             UPDATE inventory_logs 
             SET reporting_date = CASE 
                 WHEN EXTRACT(HOUR FROM created_at) < 5 THEN (created_at::date - INTERVAL '1 day')::date
                 ELSE created_at::date
             END
-            WHERE reporting_date IS NULL
         ");
     }
 
