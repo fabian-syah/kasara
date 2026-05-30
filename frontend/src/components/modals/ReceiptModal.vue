@@ -773,7 +773,7 @@ const sendWaReceiptFromModal = async () => {
 </html>`;
 
         // 5. Kirim payload HTML ke backend
-        const response = await api.post(`/receipts/${props.transaction.id}/share-wa`, {
+        const response = await api.post(`/receipts/${props.transaction.id || props.transaction.receipt_id}/share-wa`, {
             htmlContent: htmlContent
         });
 

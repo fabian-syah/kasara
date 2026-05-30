@@ -109,7 +109,9 @@ class WhatsAppShareController extends Controller
         }
 
         try {
-            $transaction = StockOut::findOrFail($id);
+            $transaction = is_numeric($id) 
+                ? StockOut::findOrFail($id)
+                : StockOut::where('receipt_id', $id)->firstOrFail();
 
             // JIKA JALUR BACKEND CADANGAN (htmlContent kosong), baru panggil template lama
             if (!$htmlContent) {
