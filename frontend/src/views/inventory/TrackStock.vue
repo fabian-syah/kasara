@@ -84,12 +84,7 @@ async function search() {
 
 function formatDate(dateString) {
     if (!dateString) return '-';
-    const d = new Date(dateString);
-    // Shift logic: reset jam 5 pagi. Jika sebelum jam 05:00, masih masuk shift hari sebelumnya
-    if (d.getHours() < 5) {
-        d.setDate(d.getDate() - 1);
-    }
-    return d.toLocaleDateString('id-ID', {
+    return new Date(dateString).toLocaleDateString('id-ID', {
         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 }
