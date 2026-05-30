@@ -706,10 +706,15 @@ class StockInController extends Controller
                 if ($d < $sevenDaysAgo)
                     $d = $today;
             }
-            // Shift jam 5 pagi: tanggal X = X 05:00:00 sampai X+1 04:59:59
-            $start = $d . ' 05:00:00';
-            $end = date('Y-m-d', strtotime($d . ' +1 day')) . ' 04:59:59';
-            $query->whereBetween('created_at', [$start, $end]);
+            // Pakai reporting_date (shift jam 5 pagi), fallback ke created_at untuk data lama
+            $query->where(function ($q) use ($d) {
+                $q->where('reporting_date', $d)
+                  ->orWhere(function ($sq) use ($d) {
+                      // Fallback: data lama yang belum punya reporting_date
+                      $sq->whereNull('reporting_date')
+                         ->whereDate('created_at', $d);
+                  });
+            });
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
@@ -725,10 +730,17 @@ class StockInController extends Controller
                     $m = $currentMonth;
                 }
             }
-            // Shift jam 5 pagi untuk bulanan: awal bulan 05:00 sampai awal bulan berikutnya 04:59
-            $startOfMonth = sprintf('%04d-%02d-01 05:00:00', $y, $m);
-            $endOfMonth = date('Y-m-d', strtotime(sprintf('%04d-%02d-01 +1 month', $y, $m))) . ' 04:59:59';
-            $query->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
+            // Pakai reporting_date, fallback ke created_at untuk data lama
+            $query->where(function ($q) use ($m, $y) {
+                $q->where(function ($sq) use ($m, $y) {
+                    $sq->whereMonth('reporting_date', $m)
+                       ->whereYear('reporting_date', $y);
+                })->orWhere(function ($sq) use ($m, $y) {
+                    $sq->whereNull('reporting_date')
+                       ->whereMonth('created_at', $m)
+                       ->whereYear('created_at', $y);
+                });
+            });
         }
 
         // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
@@ -1468,13 +1480,26 @@ class StockInController extends Controller
         }
 
         if ($request->start_date && $request->end_date) {
-            $start = $request->start_date . ' 05:00:00';
-            $end = date('Y-m-d', strtotime($request->end_date . ' +1 day')) . ' 04:59:59';
-            $query->whereBetween('created_at', [$start, $end]);
+            $query->where(function ($q) use ($request) {
+                $q->whereBetween('reporting_date', [$request->start_date, $request->end_date])
+                  ->orWhere(function ($sq) use ($request) {
+                      // Fallback untuk data lama tanpa reporting_date
+                      $start = $request->start_date . ' 05:00:00';
+                      $end = date('Y-m-d', strtotime($request->end_date . ' +1 day')) . ' 04:59:59';
+                      $sq->whereNull('reporting_date')
+                         ->whereBetween('created_at', [$start, $end]);
+                  });
+            });
         } elseif ($request->date) {
-            $start = $request->date . ' 05:00:00';
-            $end = date('Y-m-d', strtotime($request->date . ' +1 day')) . ' 04:59:59';
-            $query->whereBetween('created_at', [$start, $end]);
+            $query->where(function ($q) use ($request) {
+                $q->where('reporting_date', $request->date)
+                  ->orWhere(function ($sq) use ($request) {
+                      $start = $request->date . ' 05:00:00';
+                      $end = date('Y-m-d', strtotime($request->date . ' +1 day')) . ' 04:59:59';
+                      $sq->whereNull('reporting_date')
+                         ->whereBetween('created_at', [$start, $end]);
+                  });
+            });
         }
 
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];

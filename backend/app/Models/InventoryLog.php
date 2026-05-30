@@ -14,8 +14,14 @@ class InventoryLog extends Model
         parent::boot();
 
         static::creating(function ($model) {
-            if (!$model->created_at && now()->hour < 5) {
-                $model->created_at = now()->subDay();
+            // Set reporting_date berdasarkan shift jam 5 pagi
+            if (!$model->reporting_date) {
+                $now = now();
+                if ($now->hour < 5) {
+                    $model->reporting_date = $now->copy()->subDay()->format('Y-m-d');
+                } else {
+                    $model->reporting_date = $now->format('Y-m-d');
+                }
             }
         });
     }
@@ -33,7 +39,8 @@ class InventoryLog extends Model
         'reference_id',
         'description',
         'supplier_name',
-        'notes'
+        'notes',
+        'reporting_date',
     ];
 
     public function product()
