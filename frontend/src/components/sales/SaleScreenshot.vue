@@ -120,6 +120,10 @@
                     <span class="text-xs text-text-secondary font-semibold">Total</span>
                     <span class="text-lg font-bold text-text-primary">{{ formatCurrency(sale?.grand_total) }}</span>
                   </div>
+                  <div v-if="sale?.payment_method_name && sale.payment_method_name !== '-'" class="flex justify-between items-center mt-1.5">
+                    <span class="text-[11px] text-text-secondary">Pembayaran</span>
+                    <span class="text-[11px] font-semibold text-text-primary">{{ sale.payment_method_name }}</span>
+                  </div>
                 </div>
 
                 <!-- Status -->
@@ -355,6 +359,10 @@ const handleCopyText = async () => {
   }
   lines.push(`Total: ${formatCurrency(props.sale.grand_total)}`)
   
+  if (props.sale.payment_method_name && props.sale.payment_method_name !== '-') {
+    lines.push(`Pembayaran: ${props.sale.payment_method_name}`)
+  }
+
   if (props.sale.customer_name) {
     lines.push('')
     lines.push(`Customer: ${props.sale.customer_name}`)
