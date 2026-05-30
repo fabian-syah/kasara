@@ -566,6 +566,7 @@ class StockOutController extends Controller
                             'branch_id' => $user->branch_id ?? null,
                             'warehouse_id' => $user->warehouse_id ?? null,
                             'online_shop_id' => $user->online_shop_id ?? null,
+                            'reporting_date' => $reportingDate,
                         ]);
                     }
 
@@ -840,6 +841,7 @@ class StockOutController extends Controller
                     'branch_id' => $user->branch_id ?? null,
                     'warehouse_id' => $user->warehouse_id ?? null,
                     'online_shop_id' => $user->online_shop_id ?? null,
+                    'reporting_date' => $reportingDate,
                 ]);
             }
 

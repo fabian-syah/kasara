@@ -22,6 +22,17 @@ return new class extends Migration
                 ELSE created_at::date
             END
         ");
+
+        // Fix: untuk type='out', sync reporting_date dari StockOut yang terkait (via description containing receipt_id)
+        // StockOut sudah punya reporting_date yang benar
+        DB::statement("
+            UPDATE inventory_logs il
+            SET reporting_date = so.reporting_date
+            FROM stock_outs so
+            WHERE il.type = 'out'
+              AND so.reporting_date IS NOT NULL
+              AND il.description ILIKE '%' || so.receipt_id || '%'
+        ");
     }
 
     public function down(): void
