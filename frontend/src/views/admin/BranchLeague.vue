@@ -86,8 +86,8 @@
         </div>
 
         <!-- Copy Modal -->
-        <Teleport to="body">
-            <div v-if="showCopyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showCopyModal = false">
+        <Teleport v-if="showCopyModal" to="body">
+            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showCopyModal = false">
                 <div class="bg-white dark:bg-surface-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
                     <h3 class="text-lg font-black text-text-primary mb-4">Salin dari Bulan Lain</h3>
                     <div class="space-y-3">
