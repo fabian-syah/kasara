@@ -26,6 +26,10 @@ function toggleSidebar() {
 
 // Error boundary - prevent child component errors from crashing the entire layout
 onErrorCaptured((err, instance, info) => {
+  // Suppress Vue internal DOM manipulation errors (caused by browser extensions or race conditions)
+  if (err?.message?.includes('insertBefore') || err?.message?.includes('removeChild') || err?.message?.includes('parentNode')) {
+    return false;
+  }
   console.error(`[Layout Error] ${info}:`, err);
   return false;
 });
