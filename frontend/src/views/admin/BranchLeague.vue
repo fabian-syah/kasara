@@ -41,7 +41,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <!-- Liga 1 & Liga 2 (top row, bigger) -->
                 <div v-for="liga in leagueConfig.slice(0, 2)" :key="liga.key"
-                    class="rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border"
+                    class="rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border flex flex-col"
                     :class="liga.cardBorder">
                     <!-- Header -->
                     <div class="px-5 py-4 flex items-center justify-between" :class="liga.headerBg">
@@ -54,7 +54,7 @@
                         <span class="text-lg font-black" :class="liga.titleColor">{{ (assignments[liga.key] || []).length }}</span>
                     </div>
                     <!-- List -->
-                    <div class="bg-white dark:bg-surface-800 px-3 py-2 min-h-[100px] max-h-[280px] overflow-y-auto custom-scrollbar">
+                    <div class="bg-white dark:bg-surface-800 px-3 py-2 flex-1 max-h-[320px] overflow-y-auto custom-scrollbar">
                         <div v-if="!(assignments[liga.key] || []).length" class="flex items-center justify-center py-8 text-text-secondary/40">
                             <span class="text-xs font-medium">Kosong</span>
                         </div>
@@ -84,7 +84,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <!-- Zona Merah & Non Liga (bottom row) -->
                 <div v-for="liga in leagueConfig.slice(2)" :key="liga.key"
-                    class="rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border"
+                    class="rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 border flex flex-col"
                     :class="liga.cardBorder">
                     <div class="px-5 py-4 flex items-center justify-between" :class="liga.headerBg">
                         <div class="flex items-center gap-3">
@@ -95,7 +95,7 @@
                         </div>
                         <span class="text-lg font-black" :class="liga.titleColor">{{ (assignments[liga.key] || []).length }}</span>
                     </div>
-                    <div class="bg-white dark:bg-surface-800 px-3 py-2 min-h-[100px] max-h-[280px] overflow-y-auto custom-scrollbar">
+                    <div class="bg-white dark:bg-surface-800 px-3 py-2 flex-1 max-h-[320px] overflow-y-auto custom-scrollbar">
                         <div v-if="!(assignments[liga.key] || []).length" class="flex items-center justify-center py-8 text-text-secondary/40">
                             <span class="text-xs font-medium">Kosong</span>
                         </div>
