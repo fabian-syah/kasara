@@ -1477,14 +1477,10 @@ class StockOutController extends Controller
                     $mergedItems = array_values($filteredItems);
                 }
 
-                // Event 1: Skip barang_masuk only if we already have an InventoryLog entry for the same timestamp
+                // Event 1: Skip barang_masuk if we already have a stock_in event from InventoryLog
                 if ($out->category === 'barang_masuk') {
-                    // Check if there's already a stock_in event from InventoryLog at the same time
-                    $bmTimestamp = $out->created_at->timestamp;
-                    $alreadyHasLog = collect($allEvents)->contains(function ($evt) use ($bmTimestamp) {
-                        return $evt['type'] === 'stock_in' && abs($evt['timestamp'] - $bmTimestamp) <= 5;
-                    });
-                    if ($alreadyHasLog) {
+                    $alreadyHasStockIn = collect($allEvents)->contains(fn($evt) => $evt['type'] === 'stock_in');
+                    if ($alreadyHasStockIn) {
                         continue;
                     }
                     // No matching log — render barang_masuk as stock_in
