@@ -300,7 +300,7 @@ async function processPayment(pin = null) {
         const now = new Date();
 
         const lastTransaction = {
-            id: response.data?.data?.id,
+            id: response.data?.data?.id || response.data?.id,
             order_no: response.data?.data?.receipt_id || response.data?.receipt_id || "TRX-" + Date.now(),
             items: cartItems.value.map(item => ({
                 ...item,
