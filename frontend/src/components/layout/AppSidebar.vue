@@ -184,6 +184,9 @@ const menuItems = [
         ]
     },
 
+    // Liga Cabang (Super Admin)
+    { id: "branch_league", path: "/admin/leagues", label: "Liga Cabang", icon: Trophy },
+
     // Sales Menus
     { id: "sales_create", path: "/sales/create", label: "Buat Penjualan", icon: ShoppingCart },
     {

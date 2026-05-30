@@ -127,6 +127,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/debug-pending', [UserController::class, 'debugPendingDump']);
     });
 
+    // Branch League Management (Super Admin only)
+    Route::middleware(['role:super_admin'])->prefix('leagues')->group(function () {
+        Route::get('/', [\App\Http\Controllers\BranchLeagueController::class, 'index']);
+        Route::post('/', [\App\Http\Controllers\BranchLeagueController::class, 'store']);
+        Route::post('/bulk', [\App\Http\Controllers\BranchLeagueController::class, 'bulkAssign']);
+        Route::post('/copy', [\App\Http\Controllers\BranchLeagueController::class, 'copyFromPrevious']);
+        Route::delete('/{id}', [\App\Http\Controllers\BranchLeagueController::class, 'destroy']);
+    });
+
     // Receipt Settings
     Route::get('/receipt-settings', [ReceiptSettingController::class, 'show']);
     Route::post('/receipt-settings', [ReceiptSettingController::class, 'update']);

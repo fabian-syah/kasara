@@ -93,6 +93,16 @@ const routes = [
                 }
             },
             {
+                path: 'admin/leagues',
+                name: 'BranchLeague',
+                component: () => import('../views/admin/BranchLeague.vue'),
+                meta: {
+                    title: 'Liga Cabang',
+                    menu: 'branch_league',
+                    permissions: ['super_admin']
+                }
+            },
+            {
                 path: 'distributor/monitoring',
                 name: 'DistributorMonitoring',
                 component: () => import('../views/distributor/StockMonitoring.vue'),
