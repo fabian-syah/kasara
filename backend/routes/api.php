@@ -128,7 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Branch League Management (Super Admin only)
-    Route::middleware(['role:super_admin'])->prefix('leagues')->group(function () {
+    Route::prefix('leagues')->group(function () {
         Route::get('/', [\App\Http\Controllers\BranchLeagueController::class, 'index']);
         Route::post('/', [\App\Http\Controllers\BranchLeagueController::class, 'store']);
         Route::post('/bulk', [\App\Http\Controllers\BranchLeagueController::class, 'bulkAssign']);
