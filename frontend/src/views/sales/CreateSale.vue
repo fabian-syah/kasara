@@ -27,6 +27,7 @@ import {
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
+import SaleScreenshot from "../../components/sales/SaleScreenshot.vue";
 
 // Category Components
 import AngkatBarangForm from "./categories/AngkatBarangForm.vue";
@@ -111,6 +112,7 @@ function clearAllTempStates() {
 
 // Modals State
 const showSuccessModal = ref(false);
+const showScreenshotModal = ref(false);
 const lastTransaction = ref(null);
 const showInitialPinSetup = ref(false);
 const showPinModal = ref(false);
@@ -551,7 +553,14 @@ watch(transactionCategory, () => {
             @success="handlePinSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
             :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
-            @close="closeSuccessModal" />
+            @close="closeSuccessModal"
+            @open-screenshot="showSuccessModal = false; showScreenshotModal = true" />
+
+        <SaleScreenshot 
+            :is-open="showScreenshotModal" 
+            :sale="lastTransaction"
+            @close="showScreenshotModal = false" 
+        />
 
     </div>
 </template>

@@ -578,7 +578,8 @@
             :is-open="showReceiptModal" 
             :transaction="currentReceiptData" 
             :auto-send="autoSendReceipt"
-            @close="showReceiptModal = false; autoSendReceipt = false" 
+            @close="showReceiptModal = false; autoSendReceipt = false"
+            @open-screenshot="showReceiptModal = false; openScreenshot(currentReceiptData)"
         />
 
         <!-- Cancel Sale Modal -->

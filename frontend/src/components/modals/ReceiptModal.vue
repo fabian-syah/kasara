@@ -503,29 +503,31 @@
                     </div>
 
                     <!-- Footer / Actions (hide on print) -->
-                    <div class="p-4 bg-white dark:bg-surface-800 border-t border-gray-100 dark:border-surface-700 flex gap-3 items-center print:hidden shrink-0">
-                        <button @click="close"
-                            class="flex-1 px-4 py-4 text-base font-black text-white bg-primary-600 rounded-[1.5rem] hover:bg-primary-700 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary-500/30 active:scale-95 uppercase tracking-widest">
-                            Selesai & Keluar
-                        </button>
-                        <div class="flex items-center gap-1 bg-gray-100 dark:bg-surface-700 rounded-xl p-1">
-                            <button @click="paperSize = 'A4'" 
-                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all"
-                                :class="paperSize === 'A4' ? 'bg-white dark:bg-surface-600 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-                                A4
+                    <div class="p-4 bg-white dark:bg-surface-800 border-t border-gray-100 dark:border-surface-700 print:hidden shrink-0">
+                        <!-- Action Buttons Row -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                            <button @click="emit('open-screenshot')"
+                                class="px-3 py-3 text-[11px] font-bold rounded-2xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 border border-violet-200 dark:border-violet-800">
+                                <MessageSquare :size="16" />
+                                <span>Laporkan Nota</span>
                             </button>
-                            <button @click="alert('Fitur cetak A5 sedang dalam pengembangan. Saat ini hanya tersedia cetak A4.')" 
-                                class="px-3 py-2 text-xs font-bold rounded-lg transition-all text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-60"
-                                title="Sedang dalam pengembangan">
-                                A5
+                            <button @click="sendWaReceiptFromModal" :disabled="isGeneratingPDF"
+                                class="px-3 py-3 text-[11px] font-bold rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 border border-emerald-200 dark:border-emerald-800 disabled:opacity-50">
+                                <Loader2 v-if="isGeneratingPDF" class="animate-spin" :size="16" />
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
+                                <span>Kirim WhatsApp</span>
+                            </button>
+                            <button @click="printReceipt"
+                                class="px-3 py-3 text-[11px] font-bold rounded-2xl bg-surface-100 dark:bg-surface-700 text-text-primary hover:bg-surface-200 dark:hover:bg-surface-600 transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 border border-surface-200 dark:border-surface-600">
+                                <Printer :size="16" />
+                                <span>Cetak Nota</span>
+                            </button>
+                            <button @click="close"
+                                class="px-3 py-3 text-[11px] font-bold rounded-2xl bg-primary-600 text-white hover:bg-primary-700 transition-all flex flex-col items-center justify-center gap-1.5 active:scale-95 shadow-lg shadow-primary-500/20">
+                                <X :size="16" />
+                                <span>Selesai</span>
                             </button>
                         </div>
-                        <button @click="printReceipt"
-                            class="px-4 py-3 text-sm font-bold rounded-2xl hover:opacity-90 transition-colors flex items-center justify-center gap-2 shadow-lg active:scale-95 border"
-                            style="background-color: #ffffffff; color: #000000ff; border-color: #1f2937;">
-                            <Printer :size="18" />
-                            Cetak
-                        </button>
                     </div>
                 </div>
             </div>
@@ -555,7 +557,7 @@ const props = defineProps({
     }
 });
 
-const emit = defineEmits(['close', 'open-checklist', 'sent']);
+const emit = defineEmits(['close', 'open-checklist', 'sent', 'open-screenshot']);
 
 const close = () => {
     emit('close');
