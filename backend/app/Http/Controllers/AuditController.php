@@ -2102,15 +2102,27 @@ class AuditController extends Controller
                 }
                 $finalPaymentMethods = implode(', ', array_unique($paymentMethodNames)) ?: '-';
 
-                $detailedSplitPayments = collect($trx->split_payments_data ?? [])->map(function ($sp) use ($catLower) {
-                    // Hanya negate untuk refund/angkat_barang (uang keluar)
-                    if (in_array($catLower, ['refund', 'angkat_barang'])) {
-                        $sp['amount'] = -abs((float) ($sp['amount'] ?? 0));
-                    } else {
-                        $sp['amount'] = abs((float) ($sp['amount'] ?? 0));
+                $detailedSplitPayments = [];
+                if ($trx->split_payments) {
+                    $splits = is_array($trx->split_payments) ? $trx->split_payments : json_decode($trx->split_payments, true);
+                    if (is_array($splits)) {
+                        foreach ($splits as $sp) {
+                            $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
+                            $pm = $pmId ? $paymentMethods->get($pmId) : null;
+                            $amt = (float) ($sp['amount'] ?? 0);
+                            if (in_array($catLower, ['refund', 'angkat_barang'])) {
+                                $amt = -abs($amt);
+                            } else {
+                                $amt = abs($amt);
+                            }
+                            $detailedSplitPayments[] = [
+                                'payment_method_id' => $pmId,
+                                'method_name' => $pm->name ?? 'Unknown',
+                                'amount' => $amt,
+                            ];
+                        }
                     }
-                    return $sp;
-                })->toArray();
+                }
 
                 $totalQty = collect($details)->sum('qty');
 

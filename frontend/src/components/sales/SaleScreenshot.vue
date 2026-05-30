@@ -122,7 +122,13 @@
                   </div>
                   <div v-if="sale?.payment_method_name && sale.payment_method_name !== '-'" class="flex justify-between items-center mt-1.5">
                     <span class="text-[11px] text-text-secondary">Pembayaran</span>
-                    <span class="text-[11px] font-semibold text-text-primary">{{ sale.payment_method_name }}</span>
+                    <span v-if="!sale.split_payments_data || sale.split_payments_data.length <= 1" class="text-[11px] font-semibold text-text-primary">{{ sale.payment_method_name }}</span>
+                    <div v-else class="text-right">
+                      <div v-for="(sp, i) in sale.split_payments_data" :key="i" class="text-[11px] text-text-primary">
+                        <span class="font-semibold">{{ sp.method_name || sp.payment_method_name || 'Metode ' + (i+1) }}</span>
+                        <span class="ml-1 text-text-secondary">{{ formatCurrency(Math.abs(sp.amount)) }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -360,7 +366,15 @@ const handleCopyText = async () => {
   lines.push(`Total: ${formatCurrency(props.sale.grand_total)}`)
   
   if (props.sale.payment_method_name && props.sale.payment_method_name !== '-') {
-    lines.push(`Pembayaran: ${props.sale.payment_method_name}`)
+    if (props.sale.split_payments_data && props.sale.split_payments_data.length > 1) {
+      lines.push('Pembayaran:')
+      props.sale.split_payments_data.forEach(sp => {
+        const name = sp.method_name || sp.payment_method_name || 'Metode'
+        lines.push(`  - ${name}: ${formatCurrency(Math.abs(sp.amount))}`)
+      })
+    } else {
+      lines.push(`Pembayaran: ${props.sale.payment_method_name}`)
+    }
   }
 
   if (props.sale.customer_name) {
