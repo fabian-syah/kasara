@@ -84,7 +84,12 @@ async function search() {
 
 function formatDate(dateString) {
     if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    const d = new Date(dateString);
+    // Shift logic: jika sebelum jam 05:00, tampilkan sebagai tanggal sebelumnya
+    if (d.getHours() < 5) {
+        d.setDate(d.getDate() - 1);
+    }
+    return d.toLocaleDateString('id-ID', {
         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 }
