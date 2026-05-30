@@ -706,7 +706,10 @@ class StockInController extends Controller
                 if ($d < $sevenDaysAgo)
                     $d = $today;
             }
-            $query->whereDate('created_at', $d);
+            // Shift jam 5 pagi: tanggal X = X 05:00:00 sampai X+1 04:59:59
+            $start = $d . ' 05:00:00';
+            $end = date('Y-m-d', strtotime($d . ' +1 day')) . ' 04:59:59';
+            $query->whereBetween('created_at', [$start, $end]);
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
@@ -722,8 +725,10 @@ class StockInController extends Controller
                     $m = $currentMonth;
                 }
             }
-            $query->whereMonth('created_at', $m)
-                ->whereYear('created_at', $y);
+            // Shift jam 5 pagi untuk bulanan: awal bulan 05:00 sampai awal bulan berikutnya 04:59
+            $startOfMonth = sprintf('%04d-%02d-01 05:00:00', $y, $m);
+            $endOfMonth = date('Y-m-d', strtotime(sprintf('%04d-%02d-01 +1 month', $y, $m))) . ' 04:59:59';
+            $query->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
         }
 
         // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
