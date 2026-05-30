@@ -1139,8 +1139,19 @@ class StockOutController extends Controller
             
             $stockInLogs = $stockInLogQuery->get();
 
-            // Deduplicate: only keep the latest stock_in log per unique reference_id
-            $stockInLogs = $stockInLogs->unique('reference_id');
+            // Deduplicate: For the same IMEI, if there are multiple IN logs
+            // (e.g., old cancelled input + new re-input), prioritize the one
+            // whose reference_id matches the current active ProductDetail
+            if ($stockInLogs->count() > 1 && $currentDetail) {
+                $matchingCurrent = $stockInLogs->filter(fn($log) => $log->reference_id == (string) $currentDetail->id);
+                if ($matchingCurrent->isNotEmpty()) {
+                    // Keep only the log(s) that match the current ProductDetail
+                    $stockInLogs = $matchingCurrent;
+                } else {
+                    // Fallback: keep only the latest
+                    $stockInLogs = $stockInLogs->sortByDesc('created_at')->take(1);
+                }
+            }
 
             foreach ($stockInLogs as $log) {
                 $locationName = match (true) {
