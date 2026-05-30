@@ -13,12 +13,12 @@ return new class extends Migration
             $table->date('reporting_date')->nullable()->after('notes')->index();
         });
 
-        // Backfill existing data: set reporting_date based on created_at with 5AM shift
+        // Backfill existing data: set reporting_date based on created_at with 5AM shift (PostgreSQL)
         DB::statement("
             UPDATE inventory_logs 
             SET reporting_date = CASE 
-                WHEN HOUR(created_at) < 5 THEN DATE_SUB(DATE(created_at), INTERVAL 1 DAY)
-                ELSE DATE(created_at)
+                WHEN EXTRACT(HOUR FROM created_at) < 5 THEN (created_at::date - INTERVAL '1 day')::date
+                ELSE created_at::date
             END
             WHERE reporting_date IS NULL
         ");
