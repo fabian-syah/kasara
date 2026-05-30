@@ -54,7 +54,7 @@ onErrorCaptured((err, instance, info) => {
         <!-- Page Content Wrapper -->
         <div class="flex-1 lg:overflow-y-auto custom-scrollbar">
           <div class="p-4 md:p-6 lg:p-8 max-w-[1920px] mx-auto min-h-full">
-            <router-view />
+            <router-view :key="route.fullPath" />
           </div>
         </div>
       </main>
