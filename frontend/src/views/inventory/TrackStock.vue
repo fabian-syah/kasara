@@ -85,7 +85,7 @@ async function search() {
 function formatDate(dateString) {
     if (!dateString) return '-';
     const d = new Date(dateString);
-    // Shift logic: jika sebelum jam 05:00, tampilkan sebagai tanggal sebelumnya
+    // Shift logic: reset jam 5 pagi. Jika sebelum jam 05:00, masih masuk shift hari sebelumnya
     if (d.getHours() < 5) {
         d.setDate(d.getDate() - 1);
     }
