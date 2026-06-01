@@ -26,7 +26,8 @@ import {
   Sparkles,
   Target,
   History,
-  Calendar
+  Calendar,
+  RefreshCw
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -354,10 +355,32 @@ const currentLocalRank = computed(() => {
           <span>Reset 05:00</span>
         </p>
       </div>
-      <button @click="refreshData" class="btn btn-secondary w-full md:w-auto" :disabled="isLoading">
-        <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
-        Refresh Data
-      </button>
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <!-- League Badge -->
+        <div v-if="authStore.user?.league" class="flex items-center gap-2 px-3 py-2 rounded-xl border shadow-sm"
+          :class="{
+            'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200 dark:border-amber-800': authStore.user.league.key === 'liga_1',
+            'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800': authStore.user.league.key === 'liga_2',
+            'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-red-200 dark:border-red-800': authStore.user.league.key === 'zona_merah',
+            'bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-700': authStore.user.league.key === 'non_liga',
+          }">
+          <Trophy v-if="authStore.user.league.key === 'liga_1'" :size="16" class="text-amber-500" />
+          <Award v-else-if="authStore.user.league.key === 'liga_2'" :size="16" class="text-blue-500" />
+          <Target v-else-if="authStore.user.league.key === 'zona_merah'" :size="16" class="text-red-500" />
+          <Medal v-else :size="16" class="text-surface-400" />
+          <span class="text-xs font-bold"
+            :class="{
+              'text-amber-700 dark:text-amber-400': authStore.user.league.key === 'liga_1',
+              'text-blue-700 dark:text-blue-400': authStore.user.league.key === 'liga_2',
+              'text-red-700 dark:text-red-400': authStore.user.league.key === 'zona_merah',
+              'text-surface-500': authStore.user.league.key === 'non_liga',
+            }">{{ authStore.user.league.label }}</span>
+        </div>
+        <button @click="refreshData" class="btn btn-secondary w-full md:w-auto" :disabled="isLoading">
+          <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
+          Refresh Data
+        </button>
+      </div>
     </div>
 
     <!-- Stats Grid -->
