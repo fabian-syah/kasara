@@ -24,7 +24,7 @@
                         <ChevronRight :size="15" class="text-text-secondary" />
                     </button>
                 </div>
-                <button @click="showCopyModal = true" class="h-10 px-4 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-700 rounded-full text-xs font-bold text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 shadow-sm">
+                <button @click="openCopyModal" class="h-10 px-4 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-700 rounded-full text-xs font-bold text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 shadow-sm">
                     <Copy :size="12" /> Salin
                 </button>
             </div>
@@ -186,7 +186,7 @@ const unassigned = ref([])
 const showCopyModal = ref(false)
 const showUnassigned = ref(false)
 const copying = ref(false)
-const copyFrom = ref({ month: new Date().getMonth() + 1, year: new Date().getFullYear() })
+const copyFrom = ref({ month: new Date().getMonth() || 12, year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear() })
 
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 const yearOptions = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
@@ -239,6 +239,34 @@ const fetchData = async () => {
         const res = await axios.get('/leagues', { params: { month: selectedMonth.value, year: selectedYear.value } })
         assignments.value = res.data.data.assignments || {}
         unassigned.value = res.data.data.unassigned || []
+
+        // Auto-copy from previous month if current month is empty
+        const totalAssigned = Object.values(assignments.value).reduce((sum, arr) => sum + arr.length, 0)
+        if (totalAssigned === 0) {
+            // Calculate previous month
+            let prevM = selectedMonth.value - 1
+            let prevY = selectedYear.value
+            if (prevM === 0) { prevM = 12; prevY-- }
+
+            // Try to copy from previous month
+            try {
+                const copyRes = await axios.post('/leagues/copy', {
+                    from_month: prevM,
+                    from_year: prevY,
+                    to_month: selectedMonth.value,
+                    to_year: selectedYear.value
+                })
+                if (copyRes.data.success) {
+                    // Refetch after auto-copy
+                    const res2 = await axios.get('/leagues', { params: { month: selectedMonth.value, year: selectedYear.value } })
+                    assignments.value = res2.data.data.assignments || {}
+                    unassigned.value = res2.data.data.unassigned || []
+                    toast.success('Otomatis disalin dari bulan sebelumnya')
+                }
+            } catch (e) {
+                // Silent fail - previous month might also be empty
+            }
+        }
     } catch (e) { toast.error('Gagal memuat data liga') }
     finally { loading.value = false }
 }
@@ -264,8 +292,17 @@ const copyAssignments = async () => {
     try {
         await axios.post('/leagues/copy', { from_month: copyFrom.value.month, from_year: copyFrom.value.year, to_month: selectedMonth.value, to_year: selectedYear.value })
         toast.success('Berhasil disalin'); showCopyModal.value = false; fetchData()
-    } catch (e) { toast.error(e.response?.data?.message || 'Gagal') }
+    } catch (e) { toast.error(e.response?.data?.message || 'Gagal menyalin') }
     finally { copying.value = false }
+}
+
+// Update copyFrom default when opening modal
+const openCopyModal = () => {
+    let prevM = selectedMonth.value - 1
+    let prevY = selectedYear.value
+    if (prevM === 0) { prevM = 12; prevY-- }
+    copyFrom.value = { month: prevM, year: prevY }
+    showCopyModal.value = true
 }
 
 watch([selectedMonth, selectedYear], fetchData)
