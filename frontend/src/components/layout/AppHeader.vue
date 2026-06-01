@@ -113,7 +113,17 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                         </p>
                         <p class="text-[11px] text-text-secondary font-medium mt-0.5">
                             {{ userRole }}
+                            <span v-if="authStore.user?.branch?.name"> • {{ authStore.user.branch.name }}</span>
                         </p>
+                        <div v-if="authStore.user?.league" class="mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                            :class="{
+                                'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': authStore.user.league.key === 'liga_1',
+                                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': authStore.user.league.key === 'liga_2',
+                                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400': authStore.user.league.key === 'zona_merah',
+                                'bg-surface-100 dark:bg-surface-700 text-surface-500': authStore.user.league.key === 'non_liga',
+                            }">
+                            🏆 {{ authStore.user.league.label }}
+                        </div>
                     </div>
                     <ChevronDown :size="16"
                         class="text-text-secondary transition-transform duration-200 hidden sm:block"
