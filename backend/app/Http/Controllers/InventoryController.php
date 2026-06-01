@@ -897,9 +897,10 @@ class InventoryController extends Controller
         $brands = (clone $baseQuery)
             ->select('products.brand', DB::raw('COUNT(*) as qty'))
             ->groupBy('products.brand')
-            ->having('qty', '>', 0)
             ->orderBy('products.brand')
-            ->pluck('products.brand')
+            ->get()
+            ->where('qty', '>', 0)
+            ->pluck('brand')
             ->filter()
             ->values();
 
@@ -911,10 +912,11 @@ class InventoryController extends Controller
         $types = $typesQuery
             ->select('products.name', DB::raw('COUNT(*) as qty'))
             ->groupBy('products.name')
-            ->having('qty', '>', 0)
             ->orderBy('products.name')
             ->get()
-            ->map(fn($row) => ['label' => $row->name, 'value' => $row->name, 'qty' => $row->qty]);
+            ->where('qty', '>', 0)
+            ->map(fn($row) => ['label' => $row->name, 'value' => $row->name, 'qty' => $row->qty])
+            ->values();
 
         // Get storages that have available stock (filtered by brand + type)
         $storageQuery = clone $baseQuery;
@@ -934,10 +936,11 @@ class InventoryController extends Controller
             ->whereNotNull('product_details.storage')
             ->where('product_details.storage', '!=', '')
             ->groupBy('product_details.storage')
-            ->having('qty', '>', 0)
-            ->orderByRaw("CAST(REGEXP_REPLACE(product_details.storage, '[^0-9]', '', 'g') AS INTEGER) ASC")
+            ->orderBy('product_details.storage')
             ->get()
-            ->map(fn($row) => ['label' => $row->storage, 'value' => $row->storage, 'qty' => $row->qty]);
+            ->where('qty', '>', 0)
+            ->map(fn($row) => ['label' => $row->storage, 'value' => $row->storage, 'qty' => $row->qty])
+            ->values();
 
         // Get conditions that have available stock (filtered by brand + type + storage)
         $conditionQuery = clone $baseQuery;
@@ -960,14 +963,15 @@ class InventoryController extends Controller
             ->select('product_details.condition', DB::raw('COUNT(*) as qty'))
             ->whereNotNull('product_details.condition')
             ->groupBy('product_details.condition')
-            ->having('qty', '>', 0)
-            ->orderByDesc('qty')
+            ->orderByDesc(DB::raw('COUNT(*)'))
             ->get()
+            ->where('qty', '>', 0)
             ->map(fn($row) => [
                 'label' => ($conditionLabels[$row->condition] ?? ucfirst($row->condition)) . " ({$row->qty})",
                 'value' => $row->condition,
                 'qty' => $row->qty,
-            ]);
+            ])
+            ->values();
 
         // Total available with current filters
         $totalAvailable = $filteredQuery->count();
