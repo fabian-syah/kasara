@@ -387,6 +387,9 @@ watch(() => route.path, () => {
                     <p class="text-[11px] text-primary-500 font-medium uppercase tracking-wide">
                         {{ userRole }}
                     </p>
+                    <p v-if="authStore.user?.branch?.name" class="text-[10px] text-text-secondary truncate mt-0.5">
+                        {{ authStore.user.branch.name }}
+                    </p>
                     <div v-if="authStore.user?.league" class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
                         :class="{
                             'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': authStore.user.league.key === 'liga_1',
