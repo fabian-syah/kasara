@@ -186,51 +186,21 @@ const fetchAllInventory = async () => {
             online_shop_id: sId || undefined,
             warehouse_id: wId || undefined,
             distributor_id: dId || undefined,
-            per_page: 500 // Increased for efficiency
         };
 
-        const fetchType = async (type) => {
-            const firstResponse = await inventoryApi.list({ ...queryParams, page: 1, type: type === 'hp' ? undefined : 'non-hp' });
-            const firstData = firstResponse.data;
-            
-            if (!firstData || !firstData.data) return [];
-            
-            const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
-            const filterFn = (item) => {
-                // User said: hide test data only when shown to super_admin and analist
-                if (!isAlwaysGlobal) return true; 
-                const locName = (item.placement_name || '').toLowerCase();
-                return !exclusionWords.some(word => locName.includes(word));
-            };
+        // Single bulk request instead of 69 paginated requests
+        const response = await axios.get('/inventory/opname-bulk', { params: queryParams });
+        const { hp, non_hp } = response.data;
 
-            let all = firstData.data.filter(filterFn);
-
-            const lastPage = firstData.last_page;
-            if (lastPage > 1) {
-                const pagePromises = [];
-                for (let p = 2; p <= lastPage; p++) {
-                    pagePromises.push(inventoryApi.list({ ...queryParams, page: p, type: type === 'hp' ? undefined : 'non-hp' }));
-                }
-                
-                const otherResponses = await Promise.all(pagePromises);
-                otherResponses.forEach(res => {
-                    if (res.data && res.data.data) {
-                        const filtered = res.data.data.filter(filterFn);
-                        all = all.concat(filtered);
-                    }
-                });
-            }
-            return all;
+        const exclusionWords = ['testing', 'trial', 'anu', 'huft'];
+        const filterFn = (item) => {
+            if (!isAlwaysGlobal) return true;
+            const locName = (item.placement_name || '').toLowerCase();
+            return !exclusionWords.some(word => locName.includes(word));
         };
 
-        // Fetch both in parallel
-        const [hpItems, nonHpItems] = await Promise.all([
-            fetchType('hp'),
-            fetchType('non-hp')
-        ]);
-
-        rawHpItems.value = hpItems;
-        rawNonHpItems.value = nonHpItems;
+        rawHpItems.value = hp.filter(filterFn);
+        rawNonHpItems.value = non_hp.filter(filterFn);
     } catch (error) {
         console.error('Fetch Error:', error);
         toast.error('Gagal memuat data inventory.');

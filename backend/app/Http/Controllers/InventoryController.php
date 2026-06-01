@@ -1202,6 +1202,104 @@ class InventoryController extends Controller
         ]);
     }
 
+    /**
+     * Bulk fetch ALL inventory for Stock Opname (single request, no pagination)
+     * Returns both HP and Non-HP items in one response
+     */
+    public function opnameBulk(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $osIds = (array) ($user->getAccessibleOnlineShopIds() ?: []);
+        $bIds = (array) ($user->getAccessibleBranchIds() ?: []);
+        $wIds = (array) ($user->getAccessibleWarehouseIds() ?: []);
+
+        if ($user->online_shop_id) $osIds[] = $user->online_shop_id;
+        if ($user->branch_id) $bIds[] = $user->branch_id;
+        if ($user->warehouse_id) $wIds[] = $user->warehouse_id;
+
+        $osIds = array_unique(array_filter($osIds));
+        $bIds = array_unique(array_filter($bIds));
+        $wIds = array_unique(array_filter($wIds));
+        $dIds = array_unique(array_filter((array) ($user->getAccessibleDistributorIds() ?: [])));
+
+        $unrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner', 'analist']);
+
+        // Location filter from request
+        $filterBranch = $request->branch_id;
+        $filterShop = $request->online_shop_id;
+        $filterWarehouse = $request->warehouse_id;
+        $filterDistributor = $request->distributor_id;
+
+        $applySecurity = function ($query) use ($unrestricted, $osIds, $bIds, $wIds, $dIds, $filterBranch, $filterShop, $filterWarehouse, $filterDistributor) {
+            // Apply specific location filter first
+            if ($filterBranch) {
+                $query->where('placement_type', 'branch')->where('placement_id', $filterBranch);
+            } elseif ($filterShop) {
+                $query->where('placement_type', 'online_shop')->where('placement_id', $filterShop);
+            } elseif ($filterWarehouse) {
+                $query->where('placement_type', 'warehouse')->where('placement_id', $filterWarehouse);
+            } elseif ($filterDistributor) {
+                $query->where('placement_type', 'distributor')->where('placement_id', $filterDistributor);
+            } elseif (!$unrestricted) {
+                $query->where(function ($q) use ($osIds, $bIds, $wIds, $dIds) {
+                    $hasConstraint = false;
+                    if (!empty($osIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds)); $hasConstraint = true; }
+                    if (!empty($bIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds)); $hasConstraint = true; }
+                    if (!empty($wIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds)); $hasConstraint = true; }
+                    if (!empty($dIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds)); $hasConstraint = true; }
+                    if (!$hasConstraint) $q->whereRaw('0 = 1');
+                });
+            }
+        };
+
+        // HP items (only select needed columns for speed)
+        $hpQuery = ProductDetail::with(['product:id,name,brand,type,category', 'placement:id,name', 'distributor:id,name'])
+            ->select('id', 'product_id', 'placement_type', 'placement_id', 'status', 'condition', 'ram', 'storage', 'distributor_id', 'imei')
+            ->whereIn('status', ['available', 'booking', 'returned', 'process'])
+            ->whereHas('product', fn($q) => $q->where('type', 'hp')->orWhere('has_imei', true));
+
+        $applySecurity($hpQuery);
+
+        // Non-HP items
+        $nonHpQuery = Inventory::with(['product:id,name,brand,type,category', 'placement:id,name', 'distributor:id,name'])
+            ->select('id', 'product_id', 'placement_type', 'placement_id', 'quantity', 'distributor_id', 'notes')
+            ->where('quantity', '>', 0)
+            ->whereHas('product', fn($q) => $q->where('type', 'non-hp')->orWhere('has_imei', false));
+
+        $applySecurity($nonHpQuery);
+
+        // Execute both queries
+        $hpItems = $hpQuery->get()->map(fn($item) => [
+            'id' => $item->id,
+            'product' => $item->product ? ['name' => $item->product->name, 'brand' => $item->product->brand, 'category' => $item->product->category] : null,
+            'placement_name' => $item->placement->name ?? null,
+            'placement_type' => $item->placement_type,
+            'status' => $item->status,
+            'condition' => $item->condition,
+            'ram' => $item->ram,
+            'storage' => $item->storage,
+            'imei' => $item->imei,
+            'distributor' => $item->distributor ? ['name' => $item->distributor->name] : null,
+        ]);
+
+        $nonHpItems = $nonHpQuery->get()->map(fn($item) => [
+            'id' => $item->id,
+            'product' => $item->product ? ['name' => $item->product->name, 'brand' => $item->product->brand, 'category' => $item->product->category] : null,
+            'placement_name' => $item->placement->name ?? null,
+            'placement_type' => $item->placement_type,
+            'quantity' => $item->quantity,
+            'balance' => $item->quantity,
+            'distributor' => $item->distributor ? ['name' => $item->distributor->name] : null,
+        ]);
+
+        return response()->json([
+            'hp' => $hpItems,
+            'non_hp' => $nonHpItems,
+        ]);
+    }
+
     public function stockSummary(Request $request)
     {
         /** @var \App\Models\User $user */

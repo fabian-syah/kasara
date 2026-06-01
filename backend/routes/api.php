@@ -181,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Inventory Static Routes (MUST BE ABOVE DYNAMIC ROUTES)
     Route::get('/inventory/stock-analysis', [InventoryController::class, 'stockAnalysis']);
     Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
+    Route::get('/inventory/opname-bulk', [InventoryController::class, 'opnameBulk']);
     Route::get('/inventory/history/in', [StockInController::class, 'stockInHistory']);
     Route::get('/inventory/history/out', [StockInController::class, 'stockOutHistory']);
     Route::get('/inventory/history/in/export', [StockInController::class, 'exportStockInHistory'])->middleware('throttle:exports');
