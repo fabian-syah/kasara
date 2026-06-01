@@ -387,6 +387,16 @@ watch(() => route.path, () => {
                     <p class="text-[11px] text-primary-500 font-medium uppercase tracking-wide">
                         {{ userRole }}
                     </p>
+                    <div v-if="authStore.user?.league" class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                        :class="{
+                            'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': authStore.user.league.key === 'liga_1',
+                            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': authStore.user.league.key === 'liga_2',
+                            'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400': authStore.user.league.key === 'zona_merah',
+                            'bg-surface-100 dark:bg-surface-700 text-surface-500': authStore.user.league.key === 'non_liga',
+                        }">
+                        <Trophy :size="10" />
+                        {{ authStore.user.league.label }}
+                    </div>
                 </div>
             </div>
             <button @click="handleLogout"
