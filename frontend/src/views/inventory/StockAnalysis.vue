@@ -12,6 +12,7 @@ const selectedBrand = ref('')
 const selectedType = ref('')
 const selectedStorage = ref('')
 const selectedCondition = ref('')
+const selectedMode = ref('hp') // 'hp' or 'non-hp'
 
 // Data state
 const loading = ref(false)
@@ -31,7 +32,7 @@ const filtersLoading = ref(false)
 async function loadFilters() {
     try {
         filtersLoading.value = true
-        const params = {}
+        const params = { mode: selectedMode.value }
         if (selectedBrand.value) params.brand = selectedBrand.value
         if (selectedType.value) params.product_name = selectedType.value
         if (selectedStorage.value) params.storage = selectedStorage.value
@@ -62,6 +63,15 @@ function onBrandChange() {
     selectedCondition.value = ''
     loadFilters()
     onFilterChange()
+}
+
+function onModeChange() {
+    selectedBrand.value = ''
+    selectedType.value = ''
+    selectedStorage.value = ''
+    selectedCondition.value = ''
+    clearResults()
+    loadFilters()
 }
 
 function onTypeChange() {
@@ -177,6 +187,20 @@ function getLocationTypeLabel(type) {
 
         <!-- Filter Section -->
         <div class="bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl p-5">
+            <!-- Mode Toggle -->
+            <div class="flex items-center gap-2 mb-4">
+                <button @click="selectedMode = 'hp'; onModeChange()"
+                    class="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
+                    :class="selectedMode === 'hp' ? 'bg-primary-500 text-white shadow-sm' : 'bg-surface-100 dark:bg-surface-800 text-text-secondary hover:text-text-primary'">
+                    HP (IMEI)
+                </button>
+                <button @click="selectedMode = 'non-hp'; onModeChange()"
+                    class="px-4 py-2 text-sm font-medium rounded-xl transition-colors"
+                    :class="selectedMode === 'non-hp' ? 'bg-primary-500 text-white shadow-sm' : 'bg-surface-100 dark:bg-surface-800 text-text-secondary hover:text-text-primary'">
+                    Non-HP (Non-IMEI)
+                </button>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Brand Filter -->
                 <div>
@@ -208,8 +232,8 @@ function getLocationTypeLabel(type) {
                     </select>
                 </div>
 
-                <!-- Storage/GB Filter (only shows storages with stock) -->
-                <div>
+                <!-- Storage/GB Filter (only for HP mode) -->
+                <div v-if="selectedMode === 'hp'">
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">
                         Kapasitas
                         <span v-if="storageOptions.length > 0" class="text-text-secondary/60">({{ storageOptions.length }})</span>
@@ -223,8 +247,8 @@ function getLocationTypeLabel(type) {
                     </select>
                 </div>
 
-                <!-- Kondisi Filter (only shows conditions with stock) -->
-                <div>
+                <!-- Kondisi Filter (only for HP mode) -->
+                <div v-if="selectedMode === 'hp'">
                     <label class="block text-xs font-medium text-text-secondary mb-1.5">
                         Kondisi
                         <span v-if="conditionOptions.length > 0" class="text-text-secondary/60">({{ conditionOptions.length }})</span>
