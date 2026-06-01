@@ -24,9 +24,6 @@
                         <ChevronRight :size="15" class="text-text-secondary" />
                     </button>
                 </div>
-                <button @click="openCopyModal" class="h-10 px-4 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 hover:bg-surface-50 dark:hover:bg-surface-700 rounded-full text-xs font-bold text-text-secondary hover:text-text-primary transition-all flex items-center gap-1.5 shadow-sm">
-                    <Copy :size="12" /> Salin
-                </button>
             </div>
         </div>
 
@@ -144,36 +141,12 @@
             </div>
         </div>
 
-        <!-- Copy Modal -->
-        <Teleport v-if="showCopyModal" to="body">
-            <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="showCopyModal = false">
-                <div class="bg-white dark:bg-surface-800 rounded-3xl p-6 w-full max-w-xs shadow-2xl border border-surface-200 dark:border-surface-700">
-                    <h3 class="text-base font-black text-text-primary mb-1">Salin Liga</h3>
-                    <p class="text-[11px] text-text-secondary mb-5">Salin pengaturan dari bulan lain ke {{ monthNames[selectedMonth - 1] }} {{ selectedYear }}</p>
-                    <div class="flex gap-2 mb-5">
-                        <select v-model="copyFrom.month" class="flex-1 px-3 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <option v-for="(name, idx) in monthNames" :key="idx" :value="idx + 1">{{ name }}</option>
-                        </select>
-                        <select v-model="copyFrom.year" class="w-20 px-3 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 bg-surface-50 dark:bg-surface-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
-                        </select>
-                    </div>
-                    <div class="flex gap-2">
-                        <button @click="showCopyModal = false" class="flex-1 py-2.5 rounded-xl bg-surface-100 dark:bg-surface-700 text-xs font-bold hover:bg-surface-200 transition-all">Batal</button>
-                        <button @click="copyAssignments" :disabled="copying" class="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-xs font-bold hover:bg-primary-500 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5">
-                            <Loader2 v-if="copying" class="animate-spin" :size="12" />
-                            {{ copying ? 'Menyalin...' : 'Salin' }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import { ChevronLeft, ChevronRight, Copy, Loader2, X, AlertCircle, Trophy, Star, AlertTriangle, MinusCircle } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, X, AlertCircle, Trophy, Star, AlertTriangle, MinusCircle } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useToast } from '../../composables/useToast'
 
@@ -183,13 +156,9 @@ const selectedMonth = ref(new Date().getMonth() + 1)
 const selectedYear = ref(new Date().getFullYear())
 const assignments = ref({})
 const unassigned = ref([])
-const showCopyModal = ref(false)
 const showUnassigned = ref(false)
-const copying = ref(false)
-const copyFrom = ref({ month: new Date().getMonth() || 12, year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear() })
 
 const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-const yearOptions = [2024, 2025, 2026, 2027, 2028, 2029, 2030]
 
 const leagueConfig = [
     {
@@ -285,24 +254,6 @@ const assignBranch = async (event, league) => {
 const removeAssignment = async (item) => {
     try { await axios.delete(`/leagues/${item.id}`); toast.success('Dihapus'); fetchData() }
     catch (e) { toast.error('Gagal menghapus') }
-}
-
-const copyAssignments = async () => {
-    copying.value = true
-    try {
-        await axios.post('/leagues/copy', { from_month: copyFrom.value.month, from_year: copyFrom.value.year, to_month: selectedMonth.value, to_year: selectedYear.value })
-        toast.success('Berhasil disalin'); showCopyModal.value = false; fetchData()
-    } catch (e) { toast.error(e.response?.data?.message || 'Gagal menyalin') }
-    finally { copying.value = false }
-}
-
-// Update copyFrom default when opening modal
-const openCopyModal = () => {
-    let prevM = selectedMonth.value - 1
-    let prevY = selectedYear.value
-    if (prevM === 0) { prevM = 12; prevY-- }
-    copyFrom.value = { month: prevM, year: prevY }
-    showCopyModal.value = true
 }
 
 watch([selectedMonth, selectedYear], fetchData)
