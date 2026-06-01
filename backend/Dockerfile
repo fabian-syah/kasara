@@ -1,11 +1,12 @@
 FROM dunglas/frankenphp:php8.4-alpine
 
-# Install ekstensi PHP yang dibutuhkan (terutama pgsql)
+# Install ekstensi PHP yang dibutuhkan
 RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
     pcntl \
-    intl
+    intl \
+    redis
 
 WORKDIR /app
 
