@@ -45,12 +45,30 @@ class AuthController extends Controller
 
             $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements');
 
+            // Get current league for user's branch
+            $league = null;
+            if ($user->branch_id) {
+                $leagueRecord = \App\Models\BranchLeague::where('branch_id', $user->branch_id)
+                    ->where('month', now()->month)
+                    ->where('year', now()->year)
+                    ->first();
+                if ($leagueRecord) {
+                    $league = [
+                        'key' => $leagueRecord->league,
+                        'label' => \App\Models\BranchLeague::LEAGUES[$leagueRecord->league] ?? $leagueRecord->league,
+                        'month' => $leagueRecord->month,
+                        'year' => $leagueRecord->year,
+                    ];
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'token' => $token,
                 'user' => array_merge($user->toArray(), [
                     'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                     'roles' => $user->roles->map(fn($r) => ['name' => $r->name])->toArray(),
+                    'league' => $league,
                 ]),
                 'theme_color' => $user->theme_color,
             ]);
