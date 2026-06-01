@@ -91,6 +91,47 @@ const unblockIp = async (ip) => {
     }
 };
 
+// Database Backup
+const backupInfo = ref(null);
+const isBackingUp = ref(false);
+const isLoadingBackupInfo = ref(false);
+
+const fetchBackupInfo = async () => {
+    try {
+        isLoadingBackupInfo.value = true;
+        const response = await api.get('/system-status/backup-info');
+        backupInfo.value = response.data;
+    } catch (err) {
+        console.error('Failed to fetch backup info:', err);
+    } finally {
+        isLoadingBackupInfo.value = false;
+    }
+};
+
+const downloadBackup = async () => {
+    if (!confirm('Download full database backup? Ini bisa memakan waktu beberapa detik.')) return;
+    try {
+        isBackingUp.value = true;
+        const response = await api.get('/system-status/backup-download', {
+            responseType: 'blob',
+        });
+
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = response.headers['content-disposition']?.match(/filename="(.+)"/)?.[1] || `backup_${new Date().toISOString().slice(0,10)}.sql`;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Backup gagal: ' + (err.response?.data?.message || err.message));
+    } finally {
+        isBackingUp.value = false;
+    }
+};
 
 const toggleSection = (section) => {
     expandedSections.value[section] = !expandedSections.value[section];
@@ -415,6 +456,75 @@ onUnmounted(() => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Backup -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <div class="p-5 border-b border-surface-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-blue-500/10">
+                            <Database :size="20" class="text-blue-400" />
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-text-primary">Database Backup</h2>
+                            <p class="text-xs text-text-secondary">Download full backup database (SQL) ke komputer kamu</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button @click="fetchBackupInfo" :disabled="isLoadingBackupInfo"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border bg-surface-700/50 border-surface-600 text-text-secondary hover:bg-surface-700 transition-all">
+                            {{ isLoadingBackupInfo ? 'Loading...' : 'Lihat Info' }}
+                        </button>
+                        <button @click="downloadBackup" :disabled="isBackingUp"
+                            class="px-4 py-1.5 rounded-lg text-xs font-bold border bg-blue-500/10 border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-all flex items-center gap-2">
+                            <HardDrive :size="14" />
+                            {{ isBackingUp ? 'Downloading...' : 'Download Backup' }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Backup Info (shown after clicking "Lihat Info") -->
+                <div v-if="backupInfo" class="p-5 pt-0 mt-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Database</p>
+                            <p class="text-sm font-bold text-text-primary mt-1">{{ backupInfo.database }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Total Tables</p>
+                            <p class="text-sm font-bold text-text-primary mt-1">{{ backupInfo.total_tables }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Total Rows</p>
+                            <p class="text-sm font-bold text-text-primary mt-1">{{ backupInfo.total_rows?.toLocaleString() }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Size</p>
+                            <p class="text-sm font-bold text-text-primary mt-1">{{ backupInfo.total_size }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Table list -->
+                    <div class="max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                        <table class="w-full text-xs">
+                            <thead class="sticky top-0 bg-surface-800">
+                                <tr class="text-text-secondary text-left">
+                                    <th class="pb-2 font-semibold">Table</th>
+                                    <th class="pb-2 font-semibold text-right">Rows</th>
+                                    <th class="pb-2 font-semibold text-right">Size</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(table, idx) in backupInfo.tables" :key="idx" class="border-t border-surface-700/30">
+                                    <td class="py-1.5 font-mono text-text-primary">{{ table.name }}</td>
+                                    <td class="py-1.5 text-right text-text-secondary">{{ table.rows?.toLocaleString() }}</td>
+                                    <td class="py-1.5 text-right text-text-secondary">{{ table.size }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

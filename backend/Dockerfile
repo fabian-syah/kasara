@@ -1,5 +1,8 @@
 FROM dunglas/frankenphp:php8.4-alpine
 
+# Install system dependencies (pg_dump for database backup)
+RUN apk add --no-cache postgresql16-client curl
+
 # Install ekstensi PHP yang dibutuhkan
 RUN install-php-extensions \
     pdo_pgsql \

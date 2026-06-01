@@ -244,6 +244,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp'])->middleware('throttle:sensitive');
     Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender'])->middleware('throttle:sensitive');
     Route::post('/system-status/reset-integrity', [\App\Http\Controllers\SystemStatusController::class, 'resetIntegrityBaseline'])->middleware('throttle:sensitive');
+    Route::get('/system-status/backup-info', [\App\Http\Controllers\SystemStatusController::class, 'backupInfo']);
+    Route::get('/system-status/backup-download', [\App\Http\Controllers\SystemStatusController::class, 'backupDatabase'])->middleware('throttle:exports');
 
     // Reports
     Route::get('/reports/brand', [\App\Http\Controllers\ReportController::class, 'getBrandReport']);

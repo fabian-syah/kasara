@@ -1207,4 +1207,150 @@ class SystemStatusController extends Controller
     {
         return !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE);
     }
+
+    // ============================================================
+    // DATABASE BACKUP & DOWNLOAD
+    // ============================================================
+
+    /**
+     * Create a full database backup and stream it as download (SQL format)
+     */
+    public function backupDatabase(Request $request)
+    {
+        $dbConnection = config('database.default');
+        $dbConfig = config("database.connections.{$dbConnection}");
+        $driver = $dbConfig['driver'] ?? 'pgsql';
+        $database = $dbConfig['database'] ?? 'apex_pos';
+        $host = $dbConfig['host'] ?? 'db';
+        $port = $dbConfig['port'] ?? '5432';
+        $username = $dbConfig['username'] ?? 'root';
+        $password = $dbConfig['password'] ?? '';
+
+        $timestamp = now()->format('Y-m-d_His');
+        $filename = "backup_{$database}_{$timestamp}.sql";
+
+        // Build dump command based on driver
+        if ($driver === 'pgsql') {
+            $cmd = sprintf(
+                'PGPASSWORD=%s pg_dump -h %s -p %s -U %s -d %s --no-owner --no-acl 2>&1',
+                escapeshellarg($password),
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($username),
+                escapeshellarg($database)
+            );
+        } elseif ($driver === 'mysql' || $driver === 'mariadb') {
+            $cmd = sprintf(
+                'mysqldump -h %s -P %s -u %s -p%s %s --single-transaction --routines --triggers 2>&1',
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($username),
+                escapeshellarg($password),
+                escapeshellarg($database)
+            );
+        } else {
+            return response()->json(['message' => "Driver '{$driver}' tidak didukung untuk backup"], 422);
+        }
+
+        // Execute dump
+        $output = shell_exec($cmd);
+
+        if (empty($output) || strpos($output, 'error') !== false && strlen($output) < 200) {
+            Log::error("Database backup failed: {$output}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Backup gagal: ' . substr($output ?? 'Unknown error', 0, 200),
+            ], 500);
+        }
+
+        Log::info("Database backup created by user " . ($request->user()->id ?? 'unknown') . ": {$filename}");
+
+        // Stream as download
+        return response($output, 200, [
+            'Content-Type' => 'application/sql',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Content-Length' => strlen($output),
+        ]);
+    }
+
+    /**
+     * Get list of available backup info (size estimate, table count)
+     */
+    public function backupInfo(Request $request)
+    {
+        $dbConnection = config('database.default');
+        $dbConfig = config("database.connections.{$dbConnection}");
+        $driver = $dbConfig['driver'] ?? 'pgsql';
+        $database = $dbConfig['database'] ?? 'apex_pos';
+
+        $tables = [];
+        $totalRows = 0;
+
+        try {
+            if ($driver === 'pgsql') {
+                $tableList = DB::select("
+                    SELECT tablename, 
+                           pg_size_pretty(pg_total_relation_size(quote_ident(tablename))) as size,
+                           (SELECT count(*) FROM information_schema.columns WHERE table_name = tablename) as columns
+                    FROM pg_tables 
+                    WHERE schemaname = 'public' 
+                    ORDER BY pg_total_relation_size(quote_ident(tablename)) DESC
+                ");
+
+                foreach ($tableList as $table) {
+                    $rowCount = DB::table($table->tablename)->count();
+                    $totalRows += $rowCount;
+                    $tables[] = [
+                        'name' => $table->tablename,
+                        'rows' => $rowCount,
+                        'size' => $table->size,
+                        'columns' => $table->columns,
+                    ];
+                }
+
+                // Total DB size
+                $dbSize = DB::selectOne("SELECT pg_size_pretty(pg_database_size(current_database())) as size");
+                $totalSize = $dbSize->size ?? '—';
+
+            } elseif ($driver === 'mysql' || $driver === 'mariadb') {
+                $tableList = DB::select("
+                    SELECT TABLE_NAME as table_name, 
+                           ROUND((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024, 2) as size_mb,
+                           TABLE_ROWS as row_count
+                    FROM information_schema.TABLES 
+                    WHERE TABLE_SCHEMA = ?
+                    ORDER BY (DATA_LENGTH + INDEX_LENGTH) DESC
+                ", [$database]);
+
+                foreach ($tableList as $table) {
+                    $totalRows += $table->row_count ?? 0;
+                    $tables[] = [
+                        'name' => $table->table_name,
+                        'rows' => $table->row_count ?? 0,
+                        'size' => ($table->size_mb ?? 0) . ' MB',
+                        'columns' => 0,
+                    ];
+                }
+
+                $totalSize = round(array_sum(array_column($tableList, 'size_mb')), 2) . ' MB';
+            } else {
+                return response()->json(['message' => 'Driver tidak didukung'], 422);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal membaca info database: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'database' => $database,
+            'driver' => $driver,
+            'total_tables' => count($tables),
+            'total_rows' => $totalRows,
+            'total_size' => $totalSize ?? '—',
+            'tables' => $tables,
+        ]);
+    }
 }
