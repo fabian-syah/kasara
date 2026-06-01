@@ -29,17 +29,35 @@ class AppServiceProvider extends ServiceProvider
             'distributor' => \App\Models\Distributor::class,
         ]);
 
+        // General API rate limit (authenticated users get more)
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(1000)->by($request->user()?->id ?: $request->ip());
+            return $request->user()
+                ? Limit::perMinute(1000)->by($request->user()->id)
+                : Limit::perMinute(60)->by($request->ip());
         });
 
+        // Login: strict limit to prevent brute-force
         RateLimiter::for('login', function (Request $request) {
             return Limit::perMinute(5)->by($request->ip())->response(function (Request $req, array $headers) {
                 return response()->json([
-                    'message' => 'Too many login attempts. Please try again later.',
+                    'message' => 'Terlalu banyak percobaan login. Coba lagi nanti.',
                     'retry_after' => $headers['Retry-After'] ?? 60,
                 ], 429)->withHeaders($headers);
             });
+        });
+
+        // Export/heavy operations: prevent abuse
+        RateLimiter::for('exports', function (Request $request) {
+            return Limit::perMinute(5)->by($request->user()?->id ?: $request->ip())->response(function () {
+                return response()->json([
+                    'message' => 'Terlalu banyak request export. Tunggu 1 menit.',
+                ], 429);
+            });
+        });
+
+        // Sensitive operations (block IP, toggle defender, etc)
+        RateLimiter::for('sensitive', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
     }

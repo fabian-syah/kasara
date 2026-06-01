@@ -2,32 +2,44 @@ services:
   # Backend Laravel 12 dengan FrankenPHP & Octane
   backend:
     build:
-      context: .
-      dockerfile: ./backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: apex-api-local
-    restart: always # Agar otomatis nyala jika server reboot
+    restart: always
     working_dir: /app
     ports:
       - "8000:8000"
       - "8080:8080"
     volumes:
       - ./backend:/app
-    # Gunakan file .env untuk environment di production agar lebih aman
+      - backend_storage:/app/storage
     env_file:
       - ./backend/.env
     environment:
       - OCTANE_SERVER=frankenphp
-      - FRANKENPHP_CONFIG="worker_count=4" # Ditambah biar lebih kencang di VPS
+      - FRANKENPHP_CONFIG="worker_count=4"
     entrypoint: >
       sh -c "php artisan config:cache && 
              php artisan route:cache &&
              php artisan reverb:start --host=0.0.0.0 --port=8080 --no-interaction & 
+             php artisan queue:work --sleep=3 --tries=3 --max-time=3600 &
              php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000"
     depends_on:
       db:
-        condition: service_healthy # Tunggu DB benar-benar siap
+        condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
 
   # Database PostgreSQL 16
   db:
@@ -39,25 +51,78 @@ services:
       - POSTGRES_USER=root
       - POSTGRES_PASSWORD=password
     healthcheck:
-      # Menghindari error "Connection refused" di backend
-      test: [ "CMD-SHELL", "pg_isready -U root -d apex_pos" ]
+      test: ["CMD-SHELL", "pg_isready -U root -d apex_pos"]
       interval: 5s
       timeout: 5s
       retries: 5
-    # Ganti dari ./postgres_data ke named volume agar stabil
     volumes:
       - apex_pgdata:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Redis untuk Caching & Real-time Reverb
+  # Redis untuk Caching, Session, Queue
   redis:
     image: redis:alpine
     container_name: apex-redis-local
     restart: always
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
 
-# Definisikan Named Volume di sini
+  # Backup otomatis PostgreSQL (setiap hari jam 2 pagi)
+  db-backup:
+    image: postgres:16-alpine
+    container_name: apex-db-backup
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PGHOST=db
+      - PGUSER=root
+      - PGPASSWORD=password
+      - PGDATABASE=apex_pos
+    volumes:
+      - db_backups:/backups
+    entrypoint: >
+      sh -c "
+        while true; do
+          TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+          echo \"[$$TIMESTAMP] Starting backup...\"
+          pg_dump -Fc apex_pos > /backups/apex_pos_$$TIMESTAMP.dump
+          echo \"[$$TIMESTAMP] Backup complete: apex_pos_$$TIMESTAMP.dump\"
+          
+          # Keep only last 7 backups
+          ls -t /backups/apex_pos_*.dump 2>/dev/null | tail -n +8 | xargs rm -f 2>/dev/null
+          
+          echo \"Next backup in 24h...\"
+          sleep 86400
+        done
+      "
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "2m"
+        max-file: "2"
+
 volumes:
   apex_pgdata:
-
+  redis_data:
+  backend_storage:
+  db_backups:
 
 networks:
   default:

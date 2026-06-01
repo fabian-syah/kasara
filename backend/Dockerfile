@@ -13,7 +13,7 @@ RUN install-php-extensions \
     bcmath \
     exif
 
-# OPcache + JIT production settings (massive performance boost)
+# OPcache + JIT production settings
 RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.memory_consumption=256" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.interned_strings_buffer=16" >> /usr/local/etc/php/conf.d/opcache.ini && \
@@ -22,11 +22,25 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.jit=1255" >> /usr/local/etc/php/conf.d/opcache.ini && \
     echo "opcache.jit_buffer_size=128M" >> /usr/local/etc/php/conf.d/opcache.ini
 
+# Install composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
 WORKDIR /app
 
-# Copy semua file ke dalam kontainer
+# Copy composer files first (better layer caching)
+COPY composer.json composer.lock ./
+
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
+# Copy the rest of the app
 COPY . .
 
-# Buat folder dan beri izin akses
-RUN mkdir -p storage bootstrap/cache
-RUN chmod -R 777 storage bootstrap/cache
+# Post-install scripts & permissions
+RUN composer dump-autoload --optimize && \
+    mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache && \
+    chmod -R 777 storage bootstrap/cache
+
+# Health check - auto-restart if app is unresponsive
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/up || exit 1

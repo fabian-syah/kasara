@@ -183,11 +183,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/stock-summary', [InventoryController::class, 'stockSummary']);
     Route::get('/inventory/history/in', [StockInController::class, 'stockInHistory']);
     Route::get('/inventory/history/out', [StockInController::class, 'stockOutHistory']);
-    Route::get('/inventory/history/in/export', [StockInController::class, 'exportStockInHistory']);
-    Route::get('/inventory/history/out/export', [StockInController::class, 'exportStockOutHistory']);
-    Route::get('/inventory/history/export', [StockInController::class, 'exportStockHistoryCombined']);
+    Route::get('/inventory/history/in/export', [StockInController::class, 'exportStockInHistory'])->middleware('throttle:exports');
+    Route::get('/inventory/history/out/export', [StockInController::class, 'exportStockOutHistory'])->middleware('throttle:exports');
+    Route::get('/inventory/history/export', [StockInController::class, 'exportStockHistoryCombined'])->middleware('throttle:exports');
     Route::get('/inventory/failed-inputs', [StockInController::class, 'failedInputHistory']);
-    Route::get('/inventory/export', [InventoryExportController::class, 'export']);
+    Route::get('/inventory/export', [InventoryExportController::class, 'export'])->middleware('throttle:exports');
     Route::get('/inventory/filter-options', [InventoryController::class, 'getFilterOptions']);
     Route::get('/inventory/meta-locations', [InventoryController::class, 'getMetaLocations']);
     Route::get('/inventory/products-lookup', [InventoryController::class, 'getProducts']);
@@ -240,10 +240,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // System Status
     Route::get('/system-status', [\App\Http\Controllers\SystemStatusController::class, 'index']);
-    Route::post('/system-status/block-ip', [\App\Http\Controllers\SystemStatusController::class, 'blockIp']);
-    Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp']);
-    Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender']);
-    Route::post('/system-status/reset-integrity', [\App\Http\Controllers\SystemStatusController::class, 'resetIntegrityBaseline']);
+    Route::post('/system-status/block-ip', [\App\Http\Controllers\SystemStatusController::class, 'blockIp'])->middleware('throttle:sensitive');
+    Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp'])->middleware('throttle:sensitive');
+    Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender'])->middleware('throttle:sensitive');
+    Route::post('/system-status/reset-integrity', [\App\Http\Controllers\SystemStatusController::class, 'resetIntegrityBaseline'])->middleware('throttle:sensitive');
 
     // Reports
     Route::get('/reports/brand', [\App\Http\Controllers\ReportController::class, 'getBrandReport']);
@@ -253,8 +253,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/ranking', [\App\Http\Controllers\ReportController::class, 'getRankingReport']);
     Route::get('/reports/filters', [\App\Http\Controllers\ReportController::class, 'getReportFilters']);
     Route::get('/reports/stock-history', [\App\Http\Controllers\ReportController::class, 'getStockHistory']);
-    Route::get('/reports/export-sales', [\App\Http\Controllers\ReportController::class, 'exportSales']);
-    Route::get('/reports/export-stock-movement', [\App\Http\Controllers\ReportController::class, 'exportStockMovement']);
+    Route::get('/reports/export-sales', [\App\Http\Controllers\ReportController::class, 'exportSales'])->middleware('throttle:exports');
+    Route::get('/reports/export-stock-movement', [\App\Http\Controllers\ReportController::class, 'exportStockMovement'])->middleware('throttle:exports');
     Route::get('/reports/download-history', [\App\Http\Controllers\ReportController::class, 'getDownloadHistory']);
 
     // Audit
