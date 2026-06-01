@@ -320,6 +320,7 @@ function getLocationTypeLabel(type) {
                             <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
                             <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             <th class="text-center px-5 py-3 font-medium text-text-secondary">Qty</th>
+                            <th class="text-center px-5 py-3 font-medium text-text-secondary">OTW</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
@@ -353,6 +354,12 @@ function getLocationTypeLabel(type) {
                                 <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400">
                                     {{ item.qty }}
                                 </span>
+                            </td>
+                            <td class="px-5 py-3.5 text-center">
+                                <span v-if="item.otw_qty > 0" class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                    {{ item.otw_qty }}
+                                </span>
+                                <span v-else class="text-text-secondary text-xs">-</span>
                             </td>
                         </tr>
                     </tbody>
