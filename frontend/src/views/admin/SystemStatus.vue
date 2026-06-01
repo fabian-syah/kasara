@@ -4,7 +4,8 @@ import api from '../../api/axios';
 import {
     Server, Cpu, HardDrive, Database, Activity, RefreshCw, CheckCircle2, XCircle,
     Clock, Layers, WifiOff, ChevronDown, ChevronUp,
-    Shield, ShieldAlert, ShieldCheck, Lock, Unlock, Ban, AlertTriangle
+    Shield, ShieldAlert, ShieldCheck, Lock, Unlock, Ban, AlertTriangle,
+    Globe, Wifi, FileWarning, Eye, Network
 } from 'lucide-vue-next';
 
 const REFRESH_INTERVAL = 5000; // 5 detik
@@ -19,6 +20,8 @@ const expandedSections = ref({
     techStack: true,
     php: false,
     database: false,
+    security_details: false,
+    network: false,
 });
 let autoRefreshInterval = null;
 let countdownInterval = null;
@@ -416,6 +419,202 @@ onUnmounted(() => {
                 </div>
             </div>
 
+            <!-- Security Details (SSL, Ports, File Integrity, Services) -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <button @click="toggleSection('security_details')"
+                    class="w-full flex items-center justify-between p-5 hover:bg-surface-700/30 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-cyan-500/10">
+                            <Eye :size="18" class="text-cyan-400" />
+                        </div>
+                        <h2 class="text-lg font-bold text-text-primary">Security Details</h2>
+                        <span class="text-xs bg-surface-700 px-2 py-0.5 rounded-full text-text-secondary">
+                            SSL • Ports • Integrity • Services
+                        </span>
+                    </div>
+                    <component :is="expandedSections.security_details ? ChevronUp : ChevronDown" :size="20"
+                        class="text-text-secondary" />
+                </button>
+
+                <div v-show="expandedSections.security_details" class="p-5 pt-0 space-y-5">
+                    <!-- SSL Certificate -->
+                    <div v-if="data.security.ssl" class="p-4 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Globe :size="16" class="text-emerald-400" />
+                            SSL/TLS Certificate
+                        </h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                                <p class="text-[10px] uppercase text-text-secondary font-semibold">Status</p>
+                                <p class="text-sm font-bold" :class="data.security.ssl.valid ? 'text-emerald-400' : 'text-red-400'">
+                                    {{ data.security.ssl.valid ? '✓ Valid' : '✗ Invalid/Expired' }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase text-text-secondary font-semibold">Issuer</p>
+                                <p class="text-sm text-text-primary truncate">{{ data.security.ssl.issuer }}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase text-text-secondary font-semibold">Expires</p>
+                                <p class="text-sm font-mono" :class="data.security.ssl.days_remaining <= 14 ? 'text-red-400' : data.security.ssl.days_remaining <= 30 ? 'text-amber-400' : 'text-text-primary'">
+                                    {{ data.security.ssl.days_remaining }}d remaining
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] uppercase text-text-secondary font-semibold">Protocol</p>
+                                <p class="text-sm text-text-primary">{{ data.security.ssl.protocol }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Security Headers Score -->
+                    <div v-if="data.security.security_headers_score" class="p-4 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Shield :size="16" class="text-blue-400" />
+                            Security Headers ({{ data.security.security_headers_score.passed }}/{{ data.security.security_headers_score.total }})
+                        </h3>
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="h-2 flex-1 rounded-full bg-surface-700 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-500"
+                                    :class="data.security.security_headers_score.score >= 80 ? 'bg-emerald-500' : data.security.security_headers_score.score >= 50 ? 'bg-amber-500' : 'bg-red-500'"
+                                    :style="{ width: data.security.security_headers_score.score + '%' }"></div>
+                            </div>
+                            <span class="text-sm font-bold" :class="data.security.security_headers_score.score >= 80 ? 'text-emerald-400' : data.security.security_headers_score.score >= 50 ? 'text-amber-400' : 'text-red-400'">
+                                {{ data.security.security_headers_score.score }}%
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="(enabled, header) in data.security.security_headers_score.details" :key="header"
+                                class="px-2 py-0.5 rounded text-[10px] border"
+                                :class="enabled ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'">
+                                {{ header.replace(/_/g, '-') }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Open Ports -->
+                    <div v-if="data.security.open_ports && data.security.open_ports.length > 0" class="p-4 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Network :size="16" class="text-amber-400" />
+                            Open Ports (External)
+                        </h3>
+                        <div class="space-y-2">
+                            <div v-for="(port, idx) in data.security.open_ports" :key="idx"
+                                class="flex items-center justify-between p-2 rounded bg-surface-800/50 border border-surface-700/30 text-xs">
+                                <div class="flex items-center gap-3">
+                                    <span class="font-mono font-bold text-text-primary">:{{ port.port }}</span>
+                                    <span class="text-text-secondary">{{ port.name }}</span>
+                                    <span class="text-text-secondary">({{ port.process }})</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[10px] border font-bold"
+                                    :class="{
+                                        'bg-red-500/10 border-red-500/20 text-red-400': port.risk === 'critical',
+                                        'bg-orange-500/10 border-orange-500/20 text-orange-400': port.risk === 'high',
+                                        'bg-amber-500/10 border-amber-500/20 text-amber-400': port.risk === 'medium',
+                                        'bg-emerald-500/10 border-emerald-500/20 text-emerald-400': port.risk === 'low',
+                                    }">
+                                    {{ port.risk }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- File Integrity -->
+                    <div v-if="data.security.file_integrity" class="p-4 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <FileWarning :size="16" :class="data.security.file_integrity.status === 'ok' ? 'text-emerald-400' : 'text-amber-400'" />
+                            File Integrity Monitor
+                        </h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] border font-bold"
+                                :class="data.security.file_integrity.status === 'ok' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'">
+                                {{ data.security.file_integrity.status === 'ok' ? 'CLEAN' : 'MODIFIED' }}
+                            </span>
+                            <span v-if="data.security.file_integrity.last_check" class="text-[10px] text-text-secondary">
+                                Last check: {{ new Date(data.security.file_integrity.last_check).toLocaleTimeString('id-ID') }}
+                            </span>
+                        </div>
+                        <div v-if="data.security.file_integrity.modified_files.length > 0" class="space-y-1 mt-2">
+                            <p class="text-[10px] text-amber-400 font-semibold uppercase">Modified Files:</p>
+                            <div v-for="(file, idx) in data.security.file_integrity.modified_files" :key="idx"
+                                class="text-xs font-mono text-amber-300 bg-amber-500/5 px-2 py-1 rounded">
+                                {{ file.file }} <span class="text-text-secondary">({{ file.modified_at }})</span>
+                            </div>
+                        </div>
+                        <div v-if="data.security.file_integrity.suspicious_files.length > 0" class="space-y-1 mt-2">
+                            <p class="text-[10px] text-red-400 font-semibold uppercase">Suspicious Files in Public:</p>
+                            <div v-for="(file, idx) in data.security.file_integrity.suspicious_files" :key="idx"
+                                class="text-xs font-mono text-red-300 bg-red-500/5 px-2 py-1 rounded">
+                                {{ file }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Services Status -->
+                    <div v-if="data.security.services_status && data.security.services_status.length > 0" class="p-4 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                        <h3 class="text-sm font-bold text-text-primary mb-3 flex items-center gap-2">
+                            <Activity :size="16" class="text-violet-400" />
+                            System Services
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            <div v-for="(svc, idx) in data.security.services_status" :key="idx"
+                                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border"
+                                :class="svc.running ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' : 'text-red-400 bg-red-400/10 border-red-400/20'">
+                                <span class="w-1.5 h-1.5 rounded-full" :class="svc.running ? 'bg-emerald-400' : 'bg-red-400'"></span>
+                                {{ svc.name }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network & Connections -->
+            <div v-if="data.network" class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <button @click="toggleSection('network')"
+                    class="w-full flex items-center justify-between p-5 hover:bg-surface-700/30 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-indigo-500/10">
+                            <Wifi :size="18" class="text-indigo-400" />
+                        </div>
+                        <h2 class="text-lg font-bold text-text-primary">Network & Connections</h2>
+                    </div>
+                    <component :is="expandedSections.network ? ChevronUp : ChevronDown" :size="20"
+                        class="text-text-secondary" />
+                </button>
+
+                <div v-show="expandedSections.network" class="p-5 pt-0">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Total Connections</p>
+                            <p class="text-lg font-bold text-text-primary mt-1">{{ data.network.active_connections }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">Established</p>
+                            <p class="text-lg font-bold text-emerald-400 mt-1">{{ data.network.established }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">TIME_WAIT</p>
+                            <p class="text-lg font-bold mt-1" :class="data.network.time_wait > 100 ? 'text-amber-400' : 'text-text-primary'">{{ data.network.time_wait }}</p>
+                        </div>
+                        <div class="p-3 bg-surface-900/50 rounded-xl border border-surface-700/50">
+                            <p class="text-[10px] uppercase text-text-secondary font-semibold">CLOSE_WAIT</p>
+                            <p class="text-lg font-bold mt-1" :class="data.network.close_wait > 10 ? 'text-red-400' : 'text-text-primary'">{{ data.network.close_wait }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Listening Ports -->
+                    <div v-if="data.network.listening_ports && data.network.listening_ports.length > 0" class="mt-4">
+                        <p class="text-xs text-text-secondary uppercase font-semibold mb-2">Listening Ports</p>
+                        <div class="flex flex-wrap gap-2">
+                            <div v-for="(p, idx) in data.network.listening_ports" :key="idx"
+                                class="px-2.5 py-1 rounded-lg text-xs font-mono bg-surface-900/50 border border-surface-700/50 text-text-primary">
+                                :{{ p.port }} <span class="text-text-secondary">({{ p.process }})</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Server Overview Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Hostname -->
@@ -462,18 +661,72 @@ onUnmounted(() => {
                     <p class="text-[10px] text-text-secondary mt-1">{{ data.disk.used }} / {{ data.disk.total }}</p>
                 </div>
 
-                <!-- Memory -->
+                <!-- Memory (Real System) -->
                 <div
                     class="bg-surface-800 rounded-2xl border border-surface-700 p-4 hover:border-surface-600 transition-all">
                     <div class="flex items-center gap-3 mb-3">
                         <div class="p-2 rounded-lg bg-amber-500/10">
                             <Cpu :size="18" class="text-amber-400" />
                         </div>
-                        <span class="text-xs text-text-secondary uppercase font-semibold">Memory (PHP)</span>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">RAM</span>
                     </div>
-                    <p class="text-lg font-bold text-amber-400">{{ data.memory.current }}</p>
-                    <p class="text-xs text-text-secondary mt-1">Peak: {{ data.memory.peak }} / Limit: {{
-                        data.memory.limit }}</p>
+                    <p class="text-lg font-bold" :class="data.memory.usage_percent > 80 ? 'text-red-400' : data.memory.usage_percent > 60 ? 'text-amber-400' : 'text-emerald-400'">
+                        {{ data.memory.usage_percent }}%
+                    </p>
+                    <div class="w-full bg-surface-900 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500"
+                            :class="data.memory.usage_percent > 80 ? 'bg-red-500' : data.memory.usage_percent > 60 ? 'bg-amber-500' : 'bg-emerald-500'"
+                            :style="{ width: data.memory.usage_percent + '%' }"></div>
+                    </div>
+                    <p class="text-[10px] text-text-secondary mt-1">{{ data.memory.used }} / {{ data.memory.total }}</p>
+                </div>
+            </div>
+
+            <!-- CPU & Load Average -->
+            <div v-if="data.cpu" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 hover:border-surface-600 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 rounded-lg bg-rose-500/10">
+                            <Cpu :size="18" class="text-rose-400" />
+                        </div>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">CPU Usage</span>
+                    </div>
+                    <p class="text-lg font-bold" :class="data.cpu.usage_percent > 80 ? 'text-red-400' : data.cpu.usage_percent > 50 ? 'text-amber-400' : 'text-emerald-400'">
+                        {{ data.cpu.usage_percent }}%
+                    </p>
+                    <p class="text-[10px] text-text-secondary mt-1">{{ data.cpu.cores }} cores</p>
+                </div>
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 hover:border-surface-600 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 rounded-lg bg-purple-500/10">
+                            <Activity :size="18" class="text-purple-400" />
+                        </div>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">Load Average</span>
+                    </div>
+                    <p class="text-sm font-bold text-text-primary">
+                        {{ data.server.load_average['1min'] }} / {{ data.server.load_average['5min'] }} / {{ data.server.load_average['15min'] }}
+                    </p>
+                    <p class="text-[10px] text-text-secondary mt-1">1m / 5m / 15m</p>
+                </div>
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 hover:border-surface-600 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 rounded-lg bg-teal-500/10">
+                            <Server :size="18" class="text-teal-400" />
+                        </div>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">Processes</span>
+                    </div>
+                    <p class="text-lg font-bold text-text-primary">{{ data.cpu.processes }}</p>
+                    <p class="text-[10px] text-text-secondary mt-1">running</p>
+                </div>
+                <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4 hover:border-surface-600 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="p-2 rounded-lg bg-sky-500/10">
+                            <HardDrive :size="18" class="text-sky-400" />
+                        </div>
+                        <span class="text-xs text-text-secondary uppercase font-semibold">Swap</span>
+                    </div>
+                    <p class="text-sm font-bold text-text-primary">{{ data.memory.swap_used }}</p>
+                    <p class="text-[10px] text-text-secondary mt-1">of {{ data.memory.swap_total }}</p>
                 </div>
             </div>
 

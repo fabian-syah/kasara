@@ -59,6 +59,12 @@ class AuthController extends Controller
         // Log failed login
         \Illuminate\Support\Facades\Log::warning('Login Failed for: ' . $credentials['username']);
 
+        // Record failed login for security monitoring
+        SystemStatusController::recordFailedLogin(
+            $request->ip(),
+            $credentials['username']
+        );
+
         return response()->json([
             'success' => false,
             'message' => 'Login gagal. Username atau password salah.',

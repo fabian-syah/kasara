@@ -243,6 +243,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/system-status/block-ip', [\App\Http\Controllers\SystemStatusController::class, 'blockIp']);
     Route::post('/system-status/unblock-ip', [\App\Http\Controllers\SystemStatusController::class, 'unblockIp']);
     Route::post('/system-status/toggle-defender', [\App\Http\Controllers\SystemStatusController::class, 'toggleDefender']);
+    Route::post('/system-status/reset-integrity', [\App\Http\Controllers\SystemStatusController::class, 'resetIntegrityBaseline']);
 
     // Reports
     Route::get('/reports/brand', [\App\Http\Controllers\ReportController::class, 'getBrandReport']);
