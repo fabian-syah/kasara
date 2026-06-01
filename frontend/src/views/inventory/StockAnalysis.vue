@@ -315,11 +315,10 @@ function getLocationTypeLabel(type) {
                         <tr class="border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
                             <th class="text-center px-3 py-3 font-medium text-text-secondary w-12">No</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Lokasi</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Brand</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
+                            <th v-if="selectedBrand" class="text-left px-5 py-3 font-medium text-text-secondary">Brand</th>
+                            <th v-if="selectedType" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
+                            <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
+                            <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             <th class="text-center px-5 py-3 font-medium text-text-secondary">Qty</th>
                         </tr>
                     </thead>
@@ -336,15 +335,10 @@ function getLocationTypeLabel(type) {
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-5 py-3.5">
-                                <span class="text-xs px-2 py-0.5 rounded bg-surface-100 dark:bg-surface-800 text-text-secondary">
-                                    {{ getLocationTypeLabel(item.location_type) }}
-                                </span>
-                            </td>
-                            <td class="px-5 py-3.5 text-text-primary font-medium">{{ item.brand }}</td>
-                            <td class="px-5 py-3.5 text-text-primary">{{ item.product_name || '-' }}</td>
-                            <td class="px-5 py-3.5 text-text-secondary font-mono text-xs">{{ item.storage || '-' }}</td>
-                            <td class="px-5 py-3.5">
+                            <td v-if="selectedBrand" class="px-5 py-3.5 text-text-primary font-medium">{{ item.brand }}</td>
+                            <td v-if="selectedType" class="px-5 py-3.5 text-text-primary">{{ item.product_name || '-' }}</td>
+                            <td v-if="selectedStorage" class="px-5 py-3.5 text-text-secondary font-mono text-xs">{{ item.storage || '-' }}</td>
+                            <td v-if="selectedCondition" class="px-5 py-3.5">
                                 <span v-if="item.condition" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"
                                     :class="{
                                         'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400': item.condition === 'new',
