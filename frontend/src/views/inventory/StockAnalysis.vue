@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Search, BarChart3, MapPin, Package, RefreshCw } from 'lucide-vue-next'
-import { inventory, brands as brandsApi, productTypes as productTypesApi } from '../../api/axios'
+import { inventory } from '../../api/axios'
 import api from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 
@@ -19,72 +19,70 @@ const results = ref([])
 const summary = ref({ total_qty: 0, total_locations: 0 })
 const hasSearched = ref(false)
 
-// Filter options
+// Filter options (dynamic, only show what has stock)
 const brandOptions = ref([])
 const typeOptions = ref([])
 const storageOptions = ref([])
-const conditionOptions = [
-    { label: 'Semua Kondisi', value: '' },
-    { label: 'Baru (New)', value: 'new' },
-    { label: 'Second', value: 'second' },
-    { label: 'Ex-iBox', value: 'ex_ibox' },
-]
+const conditionOptions = ref([])
+const totalAvailable = ref(0)
+const filtersLoading = ref(false)
 
-// Load filter options
-onMounted(async () => {
-    await Promise.all([loadBrands(), loadProductTypes(), loadStorageOptions()])
+// Load filter options based on current selection (cascading)
+async function loadFilters() {
+    try {
+        filtersLoading.value = true
+        const params = {}
+        if (selectedBrand.value) params.brand = selectedBrand.value
+        if (selectedType.value) params.product_name = selectedType.value
+        if (selectedStorage.value) params.storage = selectedStorage.value
+        if (selectedCondition.value) params.condition = selectedCondition.value
+
+        const res = await api.get('/inventory/stock-analysis/filters', { params })
+        const data = res.data
+
+        brandOptions.value = data.brands || []
+        typeOptions.value = data.types || []
+        storageOptions.value = data.storages || []
+        conditionOptions.value = data.conditions || []
+        totalAvailable.value = data.total_available || 0
+    } catch (e) {
+        console.error('Failed to load filters:', e)
+    } finally {
+        filtersLoading.value = false
+    }
+}
+
+onMounted(() => {
+    loadFilters()
 })
 
-async function loadBrands() {
-    try {
-        const res = await brandsApi.list({ per_page: -1 })
-        const data = res.data?.data || res.data || []
-        brandOptions.value = data.map(b => ({ label: b.name, value: b.name, id: b.id }))
-    } catch (e) {
-        console.error('Failed to load brands:', e)
-    }
-}
-
-const allProductTypes = ref([])
-
-async function loadProductTypes() {
-    try {
-        const res = await productTypesApi.list({ per_page: -1 })
-        const data = res.data?.data || res.data || []
-        allProductTypes.value = data
-        updateTypeOptions()
-    } catch (e) {
-        console.error('Failed to load product types:', e)
-    }
-}
-
-// When product type changes, update storage options
-function onTypeChange() {
+function onBrandChange() {
+    selectedType.value = ''
     selectedStorage.value = ''
-    const selected = allProductTypes.value.find(t => t.id === selectedType.value)
-    if (selected && selected.storage) {
-        // Parse storage string (comma-separated)
-        const storages = selected.storage.split(/[,]/).map(s => s.trim()).filter(s => s)
-        if (storages.length > 0) {
-            storageOptions.value = storages.map(s => ({ label: s, value: s }))
-        } else {
-            loadStorageOptions()
-        }
-    } else {
-        loadStorageOptions()
-    }
+    selectedCondition.value = ''
+    loadFilters()
     onFilterChange()
 }
 
-function clearResults() {
-    results.value = []
-    summary.value = { total_qty: 0, total_locations: 0 }
-    hasSearched.value = false
-    pagination.value = { current_page: 1, last_page: 1, total: 0 }
+function onTypeChange() {
+    selectedStorage.value = ''
+    selectedCondition.value = ''
+    loadFilters()
+    onFilterChange()
+}
+
+function onStorageChange() {
+    selectedCondition.value = ''
+    loadFilters()
+    onFilterChange()
+}
+
+function onConditionChange() {
+    loadFilters()
+    onFilterChange()
 }
 
 function onFilterChange() {
-    // Auto-search if at least one filter is active
     if (selectedBrand.value || selectedType.value || selectedStorage.value || selectedCondition.value) {
         handleSearch(1)
     } else {
@@ -92,47 +90,11 @@ function onFilterChange() {
     }
 }
 
-function onBrandChange() {
-    selectedType.value = ''
-    selectedStorage.value = ''
-    updateTypeOptions()
-    onFilterChange()
-}
-
-function updateTypeOptions() {
-    let filtered = allProductTypes.value
-    if (selectedBrand.value) {
-        // Find brand id from brandOptions
-        const brandObj = brandOptions.value.find(b => b.value === selectedBrand.value)
-        if (brandObj) {
-            filtered = allProductTypes.value.filter(t => t.brand_id === brandObj.id)
-        }
-    }
-    typeOptions.value = filtered.map(t => ({ label: t.name, value: t.id, storage: t.storage || '' }))
-}
-
-async function loadStorageOptions() {
-    try {
-        const params = {}
-        if (selectedType.value) params.product_type_id = selectedType.value
-        if (selectedBrand.value) params.brand = selectedBrand.value
-        const res = await api.get('/inventory/filter-options', { params })
-        const data = res.data
-        if (data?.storages) {
-            storageOptions.value = data.storages
-                .filter(s => s)
-                .map(s => ({ label: s, value: s }))
-        }
-        // Fallback: if no storages from API, use common values
-        if (storageOptions.value.length === 0) {
-            storageOptions.value = [
-                '32 GB', '64 GB', '128 GB', '256 GB', '512 GB', '1 TB',
-                '3/32', '4/64', '4/128', '6/128', '8/128', '8/256', '12/256'
-            ].map(s => ({ label: s, value: s }))
-        }
-    } catch (e) {
-        storageOptions.value = []
-    }
+function clearResults() {
+    results.value = []
+    summary.value = { total_qty: 0, total_locations: 0 }
+    hasSearched.value = false
+    pagination.value = { current_page: 1, last_page: 1, total: 0 }
 }
 
 // Pagination
@@ -149,7 +111,7 @@ async function handleSearch(page = 1) {
     try {
         const params = { page }
         if (selectedBrand.value) params.brand = selectedBrand.value
-        if (selectedType.value) params.product_type_id = selectedType.value
+        if (selectedType.value) params.product_name = selectedType.value
         if (selectedStorage.value) params.storage = selectedStorage.value
         if (selectedCondition.value) params.condition = selectedCondition.value
 
@@ -175,14 +137,14 @@ function resetFilters() {
     selectedType.value = ''
     selectedStorage.value = ''
     selectedCondition.value = ''
-    storageOptions.value = []
     results.value = []
     summary.value = { total_qty: 0, total_locations: 0 }
     hasSearched.value = false
+    loadFilters()
 }
 
 function getConditionLabel(condition) {
-    const map = { new: 'Baru', second: 'Second', ex_ibox: 'Ex-iBox' }
+    const map = { new: 'Baru', second: 'Second', ex_ibox: 'Ex-iBox', ex_inter: 'Ex-Inter', refurbished: 'Refurbished' }
     return map[condition] || condition || '-'
 }
 
@@ -198,9 +160,13 @@ function getLocationTypeLabel(type) {
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold text-text-primary">Analisa Stok</h1>
-                <p class="text-sm text-text-secondary mt-1">Cari ketersediaan stok berdasarkan filter produk</p>
+                <p class="text-sm text-text-secondary mt-1">Filter hanya menampilkan opsi yang ada stoknya</p>
             </div>
             <div class="flex items-center gap-2">
+                <span v-if="totalAvailable > 0" class="text-xs text-text-secondary bg-surface-100 dark:bg-surface-800 px-3 py-1.5 rounded-lg">
+                    <Package :size="12" class="inline mr-1" />
+                    {{ totalAvailable.toLocaleString() }} unit tersedia
+                </span>
                 <button @click="resetFilters"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-xl transition-colors">
                     <RefreshCw :size="16" />
@@ -214,45 +180,58 @@ function getLocationTypeLabel(type) {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Brand Filter -->
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Brand</label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1.5">
+                        Brand
+                        <span v-if="brandOptions.length > 0" class="text-text-secondary/60">({{ brandOptions.length }})</span>
+                    </label>
                     <select v-model="selectedBrand" @change="onBrandChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Brand</option>
-                        <option v-for="brand in brandOptions" :key="brand.value" :value="brand.value">
-                            {{ brand.label }}
+                        <option v-for="brand in brandOptions" :key="brand" :value="brand">
+                            {{ brand }}
                         </option>
                     </select>
                 </div>
 
-                <!-- Tipe Filter -->
+                <!-- Tipe Filter (only shows types with stock) -->
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Tipe Produk</label>
+                    <label class="block text-xs font-medium text-text-secondary mb-1.5">
+                        Tipe Produk
+                        <span v-if="typeOptions.length > 0" class="text-text-secondary/60">({{ typeOptions.length }})</span>
+                    </label>
                     <select v-model="selectedType" @change="onTypeChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Tipe</option>
                         <option v-for="type in typeOptions" :key="type.value" :value="type.value">
-                            {{ type.label }}
+                            {{ type.label }} ({{ type.qty }})
                         </option>
                     </select>
                 </div>
 
-                <!-- Storage/GB Filter -->
+                <!-- Storage/GB Filter (only shows storages with stock) -->
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Kapasitas (GB)</label>
-                    <select v-model="selectedStorage" @change="onFilterChange"
+                    <label class="block text-xs font-medium text-text-secondary mb-1.5">
+                        Kapasitas
+                        <span v-if="storageOptions.length > 0" class="text-text-secondary/60">({{ storageOptions.length }})</span>
+                    </label>
+                    <select v-model="selectedStorage" @change="onStorageChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
                         <option value="">Semua Kapasitas</option>
                         <option v-for="s in storageOptions" :key="s.value" :value="s.value">
-                            {{ s.label }}
+                            {{ s.label }} ({{ s.qty }})
                         </option>
                     </select>
                 </div>
 
-                <!-- Kondisi Filter -->
+                <!-- Kondisi Filter (only shows conditions with stock) -->
                 <div>
-                    <label class="block text-xs font-medium text-text-secondary mb-1.5">Kondisi</label>
-                    <select v-model="selectedCondition" @change="onFilterChange"
+                    <label class="block text-xs font-medium text-text-secondary mb-1.5">
+                        Kondisi
+                        <span v-if="conditionOptions.length > 0" class="text-text-secondary/60">({{ conditionOptions.length }})</span>
+                    </label>
+                    <select v-model="selectedCondition" @change="onConditionChange"
                         class="w-full px-3 py-2.5 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors">
+                        <option value="">Semua Kondisi</option>
                         <option v-for="c in conditionOptions" :key="c.value" :value="c.value">
                             {{ c.label }}
                         </option>
@@ -272,8 +251,7 @@ function getLocationTypeLabel(type) {
         </div>
 
         <!-- Summary Card -->
-        <div v-if="hasSearched && !loading"
-            class="grid grid-cols-2 gap-4">
+        <div v-if="hasSearched && !loading" class="grid grid-cols-2 gap-4">
             <div class="bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl p-5">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
@@ -312,14 +290,13 @@ function getLocationTypeLabel(type) {
                     <thead>
                         <tr class="border-b border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-800/50">
                             <th class="text-center px-3 py-3 font-medium text-text-secondary w-12">No</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Nama Cabang</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe Lokasi</th>
-                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Merek</th>
-                            <th v-if="selectedType" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
-                            <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
-                            <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Lokasi</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Tipe</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Brand</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
+                            <th class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             <th class="text-center px-5 py-3 font-medium text-text-secondary">Qty</th>
-                            <th class="text-center px-5 py-3 font-medium text-text-secondary">OTW</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
@@ -329,23 +306,22 @@ function getLocationTypeLabel(type) {
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-2">
                                     <MapPin :size="14" class="text-text-secondary shrink-0" />
-                                    <span class="font-medium text-text-primary">{{ item.location_name }}</span>
+                                    <div>
+                                        <span class="font-medium text-text-primary">{{ item.location_name }}</span>
+                                        <span class="block text-[10px] text-text-secondary">{{ getLocationTypeLabel(item.location_type) }}</span>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-5 py-3.5">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-surface-100 dark:bg-surface-800 text-text-secondary">
+                                <span class="text-xs px-2 py-0.5 rounded bg-surface-100 dark:bg-surface-800 text-text-secondary">
                                     {{ getLocationTypeLabel(item.location_type) }}
                                 </span>
                             </td>
                             <td class="px-5 py-3.5 text-text-primary font-medium">{{ item.brand }}</td>
-                            <td v-if="selectedType" class="px-5 py-3.5">
-                                <div>
-                                    <span class="text-text-primary">{{ item.product_name }}</span>
-                                </div>
-                            </td>
-                            <td v-if="selectedStorage" class="px-5 py-3.5 text-text-secondary">{{ item.storage || '-' }}</td>
-                            <td v-if="selectedCondition" class="px-5 py-3.5">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"
+                            <td class="px-5 py-3.5 text-text-primary">{{ item.product_name || '-' }}</td>
+                            <td class="px-5 py-3.5 text-text-secondary font-mono text-xs">{{ item.storage || '-' }}</td>
+                            <td class="px-5 py-3.5">
+                                <span v-if="item.condition" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"
                                     :class="{
                                         'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400': item.condition === 'new',
                                         'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': item.condition === 'second',
@@ -353,17 +329,12 @@ function getLocationTypeLabel(type) {
                                     }">
                                     {{ getConditionLabel(item.condition) }}
                                 </span>
+                                <span v-else class="text-text-secondary text-xs">-</span>
                             </td>
                             <td class="px-5 py-3.5 text-center">
                                 <span class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400">
                                     {{ item.qty }}
                                 </span>
-                            </td>
-                            <td class="px-5 py-3.5 text-center">
-                                <span v-if="item.otw_qty > 0" class="inline-flex items-center justify-center min-w-[32px] px-2 py-1 rounded-lg text-sm font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                    {{ item.otw_qty }}
-                                </span>
-                                <span v-else class="text-text-secondary text-xs">-</span>
                             </td>
                         </tr>
                     </tbody>
@@ -398,14 +369,14 @@ function getLocationTypeLabel(type) {
             <p class="text-sm text-text-secondary">Coba ubah filter pencarian Anda</p>
         </div>
 
-        <!-- Initial State (before search) -->
+        <!-- Initial State -->
         <div v-else-if="!hasSearched"
             class="bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-2xl p-12 text-center">
             <div class="w-16 h-16 rounded-2xl bg-primary-500/10 flex items-center justify-center mx-auto mb-4">
                 <Search :size="28" class="text-primary-500" />
             </div>
             <h3 class="text-base font-semibold text-text-primary mb-1">Mulai Analisa Stok</h3>
-            <p class="text-sm text-text-secondary">Pilih filter yang diinginkan lalu klik "Cari" untuk melihat ketersediaan stok</p>
+            <p class="text-sm text-text-secondary">Pilih filter — hanya opsi yang ada stoknya yang ditampilkan</p>
         </div>
     </div>
 </template>

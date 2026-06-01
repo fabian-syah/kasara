@@ -838,6 +838,149 @@ class InventoryController extends Controller
         ]);
     }
 
+    /**
+     * Get filter options for Stock Analysis that only show items WITH available stock.
+     * Cascading: selecting brand filters types, selecting type filters storage, etc.
+     */
+    public function stockAnalysisFilters(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Base query: only available HP items
+        $baseQuery = ProductDetail::query()
+            ->where('product_details.status', 'available')
+            ->join('products', 'products.id', '=', 'product_details.product_id')
+            ->whereNull('products.deleted_at');
+
+        // Role-based location filtering
+        if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $baseQuery->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                $hasConstraint = false;
+                if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'branch')->whereIn('product_details.placement_id', $branchIds)); $hasConstraint = true; }
+                if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'warehouse')->whereIn('product_details.placement_id', $warehouseIds)); $hasConstraint = true; }
+                if (!empty($onlineShopIds)) { $q->orWhere(fn($sq) => $sq->where('product_details.placement_type', 'online_shop')->whereIn('product_details.placement_id', $onlineShopIds)); $hasConstraint = true; }
+                if (!$hasConstraint) $q->whereRaw('0 = 1');
+            });
+        }
+
+        // Apply cascading filters
+        $filteredQuery = clone $baseQuery;
+
+        if ($request->filled('brand')) {
+            $filteredQuery->where('products.brand', $request->brand);
+        }
+        if ($request->filled('product_name')) {
+            $filteredQuery->where('products.name', $request->product_name);
+        }
+        if ($request->filled('product_type_id')) {
+            $productType = \App\Models\ProductType::find($request->product_type_id);
+            if ($productType) {
+                $filteredQuery->where('products.name', $productType->name);
+            }
+        }
+        if ($request->filled('storage')) {
+            $filteredQuery->where('product_details.storage', $request->storage);
+        }
+        if ($request->filled('condition')) {
+            $filteredQuery->where('product_details.condition', $request->condition);
+        }
+
+        // Get brands that have available stock
+        $brands = (clone $baseQuery)
+            ->select('products.brand', DB::raw('COUNT(*) as qty'))
+            ->groupBy('products.brand')
+            ->having('qty', '>', 0)
+            ->orderBy('products.brand')
+            ->pluck('products.brand')
+            ->filter()
+            ->values();
+
+        // Get types that have available stock (filtered by selected brand)
+        $typesQuery = clone $baseQuery;
+        if ($request->filled('brand')) {
+            $typesQuery->where('products.brand', $request->brand);
+        }
+        $types = $typesQuery
+            ->select('products.name', DB::raw('COUNT(*) as qty'))
+            ->groupBy('products.name')
+            ->having('qty', '>', 0)
+            ->orderBy('products.name')
+            ->get()
+            ->map(fn($row) => ['label' => $row->name, 'value' => $row->name, 'qty' => $row->qty]);
+
+        // Get storages that have available stock (filtered by brand + type)
+        $storageQuery = clone $baseQuery;
+        if ($request->filled('brand')) {
+            $storageQuery->where('products.brand', $request->brand);
+        }
+        if ($request->filled('product_name')) {
+            $storageQuery->where('products.name', $request->product_name);
+        } elseif ($request->filled('product_type_id')) {
+            $productType = \App\Models\ProductType::find($request->product_type_id);
+            if ($productType) {
+                $storageQuery->where('products.name', $productType->name);
+            }
+        }
+        $storages = $storageQuery
+            ->select('product_details.storage', DB::raw('COUNT(*) as qty'))
+            ->whereNotNull('product_details.storage')
+            ->where('product_details.storage', '!=', '')
+            ->groupBy('product_details.storage')
+            ->having('qty', '>', 0)
+            ->orderByRaw("CAST(REGEXP_REPLACE(product_details.storage, '[^0-9]', '', 'g') AS INTEGER) ASC")
+            ->get()
+            ->map(fn($row) => ['label' => $row->storage, 'value' => $row->storage, 'qty' => $row->qty]);
+
+        // Get conditions that have available stock (filtered by brand + type + storage)
+        $conditionQuery = clone $baseQuery;
+        if ($request->filled('brand')) {
+            $conditionQuery->where('products.brand', $request->brand);
+        }
+        if ($request->filled('product_name')) {
+            $conditionQuery->where('products.name', $request->product_name);
+        } elseif ($request->filled('product_type_id')) {
+            $productType = \App\Models\ProductType::find($request->product_type_id);
+            if ($productType) {
+                $conditionQuery->where('products.name', $productType->name);
+            }
+        }
+        if ($request->filled('storage')) {
+            $conditionQuery->where('product_details.storage', $request->storage);
+        }
+        $conditionLabels = ['new' => 'Baru (New)', 'second' => 'Second', 'ex_ibox' => 'Ex-iBox', 'ex_inter' => 'Ex-Inter', 'refurbished' => 'Refurbished'];
+        $conditions = $conditionQuery
+            ->select('product_details.condition', DB::raw('COUNT(*) as qty'))
+            ->whereNotNull('product_details.condition')
+            ->groupBy('product_details.condition')
+            ->having('qty', '>', 0)
+            ->orderByDesc('qty')
+            ->get()
+            ->map(fn($row) => [
+                'label' => ($conditionLabels[$row->condition] ?? ucfirst($row->condition)) . " ({$row->qty})",
+                'value' => $row->condition,
+                'qty' => $row->qty,
+            ]);
+
+        // Total available with current filters
+        $totalAvailable = $filteredQuery->count();
+
+        return response()->json([
+            'brands' => $brands,
+            'types' => $types,
+            'storages' => $storages,
+            'conditions' => $conditions,
+            'total_available' => $totalAvailable,
+        ]);
+    }
+
     public function getMetaLocations(Request $request)
     {
         /** @var \App\Models\User $user */
