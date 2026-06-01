@@ -1353,4 +1353,352 @@ class SystemStatusController extends Controller
             'tables' => $tables,
         ]);
     }
+
+    // ============================================================
+    // LOGS VIEWER
+    // ============================================================
+
+    /**
+     * Get Laravel log files list
+     */
+    public function logFiles(Request $request)
+    {
+        $logPath = storage_path('logs');
+        $files = [];
+
+        if (is_dir($logPath)) {
+            $items = scandir($logPath, SCANDIR_SORT_DESCENDING);
+            foreach ($items as $item) {
+                if ($item === '.' || $item === '..') continue;
+                $fullPath = $logPath . '/' . $item;
+                if (is_file($fullPath) && pathinfo($item, PATHINFO_EXTENSION) === 'log') {
+                    $files[] = [
+                        'name' => $item,
+                        'size' => $this->formatBytes(filesize($fullPath)),
+                        'size_bytes' => filesize($fullPath),
+                        'modified' => date('Y-m-d H:i:s', filemtime($fullPath)),
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'files' => $files,
+            'total_size' => $this->formatBytes(array_sum(array_column($files, 'size_bytes'))),
+        ]);
+    }
+
+    /**
+     * Read log file content (last N lines)
+     */
+    public function logView(Request $request)
+    {
+        $filename = $request->query('file', 'laravel.log');
+        $lines = (int) $request->query('lines', 200);
+        $level = $request->query('level'); // error, warning, info, debug
+
+        // Security: prevent path traversal
+        $filename = basename($filename);
+        $filePath = storage_path('logs/' . $filename);
+
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            return response()->json(['success' => false, 'message' => 'Log file tidak ditemukan'], 404);
+        }
+
+        // Read last N lines efficiently
+        $content = '';
+        $fp = @fopen($filePath, 'r');
+        if (!$fp) {
+            return response()->json(['success' => false, 'message' => 'Gagal membaca file'], 500);
+        }
+
+        fseek($fp, 0, SEEK_END);
+        $fileSize = ftell($fp);
+        $readSize = min($fileSize, $lines * 500); // Estimate ~500 bytes per line
+        fseek($fp, -$readSize, SEEK_END);
+        $content = fread($fp, $readSize);
+        fclose($fp);
+
+        // Parse into log entries
+        $rawLines = explode("\n", $content);
+        $entries = [];
+        $currentEntry = null;
+
+        foreach ($rawLines as $line) {
+            // Match Laravel log format: [2026-06-01 12:00:00] production.ERROR: message
+            if (preg_match('/^\[(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})\]\s+\w+\.(\w+):\s*(.*)/', $line, $m)) {
+                if ($currentEntry) {
+                    $entries[] = $currentEntry;
+                }
+                $currentEntry = [
+                    'timestamp' => $m[1],
+                    'level' => strtolower($m[2]),
+                    'message' => $m[3],
+                    'stack' => '',
+                ];
+            } elseif ($currentEntry && !empty(trim($line))) {
+                // Stack trace continuation
+                $currentEntry['stack'] .= $line . "\n";
+            }
+        }
+        if ($currentEntry) {
+            $entries[] = $currentEntry;
+        }
+
+        // Filter by level if specified
+        if ($level) {
+            $entries = array_filter($entries, fn($e) => $e['level'] === $level);
+        }
+
+        // Return last N entries (newest first)
+        $entries = array_reverse($entries);
+        $entries = array_slice($entries, 0, $lines);
+
+        return response()->json([
+            'success' => true,
+            'file' => $filename,
+            'file_size' => $this->formatBytes($fileSize),
+            'total_entries' => count($entries),
+            'entries' => array_values($entries),
+        ]);
+    }
+
+    // ============================================================
+    // DISK CLEANUP
+    // ============================================================
+
+    /**
+     * Get cleanup info (what can be cleaned)
+     */
+    public function cleanupInfo(Request $request)
+    {
+        $items = [];
+
+        // 1. Log files
+        $logPath = storage_path('logs');
+        $logSize = 0;
+        $logCount = 0;
+        if (is_dir($logPath)) {
+            foreach (scandir($logPath) as $file) {
+                if ($file === '.' || $file === '..') continue;
+                $fullPath = $logPath . '/' . $file;
+                if (is_file($fullPath)) {
+                    $logSize += filesize($fullPath);
+                    $logCount++;
+                }
+            }
+        }
+        $items[] = [
+            'key' => 'logs',
+            'name' => 'Laravel Logs',
+            'description' => "{$logCount} file log",
+            'size' => $this->formatBytes($logSize),
+            'size_bytes' => $logSize,
+            'safe' => true,
+        ];
+
+        // 2. Framework cache
+        $cachePath = storage_path('framework/cache/data');
+        $cacheSize = $this->getDirSize($cachePath);
+        $items[] = [
+            'key' => 'cache',
+            'name' => 'Application Cache',
+            'description' => 'File-based cache (jika ada)',
+            'size' => $this->formatBytes($cacheSize),
+            'size_bytes' => $cacheSize,
+            'safe' => true,
+        ];
+
+        // 3. Compiled views
+        $viewsPath = storage_path('framework/views');
+        $viewsSize = $this->getDirSize($viewsPath);
+        $viewsCount = is_dir($viewsPath) ? count(glob($viewsPath . '/*.php')) : 0;
+        $items[] = [
+            'key' => 'views',
+            'name' => 'Compiled Views',
+            'description' => "{$viewsCount} compiled blade views",
+            'size' => $this->formatBytes($viewsSize),
+            'size_bytes' => $viewsSize,
+            'safe' => true,
+        ];
+
+        // 4. Sessions (file-based)
+        $sessionsPath = storage_path('framework/sessions');
+        $sessionsSize = $this->getDirSize($sessionsPath);
+        $sessionsCount = is_dir($sessionsPath) ? count(glob($sessionsPath . '/*')) : 0;
+        $items[] = [
+            'key' => 'sessions',
+            'name' => 'File Sessions',
+            'description' => "{$sessionsCount} session files",
+            'size' => $this->formatBytes($sessionsSize),
+            'size_bytes' => $sessionsSize,
+            'safe' => false, // Could log out users
+        ];
+
+        // 5. Bootstrap cache
+        $bootstrapPath = storage_path('../bootstrap/cache');
+        $bootstrapSize = $this->getDirSize($bootstrapPath);
+        $items[] = [
+            'key' => 'bootstrap',
+            'name' => 'Config/Route Cache',
+            'description' => 'Compiled config & routes',
+            'size' => $this->formatBytes($bootstrapSize),
+            'size_bytes' => $bootstrapSize,
+            'safe' => true,
+        ];
+
+        $totalSize = array_sum(array_column($items, 'size_bytes'));
+
+        return response()->json([
+            'success' => true,
+            'items' => $items,
+            'total_size' => $this->formatBytes($totalSize),
+            'total_bytes' => $totalSize,
+        ]);
+    }
+
+    /**
+     * Execute cleanup
+     */
+    public function cleanupExecute(Request $request)
+    {
+        $targets = $request->input('targets', []);
+        $cleaned = [];
+        $totalFreed = 0;
+
+        foreach ($targets as $target) {
+            switch ($target) {
+                case 'logs':
+                    $freed = $this->cleanLogs();
+                    $cleaned[] = ['key' => 'logs', 'freed' => $this->formatBytes($freed)];
+                    $totalFreed += $freed;
+                    break;
+
+                case 'cache':
+                    $freed = $this->cleanCache();
+                    $cleaned[] = ['key' => 'cache', 'freed' => $this->formatBytes($freed)];
+                    $totalFreed += $freed;
+                    break;
+
+                case 'views':
+                    $freed = $this->cleanViews();
+                    $cleaned[] = ['key' => 'views', 'freed' => $this->formatBytes($freed)];
+                    $totalFreed += $freed;
+                    break;
+
+                case 'sessions':
+                    $freed = $this->cleanSessions();
+                    $cleaned[] = ['key' => 'sessions', 'freed' => $this->formatBytes($freed)];
+                    $totalFreed += $freed;
+                    break;
+
+                case 'bootstrap':
+                    $freed = $this->cleanBootstrap();
+                    $cleaned[] = ['key' => 'bootstrap', 'freed' => $this->formatBytes($freed)];
+                    $totalFreed += $freed;
+                    break;
+            }
+        }
+
+        Log::info("Disk cleanup by user " . ($request->user()->id ?? 'unknown') . ": freed " . $this->formatBytes($totalFreed));
+
+        return response()->json([
+            'success' => true,
+            'cleaned' => $cleaned,
+            'total_freed' => $this->formatBytes($totalFreed),
+            'message' => 'Cleanup selesai! ' . $this->formatBytes($totalFreed) . ' dibebaskan.',
+        ]);
+    }
+
+    private function cleanLogs(): int
+    {
+        $logPath = storage_path('logs');
+        $freed = 0;
+        if (!is_dir($logPath)) return 0;
+
+        foreach (scandir($logPath) as $file) {
+            if ($file === '.' || $file === '..' || $file === '.gitignore') continue;
+            $fullPath = $logPath . '/' . $file;
+            if (is_file($fullPath)) {
+                $freed += filesize($fullPath);
+                @unlink($fullPath);
+            }
+        }
+        return $freed;
+    }
+
+    private function cleanCache(): int
+    {
+        $cachePath = storage_path('framework/cache/data');
+        $freed = $this->getDirSize($cachePath);
+        if (is_dir($cachePath)) {
+            $this->deleteDirectory($cachePath, true);
+        }
+        // Also flush Redis cache
+        try { Cache::flush(); } catch (\Exception $e) {}
+        return $freed;
+    }
+
+    private function cleanViews(): int
+    {
+        $viewsPath = storage_path('framework/views');
+        $freed = $this->getDirSize($viewsPath);
+        if (is_dir($viewsPath)) {
+            foreach (glob($viewsPath . '/*.php') as $file) {
+                @unlink($file);
+            }
+        }
+        return $freed;
+    }
+
+    private function cleanSessions(): int
+    {
+        $sessionsPath = storage_path('framework/sessions');
+        $freed = $this->getDirSize($sessionsPath);
+        if (is_dir($sessionsPath)) {
+            foreach (scandir($sessionsPath) as $file) {
+                if ($file === '.' || $file === '..' || $file === '.gitignore') continue;
+                @unlink($sessionsPath . '/' . $file);
+            }
+        }
+        return $freed;
+    }
+
+    private function cleanBootstrap(): int
+    {
+        $bootstrapPath = base_path('bootstrap/cache');
+        $freed = 0;
+        if (!is_dir($bootstrapPath)) return 0;
+
+        foreach (scandir($bootstrapPath) as $file) {
+            if ($file === '.' || $file === '..' || $file === '.gitignore') continue;
+            $fullPath = $bootstrapPath . '/' . $file;
+            if (is_file($fullPath) && pathinfo($file, PATHINFO_EXTENSION) === 'php') {
+                $freed += filesize($fullPath);
+                @unlink($fullPath);
+            }
+        }
+        return $freed;
+    }
+
+    private function getDirSize(string $path): int
+    {
+        if (!is_dir($path)) return 0;
+        $size = 0;
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS)) as $file) {
+            if ($file->isFile()) $size += $file->getSize();
+        }
+        return $size;
+    }
+
+    private function deleteDirectory(string $dir, bool $keepDir = false): void
+    {
+        if (!is_dir($dir)) return;
+        foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::CHILD_FIRST) as $item) {
+            if ($item->isDir()) @rmdir($item->getPathname());
+            else @unlink($item->getPathname());
+        }
+        if (!$keepDir) @rmdir($dir);
+    }
 }

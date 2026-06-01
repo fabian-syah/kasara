@@ -247,6 +247,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/system-status/reset-integrity', [\App\Http\Controllers\SystemStatusController::class, 'resetIntegrityBaseline'])->middleware('throttle:sensitive');
     Route::get('/system-status/backup-info', [\App\Http\Controllers\SystemStatusController::class, 'backupInfo']);
     Route::get('/system-status/backup-download', [\App\Http\Controllers\SystemStatusController::class, 'backupDatabase'])->middleware('throttle:exports');
+    Route::get('/system-status/logs', [\App\Http\Controllers\SystemStatusController::class, 'logFiles']);
+    Route::get('/system-status/logs/view', [\App\Http\Controllers\SystemStatusController::class, 'logView']);
+    Route::get('/system-status/cleanup-info', [\App\Http\Controllers\SystemStatusController::class, 'cleanupInfo']);
+    Route::post('/system-status/cleanup', [\App\Http\Controllers\SystemStatusController::class, 'cleanupExecute'])->middleware('throttle:sensitive');
 
     // Reports
     Route::get('/reports/brand', [\App\Http\Controllers\ReportController::class, 'getBrandReport']);

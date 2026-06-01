@@ -137,6 +137,80 @@ const toggleSection = (section) => {
     expandedSections.value[section] = !expandedSections.value[section];
 };
 
+// Logs Viewer
+const logFiles = ref([]);
+const logEntries = ref([]);
+const selectedLogFile = ref('laravel.log');
+const logLevel = ref('');
+const isLoadingLogs = ref(false);
+const showLogs = ref(false);
+
+const fetchLogFiles = async () => {
+    try {
+        const res = await api.get('/system-status/logs');
+        logFiles.value = res.data.files || [];
+    } catch (err) {
+        console.error('Failed to fetch log files:', err);
+    }
+};
+
+const fetchLogContent = async () => {
+    try {
+        isLoadingLogs.value = true;
+        const params = { file: selectedLogFile.value, lines: 100 };
+        if (logLevel.value) params.level = logLevel.value;
+        const res = await api.get('/system-status/logs/view', { params });
+        logEntries.value = res.data.entries || [];
+    } catch (err) {
+        console.error('Failed to fetch log content:', err);
+    } finally {
+        isLoadingLogs.value = false;
+    }
+};
+
+const openLogs = async () => {
+    showLogs.value = !showLogs.value;
+    if (showLogs.value && logFiles.value.length === 0) {
+        await fetchLogFiles();
+        await fetchLogContent();
+    }
+};
+
+// Disk Cleanup
+const cleanupInfo = ref(null);
+const isLoadingCleanup = ref(false);
+const isCleaning = ref(false);
+const selectedCleanup = ref([]);
+
+const fetchCleanupInfo = async () => {
+    try {
+        isLoadingCleanup.value = true;
+        const res = await api.get('/system-status/cleanup-info');
+        cleanupInfo.value = res.data;
+        selectedCleanup.value = (res.data.items || []).filter(i => i.safe).map(i => i.key);
+    } catch (err) {
+        console.error('Failed to fetch cleanup info:', err);
+    } finally {
+        isLoadingCleanup.value = false;
+    }
+};
+
+const executeCleanup = async () => {
+    if (selectedCleanup.value.length === 0) return;
+    if (!confirm('Bersihin item yang dipilih? Ini tidak bisa di-undo.')) return;
+    try {
+        isCleaning.value = true;
+        const res = await api.post('/system-status/cleanup', { targets: selectedCleanup.value });
+        alert(res.data.message || 'Cleanup selesai!');
+        await fetchCleanupInfo();
+        await fetchStatus();
+    } catch (err) {
+        alert('Cleanup gagal: ' + (err.response?.data?.message || err.message));
+    } finally {
+        isCleaning.value = false;
+    }
+};
+
 // SVG icon map — real brand logos
 const brandSvgs = {
     php: `<svg viewBox="0 0 128 128" fill="currentColor"><path d="M64 33.039C30.26 33.039 2.906 46.901 2.906 64S30.26 94.961 64 94.961 125.094 81.099 125.094 64 97.74 33.039 64 33.039zM48.103 70.032c-1.458 1.364-3.077 1.927-4.86 2.507-1.783.581-4.052.461-6.811.461h-6.253l-1.733 10h-7.301l6.515-34H41.7c4.224 0 7.305 1.215 9.242 3.432 1.937 2.217 2.519 5.364 1.747 9.337-.319 1.637-.856 3.159-1.614 4.515a15.118 15.118 0 01-2.972 3.748zM69.414 73l2.881-14.42c.328-1.688.132-2.913-.59-3.676-.723-.764-2.017-1.146-3.882-1.146h-6.253l-3.7 19.241h-7.301l6.515-34h7.302l-1.733 10h6.897c3.379 0 5.789.749 7.227 2.075 1.438 1.327 1.858 3.485 1.263 6.625L75.065 73h-5.651zm33.139-3.968c-1.458 1.364-3.077 1.927-4.86 2.507-1.783.581-4.053.461-6.812.461h-6.253l-1.733 10h-7.301l6.514-34h14.041c4.224 0 7.305 1.215 9.242 3.432 1.937 2.217 2.519 5.364 1.747 9.337-.319 1.637-.856 3.159-1.614 4.515a15.118 15.118 0 01-2.971 3.748zM42.502 55.758h-5.01l-2.538 12.644h4.345c2.789 0 4.882-.465 6.282-1.394 1.399-.929 2.378-2.675 2.938-5.239.554-2.53.201-4.167-1.058-4.913-1.26-.746-3.011-1.098-4.959-1.098zm56.725 0h-5.01l-2.538 12.644h4.345c2.789 0 4.882-.465 6.282-1.394 1.399-.929 2.378-2.675 2.938-5.239.554-2.53.201-4.167-1.058-4.913-1.26-.746-3.012-1.098-4.959-1.098z"/></svg>`,
@@ -525,6 +599,127 @@ onUnmounted(() => {
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Viewer -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <div class="p-5 border-b border-surface-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-orange-500/10">
+                            <Activity :size="20" class="text-orange-400" />
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-text-primary">Laravel Logs</h2>
+                            <p class="text-xs text-text-secondary">Lihat error & activity log tanpa SSH</p>
+                        </div>
+                    </div>
+                    <button @click="openLogs"
+                        class="px-4 py-1.5 rounded-lg text-xs font-bold border bg-orange-500/10 border-orange-500/20 text-orange-400 hover:bg-orange-500/20 transition-all">
+                        {{ showLogs ? 'Tutup' : 'Buka Logs' }}
+                    </button>
+                </div>
+
+                <div v-if="showLogs" class="p-5 pt-3 space-y-3">
+                    <!-- Controls -->
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <select v-model="selectedLogFile" @change="fetchLogContent"
+                            class="bg-surface-900 border border-surface-700 rounded-lg px-3 py-1.5 text-xs text-text-primary">
+                            <option v-for="f in logFiles" :key="f.name" :value="f.name">{{ f.name }} ({{ f.size }})</option>
+                        </select>
+                        <select v-model="logLevel" @change="fetchLogContent"
+                            class="bg-surface-900 border border-surface-700 rounded-lg px-3 py-1.5 text-xs text-text-primary">
+                            <option value="">Semua Level</option>
+                            <option value="error">Error</option>
+                            <option value="warning">Warning</option>
+                            <option value="info">Info</option>
+                            <option value="debug">Debug</option>
+                        </select>
+                        <button @click="fetchLogContent" :disabled="isLoadingLogs"
+                            class="px-3 py-1.5 bg-surface-700 hover:bg-surface-600 rounded-lg text-xs text-text-secondary transition-colors">
+                            <RefreshCw :size="12" class="inline mr-1" :class="{ 'animate-spin': isLoadingLogs }" /> Refresh
+                        </button>
+                    </div>
+
+                    <!-- Log entries -->
+                    <div class="max-h-96 overflow-y-auto space-y-1 font-mono text-[11px] custom-scrollbar bg-surface-900/50 rounded-xl p-3">
+                        <div v-if="logEntries.length === 0" class="text-center py-8 text-text-secondary text-xs italic">
+                            Tidak ada log entries.
+                        </div>
+                        <div v-for="(entry, idx) in logEntries" :key="idx"
+                            class="p-2 rounded border-l-2 hover:bg-surface-800/50"
+                            :class="{
+                                'border-red-500 bg-red-500/5': entry.level === 'error' || entry.level === 'critical' || entry.level === 'emergency',
+                                'border-amber-500 bg-amber-500/5': entry.level === 'warning',
+                                'border-blue-500 bg-blue-500/5': entry.level === 'info',
+                                'border-surface-600 bg-surface-800/30': entry.level === 'debug',
+                            }">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
+                                    :class="{
+                                        'bg-red-500/20 text-red-400': entry.level === 'error' || entry.level === 'critical',
+                                        'bg-amber-500/20 text-amber-400': entry.level === 'warning',
+                                        'bg-blue-500/20 text-blue-400': entry.level === 'info',
+                                        'bg-surface-700 text-text-secondary': entry.level === 'debug',
+                                    }">{{ entry.level }}</span>
+                                <span class="text-text-secondary">{{ entry.timestamp }}</span>
+                            </div>
+                            <p class="text-text-primary break-all">{{ entry.message }}</p>
+                            <details v-if="entry.stack" class="mt-1">
+                                <summary class="text-text-secondary cursor-pointer hover:text-text-primary text-[10px]">Stack trace</summary>
+                                <pre class="text-[10px] text-text-secondary mt-1 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">{{ entry.stack }}</pre>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Disk Cleanup -->
+            <div class="bg-surface-800 rounded-2xl border border-surface-700 overflow-hidden">
+                <div class="p-5 border-b border-surface-700/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg bg-rose-500/10">
+                            <HardDrive :size="20" class="text-rose-400" />
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-bold text-text-primary">Disk Cleanup</h2>
+                            <p class="text-xs text-text-secondary">Bersihin log, cache, dan file sementara</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="fetchCleanupInfo" :disabled="isLoadingCleanup"
+                            class="px-3 py-1.5 rounded-lg text-xs font-bold border bg-surface-700/50 border-surface-600 text-text-secondary hover:bg-surface-700 transition-all">
+                            {{ isLoadingCleanup ? 'Loading...' : 'Scan' }}
+                        </button>
+                        <button v-if="cleanupInfo" @click="executeCleanup" :disabled="isCleaning || selectedCleanup.length === 0"
+                            class="px-4 py-1.5 rounded-lg text-xs font-bold border bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all disabled:opacity-50">
+                            {{ isCleaning ? 'Cleaning...' : 'Bersihin' }}
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="cleanupInfo" class="p-5 pt-3">
+                    <div class="mb-3 flex items-center justify-between">
+                        <span class="text-xs text-text-secondary">Total bisa dibebaskan:</span>
+                        <span class="text-sm font-bold text-rose-400">{{ cleanupInfo.total_size }}</span>
+                    </div>
+                    <div class="space-y-2">
+                        <label v-for="item in cleanupInfo.items" :key="item.key"
+                            class="flex items-center justify-between p-3 rounded-xl bg-surface-900/50 border border-surface-700/50 cursor-pointer hover:bg-surface-700/30 transition-colors">
+                            <div class="flex items-center gap-3">
+                                <input type="checkbox" :value="item.key" v-model="selectedCleanup"
+                                    class="rounded border-surface-600 bg-surface-900 text-primary-500 focus:ring-primary-500/30">
+                                <div>
+                                    <p class="text-sm font-medium text-text-primary">{{ item.name }}</p>
+                                    <p class="text-[10px] text-text-secondary">{{ item.description }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-mono font-bold" :class="item.size_bytes > 1048576 ? 'text-amber-400' : 'text-text-secondary'">{{ item.size }}</span>
+                                <span v-if="!item.safe" class="block text-[9px] text-amber-400">⚠ hati-hati</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
             </div>
