@@ -390,7 +390,7 @@ function getLocationTypeLabel(type) {
                             <th class="text-center px-3 py-3 font-medium text-text-secondary w-12">No</th>
                             <th class="text-left px-5 py-3 font-medium text-text-secondary">Lokasi</th>
                             <th v-if="selectedBrand" class="text-left px-5 py-3 font-medium text-text-secondary">Brand</th>
-                            <th v-if="selectedType || selectedBrand" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
+                            <th v-if="selectedType" class="text-left px-5 py-3 font-medium text-text-secondary">Produk</th>
                             <th v-if="selectedStorage" class="text-left px-5 py-3 font-medium text-text-secondary">Kapasitas</th>
                             <th v-if="selectedCondition" class="text-left px-5 py-3 font-medium text-text-secondary">Kondisi</th>
                             
@@ -417,7 +417,7 @@ function getLocationTypeLabel(type) {
                                 </div>
                             </td>
                             <td v-if="selectedBrand" class="px-5 py-3.5 text-text-primary font-medium">{{ item.brand }}</td>
-                            <td v-if="selectedType || selectedBrand" class="px-5 py-3.5 text-text-primary">{{ item.product_name || '-' }}</td>
+                            <td v-if="selectedType" class="px-5 py-3.5 text-text-primary">{{ item.product_name || '-' }}</td>
                             <td v-if="selectedStorage" class="px-5 py-3.5 text-text-secondary font-mono text-xs">{{ item.storage || '-' }}</td>
                             <td v-if="selectedCondition" class="px-5 py-3.5">
                                 <span v-if="item.condition" class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium"

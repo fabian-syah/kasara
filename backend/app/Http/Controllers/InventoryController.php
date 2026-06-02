@@ -2159,7 +2159,7 @@ class InventoryController extends Controller
         }
 
         // Dynamic fields
-        $hasTypeFilter = $request->filled('product_name') || $request->filled('brand');
+        $hasTypeFilter = $request->filled('product_name');
         $hasStorageFilter = $request->filled('storage');
         $hasConditionFilter = $request->filled('condition');
 
