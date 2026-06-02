@@ -1543,10 +1543,11 @@ class StockOutController extends Controller
                         'customer_name' => $out->customer_name,
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->notes,
+                        'cancel_reason' => $out->cancel_reason,
                         'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
                         'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
-                        'created_at' => $out->created_at->toDateTimeString(),
-                        'timestamp' => $out->created_at->timestamp,
+                        'created_at' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->toDateTimeString() : $out->created_at->toDateTimeString(),
+                        'timestamp' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->timestamp : $out->created_at->timestamp,
                         
                         // Extra properties for multiple proof images and receipt display
                         'proof_images' => $proofImages,

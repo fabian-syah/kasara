@@ -54,7 +54,7 @@ const categoryIcons = {
     tukar_unit: ShoppingBag, tukar_tambah: ShoppingBag, downgrade: ShoppingBag,
     angkat_barang: Box, brand_ambassador: User, event_sponsorship: Calendar,
     keluar: Box, giveaway_customer: Gift, inventaris: Box, hilang: AlertTriangle,
-    refund: RotateCcw,
+    refund: RotateCcw, cancel_penjualan: RotateCcw,
 };
 
 const categoryLabels = {
@@ -65,7 +65,7 @@ const categoryLabels = {
     angkat_barang: 'Angkat Barang', brand_ambassador: 'Brand Ambassador',
     event_sponsorship: 'Event / Sponsorship', keluar: 'Keluar',
     giveaway_customer: 'Giveaway Customer', inventaris: 'Inventaris', hilang: 'Hilang',
-    refund: 'Refund',
+    refund: 'Refund', cancel_penjualan: 'Batal Penjualan',
 };
 
 async function search() {
@@ -237,7 +237,7 @@ function getCategoryColor(category) {
                             <!-- Top bar color -->
                             <div class="h-0.5" :class="{
                                 'bg-blue-500': result.category === 'pindah_cabang',
-                                'bg-amber-500': ['kesalahan_input', 'hilang'].includes(result.category),
+                                'bg-amber-500': ['kesalahan_input', 'hilang', 'cancel_penjualan'].includes(result.category),
                                 'bg-purple-500': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
                                 'bg-pink-500': result.category === 'brand_ambassador',
                                 'bg-cyan-500': result.category === 'event_sponsorship',
@@ -251,7 +251,7 @@ function getCategoryColor(category) {
                                 <div class="flex items-center gap-2.5 sm:gap-3">
                                     <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0" :class="{
                                         'bg-blue-500/10 text-blue-400': result.category === 'pindah_cabang',
-                                        'bg-amber-500/10 text-amber-400': ['kesalahan_input', 'hilang'].includes(result.category),
+                                        'bg-amber-500/10 text-amber-400': ['kesalahan_input', 'hilang', 'cancel_penjualan'].includes(result.category),
                                         'bg-purple-500/10 text-purple-400': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
                                         'bg-pink-500/10 text-pink-400': result.category === 'brand_ambassador',
                                         'bg-cyan-500/10 text-cyan-400': result.category === 'event_sponsorship',
@@ -265,6 +265,8 @@ function getCategoryColor(category) {
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <span v-if="['angkat_barang', 'refund'].includes(result.category)"
                                                 class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20">MASUK</span>
+                                            <span v-else-if="result.category === 'cancel_penjualan'"
+                                                class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20">BATAL (MASUK)</span>
                                             <span v-else class="badge-xs bg-red-500/10 text-red-400 border-red-500/20">KELUAR</span>
                                             <span class="text-[10px] text-text-secondary">{{ categoryLabels[result.category] }}</span>
                                             <span v-if="result.category === 'pindah_cabang'" class="badge-xs" :class="{
@@ -313,8 +315,8 @@ function getCategoryColor(category) {
                                         </div>
                                     </template>
 
-                                    <!-- Sales / Retur -->
-                                    <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund'].includes(result.category)">
+                                    <!-- Sales / Retur / Cancel -->
+                                    <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'cancel_penjualan'].includes(result.category)">
                                         <div>
                                             <p class="text-[10px] text-text-secondary">Customer</p>
                                             <p class="text-xs text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
@@ -324,9 +326,9 @@ function getCategoryColor(category) {
                                             <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
                                         </div>
 
-                                        <div v-if="result.notes" class="col-span-full">
+                                        <div v-if="result.notes || result.cancel_reason" class="col-span-full">
                                             <p class="text-[10px] text-text-secondary">Keterangan</p>
-                                            <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
+                                            <p class="text-xs text-text-primary italic">{{ result.cancel_reason || result.notes }}</p>
                                         </div>
                                     </template>
 
