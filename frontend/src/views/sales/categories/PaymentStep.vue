@@ -34,6 +34,8 @@ const authStore = useAuthStore();
 
 const isSubmitting = ref(false);
 const isCompressing = ref(false);
+const showErrorModal = ref(false);
+const errorModalMessage = ref("");
 
 const customerForm = ref({
     customer_name: "",
@@ -53,7 +55,7 @@ const missingFields = computed(() => {
     if (!customerForm.value.customer_name) fields.push("Nama Pelanggan");
     if (!customerForm.value.customer_phone) fields.push("WhatsApp Customer");
     if (!customerForm.value.notes) fields.push("Keterangan / Notes");
-    if (!proofImage.value) fields.push("Foto Bukti");
+    if (!isCashOnly.value && !proofImage.value) fields.push("Foto Bukti Transfer");
 
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid < cartTotal.value) fields.push("Pembayaran Kurang");
@@ -70,6 +72,17 @@ const changeAmount = computed(() => {
 
 const isCashPayment = computed(() => {
     return splitPayments.value.some(p => {
+        const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
+        if (method) {
+            const name = method.name.toLowerCase();
+            return name.includes('cash') || name.includes('tunai');
+        }
+        return false;
+    });
+});
+
+const isCashOnly = computed(() => {
+    return splitPayments.value.every(p => {
         const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
         if (method) {
             const name = method.name.toLowerCase();
@@ -362,7 +375,8 @@ async function processPayment(pin = null) {
             errorMsg = `[Error ${status}] ${errorMsg}`;
             if (status === 413) errorMsg = "[Error 413] Foto terlalu besar untuk dikirim. Hubungi IT.";
         }
-        alert(errorMsg);
+        errorModalMessage.value = errorMsg;
+        showErrorModal.value = true;
     } finally {
         isSubmitting.value = false;
     }
@@ -405,7 +419,7 @@ async function processPayment(pin = null) {
                         <label class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
                             Foto Bukti <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
                                 10MB)</span>
-                            <span class="text-red-500">*</span>
+                            <span v-if="!isCashOnly" class="text-red-500">*</span>
                         </label>
                         <div class="flex flex-col gap-4">
                             <div class="relative group">
@@ -632,5 +646,20 @@ async function processPayment(pin = null) {
                 </div>
             </div>
         </div>
+
+        <!-- Error Modal -->
+        <div v-if="showErrorModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div class="bg-white dark:bg-surface-800 rounded-[2rem] p-6 sm:p-8 max-w-md w-full shadow-2xl flex flex-col items-center text-center transform transition-all scale-100">
+                <div class="w-20 h-20 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-6 ring-8 ring-red-500/5">
+                    <AlertCircle class="text-red-500 w-10 h-10" stroke-width="2.5" />
+                </div>
+                <h3 class="text-2xl font-black text-text-primary mb-2">Transaksi Gagal</h3>
+                <p class="text-text-secondary font-medium mb-8 leading-relaxed">{{ errorModalMessage }}</p>
+                <button @click="showErrorModal = false" class="w-full py-4 bg-surface-100 hover:bg-surface-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-text-primary font-black rounded-xl transition-all active:scale-95">
+                    Tutup & Periksa Keranjang
+                </button>
+            </div>
+        </div>
+
     </div>
 </template>
