@@ -282,7 +282,8 @@ class StockInController extends Controller
                     $existing = ProductDetail::withTrashed()->where('imei', $item['imei'])->first();
 
                     if ($existing) {
-                        if ($existing->status === 'available' && !$existing->trashed()) {
+                        $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer'];
+                        if (in_array($existing->status, $activeStatuses) && !$existing->trashed()) {
                             // Get location info of existing item
                             $existingLocation = '';
                             if ($existing->placement_type === 'branch') {
