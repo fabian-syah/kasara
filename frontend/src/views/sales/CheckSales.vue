@@ -357,11 +357,11 @@
                                                             (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
-                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
-                                                class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
-                                                title="Lihat Foto Bukti">
-                                                <Image :size="14" stroke-width="2.5" />
-                                                <span>Lihat Bukti</span>
+                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                                title="Lihat Foto Bukti Pembayaran/Transfer">
+                                                <Wallet :size="12" stroke-width="3" />
+                                                <span>Bayar</span>
                                             </button>
                                             <button @click="openReceipt(item)"
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
@@ -470,11 +470,11 @@
                                                             (imgIdx + 1)) }}</span>
                                                 </button>
                                             </div>
-                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
-                                                class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
-                                                title="Lihat Foto Bukti">
-                                                <Image :size="14" stroke-width="2.5" />
-                                                <span>Lihat Bukti</span>
+                                            <button v-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                                title="Lihat Foto Bukti Pembayaran/Transfer">
+                                                <Wallet :size="12" stroke-width="3" />
+                                                <span>Bayar</span>
                                             </button>
                                             <button @click="openReceipt(item)"
                                                 class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"

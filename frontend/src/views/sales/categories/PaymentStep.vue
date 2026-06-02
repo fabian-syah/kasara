@@ -55,7 +55,7 @@ const missingFields = computed(() => {
     if (!customerForm.value.customer_name) fields.push("Nama Pelanggan");
     if (!customerForm.value.customer_phone) fields.push("WhatsApp Customer");
     if (!customerForm.value.notes) fields.push("Keterangan / Notes");
-    if (!isCashOnly.value && !proofImage.value) fields.push("Foto Bukti Transfer");
+    if (!isCashOnly.value && !proofImage.value) fields.push("Foto Bukti Pembayaran");
 
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid < cartTotal.value) fields.push("Pembayaran Kurang");
@@ -417,7 +417,7 @@ async function processPayment(pin = null) {
                     </div>
                     <div class="md:col-span-2 space-y-3">
                         <label class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
-                            Foto Bukti <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
+                            Foto Bukti Pembayaran <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
                                 10MB)</span>
                             <span v-if="!isCashOnly" class="text-red-500">*</span>
                         </label>
