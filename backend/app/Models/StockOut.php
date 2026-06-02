@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Events\StockOutEvent;
 
 class StockOut extends Model
@@ -51,7 +53,7 @@ class StockOut extends Model
             try {
                 broadcast(new StockOutEvent($model))->toOthers();
             } catch (\Throwable $e) {
-                \Log::warning("Reverb broadcast on created failed: " . $e->getMessage());
+                Log::warning("Reverb broadcast on created failed: " . $e->getMessage());
             }
         });
 
@@ -59,7 +61,7 @@ class StockOut extends Model
             try {
                 broadcast(new StockOutEvent($model))->toOthers();
             } catch (\Throwable $e) {
-                \Log::warning("Reverb broadcast on updated failed: " . $e->getMessage());
+                Log::warning("Reverb broadcast on updated failed: " . $e->getMessage());
             }
         });
 
@@ -67,7 +69,7 @@ class StockOut extends Model
             try {
                 broadcast(new StockOutEvent($model))->toOthers();
             } catch (\Throwable $e) {
-                \Log::warning("Reverb broadcast on deleted failed: " . $e->getMessage());
+                Log::warning("Reverb broadcast on deleted failed: " . $e->getMessage());
             }
         });
     }
@@ -94,6 +96,7 @@ class StockOut extends Model
         'customer_phone',
         'return_destination_id',
         'proof_image',
+        'payment_proof_image',
         // Shopee (legacy single-item fields - kept for backward compatibility)
         'shopee_receiver',
         'shopee_phone',
@@ -330,7 +333,7 @@ class StockOut extends Model
                         $qq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
                            ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$search}%"]);
                         
-                        if (\Schema::hasColumn('products', 'non_imei_category')) {
+                        if (Schema::hasColumn('products', 'non_imei_category')) {
                             $qq->orWhereRaw('LOWER(non_imei_category) LIKE ?', ["%{$search}%"]);
                         }
                     });
