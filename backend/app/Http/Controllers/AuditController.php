@@ -38,32 +38,38 @@ class AuditController extends Controller
 
             // Global exclusion for super_admin and analist roles
             if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-                $excludedTerms = config('kasara.excluded_keywords');
+                $excludedTerms = config('kasara.excluded_keywords') ?: [];
 
                 if (!empty($branchIds)) {
                     $branchIds = Branch::whereIn('id', $branchIds)
-                        ->where(function ($q) use ($excludedTerms) {
-                            foreach ($excludedTerms as $term) {
-                                $q->where('name', 'not ilike', '%' . $term . '%');
-                            }
+                        ->when(!empty($excludedTerms), function ($q) use ($excludedTerms) {
+                            $q->where(function ($sq) use ($excludedTerms) {
+                                foreach ($excludedTerms as $term) {
+                                    $sq->where('name', 'not ilike', '%' . $term . '%');
+                                }
+                            });
                         })->pluck('id')->toArray();
                 }
 
                 if (!empty($onlineShopIds)) {
                     $onlineShopIds = OnlineShop::whereIn('id', $onlineShopIds)
-                        ->where(function ($q) use ($excludedTerms) {
-                            foreach ($excludedTerms as $term) {
-                                $q->where('name', 'not ilike', '%' . $term . '%');
-                            }
+                        ->when(!empty($excludedTerms), function ($q) use ($excludedTerms) {
+                            $q->where(function ($sq) use ($excludedTerms) {
+                                foreach ($excludedTerms as $term) {
+                                    $sq->where('name', 'not ilike', '%' . $term . '%');
+                                }
+                            });
                         })->pluck('id')->toArray();
                 }
 
                 if (!empty($warehouseIds)) {
                     $warehouseIds = Warehouse::whereIn('id', $warehouseIds)
-                        ->where(function ($q) use ($excludedTerms) {
-                            foreach ($excludedTerms as $term) {
-                                $q->where('name', 'not ilike', '%' . $term . '%');
-                            }
+                        ->when(!empty($excludedTerms), function ($q) use ($excludedTerms) {
+                            $q->where(function ($sq) use ($excludedTerms) {
+                                foreach ($excludedTerms as $term) {
+                                    $sq->where('name', 'not ilike', '%' . $term . '%');
+                                }
+                            });
                         })->pluck('id')->toArray();
                 }
             }
@@ -2236,6 +2242,9 @@ class AuditController extends Controller
                         : ($exchangeInfo && $exchangeInfo->photo_unit
                             ? asset('storage/' . $exchangeInfo->photo_unit)
                             : null),
+                    'payment_proof_image' => $trx->payment_proof_image
+                        ? asset('storage/' . $trx->payment_proof_image)
+                        : null,
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
                     'price_in' => $exchangeInfo ? (float) ($exchangeInfo->incoming_cost_price ?? 0) : null,
