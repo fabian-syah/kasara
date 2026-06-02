@@ -1134,6 +1134,8 @@ class StockOutController extends Controller
                         $q->orWhere('reference_id', (string) $currentDetail->id);
                     }
                 })
+                ->where('description', 'not like', 'Pindah Cabang Masuk%')
+                ->where('description', 'not like', 'Transfer Masuk%')
                 ->orderBy('created_at');
             
             $stockInLogs = $stockInLogQuery->get();
