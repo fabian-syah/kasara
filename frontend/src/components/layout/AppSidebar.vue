@@ -132,6 +132,7 @@ const menuItems = [
         icon: PieChart,
         items: [
             { id: "stock_analysis", path: "/inventory/stock-analysis", label: "Analisa Stok" },
+            { id: "sold_analysis", path: "/inventory/sold-analysis", label: "Analisa Produk Terjual" },
         ]
     },
 

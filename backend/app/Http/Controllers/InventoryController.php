@@ -1937,6 +1937,369 @@ class InventoryController extends Controller
         ]);
     }
 
+    public function soldAnalysisFilters(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $mode = $request->input('mode', 'hp'); // 'hp' or 'non-hp'
+        $timeFilter = $request->input('time_filter', 'bulan_ini');
+
+        $baseQuery = StockOut::query()->where('stock_outs.status', '!=', 'cancelled');
+
+        // Apply Time Filter
+        if ($timeFilter === 'bulan_ini') {
+            $baseQuery->whereMonth('stock_outs.reporting_date', now()->month)
+                      ->whereYear('stock_outs.reporting_date', now()->year);
+        } elseif ($timeFilter === 'tahun_ini') {
+            $baseQuery->whereYear('stock_outs.reporting_date', now()->year);
+        }
+
+        // Apply Role Filter for location
+        if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            
+            $baseQuery->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+                      ->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                $hasConstraint = false;
+                if (!empty($branchIds)) {
+                    $q->orWhereIn('users.branch_id', $branchIds);
+                    $hasConstraint = true;
+                }
+                if (!empty($warehouseIds)) {
+                    $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                    $hasConstraint = true;
+                }
+                if (!empty($onlineShopIds)) {
+                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                    $hasConstraint = true;
+                }
+                if (!$hasConstraint) {
+                    $q->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        if ($mode === 'non-hp') {
+            $baseQuery->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+                      ->join('products', 'products.id', '=', 'stock_out_non_hp_items.product_id')
+                      ->whereNull('products.deleted_at')
+                      ->where(function($q) {
+                          $q->where('products.type', 'non-hp')->orWhere('products.has_imei', false);
+                      });
+
+            $filteredQuery = clone $baseQuery;
+            if ($request->filled('brand')) $filteredQuery->where('products.brand', $request->brand);
+            if ($request->filled('product_name')) $filteredQuery->where('products.name', $request->product_name);
+
+            $brands = (clone $baseQuery)->select('products.brand', DB::raw('SUM(stock_out_non_hp_items.quantity) as qty'))
+                ->groupBy('products.brand')->orderBy('products.brand')->get()
+                ->where('qty', '>', 0)->pluck('brand')->filter()->values();
+
+            $typesQuery = clone $baseQuery;
+            if ($request->filled('brand')) $typesQuery->where('products.brand', $request->brand);
+            $types = $typesQuery->select('products.name', DB::raw('SUM(stock_out_non_hp_items.quantity) as qty'))
+                ->groupBy('products.name')->orderBy('products.name')->get()
+                ->where('qty', '>', 0)->map(fn($row) => ['label' => $row->name, 'value' => $row->name, 'qty' => (int) $row->qty])->values();
+
+            $totalAvailable = (int) $filteredQuery->sum('stock_out_non_hp_items.quantity');
+
+            return response()->json([
+                'brands' => $brands,
+                'types' => $types,
+                'storages' => [],
+                'conditions' => [],
+                'total_available' => $totalAvailable,
+            ]);
+        }
+
+        // HP Mode
+        $baseQuery->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+                  ->join('product_details', 'product_details.id', '=', 'stock_out_items.product_detail_id')
+                  ->join('products', 'products.id', '=', 'product_details.product_id')
+                  ->whereNull('products.deleted_at')
+                  ->whereNull('product_details.deleted_at')
+                  ->where(function($q) {
+                      $q->where('products.type', 'hp')->orWhere('products.has_imei', true);
+                  });
+
+        $filteredQuery = clone $baseQuery;
+        if ($request->filled('brand')) $filteredQuery->where('products.brand', $request->brand);
+        if ($request->filled('product_name')) $filteredQuery->where('products.name', $request->product_name);
+        if ($request->filled('storage')) $filteredQuery->where('product_details.storage', $request->storage);
+        if ($request->filled('condition')) $filteredQuery->where('product_details.condition', $request->condition);
+
+        $brands = (clone $baseQuery)->select('products.brand', DB::raw('COUNT(*) as qty'))
+            ->groupBy('products.brand')->orderBy('products.brand')->get()
+            ->where('qty', '>', 0)->pluck('brand')->filter()->values();
+
+        $typesQuery = clone $baseQuery;
+        if ($request->filled('brand')) $typesQuery->where('products.brand', $request->brand);
+        $types = $typesQuery->select('products.name', DB::raw('COUNT(*) as qty'))
+            ->groupBy('products.name')->orderBy('products.name')->get()
+            ->where('qty', '>', 0)->map(fn($row) => ['label' => $row->name, 'value' => $row->name, 'qty' => $row->qty])->values();
+
+        $storageQuery = clone $baseQuery;
+        if ($request->filled('brand')) $storageQuery->where('products.brand', $request->brand);
+        if ($request->filled('product_name')) $storageQuery->where('products.name', $request->product_name);
+        $storages = $storageQuery->select('product_details.storage', DB::raw('COUNT(*) as qty'))
+            ->whereNotNull('product_details.storage')->where('product_details.storage', '!=', '')
+            ->groupBy('product_details.storage')->orderBy('product_details.storage')->get()
+            ->where('qty', '>', 0)->map(fn($row) => ['label' => $row->storage, 'value' => $row->storage, 'qty' => $row->qty])->values();
+
+        $conditionQuery = clone $baseQuery;
+        if ($request->filled('brand')) $conditionQuery->where('products.brand', $request->brand);
+        if ($request->filled('product_name')) $conditionQuery->where('products.name', $request->product_name);
+        if ($request->filled('storage')) $conditionQuery->where('product_details.storage', $request->storage);
+        
+        $conditionLabels = ['new' => 'Baru (New)', 'second' => 'Second', 'ex_ibox' => 'Ex-iBox', 'ex_inter' => 'Ex-Inter', 'refurbished' => 'Refurbished'];
+        $conditions = $conditionQuery->select('product_details.condition', DB::raw('COUNT(*) as qty'))
+            ->whereNotNull('product_details.condition')->groupBy('product_details.condition')->orderByDesc(DB::raw('COUNT(*)'))->get()
+            ->where('qty', '>', 0)->map(fn($row) => [
+                'label' => ($conditionLabels[$row->condition] ?? ucfirst($row->condition)) . " ({$row->qty})",
+                'value' => $row->condition,
+                'qty' => $row->qty,
+            ])->values();
+
+        $totalAvailable = $filteredQuery->count();
+
+        return response()->json([
+            'brands' => $brands,
+            'types' => $types,
+            'storages' => $storages,
+            'conditions' => $conditions,
+            'total_available' => $totalAvailable,
+        ]);
+    }
+
+    public function soldAnalysis(Request $request)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $timeFilter = $request->input('time_filter', 'bulan_ini');
+        
+        // Categories definition
+        $catTerjual = "CASE WHEN stock_outs.category IN ('penjualan_store', 'penjualan_offline', 'shopee', 'orderan_online', 'bundling') THEN ";
+        $catAngkatBarang = "CASE WHEN stock_outs.category = 'angkat_barang' THEN ";
+        $catRefund = "CASE WHEN stock_outs.category = 'refund' THEN ";
+        $catTukarTambah = "CASE WHEN stock_outs.category = 'tukar_tambah' THEN ";
+        $catTukarUnit = "CASE WHEN stock_outs.category = 'tukar_unit' THEN ";
+        $catDowngrade = "CASE WHEN stock_outs.category = 'downgrade' THEN ";
+        $catRetur = "CASE WHEN stock_outs.category = 'retur' THEN ";
+
+        // Base Query HP
+        $hpQuery = StockOut::query()->where('stock_outs.status', '!=', 'cancelled')
+            ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
+            ->join('product_details', 'product_details.id', '=', 'stock_out_items.product_detail_id')
+            ->join('products', 'products.id', '=', 'product_details.product_id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereNull('products.deleted_at')
+            ->whereNull('product_details.deleted_at')
+            ->where(function($q) {
+                $q->where('products.type', 'hp')->orWhere('products.has_imei', true);
+            });
+
+        // Base Query Non HP
+        $nonHpQuery = StockOut::query()->where('stock_outs.status', '!=', 'cancelled')
+            ->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
+            ->join('products', 'products.id', '=', 'stock_out_non_hp_items.product_id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
+            ->whereNull('products.deleted_at')
+            ->where(function($q) {
+                $q->where('products.type', 'non-hp')->orWhere('products.has_imei', false);
+            });
+
+        // Filters
+        $applyFilters = function($query, $isHp = true) use ($request, $timeFilter, $user) {
+            if ($timeFilter === 'bulan_ini') {
+                $query->whereMonth('stock_outs.reporting_date', now()->month)
+                      ->whereYear('stock_outs.reporting_date', now()->year);
+            } elseif ($timeFilter === 'tahun_ini') {
+                $query->whereYear('stock_outs.reporting_date', now()->year);
+            }
+            
+            if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $query->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                    $hasConstraint = false;
+                    if (!empty($branchIds)) { $q->orWhereIn('users.branch_id', $branchIds); $hasConstraint = true; }
+                    if (!empty($warehouseIds)) { $q->orWhereIn('users.warehouse_id', $warehouseIds); $hasConstraint = true; }
+                    if (!empty($onlineShopIds)) { $q->orWhereIn('users.online_shop_id', $onlineShopIds); $hasConstraint = true; }
+                    if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
+                });
+            }
+
+            if ($request->filled('brand')) $query->where('products.brand', $request->brand);
+            if ($request->filled('product_name')) $query->where('products.name', $request->product_name);
+            
+            if ($isHp) {
+                if ($request->filled('storage')) $query->where('product_details.storage', $request->storage);
+                if ($request->filled('condition')) $query->where('product_details.condition', $request->condition);
+            }
+        };
+
+        $applyFilters($hpQuery, true);
+        
+        $skipNonHp = $request->filled('storage') || $request->filled('condition');
+        if (!$skipNonHp) {
+            $applyFilters($nonHpQuery, false);
+        }
+
+        // Dynamic fields
+        $hasTypeFilter = $request->filled('product_name') || $request->filled('brand');
+        $hasStorageFilter = $request->filled('storage');
+        $hasConditionFilter = $request->filled('condition');
+
+        $selectFieldsHp = [
+            DB::raw('COALESCE(users.branch_id, users.warehouse_id, users.online_shop_id, 0) as location_id'),
+            DB::raw("CASE WHEN users.branch_id IS NOT NULL THEN 'branch' WHEN users.warehouse_id IS NOT NULL THEN 'warehouse' WHEN users.online_shop_id IS NOT NULL THEN 'online_shop' ELSE 'unknown' END as location_type"),
+            'products.brand',
+            DB::raw("SUM($catTerjual 1 ELSE 0 END) as terjual"),
+            DB::raw("SUM($catAngkatBarang 1 ELSE 0 END) as angkat_barang"),
+            DB::raw("SUM($catRefund 1 ELSE 0 END) as refund"),
+            DB::raw("SUM($catTukarTambah 1 ELSE 0 END) as tukar_tambah"),
+            DB::raw("SUM($catTukarUnit 1 ELSE 0 END) as tukar_unit"),
+            DB::raw("SUM($catDowngrade 1 ELSE 0 END) as downgrade"),
+            DB::raw("SUM($catRetur 1 ELSE 0 END) as retur"),
+        ];
+
+        $selectFieldsNonHp = [
+            DB::raw('COALESCE(users.branch_id, users.warehouse_id, users.online_shop_id, 0) as location_id'),
+            DB::raw("CASE WHEN users.branch_id IS NOT NULL THEN 'branch' WHEN users.warehouse_id IS NOT NULL THEN 'warehouse' WHEN users.online_shop_id IS NOT NULL THEN 'online_shop' ELSE 'unknown' END as location_type"),
+            'products.brand',
+            DB::raw("SUM($catTerjual stock_out_non_hp_items.quantity ELSE 0 END) as terjual"),
+            DB::raw("SUM($catAngkatBarang stock_out_non_hp_items.quantity ELSE 0 END) as angkat_barang"),
+            DB::raw("SUM($catRefund stock_out_non_hp_items.quantity ELSE 0 END) as refund"),
+            DB::raw("SUM($catTukarTambah stock_out_non_hp_items.quantity ELSE 0 END) as tukar_tambah"),
+            DB::raw("SUM($catTukarUnit stock_out_non_hp_items.quantity ELSE 0 END) as tukar_unit"),
+            DB::raw("SUM($catDowngrade stock_out_non_hp_items.quantity ELSE 0 END) as downgrade"),
+            DB::raw("SUM($catRetur stock_out_non_hp_items.quantity ELSE 0 END) as retur"),
+        ];
+
+        $groupByFieldsHp = ['users.branch_id', 'users.warehouse_id', 'users.online_shop_id', 'products.brand'];
+        $groupByFieldsNonHp = ['users.branch_id', 'users.warehouse_id', 'users.online_shop_id', 'products.brand'];
+
+        if ($hasTypeFilter) {
+            $selectFieldsHp[] = 'products.name as product_name';
+            $groupByFieldsHp[] = 'products.name';
+            
+            $selectFieldsNonHp[] = 'products.name as product_name';
+            $groupByFieldsNonHp[] = 'products.name';
+        }
+        
+        if ($hasStorageFilter) {
+            $selectFieldsHp[] = 'product_details.storage';
+            $groupByFieldsHp[] = 'product_details.storage';
+        }
+        
+        if ($hasConditionFilter) {
+            $selectFieldsHp[] = 'product_details.condition';
+            $groupByFieldsHp[] = 'product_details.condition';
+        }
+
+        $hpResults = $hpQuery->select($selectFieldsHp)->groupBy($groupByFieldsHp)->get();
+        
+        $nonHpResults = collect();
+        if (!$skipNonHp) {
+            $nonHpResults = $nonHpQuery->select($selectFieldsNonHp)->groupBy($groupByFieldsNonHp)->get()->map(function($row) {
+                $row->storage = null;
+                $row->condition = null;
+                return $row;
+            });
+        }
+
+        $mergedResults = $hpResults->concat($nonHpResults);
+
+        $groupKey = function ($row) use ($hasTypeFilter, $hasStorageFilter, $hasConditionFilter) {
+            $key = $row->location_type . ':' . $row->location_id . ':' . $row->brand;
+            if ($hasTypeFilter && isset($row->product_name)) $key .= ':' . $row->product_name;
+            if ($hasStorageFilter && isset($row->storage)) $key .= ':' . $row->storage;
+            if ($hasConditionFilter && isset($row->condition)) $key .= ':' . $row->condition;
+            return $key;
+        };
+
+        $allResults = $mergedResults->groupBy($groupKey)->map(function ($group) {
+            $first = $group->first();
+            $first->terjual = $group->sum('terjual');
+            $first->angkat_barang = $group->sum('angkat_barang');
+            $first->refund = $group->sum('refund');
+            $first->tukar_tambah = $group->sum('tukar_tambah');
+            $first->tukar_unit = $group->sum('tukar_unit');
+            $first->downgrade = $group->sum('downgrade');
+            $first->retur = $group->sum('retur');
+            $first->total_qty = $first->terjual + $first->angkat_barang + $first->refund + $first->tukar_tambah + $first->tukar_unit + $first->downgrade + $first->retur;
+            return $first;
+        })->sortByDesc('total_qty')->values();
+
+        // Paginate
+        $perPage = (int) ($request->per_page ?? 20);
+        $page = (int) ($request->page ?? 1);
+        $total = $allResults->count();
+        $paginatedResults = $allResults->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $data = $paginatedResults->map(function ($row) {
+            $locationName = $this->resolveLocationName($row->location_type, $row->location_id);
+            return [
+                'location_name' => $locationName,
+                'location_type' => $row->location_type,
+                'brand' => $row->brand,
+                'product_name' => $row->product_name ?? null,
+                'storage' => $row->storage ?? null,
+                'condition' => $row->condition ?? null,
+                'terjual' => (int) $row->terjual,
+                'angkat_barang' => (int) $row->angkat_barang,
+                'refund' => (int) $row->refund,
+                'tukar_tambah' => (int) $row->tukar_tambah,
+                'tukar_unit' => (int) $row->tukar_unit,
+                'downgrade' => (int) $row->downgrade,
+                'retur' => (int) $row->retur,
+                'total_qty' => (int) $row->total_qty
+            ];
+        });
+
+        $totalTerjual = $allResults->sum('terjual');
+        $totalAngkatBarang = $allResults->sum('angkat_barang');
+        $totalRefund = $allResults->sum('refund');
+        $totalTukarTambah = $allResults->sum('tukar_tambah');
+        $totalTukarUnit = $allResults->sum('tukar_unit');
+        $totalDowngrade = $allResults->sum('downgrade');
+        $totalRetur = $allResults->sum('retur');
+        $totalQtyAll = $allResults->sum('total_qty');
+        $totalLocations = $allResults->unique(fn($r) => $r->location_type . ':' . $r->location_id)->count();
+
+        return response()->json([
+            'data' => $data->values(),
+            'summary' => [
+                'total_qty' => $totalQtyAll,
+                'total_locations' => $totalLocations,
+                'terjual' => $totalTerjual,
+                'angkat_barang' => $totalAngkatBarang,
+                'refund' => $totalRefund,
+                'tukar_tambah' => $totalTukarTambah,
+                'tukar_unit' => $totalTukarUnit,
+                'downgrade' => $totalDowngrade,
+                'retur' => $totalRetur,
+            ],
+            'current_page' => $page,
+            'last_page' => (int) ceil($total / $perPage),
+            'per_page' => $perPage,
+            'total' => $total,
+        ]);
+    }
+
     /**
      * Resolve a placement type + id to a human-readable name.
      */

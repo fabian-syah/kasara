@@ -204,6 +204,16 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/sold-analysis',
+                name: 'SoldProductsAnalysis',
+                component: () => import('../views/inventory/SoldProductsAnalysis.vue'),
+                meta: {
+                    title: 'Analisa Produk Terjual',
+                    menu: 'sold_analysis',
+                    permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
                 path: 'inventory/download-center',
                 name: 'DownloadCenter',
                 component: () => import('../views/inventory/DownloadCenter.vue'),
