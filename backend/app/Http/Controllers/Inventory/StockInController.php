@@ -279,7 +279,10 @@ class StockInController extends Controller
                 $newDetails = [];
 
                 foreach ($details as $item) {
-                    $existing = ProductDetail::withTrashed()->where('imei', $item['imei'])->first();
+                    // Fetch all matching records, prioritize active ones first
+                    $existingRecords = ProductDetail::withTrashed()->where('imei', $item['imei'])->get();
+                    $existing = $existingRecords->filter(fn($q) => !$q->trashed())->first() 
+                                ?? $existingRecords->first();
 
                     if ($existing) {
                         $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer'];
@@ -328,6 +331,22 @@ class StockInController extends Controller
 
                         $newDetails[] = $existing;
                         $inserted_count++;
+
+                        InventoryLog::create([
+                            'product_id' => $product->id,
+                            'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
+                            'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
+                            'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
+                            'user_id' => $ownerUserId,
+                            'distributor_id' => $distributorId,
+                            'supplier_name' => $supplierName,
+                            'type' => 'in',
+                            'quantity' => 1,
+                            'balance_after' => ProductDetail::where('product_id', $product->id)->where('status', 'available')->count(),
+                            'description' => "Stock In: {$product->name} ({$existing->imei}) dari " . ($supplierName ?: "Distributor") . " (Restored)",
+                            'reference_id' => (string)$existing->id,
+                            'notes' => $item['notes'] ?? $request->notes,
+                        ]);
                         continue;
                     }
 
