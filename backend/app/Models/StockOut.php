@@ -170,6 +170,7 @@ class StockOut extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'confirmed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'shopee_items_data' => 'array',
         'non_hp_items' => 'array',
         'split_payments' => 'array',
