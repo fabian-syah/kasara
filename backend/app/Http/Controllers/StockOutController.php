@@ -810,21 +810,11 @@ class StockOutController extends Controller
                     $updateData['selling_price'] = $hpMeta['selling_price'] - ($hpMeta['item_discount'] ?? 0) - ($hpMeta['distributed_discount'] ?? 0);
                 }
 
-                // If pindah_cabang, move location immediately BUT set status to in_transit
+                // If pindah_cabang, set status to in_transit
+                // The item's location will NOT move to the destination yet.
+                // It will be moved when the destination branch confirms the transfer (Transfer Masuk).
                 if ($request->category === 'pindah_cabang') {
                     $updateData['status'] = 'in_transit'; // OTW
-
-                    // Update Placement to Destination
-                    if ($request->destination_type === 'branch') {
-                        $updateData['placement_type'] = 'branch';
-                        $updateData['placement_id'] = $request->destination_id;
-                    } elseif ($request->destination_type === 'warehouse') {
-                        $updateData['placement_type'] = 'warehouse';
-                        $updateData['placement_id'] = $request->destination_id;
-                    } elseif ($request->destination_type === 'online_shop') {
-                        $updateData['placement_type'] = 'online_shop';
-                        $updateData['placement_id'] = $request->destination_id;
-                    }
                 }
 
                 // If retur, move item to the warehouse
