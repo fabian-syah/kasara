@@ -53,6 +53,15 @@ export const useCartStore = defineStore('cart', () => {
         loadFromStorage();
     });
 
+    // Sync across tabs to prevent double checkout from stale cache
+    if (typeof window !== 'undefined') {
+        window.addEventListener('storage', (e) => {
+            if (e.key === getStorageKey()) {
+                loadFromStorage();
+            }
+        });
+    }
+
     // Persist to localStorage
     const persist = () => {
         if (isRestoring.value) return;
