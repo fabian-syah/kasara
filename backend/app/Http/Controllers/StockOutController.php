@@ -365,6 +365,7 @@ class StockOutController extends Controller
 
             // proof_image always optional
             $rules['proof_image'] = 'nullable|image|max:20480';
+            $rules['payment_proof_image'] = 'nullable|image|max:20480';
 
             // Only require PIN if user has it enabled
             $rules['transaction_pin'] = 'nullable|string|max:10';
@@ -582,6 +583,11 @@ class StockOutController extends Controller
                 $proofImagePath = $request->file('proof_image')->store('stock-outs/proofs', 'public');
             }
 
+            $paymentProofImagePath = null;
+            if ($request->hasFile('payment_proof_image')) {
+                $paymentProofImagePath = $request->file('payment_proof_image')->store('stock-outs/payment-proofs', 'public');
+            }
+
             // For Shopee, store per-item data (Model casts to JSON automatically)
             $shopeeItemsData = null;
             if (($request->category === 'shopee' || $request->category === 'orderan_online') && $request->shopee_items) {
@@ -695,6 +701,7 @@ class StockOutController extends Controller
                 'transaction_pin' => $request->transaction_pin,
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
+                'payment_proof_image' => $paymentProofImagePath,
                 'is_bundle' => $request->is_bundle ?? false,
                 'bundle_description' => $request->bundle_description,
 

@@ -37,6 +37,8 @@ const isCompressing = ref(false);
 const showErrorModal = ref(false);
 const errorModalMessage = ref("");
 
+const isCompressingPayment = ref(false);
+
 const customerForm = ref({
     customer_name: "",
     customer_phone: "",
@@ -46,6 +48,8 @@ const customerForm = ref({
 const splitPayments = ref([]);
 const proofImage = ref(null);
 const proofImagePreview = ref(null);
+const paymentProofImage = ref(null);
+const paymentProofImagePreview = ref(null);
 
 const cartItems = computed(() => cartStore.items);
 const cartTotal = computed(() => cartStore.total);
@@ -55,7 +59,8 @@ const missingFields = computed(() => {
     if (!customerForm.value.customer_name) fields.push("Nama Pelanggan");
     if (!customerForm.value.customer_phone) fields.push("WhatsApp Customer");
     if (!customerForm.value.notes) fields.push("Keterangan / Notes");
-    if (!isCashOnly.value && !proofImage.value) fields.push("Foto Bukti Pembayaran");
+    if (!proofImage.value) fields.push("Foto Bukti (Nota)");
+    if (!isCashOnly.value && !paymentProofImage.value) fields.push("Foto Bukti Pembayaran");
 
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
     if (totalPaid < cartTotal.value) fields.push("Pembayaran Kurang");
@@ -190,6 +195,37 @@ async function handleFileChange(e) {
     }
 }
 
+async function handlePaymentFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        isCompressingPayment.value = true;
+        if (file.type.startsWith('image/')) {
+            const compressed = await compressImage(file, {
+                maxWidth: 1600,
+                maxHeight: 1600,
+                quality: 0.8
+            });
+            paymentProofImage.value = compressed;
+            paymentProofImagePreview.value = URL.createObjectURL(compressed);
+        } else {
+            if (file.size > 10 * 1024 * 1024) {
+                alert("Ukuran file maksimal 10MB");
+                e.target.value = "";
+                return;
+            }
+            paymentProofImage.value = file;
+            paymentProofImagePreview.value = URL.createObjectURL(file);
+        }
+    } catch (err) {
+        console.error("Compression failed:", err);
+        alert("Gagal mengompres gambar pembayaran. Silakan coba lagi.");
+    } finally {
+        isCompressingPayment.value = false;
+    }
+}
+
 async function handleSubmitOrder() {
     if (!isFormValid.value) {
         alert("Mohon lengkapi data: " + missingFields.value.join(", "));
@@ -280,6 +316,10 @@ async function processPayment(pin = null) {
 
         if (proofImage.value) {
             formData.append('proof_image', proofImage.value);
+        }
+
+        if (paymentProofImage.value) {
+            formData.append('payment_proof_image', paymentProofImage.value);
         }
 
         const response = await api.post('/stock-outs', formData, {
@@ -417,9 +457,9 @@ async function processPayment(pin = null) {
                     </div>
                     <div class="md:col-span-2 space-y-3">
                         <label class="block text-xs font-black text-text-secondary uppercase tracking-widest px-1">
-                            Foto Bukti Pembayaran <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
+                            Foto Bukti Nota/Unit <span class="text-[10px] lowercase text-text-secondary font-medium">(Max
                                 10MB)</span>
-                            <span v-if="!isCashOnly" class="text-red-500">*</span>
+                            <span class="text-red-500">*</span>
                         </label>
                         <div class="flex flex-col gap-4">
                             <div class="relative group">
@@ -432,10 +472,10 @@ async function processPayment(pin = null) {
                                     <div class="text-center">
                                         <p
                                             class="text-sm font-black text-text-primary group-hover:text-primary-600 transition-colors">
-                                            Pilih atau Ambil Foto</p>
+                                            Pilih atau Ambil Foto Unit</p>
                                         <p
                                             class="text-[10px] text-text-secondary font-medium uppercase tracking-widest">
-                                            Klik untuk mengupload bukti</p>
+                                            Klik untuk mengupload bukti nota</p>
                                     </div>
                                 </div>
                             </div>
@@ -449,12 +489,55 @@ async function processPayment(pin = null) {
                                     Foto...</span>
                             </div>
 
-                            <div v-if="proofImagePreview && !isCompressing"
-                                class="relative w-full sm:w-48 aspect-square sm:aspect-auto sm:h-48 rounded-2xl overflow-hidden border-2 border-surface-200 dark:border-surface-700 shadow-sm bg-surface-100">
-                                <img :src="proofImagePreview" class="w-full h-full object-cover" />
+                            <div v-if="proofImagePreview" class="relative rounded-2xl overflow-hidden group border-2 border-surface-200 dark:border-surface-700">
+                                <img :src="proofImagePreview" class="w-full h-48 object-cover" />
                                 <button @click="proofImage = null; proofImagePreview = null"
-                                    class="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full shadow-lg transition-transform active:scale-90 hover:bg-red-600">
-                                    <X :size="16" />
+                                    class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg">
+                                    <Trash2 :size="16" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOTO BUKTI PEMBAYARAN -->
+                    <div v-if="!isCashOnly" class="md:col-span-2 space-y-3 mt-4">
+                        <label class="block text-xs font-black text-amber-600 dark:text-amber-500 uppercase tracking-widest px-1">
+                            Foto Bukti Pembayaran / Transfer <span class="text-[10px] lowercase text-text-secondary font-medium">(Max 10MB)</span>
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex flex-col gap-4">
+                            <div class="relative group">
+                                <input type="file" @change="handlePaymentFileChange" accept="image/*" capture="environment"
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                                <div
+                                    class="w-full border-2 border-dashed border-amber-300 dark:border-amber-600/50 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center gap-2 bg-amber-50/50 dark:bg-amber-900/10 group-hover:bg-amber-100/50 dark:group-hover:bg-amber-900/20 group-hover:border-amber-500 transition-all">
+                                    <Upload class="text-amber-500 group-hover:text-amber-600" :size="24"
+                                        stroke-width="1.5" />
+                                    <div class="text-center">
+                                        <p
+                                            class="text-sm font-black text-amber-700 dark:text-amber-500 group-hover:text-amber-800 transition-colors">
+                                            Upload Bukti Transfer / EDC</p>
+                                        <p
+                                            class="text-[10px] text-amber-600/70 font-medium uppercase tracking-widest">
+                                            Wajib untuk non-tunai</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- COMPRESSION LOADER -->
+                            <div v-if="isCompressingPayment"
+                                class="flex items-center gap-3 p-4 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-500/20 animate-pulse">
+                                <Loader2 class="animate-spin text-amber-500" :size="20" />
+                                <span
+                                    class="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">Mengompres
+                                    Foto...</span>
+                            </div>
+
+                            <div v-if="paymentProofImagePreview" class="relative rounded-2xl overflow-hidden group border-2 border-amber-200 dark:border-amber-700/50">
+                                <img :src="paymentProofImagePreview" class="w-full h-48 object-cover" />
+                                <button @click="paymentProofImage = null; paymentProofImagePreview = null"
+                                    class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg">
+                                    <Trash2 :size="16" />
                                 </button>
                             </div>
                         </div>
