@@ -406,7 +406,7 @@ function getLocationTypeLabel(type) {
                     <tbody class="divide-y divide-surface-100 dark:divide-surface-800">
                         <tr v-for="(item, idx) in results" :key="idx"
                             class="hover:bg-surface-50 dark:hover:bg-surface-800/30 transition-colors">
-                            <td class="px-3 py-3.5 text-center text-text-secondary text-xs">{{ (pagination.current_page - 1) * pagination.per_page + idx + 1 }}</td>
+                            <td class="px-3 py-3.5 text-center text-text-secondary text-xs">{{ (pagination.current_page - 1) * 20 + idx + 1 }}</td>
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-2">
                                     <MapPin :size="14" class="text-text-secondary shrink-0" />
