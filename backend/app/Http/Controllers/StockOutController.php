@@ -456,12 +456,13 @@ class StockOutController extends Controller
             // Verify HP items availability
             $productDetails = collect();
             if ($request->product_detail_ids) {
-                $productDetails = ProductDetail::whereIn('id', $request->product_detail_ids)
+                $uniqueIds = array_unique($request->product_detail_ids);
+                $productDetails = ProductDetail::whereIn('id', $uniqueIds)
                     ->where('status', 'available')
                     ->lockForUpdate()
                     ->get();
 
-                if ($productDetails->count() !== count($request->product_detail_ids)) {
+                if ($productDetails->count() !== count($uniqueIds)) {
                     throw new \Exception('Beberapa barang HP sudah tidak tersedia atau sudah keluar stok.');
                 }
             }
@@ -1140,11 +1141,8 @@ class StockOutController extends Controller
             
             $stockInLogs = $stockInLogQuery->get();
 
-            // Deduplicate: For stock_in of the same IMEI, only show 1 entry (the most recent)
-            // Old cancelled/re-input logs should not appear
-            if ($stockInLogs->count() > 1) {
-                $stockInLogs = collect([$stockInLogs->sortByDesc('created_at')->first()]);
-            }
+            // Do not deduplicate stock_in logs so the full history of when an item entered is visible.
+            // (Removed previous logic that only showed the most recent stock_in)
 
             foreach ($stockInLogs as $log) {
                 $locationName = match (true) {
@@ -1478,9 +1476,12 @@ class StockOutController extends Controller
                     $mergedItems = array_values($filteredItems);
                 }
 
-                // Event 1: Skip barang_masuk if we already have a stock_in event from InventoryLog
+                // Event 1: Skip barang_masuk if we already have a stock_in event from InventoryLog around the same time
                 if ($out->category === 'barang_masuk') {
-                    $alreadyHasStockIn = collect($allEvents)->contains(fn($evt) => $evt['type'] === 'stock_in');
+                    $bmTs = $out->created_at->timestamp;
+                    $alreadyHasStockIn = collect($allEvents)->contains(function($evt) use ($bmTs) {
+                        return $evt['type'] === 'stock_in' && abs($evt['timestamp'] - $bmTs) <= 60;
+                    });
                     if ($alreadyHasStockIn) {
                         continue;
                     }
