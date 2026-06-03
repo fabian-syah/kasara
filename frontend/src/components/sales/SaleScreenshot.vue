@@ -298,15 +298,27 @@ const fetchImageBase64 = async (url) => {
   }
 }
 
-// Load images as base64 when modal opens
 const loadProofImages = async () => {
   loadedPhotos.value = []
   photoAspects.value = []
-  if (!props.sale?.proof_images?.length) return
+
+  const allImageUrls = []
+  if (props.sale?.proof_images?.length) {
+    allImageUrls.push(...props.sale.proof_images)
+  } else if (props.sale?.proof_image) {
+    allImageUrls.push(props.sale.proof_image)
+  }
+
+  if (props.sale?.payment_proof_image) {
+    allImageUrls.push(props.sale.payment_proof_image)
+  }
+
+  if (allImageUrls.length === 0) return
+  
   loadingPhotos.value = true
   
   const results = await Promise.all(
-    props.sale.proof_images.map(url => fetchImageBase64(url))
+    allImageUrls.map(url => fetchImageBase64(url))
   )
   
   const photos = []
@@ -323,7 +335,8 @@ const loadProofImages = async () => {
 }
 
 watch(() => props.isOpen, (val) => {
-  if (val && props.sale?.proof_images?.length) {
+  const hasImages = props.sale?.proof_images?.length || props.sale?.proof_image || props.sale?.payment_proof_image
+  if (val && hasImages) {
     loadProofImages()
   } else {
     loadedPhotos.value = []
