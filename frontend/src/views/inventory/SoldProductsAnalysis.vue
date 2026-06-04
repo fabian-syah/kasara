@@ -7,7 +7,12 @@ import { useAuthStore } from '../../store/auth'
 const authStore = useAuthStore()
 
 // Filter state
-const selectedTimeFilter = ref('bulan_ini') // 'bulan_ini', 'tahun_ini', 'all_time'
+const selectedMonth = ref(new Date().getMonth() + 1)
+const selectedYear = ref(new Date().getFullYear())
+const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+const currentYear = new Date().getFullYear()
+const yearOptions = Array.from({ length: currentYear - 2023 + 1 }, (_, i) => currentYear - i)
+
 const selectedBrand = ref('')
 const selectedType = ref('')
 const selectedStorage = ref('')
@@ -44,7 +49,8 @@ async function loadFilters() {
         filtersLoading.value = true
         const params = { 
             mode: selectedMode.value,
-            time_filter: selectedTimeFilter.value
+            month: selectedMonth.value || '',
+            year: selectedYear.value || ''
         }
         if (selectedBrand.value) params.brand = selectedBrand.value
         if (selectedType.value) params.product_name = selectedType.value
@@ -111,11 +117,7 @@ function onConditionChange() {
 }
 
 function onFilterChange() {
-    if (selectedBrand.value || selectedType.value || selectedStorage.value || selectedCondition.value || selectedTimeFilter.value) {
-        handleSearch(1)
-    } else {
-        clearResults()
-    }
+    handleSearch(1)
 }
 
 function clearResults() {
@@ -146,7 +148,8 @@ async function handleSearch(page = 1) {
         const params = { 
             page,
             mode: selectedMode.value,
-            time_filter: selectedTimeFilter.value
+            month: selectedMonth.value || '',
+            year: selectedYear.value || ''
         }
         if (selectedBrand.value) params.brand = selectedBrand.value
         if (selectedType.value) params.product_name = selectedType.value
@@ -180,7 +183,8 @@ async function handleSearch(page = 1) {
 }
 
 function resetFilters() {
-    selectedTimeFilter.value = 'bulan_ini'
+    selectedMonth.value = new Date().getMonth() + 1
+    selectedYear.value = new Date().getFullYear()
     selectedBrand.value = ''
     selectedType.value = ''
     selectedStorage.value = ''
@@ -234,22 +238,27 @@ function getLocationTypeLabel(type) {
                     </button>
                 </div>
                 
-                <div class="flex items-center gap-2 bg-surface-50 dark:bg-surface-800 p-1 rounded-xl border border-surface-200 dark:border-surface-700">
-                    <button @click="selectedTimeFilter = 'bulan_ini'; onTimeFilterChange()"
-                        class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                        :class="selectedTimeFilter === 'bulan_ini' ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                        Bulan Ini
-                    </button>
-                    <button @click="selectedTimeFilter = 'tahun_ini'; onTimeFilterChange()"
-                        class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                        :class="selectedTimeFilter === 'tahun_ini' ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                        Tahun Ini
-                    </button>
-                    <button @click="selectedTimeFilter = 'all_time'; onTimeFilterChange()"
-                        class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors"
-                        :class="selectedTimeFilter === 'all_time' ? 'bg-white dark:bg-surface-700 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                        All Time
-                    </button>
+                <div class="flex items-center gap-2">
+                    <div class="relative">
+                        <select v-model="selectedMonth" @change="onTimeFilterChange"
+                            class="appearance-none pl-4 pr-8 py-2 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all cursor-pointer">
+                            <option value="">Semua Bulan</option>
+                            <option v-for="(m, i) in monthNames" :key="i" :value="i + 1">{{ m }}</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                    <div class="relative">
+                        <select v-model="selectedYear" @change="onTimeFilterChange"
+                            class="appearance-none pl-4 pr-8 py-2 text-sm bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl text-text-primary font-medium focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all cursor-pointer">
+                            <option value="">Semua Tahun</option>
+                            <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-text-secondary">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
                 </div>
             </div>
 

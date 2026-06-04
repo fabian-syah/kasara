@@ -1947,12 +1947,19 @@ class InventoryController extends Controller
         }
 
         $mode = $request->input('mode', 'hp'); // 'hp' or 'non-hp'
-        $timeFilter = $request->input('time_filter', 'bulan_ini');
+        $timeFilter = $request->input('time_filter');
+        $month = $request->input('month');
+        $year = $request->input('year');
 
         $baseQuery = StockOut::query()->where('stock_outs.status', '!=', 'cancelled');
 
         // Apply Time Filter
-        if ($timeFilter === 'bulan_ini') {
+        if (!empty($month) && !empty($year)) {
+            $baseQuery->whereMonth('stock_outs.reporting_date', $month)
+                      ->whereYear('stock_outs.reporting_date', $year);
+        } elseif (!empty($year)) {
+            $baseQuery->whereYear('stock_outs.reporting_date', $year);
+        } elseif ($timeFilter === 'bulan_ini') {
             $baseQuery->whereMonth('stock_outs.reporting_date', now()->month)
                       ->whereYear('stock_outs.reporting_date', now()->year);
         } elseif ($timeFilter === 'tahun_ini') {
@@ -2087,7 +2094,9 @@ class InventoryController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $timeFilter = $request->input('time_filter', 'bulan_ini');
+        $timeFilter = $request->input('time_filter');
+        $month = $request->input('month');
+        $year = $request->input('year');
         
         // Categories definition
         $catTerjual = "CASE WHEN stock_outs.category IN ('penjualan_store', 'penjualan_offline', 'shopee', 'orderan_online', 'bundling') THEN ";
@@ -2121,8 +2130,13 @@ class InventoryController extends Controller
             });
 
         // Filters
-        $applyFilters = function($query, $isHp = true) use ($request, $timeFilter, $user) {
-            if ($timeFilter === 'bulan_ini') {
+        $applyFilters = function($query, $isHp = true) use ($request, $timeFilter, $user, $month, $year) {
+            if (!empty($month) && !empty($year)) {
+                $query->whereMonth('stock_outs.reporting_date', $month)
+                      ->whereYear('stock_outs.reporting_date', $year);
+            } elseif (!empty($year)) {
+                $query->whereYear('stock_outs.reporting_date', $year);
+            } elseif ($timeFilter === 'bulan_ini') {
                 $query->whereMonth('stock_outs.reporting_date', now()->month)
                       ->whereYear('stock_outs.reporting_date', now()->year);
             } elseif ($timeFilter === 'tahun_ini') {
