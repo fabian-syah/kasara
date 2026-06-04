@@ -50,7 +50,7 @@ class ReportController extends Controller
             if ($filterType === 'all' || $filterType === 'hp') {
                 $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                     ->where('products.brand', 'ilike', '%' . $cleanBrand . '%')
-                    ->where('product_details.status', 'available')
+                    ->whereIn('product_details.status', ['available', 'booking', 'returned', 'process', 'service'])
                     ->whereNull('products.deleted_at')
                     ->when($isAnalistOnly, function($q) use ($excludedKeywords) {
                         foreach ($excludedKeywords as $kw) {
@@ -174,7 +174,7 @@ class ReportController extends Controller
         if ($filterType === 'all' || $filterType === 'hp') {
             $hpQuery = ProductDetail::join('products', 'product_details.product_id', '=', 'products.id')
                 ->where('products.type', 'hp')
-                ->where('product_details.status', 'available')
+                ->whereIn('product_details.status', ['available', 'booking', 'returned', 'process', 'service'])
                 ->whereNull('products.deleted_at')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
                     $excludedKeywords = (array) config('kasara.excluded_keywords', []);
@@ -926,7 +926,7 @@ class ReportController extends Controller
                     'product_details.condition',
                     DB::raw('count(*) as qty')
                 )
-                ->where('product_details.status', 'available');
+                ->whereIn('product_details.status', ['available', 'booking', 'returned', 'process', 'service']);
 
             if (!empty($filterBranchIds)) $currentStock->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
             elseif (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
