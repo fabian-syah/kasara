@@ -19,6 +19,8 @@ class BranchLeagueController extends Controller
 
         $assignments = BranchLeague::with('branch')
             ->forPeriod($month, $year)
+            ->orderBy('rank', 'asc')
+            ->orderBy('id', 'asc')
             ->get()
             ->groupBy('league');
 
@@ -58,6 +60,10 @@ class BranchLeagueController extends Controller
             'notes' => 'nullable|string|max:255',
         ]);
 
+        $maxRank = BranchLeague::forPeriod($validated['month'], $validated['year'])
+            ->where('league', $validated['league'])
+            ->max('rank') ?? 0;
+
         $assignment = BranchLeague::updateOrCreate(
             [
                 'branch_id' => $validated['branch_id'],
@@ -66,6 +72,7 @@ class BranchLeagueController extends Controller
             ],
             [
                 'league' => $validated['league'],
+                'rank' => $maxRank + 1,
                 'notes' => $validated['notes'] ?? null,
                 'assigned_by' => Auth::id(),
             ]
@@ -94,6 +101,10 @@ class BranchLeagueController extends Controller
         $userId = Auth::id();
         $count = 0;
 
+        $maxRank = BranchLeague::forPeriod($validated['month'], $validated['year'])
+            ->where('league', $validated['league'])
+            ->max('rank') ?? 0;
+
         foreach ($validated['branch_ids'] as $branchId) {
             BranchLeague::updateOrCreate(
                 [
@@ -103,6 +114,7 @@ class BranchLeagueController extends Controller
                 ],
                 [
                     'league' => $validated['league'],
+                    'rank' => ++$maxRank,
                     'assigned_by' => $userId,
                 ]
             );
@@ -159,6 +171,7 @@ class BranchLeagueController extends Controller
                 ],
                 [
                     'league' => $item->league,
+                    'rank' => $item->rank,
                     'notes' => $item->notes,
                     'assigned_by' => $userId,
                 ]
@@ -169,6 +182,27 @@ class BranchLeagueController extends Controller
         return response()->json([
             'success' => true,
             'message' => "$count assignment berhasil disalin."
+        ]);
+    }
+
+    /**
+     * Update the rank order of assignments within a league
+     */
+    public function updateRank(Request $request)
+    {
+        $validated = $request->validate([
+            'ranks' => 'required|array',
+            'ranks.*.id' => 'required|exists:branch_leagues,id',
+            'ranks.*.rank' => 'required|integer',
+        ]);
+
+        foreach ($validated['ranks'] as $item) {
+            BranchLeague::where('id', $item['id'])->update(['rank' => $item['rank']]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ranking berhasil diperbarui.'
         ]);
     }
 }

@@ -20,7 +20,7 @@
                     <span class="px-3 text-sm font-bold text-text-primary min-w-[120px] text-center select-none">
                         {{ monthNames[selectedMonth - 1] }} {{ selectedYear }}
                     </span>
-                    <button @click="nextMonth" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-100 dark:hover:bg-surface-700 transition-all">
+                    <button @click="nextMonth" :disabled="isNextMonthDisabled" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-surface-100 dark:hover:bg-surface-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                         <ChevronRight :size="15" class="text-text-secondary" />
                     </button>
                 </div>
@@ -61,9 +61,17 @@
                                 <span class="text-[10px] font-black w-5 text-center" :class="liga.numColor">{{ idx + 1 }}</span>
                                 <span class="text-xs font-semibold text-text-primary truncate">{{ item.branch?.name }}</span>
                             </div>
-                            <button @click="removeAssignment(item)" class="opacity-0 group-hover/item:opacity-100 text-red-400 hover:text-red-600 transition-all">
-                                <X :size="13" />
-                            </button>
+                            <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-all">
+                                <button v-if="idx > 0" @click="moveRank(liga.key, idx, -1)" class="p-1 rounded-md text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                                    <ChevronUp :size="14" />
+                                </button>
+                                <button v-if="idx < (assignments[liga.key]?.length || 0) - 1" @click="moveRank(liga.key, idx, 1)" class="p-1 rounded-md text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                                    <ChevronDown :size="14" />
+                                </button>
+                                <button @click="removeAssignment(item)" class="p-1 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 ml-1">
+                                    <X :size="13" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <!-- Add -->
@@ -102,9 +110,17 @@
                                 <span class="text-[10px] font-black w-5 text-center" :class="liga.numColor">{{ idx + 1 }}</span>
                                 <span class="text-xs font-semibold text-text-primary truncate">{{ item.branch?.name }}</span>
                             </div>
-                            <button @click="removeAssignment(item)" class="opacity-0 group-hover/item:opacity-100 text-red-400 hover:text-red-600 transition-all">
-                                <X :size="13" />
-                            </button>
+                            <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-all">
+                                <button v-if="idx > 0" @click="moveRank(liga.key, idx, -1)" class="p-1 rounded-md text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                                    <ChevronUp :size="14" />
+                                </button>
+                                <button v-if="idx < (assignments[liga.key]?.length || 0) - 1" @click="moveRank(liga.key, idx, 1)" class="p-1 rounded-md text-surface-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30">
+                                    <ChevronDown :size="14" />
+                                </button>
+                                <button @click="removeAssignment(item)" class="p-1 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 ml-1">
+                                    <X :size="13" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="bg-white dark:bg-surface-800 px-3 pb-3 border-t border-surface-100 dark:border-surface-700">
@@ -145,8 +161,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { ChevronLeft, ChevronRight, X, AlertCircle, Trophy, Star, AlertTriangle, MinusCircle } from 'lucide-vue-next'
+import { ref, onMounted, watch, computed } from 'vue'
+import { ChevronLeft, ChevronRight, X, AlertCircle, Trophy, Star, AlertTriangle, MinusCircle, ChevronUp, ChevronDown } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useToast } from '../../composables/useToast'
 
@@ -199,8 +215,44 @@ const leagueConfig = [
     },
 ]
 
+const currentDate = new Date()
+const currentMonth = currentDate.getMonth() + 1
+const currentYear = currentDate.getFullYear()
+
+const isNextMonthDisabled = computed(() => {
+    return selectedYear.value > currentYear || (selectedYear.value === currentYear && selectedMonth.value >= currentMonth)
+})
+
 const prevMonth = () => { if (selectedMonth.value === 1) { selectedMonth.value = 12; selectedYear.value-- } else { selectedMonth.value-- } }
-const nextMonth = () => { if (selectedMonth.value === 12) { selectedMonth.value = 1; selectedYear.value++ } else { selectedMonth.value++ } }
+const nextMonth = () => { 
+    if (isNextMonthDisabled.value) return;
+    if (selectedMonth.value === 12) { selectedMonth.value = 1; selectedYear.value++ } else { selectedMonth.value++ } 
+}
+
+const moveRank = async (ligaKey, idx, direction) => {
+    const list = assignments.value[ligaKey]
+    if (!list) return
+    
+    const newIdx = idx + direction
+    if (newIdx < 0 || newIdx >= list.length) return
+    
+    // Swap locally for instant feedback
+    const temp = list[idx]
+    list[idx] = list[newIdx]
+    list[newIdx] = temp
+    
+    const payload = list.map((item, index) => ({
+        id: item.id,
+        rank: index + 1
+    }))
+    
+    try {
+        await axios.post('/leagues/update-rank', { ranks: payload })
+    } catch (e) {
+        toast.error('Gagal memperbarui urutan')
+        fetchData() // rollback on error
+    }
+}
 
 const fetchData = async () => {
     loading.value = true

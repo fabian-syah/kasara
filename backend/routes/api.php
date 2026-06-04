@@ -133,6 +133,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [\App\Http\Controllers\BranchLeagueController::class, 'store']);
         Route::post('/bulk', [\App\Http\Controllers\BranchLeagueController::class, 'bulkAssign']);
         Route::post('/copy', [\App\Http\Controllers\BranchLeagueController::class, 'copyFromPrevious']);
+        Route::post('/update-rank', [\App\Http\Controllers\BranchLeagueController::class, 'updateRank']);
         Route::delete('/{id}', [\App\Http\Controllers\BranchLeagueController::class, 'destroy']);
     });
 

@@ -11,6 +11,7 @@ class BranchLeague extends Model
         'league',
         'month',
         'year',
+        'rank',
         'notes',
         'assigned_by',
     ];
