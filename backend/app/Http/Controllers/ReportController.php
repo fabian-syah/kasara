@@ -992,8 +992,8 @@ class ReportController extends Controller
                 
                 return [
                     'display' => $dispName,
-                    // Bulletproof key: only letters and numbers
-                    'key' => md5(preg_replace('/[^a-z0-9]/', '', strtolower($dispName)))
+                    // Bulletproof key: only letters, numbers, and plus sign (for Pro+)
+                    'key' => md5(preg_replace('/[^a-z0-9\+]/', '', strtolower($dispName)))
                 ];
             };
 
