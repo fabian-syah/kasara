@@ -1049,6 +1049,30 @@ class ReportController extends Controller
                 ->where('created_at', '>=', $resetTime)
                 ->where('created_at', '<', $endTime)
                 ->where('type', 'in');
+
+            if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+                $excludedKeywords = (array) config('kasara.excluded_keywords', []);
+                $dayLogs->where(function ($q) use ($excludedKeywords) {
+                    $q->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('branch_id')->whereHas('branch', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('online_shop_id')->whereHas('onlineShop', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('warehouse_id')->whereHas('warehouse', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('distributor_id')->whereHas('distributor', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    });
+                });
+            }
+
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]);
 
@@ -1086,6 +1110,25 @@ class ReportController extends Controller
                 ->where('created_at', '<', $endTime)
                 ->where('status', '!=', 'cancelled');
             
+            if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+                $excludedKeywords = (array) config('kasara.excluded_keywords', []);
+                $dayOuts->where(function ($q) use ($excludedKeywords) {
+                    $q->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('branch_id')->whereHas('branch', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('online_shop_id')->whereHas('onlineShop', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereNot(function ($sq) use ($excludedKeywords) {
+                        $sq->whereNotNull('warehouse_id')->whereHas('warehouse', function ($pq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $pq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    });
+                });
+            }
+
             if (!empty($filterBranchIds)) {
                 $dayOuts->where(function($q) use ($filterBranchIds) {
                     $q->whereIn('branch_id', $filterBranchIds)->orWhere('destination_id', $filterBranchIds);
