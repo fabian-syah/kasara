@@ -30,7 +30,7 @@ class ReportController extends Controller
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
         $isAnalistOnly = $user->hasRole('analist') && !$user->hasRole('super_admin');
-        $excludedKeywords = config('kasara.excluded_keywords');
+        $excludedKeywords = (array) config('kasara.excluded_keywords', []);
 
         // 1. Get all brands
         $brands = Brand::orderBy('name')->get();
@@ -177,7 +177,7 @@ class ReportController extends Controller
                 ->where('product_details.status', 'available')
                 ->whereNull('products.deleted_at')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = config('kasara.excluded_keywords');
+                    $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                     foreach ($excludedKeywords as $kw) {
                         $q->whereHasMorph('placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class, \App\Models\Distributor::class], function($pq) use ($kw) {
                             $pq->where('name', 'not ilike', "%$kw%");
@@ -232,7 +232,7 @@ class ReportController extends Controller
                 ->where('products.type', 'non-hp')
                 ->whereNull('products.deleted_at')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = config('kasara.excluded_keywords');
+                    $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                     foreach ($excludedKeywords as $kw) {
                         $q->whereHasMorph('placement', [\App\Models\Branch::class, \App\Models\OnlineShop::class, \App\Models\Warehouse::class, \App\Models\Distributor::class], function($pq) use ($kw) {
                             $pq->where('name', 'not ilike', "%$kw%");
@@ -741,7 +741,7 @@ class ReportController extends Controller
         $branches = DB::table('branches')
             ->where('is_active', true)
             ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = config('kasara.excluded_keywords');
+                $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                 foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
             })
             ->get();
@@ -775,7 +775,7 @@ class ReportController extends Controller
         $shops = DB::table('online_shops')
             ->where('is_active', true)
             ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                $excludedKeywords = config('kasara.excluded_keywords');
+                $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                 foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
             })
             ->get();
@@ -848,13 +848,13 @@ class ReportController extends Controller
         return response()->json([
             'branches' => \App\Models\Branch::orderBy('name')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = config('kasara.excluded_keywords');
+                    $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                     foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
                 })
                 ->get(['id', 'name']),
             'online_shops' => \App\Models\OnlineShop::orderBy('name')
                 ->when($user->hasRole('analist') && !$user->hasRole('super_admin'), function($q) {
-                    $excludedKeywords = config('kasara.excluded_keywords');
+                    $excludedKeywords = (array) config('kasara.excluded_keywords', []);
                     foreach ($excludedKeywords as $kw) $q->where('name', 'not ilike', "%$kw%");
                 })
                 ->get(['id', 'name'])
@@ -924,7 +924,7 @@ class ReportController extends Controller
                     'products.has_imei',
                     'product_details.storage',
                     'product_details.condition',
-                    \DB::raw('count(*) as qty')
+                    DB::raw('count(*) as qty')
                 )
                 ->where('product_details.status', 'available');
 
@@ -996,7 +996,7 @@ class ReportController extends Controller
                     'products.brand',
                     'products.name as product_name',
                     'products.type',
-                    \DB::raw('SUM(inventories.quantity) as qty')
+                    DB::raw('SUM(inventories.quantity) as qty')
                 );
 
             if (!empty($filterBranchIds)) $currentNonHpStock->whereIn('inventories.placement_id', $filterBranchIds)->where('inventories.placement_type', 'branch');
@@ -1028,31 +1028,33 @@ class ReportController extends Controller
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]);
 
-            foreach($dayLogs->cursor() as $log) {
-                if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:'))) continue;
-                $pd = $log->productDetail;
-                if (!$pd) continue;
+            $dayLogs->chunk(500, function ($logs) use (&$results, $defaultRow, $normalize) {
+                foreach($logs as $log) {
+                    if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:'))) continue;
+                    $pd = $log->productDetail;
+                    if (!$pd) continue;
 
-                $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
-                $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
-                $groupKey = $norm['key'];
+                    $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
+                    $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
+                    $groupKey = $norm['key'];
 
-                if (!isset($results[$groupKey])) {
-                    $results[$groupKey] = array_merge($defaultRow, [
-                        'name' => $norm['display'],
-                        'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
-                        'has_imei' => $pd->product->has_imei,
-                    ]);
+                    if (!isset($results[$groupKey])) {
+                        $results[$groupKey] = array_merge($defaultRow, [
+                            'name' => $norm['display'],
+                            'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
+                            'has_imei' => $pd->product->has_imei,
+                        ]);
+                    }
+                    
+                    $qty = ($log->quantity ?? 1);
+                    $results[$groupKey]['in_total'] += $qty;
+                    $desc = strtoupper($log->description ?? '');
+                    if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT')) $results[$groupKey]['in_tt'] += $qty;
+                    elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU')) $results[$groupKey]['in_tu'] += $qty;
+                    elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB')) $results[$groupKey]['in_ab'] += $qty;
+                    else $results[$groupKey]['in_manual'] += $qty;
                 }
-                
-                $qty = ($log->quantity ?? 1);
-                $results[$groupKey]['in_total'] += $qty;
-                $desc = strtoupper($log->description ?? '');
-                if (str_contains($desc, 'TUKAR TAMBAH') || str_contains($desc, ' TT')) $results[$groupKey]['in_tt'] += $qty;
-                elseif (str_contains($desc, 'TUKAR UNIT') || str_contains($desc, ' TU')) $results[$groupKey]['in_tu'] += $qty;
-                elseif (str_contains($desc, 'ANGKAT BARANG') || str_contains($desc, ' AB')) $results[$groupKey]['in_ab'] += $qty;
-                else $results[$groupKey]['in_manual'] += $qty;
-            }
+            });
 
             // 4. Mutations (Out and Incoming StockOuts)
             $dayOuts = StockOut::with(['items.product', 'nonHpItems.product'])
@@ -1066,62 +1068,64 @@ class ReportController extends Controller
                 });
             }
 
-            foreach($dayOuts->cursor() as $out) {
-                $cat = $out->category;
-                $isAB = $cat === 'angkat_barang';
-                $isIncoming = in_array($cat, $incomingAuditCategories) || $isAB;
-                
-                foreach($out->items as $pd) {
-                    $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
-                    $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
-                    $groupKey = $norm['key'];
-
-                    if (!isset($results[$groupKey])) {
-                        $results[$groupKey] = array_merge($defaultRow, [
-                            'name' => $norm['display'],
-                            'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
-                            'has_imei' => $pd->product->has_imei,
-                        ]);
-                    }
+            $dayOuts->chunk(500, function ($outs) use (&$results, $defaultRow, $normalize, $incomingAuditCategories, $soldCategories) {
+                foreach($outs as $out) {
+                    $cat = $out->category;
+                    $isAB = $cat === 'angkat_barang';
+                    $isIncoming = in_array($cat, $incomingAuditCategories) || $isAB;
                     
-                    if ($isIncoming) {
-                        $results[$groupKey]['in_total']++;
-                        if ($isAB) $results[$groupKey]['in_ab']++;
-                        elseif ($cat === 'refund') $results[$groupKey]['in_rf']++;
-                        else $results[$groupKey]['in_manual']++;
-                    } else {
-                        $results[$groupKey]['out_total']++;
-                        $cat = $out->category;
-                        if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
-                        elseif ($cat === 'retur') $results[$groupKey]['out_retur']++;
-                        else $results[$groupKey]['out_keluar']++;
+                    foreach($out->items as $pd) {
+                        $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
+                        $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
+                        $groupKey = $norm['key'];
+
+                        if (!isset($results[$groupKey])) {
+                            $results[$groupKey] = array_merge($defaultRow, [
+                                'name' => $norm['display'],
+                                'type' => $pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp'),
+                                'has_imei' => $pd->product->has_imei,
+                            ]);
+                        }
+                        
+                        if ($isIncoming) {
+                            $results[$groupKey]['in_total']++;
+                            if ($isAB) $results[$groupKey]['in_ab']++;
+                            elseif ($cat === 'refund') $results[$groupKey]['in_rf']++;
+                            else $results[$groupKey]['in_manual']++;
+                        } else {
+                            $results[$groupKey]['out_total']++;
+                            $cat = $out->category;
+                            if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
+                            elseif ($cat === 'retur') $results[$groupKey]['out_retur']++;
+                            else $results[$groupKey]['out_keluar']++;
+                        }
+                    }
+
+                    foreach($out->nonHpItems as $nhi) {
+                        $norm = $normalize($nhi->product->brand ?? '', $nhi->product->name ?? '', null, null, false);
+                        $groupKey = $norm['key'];
+
+                        if (!isset($results[$groupKey])) {
+                            $results[$groupKey] = array_merge($defaultRow, [
+                                'name' => $norm['display'],
+                                'type' => $nhi->product->type ?? 'non-hp',
+                                'has_imei' => false,
+                            ]);
+                        }
+                        $qty = $nhi->quantity;
+                        if ($isIncoming) {
+                            $results[$groupKey]['in_total'] += $qty;
+                            if ($cat === 'refund') $results[$groupKey]['in_rf'] += $qty;
+                            else $results[$groupKey]['in_manual'] += $qty;
+                        } else {
+                            $results[$groupKey]['out_total'] += $qty;
+                            if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold'] += $qty;
+                            elseif ($cat === 'retur') $results[$groupKey]['out_retur'] += $qty;
+                            else $results[$groupKey]['out_keluar'] += $qty;
+                        }
                     }
                 }
-
-                foreach($out->nonHpItems as $nhi) {
-                    $norm = $normalize($nhi->product->brand ?? '', $nhi->product->name ?? '', null, null, false);
-                    $groupKey = $norm['key'];
-
-                    if (!isset($results[$groupKey])) {
-                        $results[$groupKey] = array_merge($defaultRow, [
-                            'name' => $norm['display'],
-                            'type' => $nhi->product->type ?? 'non-hp',
-                            'has_imei' => false,
-                        ]);
-                    }
-                    $qty = $nhi->quantity;
-                    if ($isIncoming) {
-                        $results[$groupKey]['in_total'] += $qty;
-                        if ($cat === 'refund') $results[$groupKey]['in_rf'] += $qty;
-                        else $results[$groupKey]['in_manual'] += $qty;
-                    } else {
-                        $results[$groupKey]['out_total'] += $qty;
-                        if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold'] += $qty;
-                        elseif ($cat === 'retur') $results[$groupKey]['out_retur'] += $qty;
-                        else $results[$groupKey]['out_keluar'] += $qty;
-                    }
-                }
-            }
+            });
 
             // 5. Final Calculation: Initial = Final - In + Out
             foreach ($results as $key => $val) {
@@ -1250,10 +1254,11 @@ class ReportController extends Controller
 
     public function getDownloadHistory(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = auth()->user();
         $query = ExportLog::with(['user.roles', 'user.branch', 'user.onlineShop', 'user.warehouse', 'user.distributor']);
 
-        if (!$user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+        if (!$user->hasRole(['super_admin', 'analist', 'analis'])) {
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
             $accessibleWarehouseIds = $user->getAccessibleWarehouseIds();
