@@ -259,6 +259,11 @@ function getLocationTypeLabel(type) {
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                     </div>
+                    <button @click="selectedMonth = ''; selectedYear = ''; onTimeFilterChange()"
+                        class="px-4 py-2 text-sm font-medium rounded-xl transition-colors border"
+                        :class="(selectedMonth === '' && selectedYear === '') ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 border-primary-200 dark:border-primary-800/50 shadow-sm' : 'bg-surface-50 dark:bg-surface-800 text-text-secondary hover:text-text-primary border-surface-200 dark:border-surface-700'">
+                        All Time
+                    </button>
                 </div>
             </div>
 
