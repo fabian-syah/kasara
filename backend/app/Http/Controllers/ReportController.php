@@ -926,7 +926,31 @@ class ReportController extends Controller
                     'product_details.condition',
                     DB::raw('count(*) as qty')
                 )
-                ->whereIn('product_details.status', ['available', 'booking', 'returned', 'process', 'service']);
+                ->whereIn('product_details.status', ['available', 'booking', 'returned', 'process', 'service'])
+                ->whereNull('product_details.deleted_at')
+                ->whereNull('products.deleted_at');
+
+            if ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
+                $excludedKeywords = (array) config('kasara.excluded_keywords', []);
+                $currentStock->where(function ($q) use ($excludedKeywords) {
+                    foreach (['branch', 'online_shop', 'warehouse', 'distributor'] as $pType) {
+                        $q->whereNot(function ($sq) use ($pType, $excludedKeywords) {
+                            $sq->where('product_details.placement_type', $pType);
+                            $modelClass = match ($pType) {
+                                'branch' => \App\Models\Branch::class,
+                                'online_shop' => \App\Models\OnlineShop::class,
+                                'warehouse' => \App\Models\Warehouse::class,
+                                'distributor' => \App\Models\Distributor::class,
+                            };
+                            $sq->whereHasMorph('placement', [$modelClass], function ($pq) use ($excludedKeywords) {
+                                $pq->where(function ($nq) use ($excludedKeywords) {
+                                    foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                                });
+                            });
+                        });
+                    }
+                });
+            }
 
             if (!empty($filterBranchIds)) $currentStock->whereIn('product_details.placement_id', $filterBranchIds)->where('product_details.placement_type', 'branch');
             elseif (!empty($filterOnlineShopIds)) $currentStock->whereIn('product_details.placement_id', $filterOnlineShopIds)->where('product_details.placement_type', 'online_shop');
