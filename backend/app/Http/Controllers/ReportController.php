@@ -1028,7 +1028,7 @@ class ReportController extends Controller
             if (!empty($filterBranchIds)) $dayLogs->whereIn('branch_id', $filterBranchIds);
             elseif (!empty($filterOnlineShopIds)) $dayLogs->where('online_shop_id', $filterOnlineShopIds[0]);
 
-            foreach($dayLogs->get() as $log) {
+            foreach($dayLogs->cursor() as $log) {
                 if ($log->description && (str_contains($log->description, 'Pindah Cabang') || str_contains($log->description, 'Resi:'))) continue;
                 $pd = $log->productDetail;
                 if (!$pd) continue;
@@ -1066,7 +1066,7 @@ class ReportController extends Controller
                 });
             }
 
-            foreach($dayOuts->get() as $out) {
+            foreach($dayOuts->cursor() as $out) {
                 $cat = $out->category;
                 $isAB = $cat === 'angkat_barang';
                 $isIncoming = in_array($cat, $incomingAuditCategories) || $isAB;
