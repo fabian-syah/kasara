@@ -240,7 +240,7 @@
                                     :key="`${index}-${idx}`"
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
                                     <td class="px-6 py-4 text-text-secondary" v-if="idx === 0"
-                                        :rowspan="item.items.length">{{ index + 1 }}</td>
+                                        :rowspan="item.items.length">{{ ((salesRecords.daily_sales?.current_page || 1) - 1) * (salesRecords.daily_sales?.per_page || 50) + index + 1 }}</td>
                                     <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
                                         formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs" v-if="idx === 0"
@@ -390,7 +390,7 @@
                                 <!-- Single item row -->
                                 <tr v-else
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
-                                    <td class="px-6 py-4 text-text-primary">{{ index + 1 }}</td>
+                                    <td class="px-6 py-4 text-text-primary">{{ ((salesRecords.daily_sales?.current_page || 1) - 1) * (salesRecords.daily_sales?.per_page || 50) + index + 1 }}</td>
                                     <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">
                                         <div>{{ item.order_no }}</div>
@@ -513,6 +513,27 @@
                         </template>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="salesRecords.daily_sales?.last_page > 1" class="flex items-center justify-between bg-white dark:!bg-surface-800 p-4 rounded-xl border border-gray-100 dark:border-surface-700">
+            <div class="text-sm text-text-secondary">
+                Menampilkan halaman <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.current_page }}</span> dari <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.last_page }}</span> (Total {{ salesRecords.daily_sales.total }} data)
+            </div>
+            <div class="flex gap-2">
+                <button 
+                    @click="fetchData(salesRecords.daily_sales.current_page - 1)" 
+                    :disabled="salesRecords.daily_sales.current_page === 1"
+                    class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-gray-50 dark:bg-surface-700 text-text-primary hover:bg-gray-100 dark:hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-surface-600">
+                    Sebelumnya
+                </button>
+                <button 
+                    @click="fetchData(salesRecords.daily_sales.current_page + 1)" 
+                    :disabled="salesRecords.daily_sales.current_page === salesRecords.daily_sales.last_page"
+                    class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-primary-50 dark:bg-primary-500/10 text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-primary-100 dark:border-primary-500/20">
+                    Selanjutnya
+                </button>
             </div>
         </div>
 
@@ -744,7 +765,7 @@ const fetchLocations = async () => {
 }
 
 const handleLocationChange = () => {
-    fetchData()
+    fetchData(1)
 }
 
 // Modals State
@@ -1083,7 +1104,7 @@ const handlePeriodChange = () => {
     } else {
         handleMonthChange();
     }
-    fetchData();
+    fetchData(1);
 }
 
 const handleDateChange = () => {
@@ -1095,7 +1116,7 @@ const handleDateChange = () => {
     if (selectedPeriod.value === 'daily') {
         filters.value.end_date = filters.value.start_date;
     }
-    fetchData();
+    fetchData(1);
 }
 
 const handleMonthChange = () => {
@@ -1106,7 +1127,7 @@ const handleMonthChange = () => {
     filters.value.start_date = `${year}-${pad(month)}-01`;
     filters.value.end_date = `${year}-${pad(month)}-${pad(endDate.getDate())}`;
     if (selectedPeriod.value === 'monthly') {
-        fetchData();
+        fetchData(1);
     }
 }
 
@@ -1149,13 +1170,14 @@ const canCancel = (date) => {
     return diffDays <= 5;
 }
 
-const fetchData = async () => {
+const fetchData = async (page = 1) => {
     loading.value = true
     try {
         const params = {
             ...filters.value,
             branch_id: selectedBranchId.value,
-            online_shop_id: selectedOnlineShopId.value
+            online_shop_id: selectedOnlineShopId.value,
+            page: page
         };
         // Toko online only sees tukar_unit category
         const role = (authStore.userRole || '').toLowerCase();
@@ -1210,7 +1232,7 @@ onMounted(() => {
     filters.value.start_date = today;
     filters.value.end_date = today;
     fetchLocations()
-    fetchData()
+    fetchData(1)
 
     // Listen for Real-time sales updates via WebSockets (Laravel Echo/Reverb)
     if (window.Echo) {
@@ -1247,7 +1269,7 @@ onMounted(() => {
                 }
 
                 console.log('[Realtime] Verified match for current scope, refetching list...', evt.receipt_id);
-                fetchData();
+                fetchData(salesRecords.value.daily_sales?.current_page || 1);
             });
     }
 })
