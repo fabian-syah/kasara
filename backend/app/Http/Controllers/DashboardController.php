@@ -91,7 +91,7 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
+        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan'];
         return $this->getAggregatedStats($user, $dashCat, 'toko_offline');
     }
 
@@ -126,6 +126,11 @@ class DashboardController extends Controller
         if ($isRestricted) {
             $todaySalesQuery->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
                 $q->whereHas('user', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    $qu->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                        if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
+                        if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                    });
+                })->orWhereHas('inventoryUser', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
                     $qu->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
                         if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
                         if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
@@ -178,13 +183,7 @@ class DashboardController extends Controller
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower($sale->category ?? '');
 
-            if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
-                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                    $cat = 'tukar_unit';
-                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                    $cat = 'tukar_tambah';
-                }
-            } else {
+            if (!in_array($origCat, $categories)) {
                 if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
                     $cat = 'tukar_unit';
                 } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {

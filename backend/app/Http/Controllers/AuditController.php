@@ -1344,7 +1344,7 @@ class AuditController extends Controller
                         $pSums = [];
 
                         // Categories that count towards Omset (Revenue)
-                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling'];
+                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling', 'cancel_penjualan'];
 
                         $resolveActualCategory = function ($category, $notes, $salesAccount) {
                             $category = strtolower($category ?? '');
@@ -1403,13 +1403,14 @@ class AuditController extends Controller
                         $tradeSelisih = 0;
                         $deductions = 0;
                         $totalTradeOutgoing = 0;
+                        $totalTradeIncoming = 0;
 
                         foreach ($rawStats as $ps) {
                             $cat = strtolower($resolveActualCategory($ps->category, $ps->notes, $ps->sales_account));
                             $discount = abs((float) ($ps->total_discount ?? 0));
                             // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
                             $price = max(0, abs((float) $ps->selling_price));
-
+                            
                             $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                             $isTradeIn = ($cat === 'tukar_tambah');
                             $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
@@ -1449,8 +1450,10 @@ class AuditController extends Controller
                                 if ($outPrice <= 0) {
                                     $outPrice = $price;
                                 }
+                                $inPrice = floatval($ps->tt_incoming_cost_price ?? 0);
                                 
                                 $totalTradeOutgoing += $outPrice;
+                                $totalTradeIncoming += $inPrice;
                                 $tradeSelisih += $price;
                             } elseif ($cat === 'downgrade') {
                                 $deductions += $price;
@@ -1462,7 +1465,7 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeSelisih;
                         // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
                         // This is equivalent to: Base Sales + TT Difference - Deductions.
-                        $omsetBersih = $paymentTotal - $deductions;
+                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
@@ -1821,7 +1824,7 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
                         
                         // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions
-                        $omsetBersih = $paymentTotal - $deductions;
+                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
 
                         return [
                             'payments' => $pSums,
