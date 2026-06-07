@@ -1820,9 +1820,8 @@ class AuditController extends Controller
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
                         
-                        // Correct direct formula: Omset Bersih = Sales(Base) - All Deductions(including InTT)
-                        // To satisfy user's requirement (Omset Bersih = Penjualan Store - In TT), we exclude TT Out from the baseline.
-                        $omsetBersih = $baseSalesOnly - $activityDeductions;
+                        // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions (In TT, Refund, Angkat Barang, Downgrade Net)
+                        $omsetBersih = $paymentTotal - $activityDeductions;
 
                         return [
                             'payments' => $pSums,
