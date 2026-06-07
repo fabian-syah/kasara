@@ -205,7 +205,10 @@ class DashboardController extends Controller
                 $csPerformance[$csName]['net_sales'] += $price;
             } elseif ($isTradeIn) {
                 $ttRec = $ttMap->get($sale->receipt_id);
-                $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
+                $outVal = $ttRec ? (float)$ttRec->outgoing_price : 0;
+                if ($outVal <= 0) {
+                    $outVal = $price;
+                }
                 $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : max(0, $outVal - $price);
                 
                 $totalRevenue += $outVal;
@@ -449,7 +452,10 @@ class DashboardController extends Controller
                     $omsetBersih += $price;
                 } elseif ($isTradeIn) {
                     $ttRec = $rankTTMap->get($sale->receipt_id);
-                    $outVal = $ttRec ? (float)$ttRec->outgoing_price : $price;
+                    $outVal = $ttRec ? (float)$ttRec->outgoing_price : 0;
+                    if ($outVal <= 0) {
+                        $outVal = $price;
+                    }
                     $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : max(0, $outVal - $price);
                     $omset += $outVal;
                     // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
