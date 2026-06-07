@@ -23,7 +23,7 @@ class DashboardController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK')) {
+        if ($user && ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK'))) {
             return $this->getAdminProdukStats();
         }
 
@@ -347,7 +347,8 @@ class DashboardController extends Controller
                 if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
             });
         } elseif ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = config('kasara.excluded_keywords') ?: [];
+            $excludedKeywords = config('kasara.excluded_keywords');
+            if (!is_array($excludedKeywords)) $excludedKeywords = [];
             if (!empty($excludedKeywords)) {
                 $leaderboardQuery->where(function($q) use ($excludedKeywords) {
                     $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
