@@ -172,46 +172,45 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('receipt_id');
 
+        $dgMap = empty($dashboardReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $dashboardReceiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')
+            ->get()
+            ->keyBy('receipt_id');
+
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
             if (!isset($csPerformance[$csName])) {
                 $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0, 'net_sales' => 0];
             }
 
-            $origCat = strtolower($sale->category ?? '');
             $notes = strtolower($sale->notes ?? '');
             $sa = strtolower($sale->sales_account ?? '');
-            $cat = strtolower($sale->category ?? '');
-
-            if (!in_array($origCat, $categories)) {
-                if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                    $cat = 'tukar_unit';
-                } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
-                    $cat = 'angkat_barang';
-                } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
-                    $cat = 'refund';
-                } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                    $cat = 'downgrade';
-                } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                    $cat = 'tukar_tambah';
-                }
-            }
-
+            $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
             $price = abs((float)($sale->selling_price ?? 0));
-            if ($cat === 'tukar_unit') {
-                $price = 0;
+
+            $saleType = 'ignored';
+            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                $saleType = 'tukar_unit';
+            } elseif ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                $saleType = 'tukar_tambah';
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+                $saleType = 'base_sale';
+            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                $saleType = 'angkat_barang';
+            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                $saleType = 'refund';
+            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                $saleType = 'downgrade';
             }
 
-            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
-            $isTradeIn = ($cat === 'tukar_tambah');
-            $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+            $omsetContribution = 0;
+            $netContribution = 0;
 
-            if ($isBaseSale) {
-                $totalRevenue += $price;
-                $totalNetRevenue += $price;
-                $csPerformance[$csName]['total_sales'] += $price;
-                $csPerformance[$csName]['net_sales'] += $price;
-            } elseif ($isTradeIn) {
+            if ($saleType === 'tukar_unit') {
+                $omsetContribution = 0;
+                $netContribution = 0;
+            } elseif ($saleType === 'tukar_tambah') {
                 $ttRec = $ttMap->get($sale->receipt_id);
                 $outVal = $ttRec ? (float)$ttRec->outgoing_price : 0;
                 if ($outVal <= 0) {
@@ -221,17 +220,34 @@ class DashboardController extends Controller
                 if ($inVal <= 0) {
                     $inVal = max(0, $outVal - $price);
                 }
-                $totalRevenue += $outVal;
-                $csPerformance[$csName]['total_sales'] += $outVal;
-                
-                $totalNetRevenue += ($outVal - $inVal);
-                $csPerformance[$csName]['net_sales'] += ($outVal - $inVal);
-            } elseif ($isDeduction) {
-                $effectiveDeduction = $price; 
-                
-                $totalNetRevenue -= $effectiveDeduction;
-                $csPerformance[$csName]['net_sales'] -= $effectiveDeduction;
+                $omsetContribution = $outVal;
+                $netContribution = $outVal - $inVal;
+            } elseif ($saleType === 'base_sale') {
+                $omsetContribution = $price;
+                $netContribution = $price;
+            } elseif ($saleType === 'angkat_barang') {
+                $omsetContribution = 0;
+                $netContribution = -$price;
+            } elseif ($saleType === 'refund') {
+                $omsetContribution = 0;
+                $netContribution = -$price;
+            } elseif ($saleType === 'downgrade') {
+                $dgRec = $dgMap->get($sale->receipt_id);
+                $outDg = $dgRec ? (float)$dgRec->outgoing_price : 0;
+                $inDg = $dgRec ? (float)$dgRec->incoming_cost_price : 0;
+                $dgDiff = $outDg - $inDg;
+                if ($dgRec && $dgDiff != 0) {
+                    $netContribution = -$dgDiff;
+                } else {
+                    $netContribution = -$price;
+                }
+                $omsetContribution = 0;
             }
+
+            $totalRevenue += $omsetContribution;
+            $totalNetRevenue += $netContribution;
+            $csPerformance[$csName]['total_sales'] += $omsetContribution;
+            $csPerformance[$csName]['net_sales'] += $netContribution;
 
             // HP Items
             foreach ($sale->items as $item) {
@@ -253,15 +269,7 @@ class DashboardController extends Controller
             if ($sale->non_hp_items) {
                 foreach ($sale->non_hp_items as $item) {
                     $pid = $item['product_id'] ?? null;
-                    $itemPrice = abs((float)($item['selling_price'] ?? 0));
                     
-                    if ($isBaseSale) {
-                        $totalRevenue += $itemPrice;
-                        $totalNetRevenue += $itemPrice;
-                        $csPerformance[$csName]['total_sales'] += $itemPrice;
-                        $csPerformance[$csName]['net_sales'] += $itemPrice;
-                    }
-
                     if ($pid && isset($nonHpProducts[$pid])) {
                         $product = $nonHpProducts[$pid];
                         if (strtolower($product->category) === 'non_hp') {

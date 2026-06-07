@@ -576,42 +576,10 @@ class AuditController extends Controller
                         'stock_outs.notes',
                         'stock_outs.sales_account',
                         DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
+                        DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
                     )->get();
-
-                    $resolveActualCategory = function ($category, $notes, $salesAccount) {
-                        $category = strtolower($category ?? '');
-                        $notes = strtolower($notes ?? '');
-                        $salesAccount = strtolower($salesAccount ?? '');
-
-                        if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
-                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
-                                return 'tukar_unit';
-                            }
-                            if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
-                                return 'tukar_tambah';
-                            }
-                            return $category;
-                        }
-
-                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
-                            return 'tukar_unit';
-                        }
-                        if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
-                            return 'angkat_barang';
-                        }
-                        if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
-                            return 'refund';
-                        }
-                        if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
-                            return 'downgrade';
-                        }
-                        if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
-                            return 'tukar_tambah';
-                        }
-
-                        return $category;
-                    };
 
                     $ownerGroups = [];
 
@@ -631,39 +599,57 @@ class AuditController extends Controller
                             ];
                         }
 
-                        $cat = strtolower($resolveActualCategory($tx->category, $tx->notes, $tx->sales_account));
-                        $discount = abs((float) ($tx->total_discount ?? 0));
-                        // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                        $notes = strtolower($tx->notes ?? '');
+                        $sa = strtolower($tx->sales_account ?? '');
+                        $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
                         $price = max(0, abs((float) $tx->selling_price));
 
-                        // Sales leaderboard metrics based strictly on store sales, trade-ins, and downgrades
-                        $isBaseSale = ($cat === 'penjualan_store');
-                        $isTradeIn = ($cat === 'tukar_tambah');
-                        $isDeduction = in_array($cat, ['refund', 'angkat_barang']);
+                        $saleType = 'ignored';
+                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                            $saleType = 'tukar_unit';
+                        } elseif ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                            $saleType = 'tukar_tambah';
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+                            $saleType = 'base_sale';
+                        } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                            $saleType = 'angkat_barang';
+                        } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                            $saleType = 'refund';
+                        } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                            $saleType = 'downgrade';
+                        }
 
-                        if ($isBaseSale) {
+                        if ($saleType === 'base_sale') {
                             $ownerGroups[$ownerId]['total_omset'] += $price;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
-                        } elseif ($isTradeIn) {
+                        } elseif ($saleType === 'tukar_tambah') {
                             $outPrice = floatval($tx->tt_outgoing_price ?? 0);
                             if ($outPrice <= 0) {
                                 $outPrice = $price;
                             }
-                            // Include Tukar Tambah OUT in Total Omset, and Net diff in Net Omset
+                            $inPrice = floatval($tx->tt_incoming_cost_price ?? 0);
+                            if ($inPrice <= 0) {
+                                $inPrice = max(0, $outPrice - $price);
+                            }
                             $ownerGroups[$ownerId]['total_omset'] += $outPrice;
-                            $ownerGroups[$ownerId]['grand_total'] += $price;
+                            $ownerGroups[$ownerId]['grand_total'] += ($outPrice - $inPrice);
 
-                            // Include In TT in activity total (Out Price - Selling Price Net Diff)
                             $inTtVal = $outPrice - $price;
                             if ($inTtVal > 0) {
                                 $ownerGroups[$ownerId]['total_activity_rp'] += $inTtVal;
                             }
-                        } elseif ($cat === 'downgrade') {
-                            // Downgrade OUT is excluded from Total Omset.
-                            // Downgrade Net impact is SUBTRACTED from Net Omset.
-                            $ownerGroups[$ownerId]['grand_total'] -= $price;
-                            $ownerGroups[$ownerId]['total_activity_rp'] += $price;
-                        } elseif ($isDeduction) {
+                        } elseif ($saleType === 'downgrade') {
+                            $outDg = floatval($tx->dg_outgoing_price ?? 0);
+                            $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
+                            $dgDiff = $outDg - $inDg;
+                            if ($dgDiff != 0) {
+                                $ownerGroups[$ownerId]['grand_total'] -= $dgDiff;
+                                $ownerGroups[$ownerId]['total_activity_rp'] += $dgDiff;
+                            } else {
+                                $ownerGroups[$ownerId]['grand_total'] -= $price;
+                                $ownerGroups[$ownerId]['total_activity_rp'] += $price;
+                            }
+                        } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
                             $ownerGroups[$ownerId]['grand_total'] -= $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
                         }
@@ -818,42 +804,10 @@ class AuditController extends Controller
                         'stock_outs.notes', 
                         'stock_outs.sales_account',
                         DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
+                        DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
                     )->get();
-
-                    $resolveActualCategory = function ($category, $notes, $salesAccount) {
-                        $category = strtolower($category ?? '');
-                        $notes = strtolower($notes ?? '');
-                        $salesAccount = strtolower($salesAccount ?? '');
-
-                        if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
-                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
-                                return 'tukar_unit';
-                            }
-                            if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
-                                return 'tukar_tambah';
-                            }
-                            return $category;
-                        }
-
-                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($salesAccount, 'tukar unit') || str_contains($salesAccount, 'tukar_unit')) {
-                            return 'tukar_unit';
-                        }
-                        if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
-                            return 'angkat_barang';
-                        }
-                        if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
-                            return 'refund';
-                        }
-                        if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
-                            return 'downgrade';
-                        }
-                        if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
-                            return 'tukar_tambah';
-                        }
-
-                        return $category;
-                    };
 
                     $dailyStats = [];
 
@@ -870,31 +824,50 @@ class AuditController extends Controller
                             ];
                         }
 
-                        $cat = strtolower($resolveActualCategory($tx->category, $tx->notes, $tx->sales_account));
-                        $discount = abs((float) ($tx->total_discount ?? 0));
-                        // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                        $notes = strtolower($tx->notes ?? '');
+                        $sa = strtolower($tx->sales_account ?? '');
+                        $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
                         $price = max(0, abs((float) $tx->selling_price));
 
-                        $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'sale', 'pos', 'sale', 'pos', 'penjualan_store', 'penjualan_store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
-                        $isTradeIn = ($cat === 'tukar_tambah');
-                        $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+                        $saleType = 'ignored';
+                        if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                            $saleType = 'tukar_unit';
+                        } elseif ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                            $saleType = 'tukar_tambah';
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+                            $saleType = 'base_sale';
+                        } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                            $saleType = 'angkat_barang';
+                        } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                            $saleType = 'refund';
+                        } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                            $saleType = 'downgrade';
+                        }
 
-                        if ($isBaseSale) {
+                        if ($saleType === 'base_sale') {
                             $dailyStats[$date]['total_omset'] += $price;
                             $dailyStats[$date]['omset_bersih'] += $price;
-                        } elseif ($isTradeIn) {
+                        } elseif ($saleType === 'tukar_tambah') {
                             $outPrice = floatval($tx->tt_outgoing_price ?? 0);
                             if ($outPrice <= 0) {
                                 $outPrice = $price;
                             }
-                            
+                            $inPrice = floatval($tx->tt_incoming_cost_price ?? 0);
+                            if ($inPrice <= 0) {
+                                $inPrice = max(0, $outPrice - $price);
+                            }
                             $dailyStats[$date]['total_omset'] += $outPrice;
-                            // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
-                            // This mathematically simplifies to: Omset Bersih += Price Difference (cash received).
-                            $dailyStats[$date]['omset_bersih'] += $price;
-                        } elseif ($cat === 'downgrade') {
-                            $dailyStats[$date]['omset_bersih'] -= $price; // Keep deduction identical for net sanity
-                        } elseif ($isDeduction) {
+                            $dailyStats[$date]['omset_bersih'] += ($outPrice - $inPrice);
+                        } elseif ($saleType === 'downgrade') {
+                            $outDg = floatval($tx->dg_outgoing_price ?? 0);
+                            $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
+                            $dgDiff = $outDg - $inDg;
+                            if ($dgDiff != 0) {
+                                $dailyStats[$date]['omset_bersih'] -= $dgDiff;
+                            } else {
+                                $dailyStats[$date]['omset_bersih'] -= $price;
+                            }
+                        } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
                             $dailyStats[$date]['omset_bersih'] -= $price;
                         }
                     }
@@ -1395,7 +1368,9 @@ class AuditController extends Controller
                                 'notes',
                                 'sales_account',
                                 DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                                DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price')
+                                DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
+                                DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
+                                DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
                             )
                             ->get();
 
@@ -1406,18 +1381,24 @@ class AuditController extends Controller
                         $totalTradeIncoming = 0;
 
                         foreach ($rawStats as $ps) {
-                            $cat = strtolower($resolveActualCategory($ps->category, $ps->notes, $ps->sales_account));
-                            $discount = abs((float) ($ps->total_discount ?? 0));
-                            // EXPLICIT FIX: selling_price in DB is already net of discounts. DO NOT SUBTRACT AGAIN!
+                            $notes = strtolower($ps->notes ?? '');
+                            $sa = strtolower($ps->sales_account ?? '');
+                            $cat = strtolower(str_replace(' ', '_', $ps->category ?? ''));
                             $price = max(0, abs((float) $ps->selling_price));
-                            
-                            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
-                            $isTradeIn = ($cat === 'tukar_tambah');
-                            $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
-                            if ($cat === 'tukar_unit') {
-                                // Tukar Unit adds 0 to revenues
-                                $price = 0;
+                            $saleType = 'ignored';
+                            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
+                                $saleType = 'tukar_unit';
+                            } elseif ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                                $saleType = 'tukar_tambah';
+                            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+                                $saleType = 'base_sale';
+                            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                                $saleType = 'angkat_barang';
+                            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                                $saleType = 'refund';
+                            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                                $saleType = 'downgrade';
                             }
 
                             if ($ps->split_payments) {
@@ -1425,11 +1406,11 @@ class AuditController extends Controller
                                 if (is_array($sData)) {
                                     foreach ($sData as $sp) {
                                         $amt = abs((float) ($sp['amount'] ?? 0));
-                                        if ($cat === 'tukar_unit') {
+                                        if ($saleType === 'tukar_unit') {
                                             $amt = 0;
                                         }
 
-                                        if ($isBaseSale || $isTradeIn) {
+                                        if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                             $mName = $pm?->name ?? 'Lainnya';
                                             $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
@@ -1437,15 +1418,15 @@ class AuditController extends Controller
                                     }
                                 }
                             } else {
-                                if ($isBaseSale || $isTradeIn) {
+                                if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
                                     $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $price;
                                 }
                             }
 
-                            if ($isBaseSale) {
+                            if ($saleType === 'base_sale') {
                                 $baseSalesOnly += $price;
-                            } elseif ($isTradeIn) {
+                            } elseif ($saleType === 'tukar_tambah') {
                                 $outPrice = floatval($ps->tt_outgoing_price ?? 0);
                                 if ($outPrice <= 0) {
                                     $outPrice = $price;
@@ -1455,16 +1436,23 @@ class AuditController extends Controller
                                 $totalTradeOutgoing += $outPrice;
                                 $totalTradeIncoming += $inPrice;
                                 $tradeSelisih += $price;
-                            } elseif ($cat === 'downgrade') {
-                                $deductions += $price;
-                            } elseif ($isDeduction) {
+                            } elseif ($saleType === 'downgrade') {
+                                $outDg = floatval($ps->dg_outgoing_price ?? 0);
+                                $inDg = floatval($ps->dg_incoming_cost_price ?? 0);
+                                $dgDiff = $outDg - $inDg;
+                                if ($dgDiff != 0) {
+                                    $deductions += $dgDiff;
+                                } else {
+                                    $deductions += $price;
+                                }
+                            } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
                                 $deductions += $price;
                             }
                         }
 
-                        $paymentTotal = $baseSalesOnly + $tradeSelisih;
+                        $paymentTotal = $baseSalesOnly + $totalTradeOutgoing;
                         // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
-                        // This is equivalent to: Base Sales + TT Difference - Deductions.
+                        // This is equivalent to: Base Sales + TT Out - Deductions - TT In.
                         $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
