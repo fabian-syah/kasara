@@ -146,6 +146,21 @@ class DashboardController extends Controller
 
         $todaySales = $todaySalesQuery->get();
 
+        $receiptIds = $todaySales->pluck('receipt_id')->filter()->unique()->toArray();
+        $ttMap = empty($receiptIds) ? collect() : DB::table('tukar_tambahs')
+            ->whereIn('receipt_id', $receiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')
+            ->get()
+            ->keyBy('receipt_id');
+
+        $dgMap = empty($receiptIds) ? collect() : DB::table('downgrades')
+            ->whereIn('receipt_id', $receiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')
+            ->get()
+            ->keyBy('receipt_id');
+
         $totalRevenue = 0;
         $totalNetRevenue = 0;
         $productsSold = 0;
@@ -164,19 +179,6 @@ class DashboardController extends Controller
             }
         }
         $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
-        
-        $dashboardReceiptIds = $todaySales->pluck('receipt_id')->filter()->toArray();
-        $ttMap = empty($dashboardReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $dashboardReceiptIds)
-            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')
-            ->get()
-            ->keyBy('receipt_id');
-
-        $dgMap = empty($dashboardReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $dashboardReceiptIds)
-            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')
-            ->get()
-            ->keyBy('receipt_id');
 
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
@@ -212,11 +214,11 @@ class DashboardController extends Controller
                 $netContribution = 0;
             } elseif ($saleType === 'tukar_tambah') {
                 $ttRec = $ttMap->get($sale->receipt_id);
-                $outVal = $ttRec ? (float)$ttRec->outgoing_price : 0;
+                $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
                 if ($outVal <= 0) {
                     $outVal = $price;
                 }
-                $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : 0;
+                $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
                 if ($inVal <= 0) {
                     $inVal = max(0, $outVal - $price);
                 }
@@ -233,10 +235,10 @@ class DashboardController extends Controller
                 $netContribution = -$price;
             } elseif ($saleType === 'downgrade') {
                 $dgRec = $dgMap->get($sale->receipt_id);
-                $outDg = $dgRec ? (float)$dgRec->outgoing_price : 0;
-                $inDg = $dgRec ? (float)$dgRec->incoming_cost_price : 0;
+                $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
+                $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
                 $dgDiff = $outDg - $inDg;
-                if ($dgRec && $dgDiff != 0) {
+                if ($dgDiff != 0) {
                     $netContribution = -$dgDiff;
                 } else {
                     $netContribution = -$price;
