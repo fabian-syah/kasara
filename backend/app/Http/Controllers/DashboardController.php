@@ -20,6 +20,7 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         if ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK')) {
@@ -152,7 +153,6 @@ class DashboardController extends Controller
         
         $dashboardReceiptIds = $todaySales->pluck('receipt_id')->filter()->toArray();
         $ttMap = empty($dashboardReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $dashboardReceiptIds)->get()->keyBy('receipt_id');
-        $dgMap = empty($dashboardReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $dashboardReceiptIds)->get()->keyBy('receipt_id');
 
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
@@ -212,13 +212,8 @@ class DashboardController extends Controller
                 $totalNetRevenue += ($outVal - $inVal);
                 $csPerformance[$csName]['net_sales'] += ($outVal - $inVal);
             } elseif ($isDeduction) {
-                $effectiveDeduction = $price;
-                if ($cat === 'downgrade') {
-                    $dgRec = $dgMap->get($sale->receipt_id);
-                    if ($dgRec) {
-                        $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
-                    }
-                }
+                // To match CheckSales (AuditController), downgrade uses abs(selling_price) as the effective deduction
+                $effectiveDeduction = $price; 
                 
                 $totalNetRevenue -= $effectiveDeduction;
                 $csPerformance[$csName]['net_sales'] -= $effectiveDeduction;
@@ -307,7 +302,6 @@ class DashboardController extends Controller
 
         $rankReceiptIds = DB::table('stock_outs')->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->pluck('receipt_id')->filter()->toArray();
         $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)->get()->keyBy('receipt_id');
-        $rankDGMap = empty($rankReceiptIds) ? collect() : \App\Models\Downgrade::whereIn('receipt_id', $rankReceiptIds)->get()->keyBy('receipt_id');
 
         $todayRankingQuery = DB::table('stock_outs')
             ->where('reporting_date', $currentReportingDate)
@@ -353,25 +347,27 @@ class DashboardController extends Controller
                 if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
             });
         } elseif ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
-            $excludedKeywords = config('kasara.excluded_keywords');
-            $leaderboardQuery->where(function($q) use ($excludedKeywords) {
-                $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
-                    $bq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
-                    });
-                })->whereDoesntHave('onlineShop', function($sq) use ($excludedKeywords) {
-                    $sq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
-                    });
-                })->whereDoesntHave('warehouse', function($wq) use ($excludedKeywords) {
-                    $wq->where(function($nq) use ($excludedKeywords) {
-                        foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+            $excludedKeywords = config('kasara.excluded_keywords') ?: [];
+            if (!empty($excludedKeywords)) {
+                $leaderboardQuery->where(function($q) use ($excludedKeywords) {
+                    $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
+                        $bq->where(function($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereDoesntHave('onlineShop', function($sq) use ($excludedKeywords) {
+                        $sq->where(function($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                        });
+                    })->whereDoesntHave('warehouse', function($wq) use ($excludedKeywords) {
+                        $wq->where(function($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                        });
                     });
                 });
-            });
+            }
         }
 
-        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap, $rankDGMap) {
+        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap) {
             // Count units sold by this user
             $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
             $units = StockOut::where('user_id', $u->id)
@@ -451,13 +447,8 @@ class DashboardController extends Controller
                     // For Tukar Tambah, this adds the net price difference (OUT - IN) to net revenue.
                     $omsetBersih += ($outVal - $inVal);
                 } elseif ($isDeduction) {
+                    // Match CheckSales: downgrade uses abs(selling_price)
                     $effectiveDeduction = $price;
-                    if ($cat === 'downgrade') {
-                        $dgRec = $rankDGMap->get($sale->receipt_id);
-                        if ($dgRec) {
-                            $effectiveDeduction = abs((float)($dgRec->outgoing_price - $dgRec->incoming_cost_price));
-                        }
-                    }
                     $omsetBersih -= $effectiveDeduction;
                 }
             }
@@ -508,7 +499,7 @@ class DashboardController extends Controller
 
             $excludeFilter = function ($item) {
                 $name = strtolower($item->name);
-                $excludedKeywords = config('kasara.excluded_keywords');
+                $excludedKeywords = config('kasara.excluded_keywords') ?: [];
                 foreach ($excludedKeywords as $kw) {
                     if (str_contains($name, $kw)) return false;
                 }
