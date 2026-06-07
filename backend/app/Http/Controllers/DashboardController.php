@@ -91,13 +91,13 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship'];
+        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'cancel_penjualan'];
         return $this->getAggregatedStats($user, $categories, 'toko_offline');
     }
 
     private function getOnlineShopStats($user)
     {
-        $categories = ['shopee', 'orderan_online', 'giveaway'];
+        $categories = ['shopee', 'orderan_online', 'giveaway', 'cancel_penjualan'];
         return $this->getAggregatedStats($user, $categories, 'online_shop');
     }
 
@@ -152,7 +152,11 @@ class DashboardController extends Controller
         $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
         
         $dashboardReceiptIds = $todaySales->pluck('receipt_id')->filter()->toArray();
-        $ttMap = empty($dashboardReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $dashboardReceiptIds)->get()->keyBy('receipt_id');
+        $ttMap = empty($dashboardReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $dashboardReceiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')
+            ->get()
+            ->keyBy('receipt_id');
 
         foreach ($todaySales as $sale) {
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
@@ -301,7 +305,11 @@ class DashboardController extends Controller
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
         $rankReceiptIds = DB::table('stock_outs')->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->pluck('receipt_id')->filter()->toArray();
-        $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)->get()->keyBy('receipt_id');
+        $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')
+            ->get()
+            ->keyBy('receipt_id');
 
         $todayRankingQuery = DB::table('stock_outs')
             ->where('reporting_date', $currentReportingDate)
@@ -478,7 +486,7 @@ class DashboardController extends Controller
             return null;
 
         try {
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan'];
 
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
