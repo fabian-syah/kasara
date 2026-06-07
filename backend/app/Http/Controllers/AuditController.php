@@ -1820,8 +1820,8 @@ class AuditController extends Controller
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
                         
-                        // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions (In TT, Refund, Angkat Barang, Downgrade Net)
-                        $omsetBersih = $paymentTotal - $activityDeductions;
+                        // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions
+                        $omsetBersih = $paymentTotal - $deductions;
 
                         return [
                             'payments' => $pSums,

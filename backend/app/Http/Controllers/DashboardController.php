@@ -91,8 +91,8 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $categories = ['penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'cancel_penjualan'];
-        return $this->getAggregatedStats($user, $categories, 'toko_offline');
+        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
+        return $this->getAggregatedStats($user, $dashCat, 'toko_offline');
     }
 
     private function getOnlineShopStats($user)
@@ -106,9 +106,16 @@ class DashboardController extends Controller
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
         $normalizedCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $categories));
 
+        $startTS = Carbon::today()->startOfDay();
+        $endTS = Carbon::today()->endOfDay();
+
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
-            ->where('reporting_date', $currentReportingDate);
+            ->whereNull('deleted_at')
+            ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
+                $q->where('reporting_date', $currentReportingDate)
+                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+            });
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -219,7 +226,6 @@ class DashboardController extends Controller
                 $totalNetRevenue += ($outVal - $inVal);
                 $csPerformance[$csName]['net_sales'] += ($outVal - $inVal);
             } elseif ($isDeduction) {
-                // To match CheckSales (AuditController), downgrade uses abs(selling_price) as the effective deduction
                 $effectiveDeduction = $price; 
                 
                 $totalNetRevenue -= $effectiveDeduction;
@@ -246,16 +252,26 @@ class DashboardController extends Controller
             if ($sale->non_hp_items) {
                 foreach ($sale->non_hp_items as $item) {
                     $pid = $item['product_id'] ?? null;
+                    $itemPrice = abs((float)($item['selling_price'] ?? 0));
+                    
+                    if ($isBaseSale) {
+                        $totalRevenue += $itemPrice;
+                        $totalNetRevenue += $itemPrice;
+                        $csPerformance[$csName]['total_sales'] += $itemPrice;
+                        $csPerformance[$csName]['net_sales'] += $itemPrice;
+                    }
+
                     if ($pid && isset($nonHpProducts[$pid])) {
                         $product = $nonHpProducts[$pid];
-                        $qty = (int) ($item['quantity'] ?? 1);
+                        if (strtolower($product->category) === 'non_hp') {
+                            $qty = (int) ($item['quantity'] ?? 1);
+                            $productsSold += $qty;
+                            $csPerformance[$csName]['non_hp_count'] += $qty;
 
-                        $productsSold += $qty;
-                        $csPerformance[$csName]['non_hp_count'] += $qty;
-
-                        $typeSales[$product->name] = ($typeSales[$product->name] ?? 0) + $qty;
-                        $key = ($product->brand ?? 'Unknown') . " New";
-                        $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + $qty;
+                            $typeSales[$product->name] = ($typeSales[$product->name] ?? 0) + $qty;
+                            $key = ($product->brand ?? 'Unknown') . " New";
+                            $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + $qty;
+                        }
                     }
                 }
             }
