@@ -106,8 +106,10 @@ class DashboardController extends Controller
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
         $normalizedCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $categories));
 
-        $startTS = Carbon::today()->startOfDay();
-        $endTS = Carbon::today()->endOfDay();
+        $now = Carbon::now();
+        $isBeforeCutoff = $now->format('H:i') < '05:00';
+        $startTS = ($isBeforeCutoff ? Carbon::yesterday() : Carbon::today())->format('Y-m-d') . ' 05:00:00';
+        $endTS = ($isBeforeCutoff ? Carbon::today() : Carbon::tomorrow())->format('Y-m-d') . ' 04:59:59';
 
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
