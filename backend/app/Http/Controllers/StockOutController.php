@@ -2096,23 +2096,32 @@ class StockOutController extends Controller
                 }
             }
 
-            // Calculate Destination Location from Confirming User
+            // Calculate Destination Location
+            $destPlacementType = $stockOut->destination_type;
+            $destPlacementId = $stockOut->destination_id;
             $destUser = \App\Models\User::find($confirmingUserId);
-            $destPlacementType = null;
-            $destPlacementId = null;
 
-            if ($destUser->branch_id) {
-                $destPlacementType = 'branch';
-                $destPlacementId = $destUser->branch_id;
-            } elseif ($destUser->warehouse_id) {
-                $destPlacementType = 'warehouse';
-                $destPlacementId = $destUser->warehouse_id;
-            } elseif ($destUser->online_shop_id) {
-                $destPlacementType = 'online_shop';
-                $destPlacementId = $destUser->online_shop_id;
-            } elseif ($destUser->distributor_id) {
-                $destPlacementType = 'distributor';
-                $destPlacementId = $destUser->distributor_id;
+            // Fallback if destination is not in stockOut for some reason
+            if (!$destPlacementType || !$destPlacementId) {
+                if ($destUser) {
+                    if ($destUser->branch_id) {
+                        $destPlacementType = 'branch';
+                        $destPlacementId = $destUser->branch_id;
+                    } elseif ($destUser->warehouse_id) {
+                        $destPlacementType = 'warehouse';
+                        $destPlacementId = $destUser->warehouse_id;
+                    } elseif ($destUser->online_shop_id) {
+                        $destPlacementType = 'online_shop';
+                        $destPlacementId = $destUser->online_shop_id;
+                    } elseif ($destUser->distributor_id) {
+                        $destPlacementType = 'distributor';
+                        $destPlacementId = $destUser->distributor_id;
+                    }
+                }
+            }
+
+            if (!$destPlacementType || !$destPlacementId) {
+                throw new \Exception("Gagal menentukan lokasi tujuan transfer.");
             }
 
             // 1. Process HP Items
@@ -2188,8 +2197,8 @@ class StockOutController extends Controller
                         ]);
 
                         // Add to Inventory at Destination
-                        $locationField = $destUser->branch_id ? 'branch_id' : ($destUser->warehouse_id ? 'warehouse_id' : 'online_shop_id');
-                        $locationId = $destUser->branch_id ?? $destUser->warehouse_id ?? $destUser->online_shop_id;
+                        $locationField = $destPlacementType . '_id';
+                        $locationId = $destPlacementId;
                         $placementType = $destPlacementType;
 
                         if ($acceptedQty > 0) {
