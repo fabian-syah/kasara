@@ -40,10 +40,8 @@ class QuestionController extends Controller
             'content' => 'required|string',
         ]);
 
-        // Soft delete the old question to keep history
-        $question->delete();
-
-        // Create a new question with the updated content
+        // Klien ingin pertanyaan lama tetap ada dan aktif, 
+        // dan hasil edit menjadi pertanyaan baru.
         $newQuestion = Question::create($validated);
 
         return response()->json($newQuestion);

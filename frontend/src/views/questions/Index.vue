@@ -102,10 +102,10 @@ const handleSubmit = async () => {
     try {
         if (isEditing.value) {
             const response = await questionsApi.update(selectedQuestion.value.id, form.value);
-            const index = questions.value.findIndex(q => q.id === selectedQuestion.value.id);
-            if (index !== -1) questions.value[index] = response.data;
+            // Klien ingin pertanyaan lama tetap ada, jadi kita unshift (tambahkan) hasil edit sebagai baris baru
+            questions.value.unshift(response.data);
             expandedCategories.value[response.data.category] = true; // Ensure expanded
-            toast.success('Pertanyaan berhasil diperbarui');
+            toast.success('Pertanyaan berhasil diedit dan ditambahkan sebagai baris baru');
         } else {
             const response = await questionsApi.create(form.value);
             questions.value.unshift(response.data);
