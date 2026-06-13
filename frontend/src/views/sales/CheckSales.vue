@@ -941,18 +941,12 @@ const summaryStats = computed(() => {
 
         // If it's a standard sale category, do NOT override with deductions by notes
         if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
-            if (n.includes('tukar unit') || n.includes('tukar_unit') || sa.includes('tukar unit') || sa.includes('tukar_unit')) {
-                return 'tukar_unit';
-            }
             if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
                 return 'tukar_tambah';
             }
             return cat;
         }
 
-        if (n.includes('tukar unit') || n.includes('tukar_unit') || sa.includes('tukar unit') || sa.includes('tukar_unit')) {
-            return 'tukar_unit';
-        }
         if (n.includes('barang angkat') || n.includes('angkat barang') || n.includes('angkat_barang') || sa.includes('barang angkat') || sa.includes('angkat barang') || sa.includes('angkat_barang')) {
             return 'angkat_barang';
         }
@@ -982,9 +976,6 @@ const summaryStats = computed(() => {
         }
         // Subtract manual discount from absolute sum
         total = Math.max(0, total - discount);
-        if (cat === 'tukar_unit') {
-            total = 0;
-        }
 
         // Standard Sales categories
         const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);

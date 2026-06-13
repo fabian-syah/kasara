@@ -192,9 +192,7 @@ class DashboardController extends Controller
             $price = abs((float)($sale->selling_price ?? 0));
 
             $saleType = 'ignored';
-            if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                $saleType = 'tukar_unit';
-            } elseif ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                 $saleType = 'tukar_tambah';
             } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
                 $saleType = 'base_sale';
@@ -209,10 +207,7 @@ class DashboardController extends Controller
             $omsetContribution = 0;
             $netContribution = 0;
 
-            if ($saleType === 'tukar_unit') {
-                $omsetContribution = 0;
-                $netContribution = 0;
-            } elseif ($saleType === 'tukar_tambah') {
+            if ($saleType === 'tukar_tambah') {
                 $ttRec = $ttMap->get($sale->receipt_id);
                 $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
                 if ($outVal <= 0) {
@@ -347,7 +342,6 @@ class DashboardController extends Controller
             ->select('user_id', DB::raw("SUM(
                 CASE 
                     WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
-                         AND NOT (LOWER(notes) LIKE '%tukar unit%' OR LOWER(notes) LIKE '%tukar_unit%' OR LOWER(sales_account) LIKE '%tukar unit%' OR LOWER(sales_account) LIKE '%tukar_unit%')
                     THEN 1
                     ELSE 0
                 END
@@ -415,7 +409,6 @@ class DashboardController extends Controller
                  ->select(DB::raw("SUM(
                     CASE 
                         WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
-                             AND NOT (LOWER(notes) LIKE '%tukar unit%' OR LOWER(notes) LIKE '%tukar_unit%' OR LOWER(sales_account) LIKE '%tukar unit%' OR LOWER(sales_account) LIKE '%tukar_unit%')
                         THEN 1
                         ELSE 0
                     END
@@ -446,15 +439,11 @@ class DashboardController extends Controller
                 $cat = strtolower($sale->category ?? '');
 
                 if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
-                    if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                        $cat = 'tukar_unit';
-                    } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                    if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                         $cat = 'tukar_tambah';
                     }
                 } else {
-                    if (str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($sa, 'tukar unit') || str_contains($sa, 'tukar_unit')) {
-                        $cat = 'tukar_unit';
-                    } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                    if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
                         $cat = 'angkat_barang';
                     } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
                         $cat = 'refund';
@@ -466,9 +455,6 @@ class DashboardController extends Controller
                 }
 
                 $price = abs((float)($sale->selling_price ?? 0));
-                if ($cat === 'tukar_unit') {
-                    $price = 0;
-                }
 
                 $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
                 $isTradeIn = ($cat === 'tukar_tambah');
@@ -526,7 +512,7 @@ class DashboardController extends Controller
             return null;
 
         try {
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan'];
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan'];
 
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
@@ -583,8 +569,6 @@ class DashboardController extends Controller
                     DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
@@ -596,8 +580,6 @@ class DashboardController extends Controller
                     ) as total_omset"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE(
                                 (SELECT SUM(tt.outgoing_price - CASE WHEN tt.incoming_cost_price <= 0 THEN GREATEST(0, tt.outgoing_price - ABS(COALESCE(stock_outs.selling_price, 0))) ELSE tt.incoming_cost_price END) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), 
@@ -680,8 +662,6 @@ class DashboardController extends Controller
                     DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('refund', 'angkat_barang', 'downgrade') THEN stock_outs.id END) as units"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
@@ -693,8 +673,6 @@ class DashboardController extends Controller
                     ) as omset"),
                     DB::raw("SUM(
                         CASE 
-                            WHEN (LOWER(stock_outs.notes) LIKE '%tukar unit%' OR LOWER(stock_outs.notes) LIKE '%tukar_unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar unit%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_unit%')
-                            THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
