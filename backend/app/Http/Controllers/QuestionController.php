@@ -40,9 +40,13 @@ class QuestionController extends Controller
             'content' => 'required|string',
         ]);
 
-        $question->update($validated);
+        // Soft delete the old question to keep history
+        $question->delete();
 
-        return response()->json($question);
+        // Create a new question with the updated content
+        $newQuestion = Question::create($validated);
+
+        return response()->json($newQuestion);
     }
 
     /**
