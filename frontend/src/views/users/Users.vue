@@ -501,7 +501,12 @@ async function saveUser() {
       const res = await usersApi.update(editingUser.value.id, payload);
       const index = users.value.findIndex(u => u.id === editingUser.value.id);
       if (index !== -1) users.value[index] = res.data.data;
-      toast.success("User berhasil diperbarui!");
+      
+      if (payload.password) {
+        toast.success("Data user dan Password berhasil diperbarui!");
+      } else {
+        toast.success("User berhasil diperbarui!");
+      }
     } else {
       const res = await usersApi.create(payload);
       users.value.unshift(res.data.data);
