@@ -779,7 +779,14 @@ function getUserRoleName(user) {
                 <div class="text-[10px] text-text-secondary mt-1 pl-5 font-mono">{{ user.branch?.timezone || user.warehouse?.timezone || 'WIB' }}</div>
               </td>
               <td class="px-6 py-4 text-sm text-text-secondary">
-                {{ formatLastSeen(user.last_seen, user.timezone) }}
+                <div class="mb-1">
+                  <span class="block text-[10px] uppercase font-bold text-text-secondary mb-0.5">Login Terakhir</span>
+                  <span class="text-text-primary">{{ formatLastSeen(user.last_seen, user.timezone) }}</span>
+                </div>
+                <div>
+                  <span class="block text-[10px] uppercase font-bold text-text-secondary mb-0.5">Ubah Password</span>
+                  <span class="text-text-primary">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, user.timezone) : '-' }}</span>
+                </div>
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
@@ -926,6 +933,16 @@ function getUserRoleName(user) {
                 <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                   :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
+            </div>
+          </div>
+          <div class="col-span-2 grid grid-cols-2 gap-3 pt-2">
+            <div>
+              <p class="text-text-secondary text-xs mb-1">Login Terakhir</p>
+              <p class="text-text-primary text-xs">{{ formatLastSeen(user.last_seen, user.timezone) }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-text-secondary text-xs mb-1">Ubah Password</p>
+              <p class="text-text-primary text-xs">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, user.timezone) : '-' }}</p>
             </div>
           </div>
         </div>

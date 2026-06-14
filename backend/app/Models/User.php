@@ -254,6 +254,7 @@ class User extends Authenticatable
             'pin_enabled' => 'boolean',
             'transaction_pin' => 'hashed',
             'pin_reset_requested_at' => 'datetime',
+            'password_changed_at' => 'datetime',
         ];
     }
 }

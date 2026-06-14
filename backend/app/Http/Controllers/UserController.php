@@ -365,6 +365,7 @@ class UserController extends Controller
 
         if ($request->filled('password')) {
             $validated['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
+            $validated['password_changed_at'] = now();
         } else {
             unset($validated['password']);
         }
