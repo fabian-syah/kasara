@@ -432,9 +432,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
-        $currentUser = request()->user();
+        $currentUser = $request->user();
 
         // Audit role: can only delete users within their accessible placements, not forbidden roles
         if ($currentUser->hasRole('audit')) {
@@ -523,6 +523,7 @@ class UserController extends Controller
     public function approvePinReset($id)
     {
         $user = User::findOrFail($id);
+        /** @var \App\Models\User $currentUser */
         $currentUser = Auth::user();
 
         // Security check

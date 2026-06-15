@@ -763,11 +763,6 @@ class StockInController extends Controller
             });
         }
 
-        // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
-        if ($user->hasRole('inventory')) {
-            $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth();
-            $query->where('created_at', '>=', $startDate);
-        }
 
         $paginated = $query->latest()->paginate(20);
 
@@ -951,11 +946,6 @@ class StockInController extends Controller
                 ->whereYear('created_at', $y);
         }
 
-        // DATE FILTER FOR INVENTORY ROLE (Current & Last Month Only)
-        if ($user->hasRole('inventory')) {
-            $startDate = \Carbon\Carbon::now()->subMonth()->startOfMonth();
-            $query->where('created_at', '>=', $startDate);
-        }
 
         return response()->json($query->latest()->paginate(20));
     }

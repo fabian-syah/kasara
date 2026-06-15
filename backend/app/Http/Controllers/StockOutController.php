@@ -106,11 +106,6 @@ class StockOutController extends Controller
             }
         }
 
-        // DATE FILTER FOR INVENTORY ROLE
-        if ($user && $user->hasRole('inventory')) {
-            $limitDate = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
-            $query->where('reporting_date', '>=', $limitDate);
-        }
 
         // Filter by Type (HP vs Non-HP)
         if ($request->type === 'hp') {
