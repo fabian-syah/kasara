@@ -78,29 +78,9 @@ class StockOutController extends Controller
             } elseif ($request->month && $request->year) {
                 $m = (int) $request->month;
                 $y = (int) $request->year;
-
-                // Role-based Month/Year Restriction
-                if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                    $currentMonth = (int) $logicalNow->format('m');
-                    $currentYear = (int) $logicalNow->format('Y');
-                    
-                    $lastMonthTemp = $logicalNow->copy()->subMonth();
-                    $lastMonth = (int) $lastMonthTemp->format('m');
-                    $lastMonthYear = (int) $lastMonthTemp->format('Y');
-
-                    // Year must be current year
-                    if ($y < $currentYear) {
-                        $m = $currentMonth;
-                        $y = $currentYear;
-                    } elseif ($y == $currentYear) {
-                        // Month must be current or previous
-                        if ($m < $lastMonth && !($currentMonth == 1 && $m == 12 && $y == $currentYear)) {
-                             $m = $currentMonth;
-                        }
-                    }
-                }
-                $query->whereMonth('reporting_date', $m)
-                    ->whereYear('reporting_date', $y);
+                $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->startOfDay()->toDateTimeString();
+                $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->endOfDay()->toDateTimeString();
+                $query->whereBetween('reporting_date', [$start, $end]);
             } elseif ($request->start_date && $request->end_date) {
                 $query->whereBetween('reporting_date', [$request->start_date, $request->end_date]);
             }

@@ -738,27 +738,15 @@ class StockInController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                $currentMonth = (int) $logicalNow->format('m');
-                $currentYear = (int) $logicalNow->format('Y');
-                $lastMonthTemp = $logicalNow->copy()->subMonth();
-                $lastMonth = (int) $lastMonthTemp->format('m');
-                if ($y < $currentYear) {
-                    $m = $currentMonth;
-                    $y = $currentYear;
-                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                    $m = $currentMonth;
-                }
-            }
+            $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->startOfDay()->toDateTimeString();
+            $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->endOfDay()->toDateTimeString();
             // Pakai reporting_date, fallback ke created_at untuk data lama
-            $query->where(function ($q) use ($m, $y) {
-                $q->where(function ($sq) use ($m, $y) {
-                    $sq->whereMonth('reporting_date', $m)
-                       ->whereYear('reporting_date', $y);
-                })->orWhere(function ($sq) use ($m, $y) {
+            $query->where(function ($q) use ($start, $end) {
+                $q->where(function ($sq) use ($start, $end) {
+                    $sq->whereBetween('reporting_date', [$start, $end]);
+                })->orWhere(function ($sq) use ($start, $end) {
                     $sq->whereNull('reporting_date')
-                       ->whereMonth('created_at', $m)
-                       ->whereYear('created_at', $y);
+                       ->whereBetween('created_at', [$start, $end]);
                 });
             });
         }
@@ -930,20 +918,9 @@ class StockInController extends Controller
         } elseif ($request->month && $request->year) {
             $m = (int) $request->month;
             $y = (int) $request->year;
-            if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
-                $currentMonth = (int) $logicalNow->format('m');
-                $currentYear = (int) $logicalNow->format('Y');
-                $lastMonthTemp = $logicalNow->copy()->subMonth();
-                $lastMonth = (int) $lastMonthTemp->format('m');
-                if ($y < $currentYear) {
-                    $m = $currentMonth;
-                    $y = $currentYear;
-                } elseif ($y == $currentYear && $m < $lastMonth && !($currentMonth == 1 && $m == 12)) {
-                    $m = $currentMonth;
-                }
-            }
-            $query->whereMonth('created_at', $m)
-                ->whereYear('created_at', $y);
+            $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->startOfDay()->toDateTimeString();
+            $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->endOfDay()->toDateTimeString();
+            $query->whereBetween('created_at', [$start, $end]);
         }
 
 
