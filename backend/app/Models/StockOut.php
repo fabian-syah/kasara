@@ -21,12 +21,18 @@ class StockOut extends Model
             if (!$model->reporting_date || !$model->branch_id) {
                 $location = null;
                 
-                // First attempt: use inventory_user_id (the sub-account/petugas)
-                $user = $model->inventory_user_id ? User::find($model->inventory_user_id) : null;
-                
-                // Fallback: if sub-account has no location, use the main account (user_id)
-                if (!$user || (!$user->branch_id && !$user->online_shop_id && !$user->warehouse_id)) {
-                    $user = User::find($model->user_id);
+                // The location should match where the inventory is deducted from, which is the main account (Auth::user()).
+                $mainUser = User::find($model->user_id);
+                $subUser = $model->inventory_user_id ? User::find($model->inventory_user_id) : null;
+
+                // Priority: Main Account's location -> Sub Account's location
+                $user = null;
+                if ($mainUser && ($mainUser->branch_id || $mainUser->online_shop_id || $mainUser->warehouse_id)) {
+                    $user = $mainUser;
+                } elseif ($subUser && ($subUser->branch_id || $subUser->online_shop_id || $subUser->warehouse_id)) {
+                    $user = $subUser;
+                } else {
+                    $user = $mainUser;
                 }
 
                 if ($user) {

@@ -2719,8 +2719,22 @@ class AuditController extends Controller
             $category = 'barang_masuk';
         }
 
-        // Get current questions for this category
-        $currentQuestions = Question::where('category', $category)->orderBy('id')->get();
+        $date = $stockOut->reporting_date ? \Carbon\Carbon::parse($stockOut->reporting_date) : \Carbon\Carbon::parse($stockOut->created_at);
+        if (!$stockOut->reporting_date && $date->hour < 5) {
+            $date->subDay();
+        }
+        $txDateTime = $date->startOfDay()->addDay()->addHours(5)->subSecond();
+
+        // Get questions that were active at the time of the transaction
+        $currentQuestions = Question::withTrashed()
+            ->where('category', $category)
+            ->where('created_at', '<=', $txDateTime)
+            ->where(function($q) use ($txDateTime) {
+                $q->whereNull('deleted_at')
+                  ->orWhere('deleted_at', '>', $txDateTime);
+            })
+            ->orderBy('id')
+            ->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
         // Get existing answers for this transaction
@@ -3190,7 +3204,21 @@ class AuditController extends Controller
     {
         $stockOut = StockOut::findOrFail($stockOutId);
 
-        $currentQuestions = Question::where('category', 'profit')->orderBy('id')->get();
+        $date = $stockOut->reporting_date ? \Carbon\Carbon::parse($stockOut->reporting_date) : \Carbon\Carbon::parse($stockOut->created_at);
+        if (!$stockOut->reporting_date && $date->hour < 5) {
+            $date->subDay();
+        }
+        $txDateTime = $date->startOfDay()->addDay()->addHours(5)->subSecond();
+
+        $currentQuestions = Question::withTrashed()
+            ->where('category', 'profit')
+            ->where('created_at', '<=', $txDateTime)
+            ->where(function($q) use ($txDateTime) {
+                $q->whereNull('deleted_at')
+                  ->orWhere('deleted_at', '>', $txDateTime);
+            })
+            ->orderBy('id')
+            ->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
         // Load all answers for this transaction

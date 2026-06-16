@@ -59,7 +59,7 @@ class InventoryController extends Controller
                     'user_id',
                     'notes',
                     DB::raw('SUM(quantity) as total_quantity'),
-                    DB::raw('MAX(id) as id'), 
+                    DB::raw('MAX(id) as id'),
                     DB::raw('MAX(distributor_id) as distributor_id'),
                     DB::raw('MAX(cost_price) as cost_price'), // Aggregated HPP
                     DB::raw('MAX(selling_price) as selling_price') // Per-branch selling price
@@ -228,90 +228,90 @@ class InventoryController extends Controller
         $items = $query->latest('id')->paginate($perPage);
 
         $items->getCollection()->transform(function ($item) use ($type, $request) {
-                $placement = $item->placement;
-                $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
+            $placement = $item->placement;
+            $item->placement_name = $placement ? $placement->name : ($item->placement_type . ' #' . $item->placement_id);
 
-                if ($type === 'non-hp') {
-                    $item->quantity = $item->total_quantity ?? $item->quantity;
-
-                    // Priority for distributor name:
-                    // 1. Existing distributor relationship on the inventory record
-                    // 2. Latest log distributor
-                    // 3. User distributor fallback
-                    $distName = null;
-                    if ($item->distributor_id) {
-                        $distName = $item->distributor?->name;
-                    }
-
-                    if (!$distName) {
-                        // Use pre-loaded latestLog relationship instead of N+1 query
-                        $lastInLog = $item->latestLog;
-                        $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
-                    }
-                    
-                    if (!$distName && $item->user && $item->user->distributor) {
-                        $distName = $item->user->distributor->name;
-                    }
-
-                    $item->latest_distributor = $distName ?? '-';
-                    $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
-
-                    // Set prices for Detail Modal â€” use per-branch selling_price from inventory if set, otherwise fall back to product master price
-                    $item->selling_price = ($item->selling_price !== null && (float)$item->selling_price > 0) 
-                        ? (float)$item->selling_price 
-                        : ($item->product->price ?? ($item->product->selling_price ?? 0));
-                    $item->price = $item->selling_price;
-                }
-
-                if ($request->status === 'service' && $type === 'hp') {
-                    $returStockOut = $item->stockOuts->first();
-                    if ($returStockOut) {
-                        $item->retur_data = [
-                            'receipt_id' => $returStockOut->receipt_id,
-                            'customer_name' => $returStockOut->customer_name,
-                            'customer_phone' => $returStockOut->customer_phone,
-                            'retur_officer' => $returStockOut->retur_officer,
-                            'retur_issue' => $returStockOut->retur_issue,
-                            'retur_seal' => $returStockOut->retur_seal,
-                            'proof_image' => $returStockOut->proof_image ? asset('storage/' . $returStockOut->proof_image) : null,
-                            'selling_price' => $returStockOut->selling_price,
-                            'notes' => $returStockOut->notes,
-                            'created_at' => $returStockOut->created_at?->toDateTimeString(),
-                        ];
-                    }
-                }
-                return $item;
-            });
-
-            // If non-hp, we group by resolved name to avoid split rows (e.g. 14+1 Arcis)
             if ($type === 'non-hp') {
-                $uniqueCollection = $items->getCollection()->groupBy(function ($item) {
-                    // Group by product and placement AND distributor ID to prevent merging different distributor stock
-                    return $item->product_id . '_' . $item->placement_type . '_' . $item->placement_id . '_' . ($item->distributor_id ?? '0') . '_' . $item->latest_distributor;
-                })->map(function ($group) {
-                    $first = $group->first();
-                    $first->quantity = $group->sum('quantity');
-                    return $first;
-                })->values();
-                $items->setCollection($uniqueCollection);
+                $item->quantity = $item->total_quantity ?? $item->quantity;
+
+                // Priority for distributor name:
+                // 1. Existing distributor relationship on the inventory record
+                // 2. Latest log distributor
+                // 3. User distributor fallback
+                $distName = null;
+                if ($item->distributor_id) {
+                    $distName = $item->distributor?->name;
+                }
+
+                if (!$distName) {
+                    // Use pre-loaded latestLog relationship instead of N+1 query
+                    $lastInLog = $item->latestLog;
+                    $distName = $lastInLog && $lastInLog->distributor ? $lastInLog->distributor->name : ($lastInLog->supplier_name ?? null);
+                }
+
+                if (!$distName && $item->user && $item->user->distributor) {
+                    $distName = $item->user->distributor->name;
+                }
+
+                $item->latest_distributor = $distName ?? '-';
+                $item->latest_supplier = $item->latestLog ? $item->latestLog->supplier_name : null;
+
+                // Set prices for Detail Modal â€” use per-branch selling_price from inventory if set, otherwise fall back to product master price
+                $item->selling_price = ($item->selling_price !== null && (float)$item->selling_price > 0)
+                    ? (float)$item->selling_price
+                    : ($item->product->price ?? ($item->product->selling_price ?? 0));
+                $item->price = $item->selling_price;
             }
 
-            $res = $items->toArray();
-            if ($type === 'hp') {
-                $res['total_value'] = (clone $query)->sum('selling_price');
-            } else {
-                // For non-hp, calculate global total value using a subquery for price
-                // to avoid join-related column ambiguity (Fixes Error 500)
-                $totalValueQuery = Inventory::where('inventories.quantity', '>', 0);
-                
-                // Apply same filters as the main list
-                $this->applyInventoryFilters($totalValueQuery, $request, 'non-hp');
-                
-                if ($request->filled('placement_type')) {
-                    $totalValueQuery->where('inventories.placement_type', $request->placement_type);
+            if ($request->status === 'service' && $type === 'hp') {
+                $returStockOut = $item->stockOuts->first();
+                if ($returStockOut) {
+                    $item->retur_data = [
+                        'receipt_id' => $returStockOut->receipt_id,
+                        'customer_name' => $returStockOut->customer_name,
+                        'customer_phone' => $returStockOut->customer_phone,
+                        'retur_officer' => $returStockOut->retur_officer,
+                        'retur_issue' => $returStockOut->retur_issue,
+                        'retur_seal' => $returStockOut->retur_seal,
+                        'proof_image' => $returStockOut->proof_image ? asset('storage/' . $returStockOut->proof_image) : null,
+                        'selling_price' => $returStockOut->selling_price,
+                        'notes' => $returStockOut->notes,
+                        'created_at' => $returStockOut->created_at?->toDateTimeString(),
+                    ];
                 }
-                
-                $res['total_value'] = (float) $totalValueQuery->selectRaw('
+            }
+            return $item;
+        });
+
+        // If non-hp, we group by resolved name to avoid split rows (e.g. 14+1 Arcis)
+        if ($type === 'non-hp') {
+            $uniqueCollection = $items->getCollection()->groupBy(function ($item) {
+                // Group by product and placement AND distributor ID to prevent merging different distributor stock
+                return $item->product_id . '_' . $item->placement_type . '_' . $item->placement_id . '_' . ($item->distributor_id ?? '0') . '_' . $item->latest_distributor;
+            })->map(function ($group) {
+                $first = $group->first();
+                $first->quantity = $group->sum('quantity');
+                return $first;
+            })->values();
+            $items->setCollection($uniqueCollection);
+        }
+
+        $res = $items->toArray();
+        if ($type === 'hp') {
+            $res['total_value'] = (clone $query)->sum('selling_price');
+        } else {
+            // For non-hp, calculate global total value using a subquery for price
+            // to avoid join-related column ambiguity (Fixes Error 500)
+            $totalValueQuery = Inventory::where('inventories.quantity', '>', 0);
+
+            // Apply same filters as the main list
+            $this->applyInventoryFilters($totalValueQuery, $request, 'non-hp');
+
+            if ($request->filled('placement_type')) {
+                $totalValueQuery->where('inventories.placement_type', $request->placement_type);
+            }
+
+            $res['total_value'] = (float) $totalValueQuery->selectRaw('
                     SUM(
                         COALESCE(
                             NULLIF(inventories.selling_price, 0),
@@ -320,10 +320,10 @@ class InventoryController extends Controller
                         ) * inventories.quantity
                     ) as total
                 ')->value('total') ?? 0;
-            }
-
-            return response()->json($res);
         }
+
+        return response()->json($res);
+    }
     private function applyInventoryFilters($query, $request, $type)
     {
         /** @var \App\Models\User $user */
@@ -346,12 +346,12 @@ class InventoryController extends Controller
         if ($request->branch_id) $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
         if ($request->online_shop_id) $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
         if ($request->warehouse_id) $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
-        
+
         if ($request->brand) {
             $brandArr = explode(',', $request->brand);
             $query->whereHas('product', fn($q) => $q->whereIn('brand', $brandArr));
         }
-        
+
         if ($type === 'hp') {
             $status = $request->status ?? $request->stock_status;
             if ($status && $status !== 'all') $query->where('status', $status);
@@ -550,11 +550,11 @@ class InventoryController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         // 1. Authorization
         $superRoles = ['super_admin', 'audit', 'owner', 'admin_produk'];
         $restrictedRoles = ['inventory', 'toko_offline', 'inventory_kasir', 'gudang', 'toko_online'];
-        
+
         if (!$user->hasRole(array_merge($superRoles, $restrictedRoles))) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -564,7 +564,7 @@ class InventoryController extends Controller
         // 2. Identify Model (HP vs Non-HP)
         $item = ProductDetail::find($id);
         $type = 'hp';
-        
+
         if (!$item) {
             $item = Inventory::find($id);
             $type = 'non-hp';
@@ -597,10 +597,10 @@ class InventoryController extends Controller
             }
 
             // Check if current price is 0
-            $currentPrice = ($type === 'hp') 
-                ? ($item->selling_price ?: 0) 
+            $currentPrice = ($type === 'hp')
+                ? ($item->selling_price ?: 0)
                 : ($item->product->price ?? ($item->product->selling_price ?? 0));
-            
+
             if ($currentPrice > 0) {
                 return response()->json(['message' => 'Anda hanya diizinkan mengisi harga jual yang masih Rp 0'], 403);
             }
@@ -807,7 +807,6 @@ class InventoryController extends Controller
                 ->filter()
                 ->sort()
                 ->values();
-
         } else {
             // Non-HP: Query Inventory
             $query = Inventory::where('quantity', '>', 0)
@@ -861,9 +860,18 @@ class InventoryController extends Controller
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 $query->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds, $tablePrefix) {
                     $hasConstraint = false;
-                    if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'branch')->whereIn("{$tablePrefix}.placement_id", $branchIds)); $hasConstraint = true; }
-                    if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'warehouse')->whereIn("{$tablePrefix}.placement_id", $warehouseIds)); $hasConstraint = true; }
-                    if (!empty($onlineShopIds)) { $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'online_shop')->whereIn("{$tablePrefix}.placement_id", $onlineShopIds)); $hasConstraint = true; }
+                    if (!empty($branchIds)) {
+                        $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'branch')->whereIn("{$tablePrefix}.placement_id", $branchIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'warehouse')->whereIn("{$tablePrefix}.placement_id", $warehouseIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(fn($sq) => $sq->where("{$tablePrefix}.placement_type", 'online_shop')->whereIn("{$tablePrefix}.placement_id", $onlineShopIds));
+                        $hasConstraint = true;
+                    }
                     if (!$hasConstraint) $q->whereRaw('0 = 1');
                 });
             }
@@ -1409,10 +1417,22 @@ class InventoryController extends Controller
             } elseif (!$unrestricted) {
                 $query->where(function ($q) use ($osIds, $bIds, $wIds, $dIds) {
                     $hasConstraint = false;
-                    if (!empty($osIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds)); $hasConstraint = true; }
-                    if (!empty($bIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds)); $hasConstraint = true; }
-                    if (!empty($wIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds)); $hasConstraint = true; }
-                    if (!empty($dIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds)); $hasConstraint = true; }
+                    if (!empty($osIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $osIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($bIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $bIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($wIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $wIds));
+                        $hasConstraint = true;
+                    }
+                    if (!empty($dIds)) {
+                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
+                        $hasConstraint = true;
+                    }
                     if (!$hasConstraint) $q->whereRaw('0 = 1');
                 });
             }
@@ -1812,10 +1832,21 @@ class InventoryController extends Controller
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
             $nonHpQuery->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
                 $hasConstraint = false;
-                if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'branch')->whereIn('inventories.placement_id', $branchIds)); $hasConstraint = true; }
-                if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'warehouse')->whereIn('inventories.placement_id', $warehouseIds)); $hasConstraint = true; }
-                if (!empty($onlineShopIds)) { $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'online_shop')->whereIn('inventories.placement_id', $onlineShopIds)); $hasConstraint = true; }
-                if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
+                if (!empty($branchIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'branch')->whereIn('inventories.placement_id', $branchIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($warehouseIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'warehouse')->whereIn('inventories.placement_id', $warehouseIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($onlineShopIds)) {
+                    $q->orWhere(fn($sq) => $sq->where('inventories.placement_type', 'online_shop')->whereIn('inventories.placement_id', $onlineShopIds));
+                    $hasConstraint = true;
+                }
+                if (!$hasConstraint) {
+                    $q->whereRaw('0 = 1');
+                }
             });
         }
 
@@ -1840,7 +1871,7 @@ class InventoryController extends Controller
 
         // Merge HP + Non-HP results then aggregate duplicates
         $mergedResults = (clone $query)->get()->concat($nonHpResults);
-        
+
         // Aggregate by the same grouping keys to prevent duplicate locations
         $groupKey = function ($row) use ($hasTypeFilter, $hasStorageFilter, $hasConditionFilter) {
             $key = $row->placement_type . ':' . $row->placement_id . ':' . $row->brand;
@@ -1956,12 +1987,12 @@ class InventoryController extends Controller
         // Apply Time Filter
         if (!empty($month) && !empty($year)) {
             $baseQuery->whereMonth('stock_outs.reporting_date', $month)
-                      ->whereYear('stock_outs.reporting_date', $year);
+                ->whereYear('stock_outs.reporting_date', $year);
         } elseif (!empty($year)) {
             $baseQuery->whereYear('stock_outs.reporting_date', $year);
         } elseif ($timeFilter === 'bulan_ini') {
             $baseQuery->whereMonth('stock_outs.reporting_date', now()->month)
-                      ->whereYear('stock_outs.reporting_date', now()->year);
+                ->whereYear('stock_outs.reporting_date', now()->year);
         } elseif ($timeFilter === 'tahun_ini') {
             $baseQuery->whereYear('stock_outs.reporting_date', now()->year);
         }
@@ -1971,35 +2002,35 @@ class InventoryController extends Controller
             $branchIds = $user->getAccessibleBranchIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
-            
+
             $baseQuery->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
-                      ->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
-                $hasConstraint = false;
-                if (!empty($branchIds)) {
-                    $q->orWhereIn('users.branch_id', $branchIds);
-                    $hasConstraint = true;
-                }
-                if (!empty($warehouseIds)) {
-                    $q->orWhereIn('users.warehouse_id', $warehouseIds);
-                    $hasConstraint = true;
-                }
-                if (!empty($onlineShopIds)) {
-                    $q->orWhereIn('users.online_shop_id', $onlineShopIds);
-                    $hasConstraint = true;
-                }
-                if (!$hasConstraint) {
-                    $q->whereRaw('0 = 1');
-                }
-            });
+                ->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
+                    $hasConstraint = false;
+                    if (!empty($branchIds)) {
+                        $q->orWhereIn('users.branch_id', $branchIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                        $hasConstraint = true;
+                    }
+                    if (!$hasConstraint) {
+                        $q->whereRaw('0 = 1');
+                    }
+                });
         }
 
         if ($mode === 'non-hp') {
             $baseQuery->join('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
-                      ->join('products', 'products.id', '=', 'stock_out_non_hp_items.product_id')
-                      ->whereNull('products.deleted_at')
-                      ->where(function($q) {
-                          $q->where('products.type', 'non-hp')->orWhere('products.has_imei', false);
-                      });
+                ->join('products', 'products.id', '=', 'stock_out_non_hp_items.product_id')
+                ->whereNull('products.deleted_at')
+                ->where(function ($q) {
+                    $q->where('products.type', 'non-hp')->orWhere('products.has_imei', false);
+                });
 
             $filteredQuery = clone $baseQuery;
             if ($request->filled('brand')) $filteredQuery->where('products.brand', $request->brand);
@@ -2028,13 +2059,13 @@ class InventoryController extends Controller
 
         // HP Mode
         $baseQuery->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
-                  ->join('product_details', 'product_details.id', '=', 'stock_out_items.product_detail_id')
-                  ->join('products', 'products.id', '=', 'product_details.product_id')
-                  ->whereNull('products.deleted_at')
-                  ->whereNull('product_details.deleted_at')
-                  ->where(function($q) {
-                      $q->where('products.type', 'hp')->orWhere('products.has_imei', true);
-                  });
+            ->join('product_details', 'product_details.id', '=', 'stock_out_items.product_detail_id')
+            ->join('products', 'products.id', '=', 'product_details.product_id')
+            ->whereNull('products.deleted_at')
+            ->whereNull('product_details.deleted_at')
+            ->where(function ($q) {
+                $q->where('products.type', 'hp')->orWhere('products.has_imei', true);
+            });
 
         $filteredQuery = clone $baseQuery;
         if ($request->filled('brand')) $filteredQuery->where('products.brand', $request->brand);
@@ -2064,7 +2095,7 @@ class InventoryController extends Controller
         if ($request->filled('brand')) $conditionQuery->where('products.brand', $request->brand);
         if ($request->filled('product_name')) $conditionQuery->where('products.name', $request->product_name);
         if ($request->filled('storage')) $conditionQuery->where('product_details.storage', $request->storage);
-        
+
         $conditionLabels = ['new' => 'Baru (New)', 'second' => 'Second', 'ex_ibox' => 'Ex-iBox', 'ex_inter' => 'Ex-Inter', 'refurbished' => 'Refurbished'];
         $conditions = $conditionQuery->select('product_details.condition', DB::raw('COUNT(*) as qty'))
             ->whereNotNull('product_details.condition')->groupBy('product_details.condition')->orderByDesc(DB::raw('COUNT(*)'))->get()
@@ -2097,7 +2128,7 @@ class InventoryController extends Controller
         $timeFilter = $request->input('time_filter');
         $month = $request->input('month');
         $year = $request->input('year');
-        
+
         // Categories definition
         $catTerjual = "CASE WHEN stock_outs.category IN ('penjualan_store', 'penjualan_offline', 'shopee', 'orderan_online', 'bundling') THEN ";
         $catAngkatBarang = "CASE WHEN stock_outs.category = 'angkat_barang' THEN ";
@@ -2115,7 +2146,7 @@ class InventoryController extends Controller
             ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereNull('products.deleted_at')
             ->whereNull('product_details.deleted_at')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('products.type', 'hp')->orWhere('products.has_imei', true);
             });
 
@@ -2125,40 +2156,51 @@ class InventoryController extends Controller
             ->join('products', 'products.id', '=', 'stock_out_non_hp_items.product_id')
             ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereNull('products.deleted_at')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('products.type', 'non-hp')->orWhere('products.has_imei', false);
             });
 
         // Filters
-        $applyFilters = function($query, $isHp = true) use ($request, $timeFilter, $user, $month, $year) {
+        $applyFilters = function ($query, $isHp = true) use ($request, $timeFilter, $user, $month, $year) {
             if (!empty($month) && !empty($year)) {
                 $query->whereMonth('stock_outs.reporting_date', $month)
-                      ->whereYear('stock_outs.reporting_date', $year);
+                    ->whereYear('stock_outs.reporting_date', $year);
             } elseif (!empty($year)) {
                 $query->whereYear('stock_outs.reporting_date', $year);
             } elseif ($timeFilter === 'bulan_ini') {
                 $query->whereMonth('stock_outs.reporting_date', now()->month)
-                      ->whereYear('stock_outs.reporting_date', now()->year);
+                    ->whereYear('stock_outs.reporting_date', now()->year);
             } elseif ($timeFilter === 'tahun_ini') {
                 $query->whereYear('stock_outs.reporting_date', now()->year);
             }
-            
+
             if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 $query->where(function ($q) use ($branchIds, $warehouseIds, $onlineShopIds) {
                     $hasConstraint = false;
-                    if (!empty($branchIds)) { $q->orWhereIn('users.branch_id', $branchIds); $hasConstraint = true; }
-                    if (!empty($warehouseIds)) { $q->orWhereIn('users.warehouse_id', $warehouseIds); $hasConstraint = true; }
-                    if (!empty($onlineShopIds)) { $q->orWhereIn('users.online_shop_id', $onlineShopIds); $hasConstraint = true; }
-                    if (!$hasConstraint) { $q->whereRaw('0 = 1'); }
+                    if (!empty($branchIds)) {
+                        $q->orWhereIn('users.branch_id', $branchIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $q->orWhereIn('users.warehouse_id', $warehouseIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhereIn('users.online_shop_id', $onlineShopIds);
+                        $hasConstraint = true;
+                    }
+                    if (!$hasConstraint) {
+                        $q->whereRaw('0 = 1');
+                    }
                 });
             }
 
             if ($request->filled('brand')) $query->where('products.brand', $request->brand);
             if ($request->filled('product_name')) $query->where('products.name', $request->product_name);
-            
+
             if ($isHp) {
                 if ($request->filled('storage')) $query->where('product_details.storage', $request->storage);
                 if ($request->filled('condition')) $query->where('product_details.condition', $request->condition);
@@ -2166,7 +2208,7 @@ class InventoryController extends Controller
         };
 
         $applyFilters($hpQuery, true);
-        
+
         $skipNonHp = $request->filled('storage') || $request->filled('condition');
         if (!$skipNonHp) {
             $applyFilters($nonHpQuery, false);
@@ -2209,26 +2251,26 @@ class InventoryController extends Controller
         if ($hasTypeFilter) {
             $selectFieldsHp[] = 'products.name as product_name';
             $groupByFieldsHp[] = 'products.name';
-            
+
             $selectFieldsNonHp[] = 'products.name as product_name';
             $groupByFieldsNonHp[] = 'products.name';
         }
-        
+
         if ($hasStorageFilter) {
             $selectFieldsHp[] = 'product_details.storage';
             $groupByFieldsHp[] = 'product_details.storage';
         }
-        
+
         if ($hasConditionFilter) {
             $selectFieldsHp[] = 'product_details.condition';
             $groupByFieldsHp[] = 'product_details.condition';
         }
 
         $hpResults = $hpQuery->select($selectFieldsHp)->groupBy($groupByFieldsHp)->get();
-        
+
         $nonHpResults = collect();
         if (!$skipNonHp) {
-            $nonHpResults = $nonHpQuery->select($selectFieldsNonHp)->groupBy($groupByFieldsNonHp)->get()->map(function($row) {
+            $nonHpResults = $nonHpQuery->select($selectFieldsNonHp)->groupBy($groupByFieldsNonHp)->get()->map(function ($row) {
                 $row->storage = null;
                 $row->condition = null;
                 return $row;
@@ -2330,4 +2372,3 @@ class InventoryController extends Controller
 
     // destroyAccount and voidStockIn moved to their respective controllers
 }
-

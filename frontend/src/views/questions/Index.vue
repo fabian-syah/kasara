@@ -102,10 +102,11 @@ const handleSubmit = async () => {
     try {
         if (isEditing.value) {
             const response = await questionsApi.update(selectedQuestion.value.id, form.value);
-            // Klien ingin pertanyaan lama tetap ada, jadi kita unshift (tambahkan) hasil edit sebagai baris baru
+            // Remove the old question since it is now soft-deleted
+            questions.value = questions.value.filter(q => q.id !== selectedQuestion.value.id);
             questions.value.unshift(response.data);
             expandedCategories.value[response.data.category] = true; // Ensure expanded
-            toast.success('Pertanyaan berhasil diedit dan ditambahkan sebagai baris baru');
+            toast.success('Pertanyaan berhasil diperbarui');
         } else {
             const response = await questionsApi.create(form.value);
             questions.value.unshift(response.data);
