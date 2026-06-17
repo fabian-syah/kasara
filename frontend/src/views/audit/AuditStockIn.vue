@@ -182,7 +182,14 @@
                                 </td>
                             </tr>
                             <tr v-else v-for="(item, index) in stockInRecords.data" :key="item.id"
-                                class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors group text-text-primary">
+                                class="transition-colors group text-text-primary"
+                                :class="[
+                                    item.category === 'cancel_penjualan' 
+                                        ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
+                                        : item.audit_score !== null 
+                                            ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20' 
+                                            : 'hover:bg-gray-50 dark:hover:bg-surface-700/30'
+                                ]">
                                 <td class="px-4 py-4 text-text-secondary font-medium">
                                     {{ (stockInRecords.current_page - 1) * stockInRecords.per_page + index + 1 }}
                                 </td>
