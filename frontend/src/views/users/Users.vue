@@ -639,7 +639,7 @@ function getUserRoleName(user) {
       <div class="flex flex-col md:flex-row gap-4">
         <div class="relative w-full md:flex-1 group">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
-          <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input !py-2.5 !text-sm !pl-10 w-full" />
+          <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="w-full bg-surface-50 dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg py-2.5 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
         </div>
         <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           <!-- Account Type Tabs -->
