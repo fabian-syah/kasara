@@ -186,7 +186,7 @@
                                 :class="[
                                     item.category === 'cancel_penjualan' 
                                         ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
-                                        : item.audit_score !== null 
+                                        : item.audit_score != null 
                                             ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20' 
                                             : 'hover:bg-gray-50 dark:hover:bg-surface-700/30'
                                 ]">
@@ -303,7 +303,7 @@
                                 <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{
                                     formatCurrency(item.edc) }}</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span v-if="item.audit_score === null" class="text-xs text-gray-400">-</span>
+                                    <span v-if="item.audit_score == null" class="text-xs text-gray-400">-</span>
                                     <span v-else-if="item.audit_score === 100"
                                         class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
                                         ✅</span>
