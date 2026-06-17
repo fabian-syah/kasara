@@ -638,9 +638,7 @@ function getUserRoleName(user) {
     <div class="card space-y-4">
       <div class="flex flex-col md:flex-row gap-4">
         <div class="relative w-full md:flex-1">
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search class="text-text-secondary" :size="18" />
-          </div>
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 -mt-[2px] text-text-secondary" :size="18" />
           <input v-model="searchQuery" type="text" placeholder="Cari nama atau email..." class="input !pl-10 w-full" />
         </div>
         <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
