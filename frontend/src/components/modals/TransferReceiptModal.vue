@@ -112,7 +112,7 @@
                             </div>
 
                             <!-- Signature Area -->
-                            <div class="signature-area grid grid-cols-3 gap-4 text-center mt-12 print:mt-2 mb-4 print:mb-0">
+                            <div class="signature-area grid grid-cols-2 gap-16 text-center mt-12 print:mt-2 mb-4 print:mb-0">
                                 <div>
                                     <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-6">Pengirim</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2 print:mb-1"></div>
@@ -122,11 +122,6 @@
                                     <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-6">Security / Kurir</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2 print:mb-1"></div>
                                     <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 print:text-gray-800 uppercase">( ............................ )</p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-6">Penerima</p>
-                                    <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2 print:mb-1"></div>
-                                    <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 print:text-gray-800 uppercase">{{ transfer.receiver_name || '( ............................ )' }}</p>
                                 </div>
                             </div>
                             
