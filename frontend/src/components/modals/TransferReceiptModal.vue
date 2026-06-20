@@ -290,6 +290,14 @@ function printReceipt() {
         box-shadow: none !important;
         margin: 0 !important;
         padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        zoom: 0.85; /* Mengecilkan sedikit agar selalu pas 1 halaman A5 */
+    }
+    /* Memaksa semua elemen dalam nota nge-print warna background */
+    .nota-paper * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     /* Hide scrollbars during print */
     ::-webkit-scrollbar {
