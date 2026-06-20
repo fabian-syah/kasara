@@ -344,15 +344,34 @@ function printReceipt() {
         print-color-adjust: exact !important;
     }
 
+    /* Target all table elements explicitly to bypass table-specific style overrides from global CSS */
+    #transfer-receipt-modal-wrapper table,
+    #transfer-receipt-modal-wrapper table *,
+    #transfer-receipt-modal-wrapper table thead,
+    #transfer-receipt-modal-wrapper table tbody,
+    #transfer-receipt-modal-wrapper table tr,
+    #transfer-receipt-modal-wrapper table th,
+    #transfer-receipt-modal-wrapper table td,
+    html.dark #transfer-receipt-modal-wrapper table,
+    html.dark #transfer-receipt-modal-wrapper table *,
+    html.dark #transfer-receipt-modal-wrapper table thead,
+    html.dark #transfer-receipt-modal-wrapper table tbody,
+    html.dark #transfer-receipt-modal-wrapper table tr,
+    html.dark #transfer-receipt-modal-wrapper table th,
+    html.dark #transfer-receipt-modal-wrapper table td {
+        background: white !important;
+        background-color: white !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
     #transfer-receipt-modal-wrapper table th,
     #transfer-receipt-modal-wrapper table thead,
     html.dark #transfer-receipt-modal-wrapper table th,
     html.dark #transfer-receipt-modal-wrapper table thead {
-        background: white !important;
-        background-color: white !important;
         border-bottom: 2px solid black !important;
         border-top: 2px solid black !important;
-        color: black !important;
     }
 
     ::-webkit-scrollbar {
