@@ -86,7 +86,7 @@
                             </div>
 
                             <!-- Items Table -->
-                            <div class="table-container border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
+                            <div class="table-container border border-gray-300 dark:border-surface-600 rounded-xl print:rounded-none overflow-hidden mb-8">
                                 <table class="w-full text-xs text-left print:!bg-white">
                                     <thead class="bg-white dark:bg-surface-800 border-b border-gray-200 dark:border-surface-700 print:!bg-white print:border-y-2 print:border-white text-gray-950 dark:text-white">
                                         <tr>
@@ -500,11 +500,13 @@ function printReceipt() {
 
     .table-container {
         margin-bottom: 14px !important;
-        border: none !important;
+        border: 1px solid black !important;
+        border-radius: 0 !important;
     }
     
     .table-container table {
         border-collapse: collapse !important;
+        width: 100% !important;
     }
     
     .table-container table th {
@@ -517,6 +519,11 @@ function printReceipt() {
         padding: 4px 6px !important;
         font-size: 9px !important;
         line-height: 1.1 !important;
+        border-bottom: 1px solid black !important;
+    }
+
+    .table-container table tbody tr:last-child td {
+        border-bottom: none !important;
     }
 
     .signature-area {
@@ -570,8 +577,8 @@ function printReceipt() {
     #transfer-receipt-modal-wrapper table thead,
     html.dark #transfer-receipt-modal-wrapper table th,
     html.dark #transfer-receipt-modal-wrapper table thead {
-        border-bottom: 2px solid black !important;
-        border-top: 2px solid black !important;
+        border-bottom: 1.5px solid black !important;
+        border-top: none !important;
     }
 
     ::-webkit-scrollbar {
