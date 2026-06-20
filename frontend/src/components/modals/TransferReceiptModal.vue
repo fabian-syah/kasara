@@ -300,20 +300,41 @@ function printReceipt() {
         print-color-adjust: exact !important;
     }
     
-    /* OVERRIDE DARK MODE SAAT PRINT */
-    .nota-paper, .nota-paper * {
+    /* OVERRIDE DARK MODE SAAT PRINT DENGAN SPESIFISITAS TINGGI */
+    html.dark .nota-paper, 
+    html.dark .nota-paper *,
+    .nota-paper, 
+    .nota-paper * {
         color: black !important;
     }
-    .nota-paper {
+    
+    html.dark .nota-paper {
         background-color: white !important;
     }
-    .nota-paper table th {
-        background-color: #e5e7eb !important; /* Light gray */
+    
+    html.dark .nota-paper table,
+    html.dark .nota-paper table *,
+    .nota-paper table,
+    .nota-paper table * {
+        background-color: white !important;
+    }
+
+    html.dark .nota-paper table th,
+    html.dark .nota-paper table thead,
+    .nota-paper table th,
+    .nota-paper table thead {
+        background-color: white !important;
         color: black !important;
         border-bottom: 2px solid black !important;
+        border-top: 2px solid black !important;
     }
-    .nota-paper table tr, .nota-paper table td {
+
+    html.dark .nota-paper table tr, 
+    html.dark .nota-paper table td,
+    .nota-paper table tr, 
+    .nota-paper table td {
         background-color: white !important;
+        color: black !important;
     }
     .nota-paper .text-gray-500 {
         color: #4b5563 !important;
