@@ -239,6 +239,8 @@ function printReceipt() {
 </script>
 
 <style scoped>
+@reference "../../style.css";
+
 @media print {
     @page {
         margin: 0;
