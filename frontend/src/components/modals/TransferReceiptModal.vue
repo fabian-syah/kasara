@@ -26,86 +26,86 @@
                         class="flex-1 overflow-y-auto p-4 sm:p-8 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white custom-scrollbar">
                         
                         <div v-if="transfer"
-                            class="nota-paper w-full max-w-[700px] mx-auto bg-white p-6 sm:p-8 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none border border-neutral-200">
+                            class="nota-paper w-full max-w-[700px] mx-auto bg-white p-6 sm:p-8 rounded-2xl text-black font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none border border-gray-200">
                             
                             <!-- Header Section -->
-                            <div class="flex justify-between items-start border-b-2 border-neutral-900 pb-4 mb-6">
+                            <div class="flex justify-between items-start border-b-2 border-black pb-4 mb-6">
                                 <div class="flex items-center gap-4">
                                     <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 object-contain" />
                                     <div>
-                                        <h1 class="text-2xl font-black text-red-600 tracking-tighter leading-none mb-1">SURAT JALAN / TRANSFER</h1>
-                                        <p class="text-xs font-bold text-neutral-600 uppercase">{{ authStore.userBranch?.name || 'PSTORE' }}</p>
+                                        <h1 class="text-2xl font-black text-danger tracking-tighter leading-none mb-1">SURAT JALAN / TRANSFER</h1>
+                                        <p class="text-xs font-bold text-gray-600 uppercase">{{ authStore.userBranch?.name || 'PSTORE' }}</p>
                                     </div>
                                 </div>
                                 
                                 <!-- QR Code Area -->
-                                <div class="flex flex-col items-center border border-neutral-300 p-2 rounded-xl bg-neutral-50 shadow-sm">
-                                    <img :src="'https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=1&data=' + encodeURIComponent(trackingUrl)" 
+                                <div class="flex flex-col items-center border border-gray-300 p-2 rounded-xl bg-gray-50 shadow-sm">
+                                    <img :src="'https://quickchart.io/qr?text=' + encodeURIComponent(trackingUrl) + '&size=120&margin=1'" 
                                         alt="QR Resi" class="w-20 h-20 sm:w-24 sm:h-24 object-contain mix-blend-multiply" />
-                                    <span class="text-[9px] font-black uppercase mt-2 tracking-widest text-neutral-800">Scan by Security</span>
+                                    <span class="text-[9px] font-black uppercase mt-2 tracking-widest text-gray-800">Scan by Security</span>
                                 </div>
                             </div>
 
                             <!-- Meta Data Grid -->
-                            <div class="grid grid-cols-2 gap-6 mb-6 text-xs border border-neutral-200 rounded-xl p-4 bg-neutral-50/50">
+                            <div class="grid grid-cols-2 gap-6 mb-6 text-xs border border-gray-200 rounded-xl p-4 bg-gray-50/50">
                                 <div class="space-y-3">
                                     <div>
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">No. Resi / Referensi</p>
-                                        <p class="font-black text-sm text-neutral-900 uppercase">{{ transfer.receipt_id }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">No. Resi / Referensi</p>
+                                        <p class="font-black text-sm text-black uppercase">{{ transfer.receipt_id }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Tanggal Transfer</p>
-                                        <p class="font-bold text-neutral-800">{{ displayDate }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Tanggal Transfer</p>
+                                        <p class="font-bold text-gray-800">{{ displayDate }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Status Pengiriman</p>
-                                        <p class="font-bold text-neutral-800 uppercase">{{ transfer.status }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Status Pengiriman</p>
+                                        <p class="font-bold text-gray-800 uppercase">{{ transfer.status }}</p>
                                     </div>
                                 </div>
                                 
                                 <div class="space-y-3">
                                     <div>
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Pengirim (Dari)</p>
-                                        <p class="font-bold text-neutral-800 uppercase">{{ transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name || 'Cabang Asal' }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Pengirim (Dari)</p>
+                                        <p class="font-bold text-gray-800 uppercase">{{ transfer.inventory_user?.name || transfer.inventoryUser?.name || transfer.user?.name || 'Cabang Asal' }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Penerima (Tujuan)</p>
-                                        <p class="font-bold text-neutral-800 uppercase">{{ transfer.destination?.name || transfer.receiver_name || '-' }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Penerima (Tujuan)</p>
+                                        <p class="font-bold text-gray-800 uppercase">{{ transfer.destination?.name || transfer.receiver_name || '-' }}</p>
                                     </div>
                                     <div v-if="transfer.expedition_name">
-                                        <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Ekspedisi</p>
-                                        <p class="font-bold text-neutral-800 uppercase">{{ transfer.expedition_name }} - {{ transfer.expedition_tracking_no }}</p>
+                                        <p class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Ekspedisi</p>
+                                        <p class="font-bold text-gray-800 uppercase">{{ transfer.expedition_name }} - {{ transfer.expedition_tracking_no }}</p>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- Catatan -->
-                            <div class="mb-6 border border-neutral-200 rounded-xl p-3 bg-neutral-50/50 text-xs">
-                                <span class="font-black text-neutral-500 uppercase tracking-widest text-[9px] block mb-1">Catatan:</span>
-                                <span class="font-bold italic text-neutral-800">"{{ transfer.transfer_notes || transfer.notes || 'Tidak ada catatan' }}"</span>
+                            <div class="mb-6 border border-gray-200 rounded-xl p-3 bg-gray-50/50 text-xs">
+                                <span class="font-black text-gray-500 uppercase tracking-widest text-[9px] block mb-1">Catatan:</span>
+                                <span class="font-bold italic text-gray-800">"{{ transfer.transfer_notes || transfer.notes || 'Tidak ada catatan' }}"</span>
                             </div>
 
                             <!-- Items Table -->
-                            <div class="border border-neutral-300 rounded-xl overflow-hidden mb-8">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-neutral-900 text-white">
+                            <div class="border border-gray-300 rounded-xl overflow-hidden mb-8">
+                                <table class="w-full text-xs text-left text-black">
+                                    <thead class="bg-gray-900 text-white">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center">No</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px]">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48">IMEI / S/N</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24">Kondisi</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center">Qty</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center text-white">No</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] text-white">Deskripsi Barang (Merek, Tipe)</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 text-white">IMEI / S/N</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 text-white">Kondisi</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center text-white">Qty</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-neutral-200">
-                                        <tr v-for="(item, index) in allItems" :key="index" class="hover:bg-neutral-50">
-                                            <td class="px-4 py-2 text-center font-bold text-neutral-500">{{ index + 1 }}</td>
-                                            <td class="px-4 py-2 font-bold text-neutral-900 uppercase">
+                                    <tbody class="divide-y divide-gray-200">
+                                        <tr v-for="(item, index) in allItems" :key="index" class="hover:bg-gray-50">
+                                            <td class="px-4 py-2 text-center font-bold text-gray-500">{{ index + 1 }}</td>
+                                            <td class="px-4 py-2 font-bold text-black uppercase">
                                                 {{ item.name }}
                                             </td>
-                                            <td class="px-4 py-2 font-mono font-bold text-neutral-700 text-[11px]">{{ item.imei }}</td>
-                                            <td class="px-4 py-2 font-bold text-neutral-700 uppercase text-[10px]">{{ item.condition }}</td>
-                                            <td class="px-4 py-2 text-center font-black text-neutral-900">{{ item.qty }}</td>
+                                            <td class="px-4 py-2 font-mono font-bold text-gray-700 text-[11px]">{{ item.imei }}</td>
+                                            <td class="px-4 py-2 font-bold text-gray-700 uppercase text-[10px]">{{ item.condition }}</td>
+                                            <td class="px-4 py-2 text-center font-black text-black">{{ item.qty }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -114,24 +114,24 @@
                             <!-- Signature Area -->
                             <div class="grid grid-cols-3 gap-4 text-center mt-12 mb-4">
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-16">Pengirim</p>
-                                    <div class="border-b border-neutral-400 w-32 mx-auto mb-2"></div>
-                                    <p class="text-[10px] font-bold text-neutral-800 uppercase">{{ transfer.inventory_user?.name || transfer.user?.name || 'PSTORE' }}</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-16">Pengirim</p>
+                                    <div class="border-b border-gray-400 w-32 mx-auto mb-2"></div>
+                                    <p class="text-[10px] font-bold text-gray-800 uppercase">{{ transfer.inventory_user?.name || transfer.user?.name || 'PSTORE' }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-16">Security / Kurir</p>
-                                    <div class="border-b border-neutral-400 w-32 mx-auto mb-2"></div>
-                                    <p class="text-[10px] font-bold text-neutral-800 uppercase">( ............................ )</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-16">Security / Kurir</p>
+                                    <div class="border-b border-gray-400 w-32 mx-auto mb-2"></div>
+                                    <p class="text-[10px] font-bold text-gray-800 uppercase">( ............................ )</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-neutral-500 mb-16">Penerima</p>
-                                    <div class="border-b border-neutral-400 w-32 mx-auto mb-2"></div>
-                                    <p class="text-[10px] font-bold text-neutral-800 uppercase">{{ transfer.receiver_name || '( ............................ )' }}</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-16">Penerima</p>
+                                    <div class="border-b border-gray-400 w-32 mx-auto mb-2"></div>
+                                    <p class="text-[10px] font-bold text-gray-800 uppercase">{{ transfer.receiver_name || '( ............................ )' }}</p>
                                 </div>
                             </div>
                             
                             <!-- Footer note -->
-                            <div class="text-center text-[9px] text-neutral-400 font-bold uppercase tracking-widest mt-8 border-t border-dashed border-neutral-300 pt-4">
+                            <div class="text-center text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-8 border-t border-dashed border-gray-300 pt-4">
                                 Dokumen ini dicetak otomatis pada {{ currentDateTime }} <br> Scan QR Code untuk detail pengiriman dan tracking.
                             </div>
                         </div>
@@ -276,6 +276,6 @@ function printReceipt() {
     background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-neutral-300 dark:bg-surface-700 rounded-full;
+    @apply bg-gray-300 dark:bg-surface-700 rounded-full;
 }
 </style>
