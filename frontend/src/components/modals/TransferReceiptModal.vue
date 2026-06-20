@@ -88,13 +88,13 @@
                             <!-- Items Table -->
                             <div class="table-container border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
                                 <table class="w-full text-xs text-left print:!bg-white">
-                                    <thead class="bg-gray-900 dark:bg-surface-800 print:!bg-white print:border-y-2 print:border-white text-white print:!text-black">
+                                    <thead class="bg-white dark:bg-surface-800 border-b border-gray-200 dark:border-surface-700 print:!bg-white print:border-y-2 print:border-white text-gray-950 dark:text-white">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center dark:text-white print:!text-black print:!bg-white">No</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] dark:text-white print:!text-black print:!bg-white">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 dark:text-white print:!text-black print:!bg-white">IMEI / S/N</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 dark:text-white print:!text-black print:!bg-white">Kondisi</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center dark:text-white print:!text-black print:!bg-white">Qty</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">No</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Deskripsi Barang (Merek, Tipe)</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">IMEI</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Kondisi</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Qty</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 dark:divide-surface-700 print:divide-black">
@@ -270,7 +270,22 @@ const allItems = computed(() => {
     const hps = props.transfer.items || [];
     hps.forEach(hp => {
         const brand = hp.product?.brand?.name || hp.product?.brandRelation?.name || hp.product?.brand || hp.brand || '';
-        const name = `${brand} ${hp.product?.name || ''}`.trim();
+        
+        // Get storage and RAM
+        const ram = hp.ram || hp.product?.ram || '';
+        const storage = hp.storage || hp.product?.storage || '';
+        let capacity = '';
+        if (ram && storage) {
+            const r = /^\d+$/.test(ram.toString()) ? ram : ram.toString().replace(/GB/gi, '');
+            const s = /^\d+$/.test(storage.toString()) ? storage : storage.toString().replace(/GB/gi, '');
+            capacity = `${r}/${s}GB`;
+        } else if (storage || ram) {
+            const val = (storage || ram).toString();
+            capacity = /^\d+$/.test(val) ? val + 'GB' : val;
+        }
+        const capacitySuffix = capacity ? ` ${capacity}` : '';
+        
+        const name = `${brand} ${hp.product?.name || ''}${capacitySuffix}`.trim();
         items.push({
             name: name || 'PSTORE UNIT',
             imei: hp.imei || '-',
