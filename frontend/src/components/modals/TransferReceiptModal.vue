@@ -112,26 +112,26 @@
                             </div>
 
                             <!-- Signature Area -->
-                            <div class="grid grid-cols-3 gap-4 text-center mt-12 mb-4">
+                            <div class="grid grid-cols-3 gap-4 text-center mt-12 print:mt-6 mb-4 print:mb-2">
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16">Pengirim</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-10">Pengirim</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2"></div>
                                     <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 print:text-gray-800 uppercase">{{ transfer.inventory_user?.name || transfer.user?.name || 'PSTORE' }}</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16">Security / Kurir</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-10">Security / Kurir</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2"></div>
                                     <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 print:text-gray-800 uppercase">( ............................ )</p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16">Penerima</p>
+                                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-10">Penerima</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2"></div>
                                     <p class="text-[10px] font-bold text-gray-800 dark:text-gray-200 print:text-gray-800 uppercase">{{ transfer.receiver_name || '( ............................ )' }}</p>
                                 </div>
                             </div>
                             
                             <!-- Footer note -->
-                            <div class="text-center text-[9px] text-gray-400 dark:text-gray-500 print:text-gray-400 font-bold uppercase tracking-widest mt-8 border-t border-dashed border-gray-300 dark:border-surface-600 print:border-gray-300 pt-4">
+                            <div class="text-center text-[9px] text-gray-400 dark:text-gray-500 print:text-gray-400 font-bold uppercase tracking-widest mt-8 print:mt-4 border-t border-dashed border-gray-300 dark:border-surface-600 print:border-gray-300 pt-4 print:pt-2">
                                 Dokumen ini dicetak otomatis pada {{ currentDateTime }} <br> Scan QR Code untuk detail pengiriman dan tracking.
                             </div>
                         </div>
@@ -320,7 +320,7 @@ function printReceipt() {
 @media print {
     @page {
         size: A5 portrait;
-        margin: 10mm;
+        margin: 5mm;
     }
 
     /* Robustly hide ALL other elements at the root body level except the print wrappers to avoid blank pages and conflicts */
@@ -370,7 +370,6 @@ function printReceipt() {
         padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        zoom: 0.85; 
         background: white !important;
         background-color: white !important;
         color: black !important;
