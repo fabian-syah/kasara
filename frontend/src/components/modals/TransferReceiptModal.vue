@@ -258,25 +258,38 @@ function printReceipt() {
 
 @media print {
     @page {
-        margin: 0;
-        size: auto;
+        size: A5 portrait;
+        margin: 10mm;
     }
-    body * {
-        visibility: hidden;
+    body > *:not(#transfer-receipt-modal-wrapper) {
+        display: none !important;
     }
-    #transfer-receipt-modal-wrapper, 
-    #transfer-receipt-modal-wrapper *,
-    #transfer-receipt-content,
-    #transfer-receipt-content * {
-        visibility: visible;
+    #transfer-receipt-modal-wrapper {
+        position: static !important;
+        display: block !important;
+        height: auto !important;
+        width: auto !important;
+        background: white !important;
+        padding: 0 !important;
+    }
+    #transfer-receipt-modal-wrapper > div {
+        max-height: none !important;
+        height: auto !important;
+        box-shadow: none !important;
+        overflow: visible !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     #transfer-receipt-content {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
+        overflow: visible !important;
+        height: auto !important;
+        padding: 0 !important;
+    }
+    .nota-paper {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     /* Hide scrollbars during print */
     ::-webkit-scrollbar {
