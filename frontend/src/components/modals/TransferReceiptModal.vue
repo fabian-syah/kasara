@@ -90,11 +90,11 @@
                                 <table class="w-full text-xs text-left">
                                     <thead class="bg-gray-900 dark:bg-surface-800 print:bg-gray-900 text-white">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center">No</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px]">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48">IMEI / S/N</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24">Kondisi</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center">Qty</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center !text-white">No</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] !text-white">Deskripsi Barang (Merek, Tipe)</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 !text-white">IMEI / S/N</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 !text-white">Kondisi</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center !text-white">Qty</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 dark:divide-surface-700 print:divide-gray-200">
