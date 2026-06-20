@@ -5,6 +5,7 @@ import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import PinModal from "../../components/modals/PinModal.vue";
+import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
     Package,
     Loader2,
@@ -26,7 +27,8 @@ import {
     ChevronRight,
     FileText,
     Truck,
-    LayoutDashboard
+    LayoutDashboard,
+    Printer
 } from "lucide-vue-next";
 
 const toast = useToast();
@@ -88,6 +90,7 @@ const showReceiveModal = ref(false); // For incoming_otw
 const showReturnModal = ref(false); // For failed_otw (Confirm return to stock)
 const showDetailModal = ref(false); // For outgoing_otw, history_in, history_out
 const showExpeditionModal = ref(false); // NEW: For adding expedition info
+const showPrintModal = ref(false);
 const showTrackingModal = ref(false); // NEW: For real-time tracking display
 const isTracking = ref(false);
 const trackingData = ref(null);
@@ -337,6 +340,11 @@ function openExpeditionModal(transfer) {
         expedition_date: transfer.expedition_date || new Date().toISOString().substr(0, 10),
     };
     showExpeditionModal.value = true;
+}
+
+function openPrintModal(transfer) {
+    selectedTransfer.value = transfer;
+    showPrintModal.value = true;
 }
 
 function closeExpeditionModal() {
@@ -718,6 +726,13 @@ onMounted(() => {
                                             <span>Ekspedisi</span>
                                         </button>
 
+                                        <button v-if="['incoming_otw', 'outgoing_otw', 'history_out'].includes(activeTab)" 
+                                            @click.stop="openPrintModal(transfer)"
+                                            class="px-3 py-1.5 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border border-green-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
+                                            <Printer :size="12" />
+                                            <span>Cetak</span>
+                                        </button>
+
                                         <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                             @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
                                             class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
@@ -814,6 +829,12 @@ onMounted(() => {
                                     class="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500 text-purple-500 hover:text-white border border-purple-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
                                     Exp
                                 </button>
+                                <button v-if="['incoming_otw', 'outgoing_otw', 'history_out'].includes(activeTab)" 
+                                            @click.stop="openPrintModal(transfer)"
+                                            class="px-3 py-1.5 bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white border border-green-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
+                                            Cetak
+                                        </button>
+                                        
                                 <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                     @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
                                     class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
@@ -1355,6 +1376,8 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+
+        <TransferReceiptModal :isOpen="showPrintModal" :transfer="selectedTransfer" @close="showPrintModal = false" />
     </div>
 </template>
 
