@@ -175,8 +175,56 @@ function close() {
 function handleKeydown(e) {
     if (e.key === 'Escape' && props.isOpen) close();
 }
-onMounted(() => window.addEventListener('keydown', handleKeydown));
-onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
+
+// Print events to temporarily disable dark mode during printing/previewing
+let wasDark = false;
+
+function handleBeforePrint() {
+    if (props.isOpen) {
+        wasDark = document.documentElement.classList.contains('dark');
+        if (wasDark) {
+            document.documentElement.classList.remove('dark');
+        }
+    }
+}
+
+function handleAfterPrint() {
+    if (wasDark) {
+        document.documentElement.classList.add('dark');
+        wasDark = false;
+    }
+}
+
+watch(() => props.isOpen, (newVal) => {
+    if (newVal) {
+        window.addEventListener('beforeprint', handleBeforePrint);
+        window.addEventListener('afterprint', handleAfterPrint);
+    } else {
+        window.removeEventListener('beforeprint', handleBeforePrint);
+        window.removeEventListener('afterprint', handleAfterPrint);
+        if (wasDark) {
+            document.documentElement.classList.add('dark');
+            wasDark = false;
+        }
+    }
+});
+
+onMounted(() => {
+    window.addEventListener('keydown', handleKeydown);
+    if (props.isOpen) {
+        window.addEventListener('beforeprint', handleBeforePrint);
+        window.addEventListener('afterprint', handleAfterPrint);
+    }
+});
+
+onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown);
+    window.removeEventListener('beforeprint', handleBeforePrint);
+    window.removeEventListener('afterprint', handleAfterPrint);
+    if (wasDark) {
+        document.documentElement.classList.add('dark');
+    }
+});
 
 // Computed Properties
 const trackingUrl = computed(() => {
