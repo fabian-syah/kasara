@@ -86,26 +86,26 @@
                             </div>
 
                             <!-- Items Table -->
-                            <div class="border border-gray-300 dark:border-surface-600 print:border-gray-300 rounded-xl overflow-hidden mb-8">
-                                <table class="w-full text-xs text-left">
-                                    <thead class="bg-gray-900 dark:bg-surface-800 print:bg-white print:border-y-2 print:border-black text-white print:text-black">
+                            <div class="border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
+                                <table class="w-full text-xs text-left print:!bg-white">
+                                    <thead class="bg-gray-900 dark:bg-surface-800 print:!bg-white print:border-y-2 print:border-black text-white print:!text-black">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center dark:text-white print:!text-black">No</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] dark:text-white print:!text-black">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 dark:text-white print:!text-black">IMEI / S/N</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 dark:text-white print:!text-black">Kondisi</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center dark:text-white print:!text-black">Qty</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center dark:text-white print:!text-black print:!bg-white">No</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] dark:text-white print:!text-black print:!bg-white">Deskripsi Barang (Merek, Tipe)</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 dark:text-white print:!text-black print:!bg-white">IMEI / S/N</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 dark:text-white print:!text-black print:!bg-white">Kondisi</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center dark:text-white print:!text-black print:!bg-white">Qty</th>
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-gray-200 dark:divide-surface-700 print:divide-gray-200">
-                                        <tr v-for="(item, index) in allItems" :key="index" class="hover:bg-gray-50 dark:hover:bg-surface-800 print:hover:bg-transparent">
-                                            <td class="px-4 py-2 text-center font-bold text-gray-500 dark:text-gray-400 print:text-gray-500">{{ index + 1 }}</td>
-                                            <td class="px-4 py-2 font-bold text-black dark:text-white print:text-black uppercase">
+                                    <tbody class="divide-y divide-gray-200 dark:divide-surface-700 print:divide-black">
+                                        <tr v-for="(item, index) in allItems" :key="index" class="bg-white dark:bg-surface-900 print:!bg-white hover:bg-gray-50 dark:hover:bg-surface-800 print:hover:!bg-white">
+                                            <td class="px-4 py-2 text-center font-bold text-gray-500 dark:text-gray-400 print:!text-black print:!bg-white">{{ index + 1 }}</td>
+                                            <td class="px-4 py-2 font-bold text-black dark:text-white print:!text-black uppercase print:!bg-white">
                                                 {{ item.name }}
                                             </td>
-                                            <td class="px-4 py-2 font-mono font-bold text-gray-700 dark:text-gray-300 print:text-gray-700 text-[11px]">{{ item.imei }}</td>
-                                            <td class="px-4 py-2 font-bold text-gray-700 dark:text-gray-300 print:text-gray-700 uppercase text-[10px]">{{ item.condition }}</td>
-                                            <td class="px-4 py-2 text-center font-black text-black dark:text-white print:text-black">{{ item.qty }}</td>
+                                            <td class="px-4 py-2 font-mono font-bold text-gray-700 dark:text-gray-300 print:!text-black text-[11px] print:!bg-white">{{ item.imei }}</td>
+                                            <td class="px-4 py-2 font-bold text-gray-700 dark:text-gray-300 print:!text-black uppercase text-[10px] print:!bg-white">{{ item.condition }}</td>
+                                            <td class="px-4 py-2 text-center font-black text-black dark:text-white print:!text-black print:!bg-white">{{ item.qty }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
