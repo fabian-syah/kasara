@@ -320,7 +320,7 @@ function printReceipt() {
 @media print {
     @page {
         size: A5 portrait;
-        margin: 4mm 4mm 4mm 4mm;
+        margin: 6mm 6mm 6mm 6mm;
     }
 
     /* Robustly hide ALL other elements at the root body level except the print wrappers to avoid blank pages and conflicts */
@@ -367,7 +367,7 @@ function printReceipt() {
         border: none !important;
         box-shadow: none !important;
         margin: 0 auto !important;
-        padding: 6px !important;
+        padding: 12px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         background: white !important;
@@ -393,10 +393,10 @@ function printReceipt() {
         print-color-adjust: exact !important;
     }
 
-    /* Print-specific layout compression to fit everything on a single A5 page at 120% scale */
+    /* Print-specific layout adjustments to fill the A5 page nicely on a single page at 120% scale */
     .receipt-header {
-        margin-bottom: 6px !important;
-        padding-bottom: 6px !important;
+        margin-bottom: 12px !important;
+        padding-bottom: 8px !important;
         border-bottom-width: 1.5px !important;
     }
     
@@ -406,26 +406,26 @@ function printReceipt() {
     }
     
     .receipt-title {
-        font-size: 15px !important;
-        margin-bottom: 1px !important;
+        font-size: 16px !important;
+        margin-bottom: 2px !important;
     }
     
     .receipt-subtitle {
-        font-size: 9px !important;
+        font-size: 9.5px !important;
     }
     
     .qr-code-box {
-        min-width: 70px !important;
-        max-width: 70px !important;
-        min-height: 70px !important;
-        max-height: 70px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+        min-height: 72px !important;
+        max-height: 72px !important;
         padding: 2px !important;
         border-radius: 6px !important;
     }
     
     .qr-code-img {
-        width: 50px !important;
-        height: 50px !important;
+        width: 52px !important;
+        height: 52px !important;
     }
     
     .qr-code-box span {
@@ -433,9 +433,9 @@ function printReceipt() {
     }
 
     .meta-grid {
-        margin-bottom: 6px !important;
-        padding: 6px 8px !important;
-        gap: 6px !important;
+        margin-bottom: 12px !important;
+        padding: 8px 10px !important;
+        gap: 8px !important;
     }
     
     .meta-grid .space-y-3 {
@@ -448,43 +448,43 @@ function printReceipt() {
     
     /* Override spacing utilities inside meta-grid in print */
     .meta-grid .space-y-3 > :not([hidden]) ~ :not([hidden]) {
-        margin-top: 2px !important;
+        margin-top: 3px !important;
     }
     
     .meta-grid p.text-\[9px\] {
-        font-size: 7.5px !important;
+        font-size: 8px !important;
         line-height: 1 !important;
-        margin-bottom: 1px !important;
+        margin-bottom: 2px !important;
     }
     
     .meta-grid p.text-sm {
-        font-size: 10px !important;
+        font-size: 11px !important;
         line-height: 1.1 !important;
     }
     
     .meta-grid p.font-bold {
-        font-size: 9.5px !important;
+        font-size: 10px !important;
         line-height: 1.1 !important;
     }
 
     .notes-box {
-        margin-bottom: 6px !important;
-        padding: 4px 6px !important;
+        margin-bottom: 12px !important;
+        padding: 6px 10px !important;
     }
     
     .notes-box span.text-\[9px\] {
-        font-size: 7.5px !important;
+        font-size: 8px !important;
         line-height: 1 !important;
-        margin-bottom: 1px !important;
+        margin-bottom: 2px !important;
     }
     
     .notes-box span.font-bold {
-        font-size: 9.5px !important;
+        font-size: 10px !important;
         line-height: 1.1 !important;
     }
 
     .table-container {
-        margin-bottom: 6px !important;
+        margin-bottom: 14px !important;
         border: none !important;
     }
     
@@ -493,35 +493,40 @@ function printReceipt() {
     }
     
     .table-container table th {
-        padding: 3px 4px !important;
-        font-size: 8.5px !important;
+        padding: 4px 6px !important;
+        font-size: 9px !important;
         line-height: 1.1 !important;
     }
     
     .table-container table td {
-        padding: 3px 4px !important;
-        font-size: 8.5px !important;
+        padding: 4px 6px !important;
+        font-size: 9px !important;
         line-height: 1.1 !important;
     }
 
     .signature-area {
-        margin-top: 8px !important;
+        margin-top: 28px !important;
         margin-bottom: 0 !important;
     }
     
     .signature-area p.text-\[10px\] {
-        font-size: 8px !important;
+        font-size: 8.5px !important;
+    }
+    
+    /* Target the signature title to give it a nice vertical gap for signing */
+    .signature-area p.mb-16 {
+        margin-bottom: 30px !important;
     }
     
     .signature-area div.w-32 {
-        width: 70px !important;
+        width: 80px !important;
     }
 
     .receipt-footer {
-        margin-top: 6px !important;
-        padding-top: 4px !important;
-        font-size: 7.5px !important;
-        line-height: 1.2 !important;
+        margin-top: 20px !important;
+        padding-top: 6px !important;
+        font-size: 8px !important;
+        line-height: 1.3 !important;
     }
 
     /* Target all table elements explicitly to bypass table-specific style overrides from global CSS */
