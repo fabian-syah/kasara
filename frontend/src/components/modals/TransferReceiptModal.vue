@@ -88,13 +88,13 @@
                             <!-- Items Table -->
                             <div class="border border-gray-300 dark:border-surface-600 print:border-gray-300 rounded-xl overflow-hidden mb-8">
                                 <table class="w-full text-xs text-left">
-                                    <thead class="bg-gray-900 dark:bg-surface-800 print:bg-gray-900 text-white">
+                                    <thead class="bg-gray-900 dark:bg-surface-800 print:bg-white print:border-y-2 print:border-black text-white print:text-black">
                                         <tr>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center !text-white">No</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] !text-white">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 !text-white">IMEI / S/N</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 !text-white">Kondisi</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center !text-white">Qty</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center dark:text-white print:!text-black">No</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] dark:text-white print:!text-black">Deskripsi Barang (Merek, Tipe)</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 dark:text-white print:!text-black">IMEI / S/N</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 dark:text-white print:!text-black">Kondisi</th>
+                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center dark:text-white print:!text-black">Qty</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-200 dark:divide-surface-700 print:divide-gray-200">
