@@ -39,7 +39,7 @@
                                 </div>
                                 
                                 <div class="flex flex-col items-center border border-gray-300 p-2 rounded-xl bg-white shadow-sm">
-                                    <img v-if="qrCodeUrl" :src="qrCodeUrl" 
+                                    <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" 
                                         alt="QR Resi" class="w-20 h-20 sm:w-24 sm:h-24 object-contain" />
                                     <div v-else class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 animate-pulse rounded-lg"></div>
                                     <span class="text-[9px] font-black uppercase mt-2 tracking-widest text-gray-800">Scan by Security</span>
@@ -153,9 +153,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Printer, X } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
+import QRCode from 'qrcode';
 
 const authStore = useAuthStore();
 
@@ -184,11 +185,19 @@ const trackingUrl = computed(() => {
     return `${baseUrl}/track?q=${props.transfer.receipt_id}`;
 });
 
-const qrCodeUrl = computed(() => {
-    if (!trackingUrl.value) return '';
-    // Menggunakan Google Charts API yang sangat stabil dan jarang diblokir
-    return `https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=${encodeURIComponent(trackingUrl.value)}&choe=UTF-8`;
-});
+const qrCodeDataUrl = ref('');
+
+watch(trackingUrl, async (newUrl) => {
+    if (newUrl) {
+        try {
+            qrCodeDataUrl.value = await QRCode.toDataURL(newUrl, { margin: 1, width: 120 });
+        } catch (err) {
+            console.error('Failed to generate QR code', err);
+        }
+    } else {
+        qrCodeDataUrl.value = '';
+    }
+}, { immediate: true });
 
 const displayDate = computed(() => {
     if (!props.transfer?.created_at) return '-';
