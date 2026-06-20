@@ -26,28 +26,28 @@
                         class="flex-1 overflow-y-auto p-4 sm:p-8 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white custom-scrollbar">
                         
                         <div v-if="transfer"
-                            class="nota-paper w-full max-w-[700px] mx-auto bg-white dark:bg-surface-900 p-6 sm:p-8 rounded-2xl text-gray-900 dark:text-gray-100 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 print:bg-white print:text-black relative overflow-hidden select-none border border-gray-200 dark:border-surface-700 print:border-gray-300">
+                            class="nota-paper w-full max-w-[700px] mx-auto bg-white dark:bg-surface-900 p-6 sm:p-8 rounded-2xl text-gray-900 dark:text-gray-100 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-2 print:bg-white print:text-black relative overflow-hidden select-none border border-gray-200 dark:border-surface-700 print:border-gray-300">
                             
                             <!-- Header Section -->
-                            <div class="flex justify-between items-start border-b-2 border-black dark:border-white print:border-black pb-4 mb-6">
+                            <div class="receipt-header flex justify-between items-start border-b-2 border-black dark:border-white print:border-black pb-4 mb-6">
                                 <div class="flex items-center gap-4">
-                                    <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 object-contain dark:invert print:invert-0" />
+                                    <img src="/images/ps.png" alt="PSTORE" class="receipt-logo w-16 h-16 object-contain dark:invert print:invert-0" />
                                     <div>
-                                        <h1 class="text-2xl font-black text-danger tracking-tighter leading-none mb-1">SURAT JALAN / TRANSFER</h1>
-                                        <p class="text-xs font-bold text-gray-600 dark:text-gray-400 print:text-gray-600 uppercase">{{ authStore.userBranch?.name || 'PSTORE' }}</p>
+                                        <h1 class="receipt-title text-2xl font-black text-danger tracking-tighter leading-none mb-1">SURAT JALAN / TRANSFER</h1>
+                                        <p class="receipt-subtitle text-xs font-bold text-gray-600 dark:text-gray-400 print:text-gray-600 uppercase">{{ authStore.userBranch?.name || 'PSTORE' }}</p>
                                     </div>
                                 </div>
                                 
-                                <div class="flex flex-col items-center justify-center border border-gray-300 p-2 sm:p-3 rounded-xl bg-white shadow-sm min-w-[100px] sm:min-w-[120px] min-h-[100px] sm:min-h-[120px]">
+                                <div class="qr-code-box flex flex-col items-center justify-center border border-gray-300 p-2 sm:p-3 rounded-xl bg-white shadow-sm min-w-[100px] sm:min-w-[120px] min-h-[100px] sm:min-h-[120px]">
                                     <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" 
-                                        alt="QR Resi" class="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                                        alt="QR Resi" class="qr-code-img w-16 h-16 sm:w-20 sm:h-20 object-contain" />
                                     <div v-else class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 animate-pulse rounded-lg"></div>
                                     <span class="text-[8px] sm:text-[9px] font-black uppercase mt-1 sm:mt-2 tracking-widest !text-black">Scan by Security</span>
                                 </div>
                             </div>
 
                             <!-- Meta Data Grid -->
-                            <div class="grid grid-cols-2 gap-6 mb-6 text-xs border border-gray-200 dark:border-surface-700 print:border-gray-200 rounded-xl p-4 bg-gray-50/50 dark:bg-surface-800/50 print:bg-gray-50/50">
+                            <div class="meta-grid grid grid-cols-2 gap-6 mb-6 text-xs border border-gray-200 dark:border-surface-700 print:border-gray-200 rounded-xl p-4 bg-gray-50/50 dark:bg-surface-800/50 print:bg-gray-50/50">
                                 <div class="space-y-3">
                                     <div>
                                         <p class="text-[9px] font-black text-gray-500 dark:text-gray-400 print:text-gray-500 uppercase tracking-widest">No. Resi / Referensi</p>
@@ -80,13 +80,13 @@
                             </div>
                             
                             <!-- Catatan -->
-                            <div class="mb-6 border border-gray-200 dark:border-surface-700 print:border-gray-200 rounded-xl p-3 bg-gray-50/50 dark:bg-surface-800/50 print:bg-gray-50/50 text-xs">
+                            <div class="notes-box mb-6 border border-gray-200 dark:border-surface-700 print:border-gray-200 rounded-xl p-3 bg-gray-50/50 dark:bg-surface-800/50 print:bg-gray-50/50 text-xs">
                                 <span class="font-black text-gray-500 dark:text-gray-400 print:text-gray-500 uppercase tracking-widest text-[9px] block mb-1">Catatan:</span>
                                 <span class="font-bold italic text-gray-800 dark:text-gray-200 print:text-gray-800">"{{ transfer.transfer_notes || transfer.notes || 'Tidak ada catatan' }}"</span>
                             </div>
 
                             <!-- Items Table -->
-                            <div class="border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
+                            <div class="table-container border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
                                 <table class="w-full text-xs text-left print:!bg-white">
                                     <thead class="bg-gray-900 dark:bg-surface-800 print:!bg-white print:border-y-2 print:border-white text-white print:!text-black">
                                         <tr>
@@ -112,7 +112,7 @@
                             </div>
 
                             <!-- Signature Area -->
-                            <div class="grid grid-cols-3 gap-4 text-center mt-12 print:mt-2 mb-4 print:mb-0">
+                            <div class="signature-area grid grid-cols-3 gap-4 text-center mt-12 print:mt-2 mb-4 print:mb-0">
                                 <div>
                                     <p class="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 print:text-gray-500 mb-16 print:mb-6">Pengirim</p>
                                     <div class="border-b border-gray-400 dark:border-gray-500 print:border-gray-400 w-32 mx-auto mb-2 print:mb-1"></div>
@@ -131,7 +131,7 @@
                             </div>
                             
                             <!-- Footer note -->
-                            <div class="text-center text-[9px] text-gray-400 dark:text-gray-500 print:text-gray-400 font-bold uppercase tracking-widest mt-8 print:mt-2 border-t border-dashed border-gray-300 dark:border-surface-600 print:border-gray-300 pt-4 print:pt-1">
+                            <div class="receipt-footer text-center text-[9px] text-gray-400 dark:text-gray-500 print:text-gray-400 font-bold uppercase tracking-widest mt-8 print:mt-2 border-t border-dashed border-gray-300 dark:border-surface-600 print:border-gray-300 pt-4 print:pt-1">
                                 Dokumen ini dicetak otomatis pada {{ currentDateTime }} <br> Scan QR Code untuk detail pengiriman dan tracking.
                             </div>
                         </div>
@@ -320,7 +320,7 @@ function printReceipt() {
 @media print {
     @page {
         size: A5 portrait;
-        margin: 5mm;
+        margin: 4mm 4mm 4mm 4mm;
     }
 
     /* Robustly hide ALL other elements at the root body level except the print wrappers to avoid blank pages and conflicts */
@@ -367,7 +367,7 @@ function printReceipt() {
         border: none !important;
         box-shadow: none !important;
         margin: 0 auto !important;
-        padding: 0 !important;
+        padding: 6px !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         background: white !important;
@@ -391,6 +391,137 @@ function printReceipt() {
         color: black !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+    }
+
+    /* Print-specific layout compression to fit everything on a single A5 page at 120% scale */
+    .receipt-header {
+        margin-bottom: 6px !important;
+        padding-bottom: 6px !important;
+        border-bottom-width: 1.5px !important;
+    }
+    
+    .receipt-logo {
+        width: 44px !important;
+        height: 44px !important;
+    }
+    
+    .receipt-title {
+        font-size: 15px !important;
+        margin-bottom: 1px !important;
+    }
+    
+    .receipt-subtitle {
+        font-size: 9px !important;
+    }
+    
+    .qr-code-box {
+        min-width: 70px !important;
+        max-width: 70px !important;
+        min-height: 70px !important;
+        max-height: 70px !important;
+        padding: 2px !important;
+        border-radius: 6px !important;
+    }
+    
+    .qr-code-img {
+        width: 50px !important;
+        height: 50px !important;
+    }
+    
+    .qr-code-box span {
+        display: none !important; /* Hide "Scan by Security" to save vertical space */
+    }
+
+    .meta-grid {
+        margin-bottom: 6px !important;
+        padding: 6px 8px !important;
+        gap: 6px !important;
+    }
+    
+    .meta-grid .space-y-3 {
+        margin-top: 0 !important;
+    }
+    
+    .meta-grid .space-y-3 > div {
+        margin-top: 0 !important;
+    }
+    
+    /* Override spacing utilities inside meta-grid in print */
+    .meta-grid .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 2px !important;
+    }
+    
+    .meta-grid p.text-\[9px\] {
+        font-size: 7.5px !important;
+        line-height: 1 !important;
+        margin-bottom: 1px !important;
+    }
+    
+    .meta-grid p.text-sm {
+        font-size: 10px !important;
+        line-height: 1.1 !important;
+    }
+    
+    .meta-grid p.font-bold {
+        font-size: 9.5px !important;
+        line-height: 1.1 !important;
+    }
+
+    .notes-box {
+        margin-bottom: 6px !important;
+        padding: 4px 6px !important;
+    }
+    
+    .notes-box span.text-\[9px\] {
+        font-size: 7.5px !important;
+        line-height: 1 !important;
+        margin-bottom: 1px !important;
+    }
+    
+    .notes-box span.font-bold {
+        font-size: 9.5px !important;
+        line-height: 1.1 !important;
+    }
+
+    .table-container {
+        margin-bottom: 6px !important;
+        border: none !important;
+    }
+    
+    .table-container table {
+        border-collapse: collapse !important;
+    }
+    
+    .table-container table th {
+        padding: 3px 4px !important;
+        font-size: 8.5px !important;
+        line-height: 1.1 !important;
+    }
+    
+    .table-container table td {
+        padding: 3px 4px !important;
+        font-size: 8.5px !important;
+        line-height: 1.1 !important;
+    }
+
+    .signature-area {
+        margin-top: 8px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .signature-area p.text-\[10px\] {
+        font-size: 8px !important;
+    }
+    
+    .signature-area div.w-32 {
+        width: 70px !important;
+    }
+
+    .receipt-footer {
+        margin-top: 6px !important;
+        padding-top: 4px !important;
+        font-size: 7.5px !important;
+        line-height: 1.2 !important;
     }
 
     /* Target all table elements explicitly to bypass table-specific style overrides from global CSS */
