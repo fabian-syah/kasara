@@ -274,7 +274,7 @@ function printReceipt() {
         size: A5 portrait;
         margin: 10mm;
     }
-    body > *:not(#transfer-receipt-modal-wrapper) {
+    #app {
         display: none !important;
     }
     #transfer-receipt-modal-wrapper {
