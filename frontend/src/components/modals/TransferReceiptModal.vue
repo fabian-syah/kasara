@@ -88,7 +88,7 @@
                             <!-- Items Table -->
                             <div class="border border-gray-300 dark:border-surface-600 print:border-none rounded-xl print:rounded-none overflow-hidden mb-8">
                                 <table class="w-full text-xs text-left print:!bg-white">
-                                    <thead class="bg-gray-900 dark:bg-surface-800 print:!bg-white print:border-y-2 print:border-black text-white print:!text-black">
+                                    <thead class="bg-gray-900 dark:bg-surface-800 print:!bg-white print:border-y-2 print:border-white text-white print:!text-black">
                                         <tr>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center dark:text-white print:!text-black print:!bg-white">No</th>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] dark:text-white print:!text-black print:!bg-white">Deskripsi Barang (Merek, Tipe)</th>
