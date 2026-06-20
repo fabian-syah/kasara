@@ -274,66 +274,84 @@ function printReceipt() {
         size: A5 portrait;
         margin: 10mm;
     }
-    #app {
+
+    /* Robustly hide ALL other elements at the root body level except the print wrappers to avoid blank pages and conflicts */
+    body > :not(#transfer-receipt-modal-wrapper):not(#receipt-modal-print-wrapper) {
         display: none !important;
     }
-    #transfer-receipt-modal-wrapper {
-        position: static !important;
-        display: block !important;
+
+    html,
+    body {
         height: auto !important;
-        width: auto !important;
-        background: white !important;
-        padding: 0 !important;
-    }
-    #transfer-receipt-modal-wrapper > div {
-        max-height: none !important;
-        height: auto !important;
-        box-shadow: none !important;
-        overflow: visible !important;
-        padding: 0 !important;
+        width: 100% !important;
         margin: 0 !important;
-    }
-    #transfer-receipt-content {
-        overflow: visible !important;
-        height: auto !important;
         padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
     }
+
+    #transfer-receipt-modal-wrapper,
+    #transfer-receipt-modal-wrapper > div,
+    #transfer-receipt-content {
+        display: block !important;
+        position: relative !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        z-index: 9999999 !important;
+        flex: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        transform: none !important;
+        border: 0 !important;
+        outline: 0 !important;
+    }
+
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        margin: 0 !important;
+        margin: 0 auto !important;
         padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         zoom: 0.85; 
+        background: white !important;
         background-color: white !important;
+        color: black !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
     }
     
-    .nota-paper * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color: black !important;
-    }
-
-    .nota-paper table,
-    .nota-paper table *,
-    html.dark .nota-paper table,
-    html.dark .nota-paper table * {
+    /* Force white background and black text on ALL elements inside the receipt printout */
+    .nota-paper,
+    .nota-paper *,
+    html.dark .nota-paper,
+    html.dark .nota-paper * {
+        background: white !important;
         background-color: white !important;
         color: black !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     .nota-paper table th,
     .nota-paper table thead,
     html.dark .nota-paper table th,
     html.dark .nota-paper table thead {
+        background: white !important;
         background-color: white !important;
         border-bottom: 2px solid black !important;
         border-top: 2px solid black !important;
-    }
-
-    .nota-paper .text-gray-500 {
-        color: #4b5563 !important;
     }
 
     ::-webkit-scrollbar {

@@ -1318,8 +1318,8 @@ const processedReceiptItems = computed(() => {
         margin: 0;
     }
 
-    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs */
-    body> :not(#receipt-modal-print-wrapper) {
+    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
+    body> :not(#receipt-modal-print-wrapper):not(#transfer-receipt-modal-wrapper) {
         display: none !important;
     }
 
