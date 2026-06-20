@@ -516,12 +516,34 @@ input[type="checkbox"]:indeterminate {
 
   /* Specific fix for iOS/Safari where bg-white overrides dark:bg-surface-800 in tables */
   /* Target only table-related elements if necessary, but avoid global surface overrides */
-  html.dark table *:not(button):not(button > span):not([class*="badge"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-orange"]):not([class*="bg-purple"]):not(.absolute):not([class*="bg-surface"]) {
-    background-color: transparent !important;
+  @media screen {
+    html.dark table *:not(button):not(button > span):not([class*="badge"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-blue"]):not([class*="bg-orange"]):not([class*="bg-purple"]):not(.absolute):not([class*="bg-surface"]) {
+      background-color: transparent !important;
+      color: inherit !important;
+    }
   }
 
-  html.dark table .absolute,
-  html.dark table [class*="bg-surface-800"] {
-    background-color: var(--color-surface-800) !important;
+  @media print {
+    table, 
+    table *, 
+    html.dark table, 
+    html.dark table *,
+    .table th,
+    .table td,
+    html.dark .table th,
+    html.dark .table td {
+      background-color: white !important;
+      color: black !important;
+      border-color: black !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+  }
+
+  @media screen {
+    html.dark table .absolute,
+    html.dark table [class*="bg-surface-800"] {
+      background-color: var(--color-surface-800) !important;
+    }
   }
 }
