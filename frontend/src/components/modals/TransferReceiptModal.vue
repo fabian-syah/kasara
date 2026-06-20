@@ -38,10 +38,10 @@
                                     </div>
                                 </div>
                                 
-                                <!-- QR Code Area (Always White for Scanning) -->
                                 <div class="flex flex-col items-center border border-gray-300 p-2 rounded-xl bg-white shadow-sm">
-                                    <img :src="'https://quickchart.io/qr?text=' + encodeURIComponent(trackingUrl) + '&size=120&margin=1'" 
+                                    <img v-if="qrCodeUrl" :src="qrCodeUrl" 
                                         alt="QR Resi" class="w-20 h-20 sm:w-24 sm:h-24 object-contain" />
+                                    <div v-else class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 animate-pulse rounded-lg"></div>
                                     <span class="text-[9px] font-black uppercase mt-2 tracking-widest text-gray-800">Scan by Security</span>
                                 </div>
                             </div>
@@ -182,6 +182,12 @@ const trackingUrl = computed(() => {
     if (!props.transfer) return '';
     const baseUrl = window.location.origin;
     return `${baseUrl}/track?q=${props.transfer.receipt_id}`;
+});
+
+const qrCodeUrl = computed(() => {
+    if (!trackingUrl.value) return '';
+    // Menggunakan Google Charts API yang sangat stabil dan jarang diblokir
+    return `https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=${encodeURIComponent(trackingUrl.value)}&choe=UTF-8`;
 });
 
 const displayDate = computed(() => {
