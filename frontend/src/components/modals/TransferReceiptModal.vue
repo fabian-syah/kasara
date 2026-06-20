@@ -38,11 +38,11 @@
                                     </div>
                                 </div>
                                 
-                                <div class="flex flex-col items-center border border-gray-300 p-2 rounded-xl bg-white shadow-sm">
+                                <div class="flex flex-col items-center justify-center border border-gray-300 p-2 sm:p-3 rounded-xl bg-white shadow-sm min-w-[100px] sm:min-w-[120px] min-h-[100px] sm:min-h-[120px]">
                                     <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" 
-                                        alt="QR Resi" class="w-20 h-20 sm:w-24 sm:h-24 object-contain" />
-                                    <div v-else class="w-20 h-20 sm:w-24 sm:h-24 bg-gray-100 animate-pulse rounded-lg"></div>
-                                    <span class="text-[9px] font-black uppercase mt-2 tracking-widest text-gray-800">Scan by Security</span>
+                                        alt="QR Resi" class="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
+                                    <div v-else class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 animate-pulse rounded-lg"></div>
+                                    <span class="text-[8px] sm:text-[9px] font-black uppercase mt-1 sm:mt-2 tracking-widest !text-black">Scan by Security</span>
                                 </div>
                             </div>
 
