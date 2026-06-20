@@ -315,9 +315,6 @@ function printReceipt() {
     .nota-paper table tr, .nota-paper table td {
         background-color: white !important;
     }
-    .nota-paper .text-danger {
-        color: #dc2626 !important;
-    }
     .nota-paper .text-gray-500 {
         color: #4b5563 !important;
     }
