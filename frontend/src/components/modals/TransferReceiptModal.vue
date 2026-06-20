@@ -299,6 +299,28 @@ function printReceipt() {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
+    
+    /* OVERRIDE DARK MODE SAAT PRINT */
+    .nota-paper, .nota-paper * {
+        color: black !important;
+    }
+    .nota-paper {
+        background-color: white !important;
+    }
+    .nota-paper table th {
+        background-color: #e5e7eb !important; /* Light gray */
+        color: black !important;
+        border-bottom: 2px solid black !important;
+    }
+    .nota-paper table tr, .nota-paper table td {
+        background-color: white !important;
+    }
+    .nota-paper .text-danger {
+        color: #dc2626 !important;
+    }
+    .nota-paper .text-gray-500 {
+        color: #4b5563 !important;
+    }
     /* Hide scrollbars during print */
     ::-webkit-scrollbar {
         display: none;
