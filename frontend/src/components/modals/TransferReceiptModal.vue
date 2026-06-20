@@ -256,6 +256,19 @@ function printReceipt() {
 <style scoped>
 @reference "../../style.css";
 
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-surface-700 rounded-full;
+}
+</style>
+
+<style>
+/* UNSCOPED PRINT CSS - GUARANTEED TO WORK GLOBALLY */
 @media print {
     @page {
         size: A5 portrait;
@@ -292,66 +305,39 @@ function printReceipt() {
         padding: 0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        zoom: 0.85; /* Mengecilkan sedikit agar selalu pas 1 halaman A5 */
+        zoom: 0.85; 
+        background-color: white !important;
     }
-    /* Memaksa semua elemen dalam nota nge-print warna background */
+    
     .nota-paper * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-    }
-    
-    /* OVERRIDE DARK MODE SAAT PRINT DENGAN SPESIFISITAS TINGGI */
-    html.dark .nota-paper, 
-    html.dark .nota-paper *,
-    .nota-paper, 
-    .nota-paper * {
         color: black !important;
-    }
-    
-    html.dark .nota-paper {
-        background-color: white !important;
-    }
-    
-    html.dark .nota-paper table,
-    html.dark .nota-paper table *,
-    .nota-paper table,
-    .nota-paper table * {
-        background-color: white !important;
     }
 
-    html.dark .nota-paper table th,
-    html.dark .nota-paper table thead,
-    .nota-paper table th,
-    .nota-paper table thead {
+    .nota-paper table,
+    .nota-paper table *,
+    html.dark .nota-paper table,
+    html.dark .nota-paper table * {
         background-color: white !important;
         color: black !important;
+    }
+
+    .nota-paper table th,
+    .nota-paper table thead,
+    html.dark .nota-paper table th,
+    html.dark .nota-paper table thead {
+        background-color: white !important;
         border-bottom: 2px solid black !important;
         border-top: 2px solid black !important;
     }
 
-    html.dark .nota-paper table tr, 
-    html.dark .nota-paper table td,
-    .nota-paper table tr, 
-    .nota-paper table td {
-        background-color: white !important;
-        color: black !important;
-    }
     .nota-paper .text-gray-500 {
         color: #4b5563 !important;
     }
-    /* Hide scrollbars during print */
+
     ::-webkit-scrollbar {
         display: none;
     }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-surface-700 rounded-full;
 }
 </style>
