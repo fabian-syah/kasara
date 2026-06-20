@@ -513,6 +513,7 @@ function printReceipt() {
         padding: 4px 6px !important;
         font-size: 9px !important;
         line-height: 1.1 !important;
+        border-right: 1px solid black !important;
     }
     
     .table-container table td {
@@ -520,6 +521,12 @@ function printReceipt() {
         font-size: 9px !important;
         line-height: 1.1 !important;
         border-bottom: 1px solid black !important;
+        border-right: 1px solid black !important;
+    }
+
+    .table-container table th:last-child,
+    .table-container table td:last-child {
+        border-right: none !important;
     }
 
     .table-container table tbody tr:last-child td {
