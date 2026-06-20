@@ -332,11 +332,11 @@ function printReceipt() {
         overflow: visible !important;
     }
     
-    /* Force white background and black text on ALL elements inside the receipt printout */
-    .nota-paper,
-    .nota-paper *,
-    html.dark .nota-paper,
-    html.dark .nota-paper * {
+    /* Force white background and black text on ALL elements inside the receipt printout using ID to beat dark mode specificity */
+    #transfer-receipt-modal-wrapper,
+    #transfer-receipt-modal-wrapper *,
+    html.dark #transfer-receipt-modal-wrapper,
+    html.dark #transfer-receipt-modal-wrapper * {
         background: white !important;
         background-color: white !important;
         color: black !important;
@@ -344,14 +344,15 @@ function printReceipt() {
         print-color-adjust: exact !important;
     }
 
-    .nota-paper table th,
-    .nota-paper table thead,
-    html.dark .nota-paper table th,
-    html.dark .nota-paper table thead {
+    #transfer-receipt-modal-wrapper table th,
+    #transfer-receipt-modal-wrapper table thead,
+    html.dark #transfer-receipt-modal-wrapper table th,
+    html.dark #transfer-receipt-modal-wrapper table thead {
         background: white !important;
         background-color: white !important;
         border-bottom: 2px solid black !important;
         border-top: 2px solid black !important;
+        color: black !important;
     }
 
     ::-webkit-scrollbar {
