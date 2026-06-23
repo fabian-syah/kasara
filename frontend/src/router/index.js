@@ -244,12 +244,21 @@ const routes = [
                 }
             },
             {
+                path: 'security-scan/start',
+                name: 'SecurityScanStart',
+                component: () => import('../views/security/ScanQR.vue'),
+                meta: {
+                    title: 'Mulai Scan Security',
+                    menu: 'security_scan'
+                }
+            },
+            {
                 path: 'security-scan/:id',
                 name: 'SecurityScan',
                 component: () => import('../views/security/SecurityScan.vue'),
                 meta: {
                     title: 'Security Check',
-                    menu: 'track'
+                    menu: 'security_scan'
                 }
             },
             {

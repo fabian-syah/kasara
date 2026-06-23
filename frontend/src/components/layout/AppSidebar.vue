@@ -70,6 +70,7 @@ const toggleMenu = (id) => {
 // Menu configuration
 const menuItems = [
     { id: "dashboard", path: "/", label: "Dashboard", icon: LayoutDashboard },
+    { id: "security_scan", path: "/security-scan/start", label: "Scan QR Security", icon: ScanBarcode },
 
     // Online Shop Modules
     {

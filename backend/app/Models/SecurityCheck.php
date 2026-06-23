@@ -12,6 +12,7 @@ class SecurityCheck extends Model
     protected $fillable = [
         'receipt_id',
         'security_name',
+        'inventory_user_id',
         'notes',
     ];
 

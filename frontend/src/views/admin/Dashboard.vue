@@ -66,6 +66,8 @@ const fetchUsers = async () => {
 // Determine initial role immediately to prevent flash of wrong dashboard
 if (authStore.hasRole('admin_produk')) {
   dashboardRole.value = 'admin_produk';
+} else if (authStore.hasRole('security')) {
+  dashboardRole.value = 'security';
 } else if (authStore.hasRole('online_shop') || authStore.hasRole('toko_online') || authStore.user?.online_shop_id) {
   dashboardRole.value = 'online_shop';
 } else if (authStore.hasRole('toko_offline') || authStore.hasRole('offline_shop') || authStore.user?.branch_id) {
@@ -491,7 +493,27 @@ const currentLocalRank = computed(() => {
       </div>
     </div>
 
-    <!-- Ranking & Leaderboard (Online & Offline) -->
+    <!-- Dashboard Khusus Security -->
+    <div v-else-if="dashboardRole === 'security'" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card bg-gradient-to-br from-primary-900 to-primary-800 text-white border-none shadow-xl overflow-hidden relative min-h-[300px] flex flex-col justify-center">
+        <!-- Decoration -->
+        <div class="absolute -right-10 -top-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div class="relative z-10 px-8">
+          <div class="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mb-6 backdrop-blur-sm border border-white/10 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <h2 class="text-3xl font-black mb-2 tracking-tight">Security Check</h2>
+          <p class="text-primary-100 mb-8 max-w-sm text-lg">
+            Lakukan validasi dan scan QR barang keluar untuk memastikan keamanan dan kesesuaian unit.
+          </p>
+          <router-link to="/security-scan/start" class="inline-flex items-center gap-3 bg-white text-primary-900 hover:bg-primary-50 px-8 py-4 rounded-xl font-bold transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 group">
+            Mulai Scan QR
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </router-link>
+        </div>
+      </div>
+    </div>
     <div v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'" class="space-y-6">
 
       <div class="grid grid-cols-1 gap-8">

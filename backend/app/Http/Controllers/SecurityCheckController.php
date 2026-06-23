@@ -13,6 +13,7 @@ class SecurityCheckController extends Controller
         $validated = $request->validate([
             'receipt_id' => 'required|string',
             'security_name' => 'required|string',
+            'inventory_user_id' => 'nullable|integer',
             'notes' => 'nullable|string',
             'answers' => 'nullable|array',
             'answers.*.question_id' => 'required|exists:questions,id',
@@ -31,6 +32,7 @@ class SecurityCheckController extends Controller
             $securityCheck = SecurityCheck::create([
                 'receipt_id' => $validated['receipt_id'],
                 'security_name' => $validated['security_name'],
+                'inventory_user_id' => $validated['inventory_user_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ]);
 

@@ -20,7 +20,8 @@ const transferData = ref(null);
 const questions = ref([]);
 const answers = ref({});
 
-const securityName = ref("");
+const securityName = ref(route.query.security_name || "");
+const inventoryUserId = ref(route.query.inventory_user_id || "");
 const mainNotes = ref("");
 
 const excessItems = ref([]);
@@ -51,6 +52,14 @@ const fetchData = async () => {
         
         if (!transfer) {
             toast.error("Surat Jalan tidak ditemukan!");
+            return;
+        }
+
+        // Validate Branch
+        const userBranchId = authStore.user?.branch_id;
+        if (userBranchId && transfer.source_id !== userBranchId) {
+            toast.error("Anda tidak memiliki akses! Surat Jalan ini bukan dikirim dari cabang Anda.");
+            router.push('/security-scan/start');
             return;
         }
         
@@ -91,6 +100,7 @@ const submitSecurityCheck = async () => {
     const payload = {
         receipt_id: receiptId,
         security_name: securityName.value,
+        inventory_user_id: inventoryUserId.value,
         notes: mainNotes.value,
         answers: questions.value.map(q => ({
             question_id: q.id,
@@ -243,13 +253,12 @@ onMounted(() => {
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-indigo-500"></div>
                 <div class="p-5 sm:p-6 space-y-6">
                     
-                    <!-- Identitas -->
                     <div>
                         <label class="block text-sm font-medium text-text-secondary mb-2 flex items-center gap-2">
-                            <User :size="16"/> Nama Security <span class="text-red-500">*</span>
+                            <User :size="16"/> Staff Pemeriksa
                         </label>
-                        <input v-model="securityName" type="text" placeholder="Masukkan nama pemeriksa..."
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50" />
+                        <input v-model="securityName" type="text" disabled
+                            class="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-surface-400 font-semibold cursor-not-allowed" />
                     </div>
 
                     <!-- Pertanyaan -->
