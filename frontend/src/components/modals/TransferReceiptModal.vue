@@ -92,7 +92,7 @@
                                         <tr>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-12 text-center text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">No</th>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Deskripsi Barang (Merek, Tipe)</th>
-                                            <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">IMEI</th>
+                                            <th v-if="hasImeiItems" class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-48 text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">IMEI</th>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-24 text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Kondisi</th>
                                             <th class="px-4 py-2.5 font-black uppercase tracking-wider text-[10px] w-16 text-center text-gray-700 dark:text-gray-300 print:!text-black print:!bg-white">Qty</th>
                                         </tr>
@@ -103,7 +103,7 @@
                                             <td class="px-4 py-2 font-bold text-black dark:text-white print:!text-black uppercase print:!bg-white">
                                                 {{ item.name }}
                                             </td>
-                                            <td class="px-4 py-2 font-mono font-bold text-gray-700 dark:text-gray-300 print:!text-black text-[11px] print:!bg-white">{{ item.imei }}</td>
+                                            <td v-if="hasImeiItems" class="px-4 py-2 font-mono font-bold text-gray-700 dark:text-gray-300 print:!text-black text-[11px] print:!bg-white">{{ item.imei }}</td>
                                             <td class="px-4 py-2 font-bold text-gray-700 dark:text-gray-300 print:!text-black uppercase text-[10px] print:!bg-white">{{ item.condition }}</td>
                                             <td class="px-4 py-2 text-center font-black text-black dark:text-white print:!text-black print:!bg-white">{{ item.qty }}</td>
                                         </tr>
@@ -303,6 +303,10 @@ const allItems = computed(() => {
     });
     
     return items;
+});
+
+const hasImeiItems = computed(() => {
+    return allItems.value.some(item => item.imei && item.imei !== '-');
 });
 
 function printReceipt() {
