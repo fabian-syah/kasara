@@ -314,7 +314,7 @@ async function fetchData() {
   try {
     const [usersRes, branchesRes, warehousesRes, onlineShopsRes, distributorsRes] = await Promise.all([
       usersApi.list(),
-      branchesApi.list(),
+      branchesApi.list({ include_all: 1 }),
       warehousesApi.list(),
       onlineShopsApi.list(),
       distributorsApi.list()
