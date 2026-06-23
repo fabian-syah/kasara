@@ -198,6 +198,11 @@ const resolvePhoto = (user, name) => {
 };
 
 async function fetchDashboardData() {
+  if (dashboardRole.value === 'security') {
+    isLoading.value = false;
+    return; // Security has static dashboard, no need to fetch online/offline stats
+  }
+  
   isLoading.value = true;
   try {
     const response = await api.get('/dashboard');
