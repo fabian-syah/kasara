@@ -61,8 +61,7 @@ const startScanner = async () => {
             return { width: size, height: size };
         },
         aspectRatio: 1.0,
-        formatsToSupport: [ 4, 0, 11, 10, 2, 12, 13 ],
-        disableFlip: true,
+        disableFlip: false, // allow flipped camera scanning
         videoConstraints: {
             facingMode: { exact: "environment" },
             width: { min: 1280, ideal: 1920 },
@@ -73,7 +72,6 @@ const startScanner = async () => {
 
     const { Html5Qrcode } = await import('html5-qrcode');
     html5QrCode.value = new Html5Qrcode(scannerId, {
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         verbose: false
     });
 
@@ -118,7 +116,8 @@ const onScanSuccess = async (decodedText) => {
     if (decodedText.length < 5) return;
 
     if (!selectedAccount.value) {
-        toast.error('Pilih Akun Inventory terlebih dahulu sebelum menscan!');
+        // Just return silently. The visual overlay already warns them to select an account.
+        // Showing a toast here would spam the user if they point the camera at a QR code before selecting.
         return;
     }
 
@@ -190,6 +189,12 @@ function handleScan() {
         <div class="w-full max-w-md mb-8 relative rounded-2xl overflow-hidden bg-black/5 dark:bg-black/50 border border-neutral-200 dark:border-neutral-800" style="min-height: 300px;">
             <div id="reader" class="w-full h-full bg-black"></div>
             
+            <!-- BLOCKED OVERLAY -->
+            <div v-if="!selectedAccount" class="absolute inset-0 z-40 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
+                <User class="w-12 h-12 text-white/80 mb-3" />
+                <p class="text-white font-medium text-sm">Pilih Staff Inventory terlebih dahulu untuk mulai scan.</p>
+            </div>
+
             <!-- Error State inside Box -->
             <div v-if="cameraError" class="absolute inset-0 z-40 bg-black/90 flex flex-col items-center justify-center p-6 text-center">
                 <CameraOff class="w-12 h-12 text-red-500 mb-3" />
