@@ -3,11 +3,12 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../store/auth';
 import { inventory } from '../../api/axios';
-import { toast } from 'vue-sonner';
+import { useToast } from '../../composables/useToast';
 import { ScanBarcode, User, ArrowRight, ShieldCheck } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
+const toast = useToast();
 
 const inventoryAccounts = ref([]);
 const selectedAccount = ref(null);
