@@ -57,9 +57,8 @@ const startScanner = async () => {
     const config = {
         fps: 30,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
-            const width = Math.floor(viewfinderWidth * 0.85);
-            const height = Math.min(Math.floor(viewfinderHeight * 0.4), 250);
-            return { width, height };
+            const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
+            return { width: size, height: size };
         },
         aspectRatio: 1.0,
         formatsToSupport: [ 4, 0, 11, 10, 2, 12, 13 ],
