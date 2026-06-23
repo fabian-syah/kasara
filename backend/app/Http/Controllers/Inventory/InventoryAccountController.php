@@ -154,9 +154,6 @@ class InventoryAccountController extends Controller
         $account = User::where('id', $id)
             ->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id);
-                if ($user->branch_id) {
-                    $q->orWhere('branch_id', $user->branch_id);
-                }
             })
             ->firstOrFail();
 
@@ -234,15 +231,6 @@ class InventoryAccountController extends Controller
         } else {
             $query->where(function ($q) use ($user) {
                 $q->where('created_by', $user->id);
-                if ($user->branch_id) {
-                    $q->orWhere('branch_id', $user->branch_id);
-                }
-                if ($user->warehouse_id) {
-                    $q->orWhere('warehouse_id', $user->warehouse_id);
-                }
-                if ($user->online_shop_id) {
-                    $q->orWhere('online_shop_id', $user->online_shop_id);
-                }
             });
         }
 
