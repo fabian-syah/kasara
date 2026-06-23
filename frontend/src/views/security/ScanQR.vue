@@ -60,7 +60,7 @@ function focusInput() {
 </script>
 
 <template>
-  <div class="p-6 max-w-3xl mx-auto min-h-[80vh] flex flex-col justify-center" @click="focusInput">
+  <div class="p-6 max-w-3xl mx-auto min-h-[80vh] flex flex-col justify-center">
     <div class="bg-white dark:bg-[#050505] rounded-[24px] p-8 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xl relative overflow-hidden">
       <!-- Background Decorations -->
       <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary-500/10 rounded-full blur-3xl pointer-events-none"></div>
