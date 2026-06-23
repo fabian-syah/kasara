@@ -244,6 +244,15 @@ const routes = [
                 }
             },
             {
+                path: 'security-scan/:id',
+                name: 'SecurityScan',
+                component: () => import('../views/security/SecurityScan.vue'),
+                meta: {
+                    title: 'Security Check',
+                    menu: 'track'
+                }
+            },
+            {
                 path: 'track',
                 name: 'TrackStock',
                 component: () => import('../views/inventory/TrackStock.vue'),

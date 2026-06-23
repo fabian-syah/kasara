@@ -35,6 +35,7 @@ const categories = [
     { value: 'profit', label: 'Profit' },
     { value: 'pindah_cabang_masuk', label: 'Barang Masuk Pindah Cabang' },
     { value: 'pindah_cabang', label: 'Barang Keluar Pindah Cabang' },
+    { value: 'security_check', label: 'Security Check (Transfer)' },
     { value: 'retur', label: 'Barang Keluar Retur' },
     { value: 'kesalahan_input', label: 'Barang Keluar Salah Input' },
     { value: 'barang_masuk', label: 'Barang Masuk Inventory' },

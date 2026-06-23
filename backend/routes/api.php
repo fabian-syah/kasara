@@ -238,6 +238,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transfers/{id}/confirm', [\App\Http\Controllers\StockOutController::class, 'confirm']);
     Route::post('/transfers/{id}/expedition', [\App\Http\Controllers\StockOutController::class, 'updateExpedition']);
     Route::get('/transfers/track-expedition', [\App\Http\Controllers\StockOutController::class, 'trackExpedition']);
+    
+    // Security Scan
+    Route::post('/security-checks', [\App\Http\Controllers\SecurityCheckController::class, 'store']);
 
     // Failed Transfers (Gagal Kirim/OTW)
     Route::get('/transfers/failed', [FailedTransferController::class, 'indexFailed']);

@@ -225,7 +225,7 @@ onUnmounted(() => {
 const trackingUrl = computed(() => {
     if (!props.transfer) return '';
     const baseUrl = window.location.origin;
-    return `${baseUrl}/track?q=${props.transfer.receipt_id}`;
+    return `${baseUrl}/security-scan/${props.transfer.receipt_id}`;
 });
 
 const qrCodeDataUrl = ref('');
