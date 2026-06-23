@@ -61,6 +61,7 @@ const startScanner = async () => {
             return { width: size, height: size };
         },
         aspectRatio: 1.0,
+        formatsToSupport: [ 4, 0, 11, 10, 2, 12, 13 ],
         disableFlip: false, // allow flipped camera scanning
         videoConstraints: {
             facingMode: { exact: "environment" },
@@ -72,6 +73,7 @@ const startScanner = async () => {
 
     const { Html5Qrcode } = await import('html5-qrcode');
     html5QrCode.value = new Html5Qrcode(scannerId, {
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
         verbose: false
     });
 
