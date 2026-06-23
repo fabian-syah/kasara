@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../store/auth';
 import { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
-import { ScanBarcode, User, ArrowRight, ShieldCheck } from 'lucide-vue-next';
+import { ScanBarcode, User, ArrowRight, ShieldCheck, CameraOff, Search } from 'lucide-vue-next';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -15,13 +15,17 @@ const selectedAccount = ref(null);
 const scanInput = ref('');
 const isLoading = ref(false);
 
-const inputRef = ref(null);
+const html5QrCode = ref(null);
+const scannerId = "reader";
+const cameraError = ref(null);
 
 onMounted(async () => {
   await fetchInventoryAccounts();
-  if (inputRef.value) {
-    inputRef.value.focus();
-  }
+  startScanner();
+});
+
+onBeforeUnmount(() => {
+  stopScanner();
 });
 
 async function fetchInventoryAccounts() {
@@ -34,6 +38,99 @@ async function fetchInventoryAccounts() {
   }
 }
 
+const startScanner = async () => {
+    if (isLoading.value) return;
+    cameraError.value = null;
+
+    await nextTick();
+
+    if (html5QrCode.value) {
+        try {
+            if (html5QrCode.value.isScanning) {
+                await html5QrCode.value.stop();
+            }
+            html5QrCode.value.clear();
+        } catch (e) { }
+        html5QrCode.value = null;
+    }
+
+    const config = {
+        fps: 30,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.floor(viewfinderWidth * 0.85);
+            const height = Math.min(Math.floor(viewfinderHeight * 0.4), 250);
+            return { width, height };
+        },
+        aspectRatio: 1.0,
+        formatsToSupport: [ 4, 0, 11, 10, 2, 12, 13 ],
+        disableFlip: true,
+        videoConstraints: {
+            facingMode: { exact: "environment" },
+            width: { min: 1280, ideal: 1920 },
+            height: { min: 720, ideal: 1080 },
+            focusMode: "continuous"
+        }
+    };
+
+    const { Html5Qrcode } = await import('html5-qrcode');
+    html5QrCode.value = new Html5Qrcode(scannerId, {
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        verbose: false
+    });
+
+    try {
+        await html5QrCode.value.start(
+            { facingMode: { exact: "environment" } },
+            config,
+            onScanSuccess,
+            (err) => { }
+        );
+    } catch (err) {
+        console.warn("Strict Start Failed, retrying...", err);
+        try {
+            await html5QrCode.value.start(
+                { facingMode: "environment" },
+                { ...config, videoConstraints: { facingMode: "environment" } },
+                onScanSuccess,
+                (err) => { }
+            );
+        } catch (fatal) {
+            cameraError.value = "Kamera tidak dapat diakses. Mohon izinkan kamera atau gunakan input manual.";
+        }
+    }
+};
+
+const stopScanner = async () => {
+    if (html5QrCode.value) {
+        try {
+            if (html5QrCode.value.isScanning) {
+                await html5QrCode.value.stop();
+            }
+            html5QrCode.value.clear();
+        } catch (e) {
+            console.error("Gagal stop scanner:", e);
+        }
+    }
+};
+
+const onScanSuccess = async (decodedText) => {
+    if (isLoading.value) return;
+
+    if (decodedText.length < 5) return;
+
+    if (!selectedAccount.value) {
+        toast.error('Pilih Akun Inventory terlebih dahulu sebelum menscan!');
+        return;
+    }
+
+    await stopScanner();
+    scanInput.value = decodedText;
+
+    if (navigator.vibrate) navigator.vibrate(150);
+
+    handleScan();
+};
+
 function handleScan() {
   if (!selectedAccount.value) {
     toast.error('Pilih Akun Inventory (Staff) terlebih dahulu!');
@@ -45,87 +142,99 @@ function handleScan() {
     return;
   }
 
-  // Navigate to actual scan page with the selected inventory account
   const receiptId = scanInput.value.trim();
   const acc = inventoryAccounts.value.find(a => a.id === selectedAccount.value);
   router.push(`/security-scan/${receiptId}?inventory_user_id=${selectedAccount.value}&security_name=${encodeURIComponent(acc?.name || '')}`);
 }
-
-// Ensure the scanner input always has focus if the user clicks around
-function focusInput() {
-  if (inputRef.value) {
-    inputRef.value.focus();
-  }
-}
 </script>
 
 <template>
-  <div class="p-6 max-w-3xl mx-auto min-h-[80vh] flex flex-col justify-center">
-    <div class="bg-white dark:bg-[#050505] rounded-[24px] p-8 border border-neutral-200/60 dark:border-neutral-800/60 shadow-xl relative overflow-hidden">
-      <!-- Background Decorations -->
-      <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div class="relative z-10 flex flex-col items-center">
-        <div class="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-full flex items-center justify-center mb-6">
-          <ShieldCheck :size="40" />
-        </div>
-        
-        <h1 class="text-3xl font-bold text-text-primary mb-2 text-center">Security Scan Area</h1>
-        <p class="text-text-secondary text-center mb-10 max-w-md">
-          Pilih akun inventory Anda dan scan QR Code resi untuk memvalidasi barang keluar.
-        </p>
-
-        <!-- Step 1: Select Inventory Account -->
-        <div class="w-full max-w-md mb-8">
-          <label class="flex items-center gap-2 text-sm font-semibold text-text-primary mb-2">
-            <User :size="16" class="text-primary-500" />
-            Pilih Staff Inventory
-          </label>
-          <div class="relative">
-            <select v-model="selectedAccount"
-              class="w-full appearance-none bg-surface-100 dark:bg-surface-800 border border-neutral-200 dark:border-neutral-700 text-text-primary text-sm rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-3.5 pr-10 transition-all font-medium">
-              <option :value="null" disabled>-- Pilih Akun --</option>
-              <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
-                {{ acc.name }} ({{ acc.code_id }})
-              </option>
-            </select>
-            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
-            </div>
+  <div class="scanner-page bg-black min-h-screen text-white overflow-hidden relative font-sans">
+      
+      <!-- HEADER -->
+      <div class="absolute top-0 left-0 w-full p-6 pt-8 z-30 bg-gradient-to-b from-black/80 to-transparent flex flex-col justify-between items-center pointer-events-none">
+          <div class="text-center w-full max-w-md pointer-events-auto">
+              <h1 class="text-2xl font-bold flex items-center justify-center gap-2 drop-shadow-md mb-4">
+                  <ShieldCheck class="w-6 h-6 text-primary-500" /> Security Check
+              </h1>
+              
+              <!-- Select Inventory -->
+              <div class="w-full bg-surface-900/80 backdrop-blur-md border border-surface-700/50 rounded-2xl p-4 shadow-xl">
+                  <label class="flex items-center gap-2 text-sm font-semibold text-gray-200 mb-2">
+                      <User :size="16" class="text-primary-400" />
+                      Pilih Staff Inventory
+                  </label>
+                  <div class="relative">
+                      <select v-model="selectedAccount"
+                          class="w-full appearance-none bg-surface-800 border border-surface-600 text-white text-sm rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-3.5 pr-10 transition-all font-medium">
+                          <option :value="null" disabled>-- Pilih Akun --</option>
+                          <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
+                              {{ acc.name }} ({{ acc.code_id }})
+                          </option>
+                      </select>
+                      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-400">
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                      </div>
+                  </div>
+              </div>
           </div>
-        </div>
-
-        <!-- Step 2: Scan Input -->
-        <div class="w-full max-w-md mb-8">
-          <label class="flex items-center gap-2 text-sm font-semibold text-text-primary mb-2">
-            <ScanBarcode :size="16" class="text-blue-500" />
-            Scan QR Code / Masukkan Resi
-          </label>
-          <form @submit.prevent="handleScan" class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-              <ScanBarcode class="w-5 h-5 text-neutral-400" />
-            </div>
-            <input ref="inputRef" v-model="scanInput" type="text"
-              class="w-full bg-surface-100 dark:bg-surface-800 border border-neutral-200 dark:border-neutral-700 text-text-primary text-lg rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-4 pl-11 transition-all placeholder:text-neutral-400 font-mono tracking-wider text-center"
-              placeholder="SXXX-..." required autocomplete="off" />
-            
-            <button type="submit" 
-              class="absolute inset-y-1.5 right-1.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-all flex items-center justify-center font-semibold disabled:opacity-50"
-              :disabled="!selectedAccount || !scanInput.trim()">
-              Proses <ArrowRight :size="16" class="ml-1" />
-            </button>
-          </form>
-          
-          <div v-if="!selectedAccount" class="mt-3 text-xs text-amber-600 dark:text-amber-400 flex items-center justify-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            Harap pilih staff inventory sebelum melakukan scan.
-          </div>
-        </div>
-
       </div>
-    </div>
+
+      <!-- SCANNER VIEW -->
+      <div class="w-full h-full absolute inset-0 bg-black">
+          <div id="reader" class="w-full h-full bg-black relative"></div>
+
+          <!-- SCANNER OVERLAY -->
+          <div class="absolute inset-0 pointer-events-none z-10 flex flex-col items-center justify-center">
+              <div class="flex-1 w-full bg-black/60"></div>
+              <div class="flex w-full h-[250px]">
+                  <div class="bg-black/60 flex-1"></div>
+                  <!-- The Box -->
+                  <div class="relative w-[85%] h-full border-2 border-white/50 rounded-xl shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]">
+                      <div class="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-primary-500 rounded-tl-xl -mt-1 -ml-1"></div>
+                      <div class="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-primary-500 rounded-tr-xl -mt-1 -mr-1"></div>
+                      <div class="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-primary-500 rounded-bl-xl -mb-1 -ml-1"></div>
+                      <div class="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-primary-500 rounded-br-xl -mb-1 -mr-1"></div>
+                      <!-- Scan Line -->
+                      <div class="absolute top-0 left-0 w-full h-1 bg-green-500 shadow-[0_0_10px_#22c55e] animate-scan-y"></div>
+                  </div>
+                  <div class="bg-black/60 flex-1"></div>
+              </div>
+              <div class="flex-1 w-full bg-black/60"></div>
+          </div>
+
+          <!-- MANUAL INPUT -->
+          <div class="absolute bottom-6 left-0 w-full px-6 z-30">
+              <form @submit.prevent="handleScan" class="relative max-w-md mx-auto">
+                  <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Search class="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input v-model="scanInput" type="text"
+                      class="block w-full pl-12 pr-12 py-4 rounded-2xl bg-surface-800/90 backdrop-blur-md border border-surface-600/50 text-white shadow-xl focus:ring-2 focus:ring-primary-500 focus:outline-none placeholder-gray-400"
+                      placeholder="Atau ketik resi manual..." />
+                  <button type="submit" class="absolute inset-y-2 right-2 px-3 py-1 bg-primary-600 hover:bg-primary-700 rounded-xl text-white font-medium transition-colors disabled:opacity-50"
+                          :disabled="!selectedAccount || !scanInput.trim()">
+                      Proses
+                  </button>
+              </form>
+          </div>
+
+          <!-- Error Retry -->
+          <div v-if="cameraError" class="absolute inset-0 z-40 bg-black/95 flex flex-col items-center justify-center p-8 text-center">
+              <CameraOff class="w-16 h-16 text-red-500 mb-4" />
+              <p class="mb-6 text-white">{{ cameraError }}</p>
+              <button @click="startScanner" class="btn bg-primary-600 text-white rounded-full px-6 py-2">Coba Lagi Kamera</button>
+          </div>
+      </div>
   </div>
 </template>
+
+<style scoped>
+video { transform: none !important; }
+:deep(#reader video) { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+:deep(#reader) { border: none !important; }
+@keyframes scan-y { 0% { top: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+.animate-scan-y { animation: scan-y 2.5s infinite linear; }
+</style>
