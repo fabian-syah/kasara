@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api, { questions as questionsApi } from "../../api/axios";
+import { useAuthStore } from "../../store/auth";
 import { useToast } from "../../composables/useToast";
 import {
     Loader2, CheckCircle2, ShieldCheck, Plus, Trash2, Smartphone, Package, Box, MapPin, Calendar, Clock, ArrowRight, User
@@ -56,8 +57,9 @@ const fetchData = async () => {
         }
 
         // Validate Branch
+        const authStore = useAuthStore();
         const userBranchId = authStore.user?.branch_id;
-        if (userBranchId && transfer.source_id !== userBranchId) {
+        if (userBranchId && transfer.branch?.id && transfer.branch?.id !== userBranchId) {
             toast.error("Anda tidak memiliki akses! Surat Jalan ini bukan dikirim dari cabang Anda.");
             router.push('/security-scan/start');
             return;
