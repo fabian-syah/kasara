@@ -142,7 +142,21 @@ function handleScan() {
     return;
   }
 
-  const receiptId = scanInput.value.trim();
+  // Ekstrak receipt ID jika hasil scan berupa URL (misal: https://stokps.com/security-scan/018APR-N61)
+  let receiptId = scanInput.value.trim();
+  if (receiptId.includes('/security-scan/')) {
+    receiptId = receiptId.split('/security-scan/').pop();
+  } else if (receiptId.includes('/track/')) {
+    receiptId = receiptId.split('/track/').pop();
+  } else if (receiptId.includes('/')) {
+    receiptId = receiptId.split('/').pop();
+  }
+  
+  // Bersihkan karakter query string jika ada
+  if (receiptId.includes('?')) {
+    receiptId = receiptId.split('?')[0];
+  }
+
   const acc = inventoryAccounts.value.find(a => a.id === selectedAccount.value);
   router.push(`/security-scan/${receiptId}?inventory_user_id=${selectedAccount.value}&security_name=${encodeURIComponent(acc?.name || '')}`);
 }
