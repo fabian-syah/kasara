@@ -310,7 +310,7 @@ onMounted(() => {
                         </div>
 
                         <div v-for="(item, idx) in excessItems" :key="idx" class="bg-surface-900 border border-surface-700 rounded-xl p-4 relative relative group">
-                            <button @click="removeExcessItem(idx)" class="absolute -top-3 -right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-10 opacity-0 group-hover:opacity-100 sm:opacity-100">
+                            <button @click="removeExcessItem(idx)" class="absolute -top-3 -right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-10">
                                 <Trash2 :size="14" />
                             </button>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

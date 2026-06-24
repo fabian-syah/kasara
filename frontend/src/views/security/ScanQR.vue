@@ -55,19 +55,15 @@ const startScanner = async () => {
   }
 
   const config = {
-    fps: 30,
+    fps: 10,
     qrbox: (viewfinderWidth, viewfinderHeight) => {
       const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.75);
       return { width: size, height: size };
     },
-    aspectRatio: 1.0,
     formatsToSupport: [4, 0, 11, 10, 2, 12, 13],
     disableFlip: false, // allow flipped camera scanning
     videoConstraints: {
-      facingMode: { exact: "environment" },
-      width: { min: 1280, ideal: 1920 },
-      height: { min: 720, ideal: 1080 },
-      focusMode: "continuous"
+      facingMode: "environment"
     }
   };
 
