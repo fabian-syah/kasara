@@ -214,8 +214,8 @@ function handleScan() {
           <!-- BLOCKED OVERLAY -->
           <div v-if="!selectedAccount"
             class="absolute inset-0 z-40 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-            <User class="w-12 h-12 text-white/80 mb-3" />
-            <p class="text-white font-medium text-sm">Pilih Staff Inventory terlebih dahulu untuk mulai scan.</p>
+            <User class="w-12 h-12 mb-3" color="white" />
+            <p class="font-medium text-sm" style="color: white !important;">Pilih Staff Inventory terlebih dahulu untuk mulai scan.</p>
           </div>
 
           <!-- Error State inside Box -->
