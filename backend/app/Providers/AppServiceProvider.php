@@ -64,5 +64,16 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
         });
 
+        \Dedoc\Scramble\Scramble::extendOpenApi(function (\Dedoc\Scramble\Support\Generator\OpenApi $openApi) {
+            $openApi->secure(
+                \Dedoc\Scramble\Support\Generator\SecurityScheme::http('bearer')
+            );
+
+            $openApi->setInfo(
+                \Dedoc\Scramble\Support\Generator\InfoObject::make('Apex Frontend API')
+                    ->setVersion('1.0.0')
+                    ->setDescription("Dokumentasi API untuk Apex Frontend.\n\n### Tech Stack\n- Laravel 12\n- PHP 8.2\n- MySQL\n\n### License\nMIT License ([https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))")
+            );
+        });
     }
 }
