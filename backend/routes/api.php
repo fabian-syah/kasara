@@ -24,6 +24,35 @@ use App\Http\Controllers\ReceiptSettingController;
 
 // ... (previous routes)
 
+Route::get('/health-check', function () {
+    try {
+        \Illuminate\Support\Facades\DB::connection()->getPdo();
+        $dbStatus = 'CONNECTED';
+    } catch (\Exception $e) {
+        $dbStatus = 'DISCONNECTED';
+    }
+
+    $uptimeStr = 'Unknown';
+    if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
+        $uptime = @file_get_contents('/proc/uptime');
+        if ($uptime) {
+            $uptime = explode(' ', $uptime)[0];
+            $days = floor($uptime / 86400);
+            $hours = floor(($uptime % 86400) / 3600);
+            $uptimeStr = $days . 'd ' . $hours . 'h';
+        }
+    }
+
+    return response()->json([
+        'status' => 'ONLINE',
+        'database' => $dbStatus,
+        'memory_usage' => round(memory_get_usage(true) / 1048576, 2) . ' MB',
+        'uptime' => $uptimeStr,
+        'server_time' => now()->format('H:i:s'),
+        'server_date' => now()->format('d M Y'),
+        'active_personnel' => \App\Models\User::where('last_seen', '>=', now()->subMinutes(5))->select('id', 'name', 'role')->limit(5)->get()
+    ]);
+});
 
 
 Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
