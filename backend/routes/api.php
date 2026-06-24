@@ -50,7 +50,19 @@ Route::get('/health-check', function () {
         'uptime' => $uptimeStr,
         'server_time' => now()->format('H:i:s'),
         'server_date' => now()->format('d M Y'),
-        'active_personnel' => \App\Models\User::where('last_seen', '>=', now()->subMinutes(5))->select('id', 'name', 'role')->limit(5)->get()
+        'active_personnel' => \App\Models\User::with('branch')
+            ->where('last_seen', '>=', now()->subMinutes(5))
+            ->limit(5)
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'username' => $u->username ?? $u->code_id ?? 'unknown',
+                    'name' => $u->name,
+                    'branch' => $u->branch ? $u->branch->name : 'HQ',
+                    'tz' => 'WIB',
+                    'last_seen' => $u->last_seen ? $u->last_seen->diffForHumans() : 'Just now'
+                ];
+            })
     ]);
 });
 
