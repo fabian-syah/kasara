@@ -22,6 +22,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Gate::define('viewApiDocs', function ($user = null) {
+            return true; // Allow everyone to view API docs (or modify later for auth only)
+        });
+
         \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
             'branch' => \App\Models\Branch::class,
             'warehouse' => \App\Models\Warehouse::class,
