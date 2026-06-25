@@ -438,9 +438,9 @@
                                     </div>
                                     <div class="flex justify-between border-t border-neutral-200/50 pt-1">
                                         <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
-                                            }}</span>
+                                        }}</span>
                                         <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
-                                            }}</span>
+                                        }}</span>
                                     </div>
 
                                     <!-- Slanted or Red Divider Line -->
@@ -546,23 +546,23 @@ const printNota = async () => {
     isPrinting.value = true;
     await nextTick();
 
-    // Simpan judul asli document
+    // Temporarily clear page title to remove browser header/footer text
     const originalTitle = document.title;
     document.title = ' ';
 
-    // Ambil element .nota-paper langsung agar bersih dari layout wrapper luar preview
+    // FIX: Ambil element fisik kertas .nota-paper langsung, bukan container preview-nya
     const receiptContent = document.querySelector('.nota-paper');
     if (!receiptContent) {
-        alert('Element nota tidak ditemukan!');
+        alert('Elemen nota tidak ditemukan!');
         isPrinting.value = false;
         return;
     }
 
-    // Buat wrapper div khusus di root body
+    // Create a wrapper div directly in the body
     const printWrapper = document.createElement('div');
     printWrapper.id = 'custom-nota-print-wrapper';
 
-    // Set style print isolation agar menutupi screen utama dengan solid white
+    // Set styles on the wrapper for print isolation
     printWrapper.style.position = 'absolute';
     printWrapper.style.top = '0';
     printWrapper.style.left = '0';
@@ -570,16 +570,16 @@ const printNota = async () => {
     printWrapper.style.backgroundColor = 'white';
     printWrapper.style.zIndex = '9999999';
 
-    // Clone element nota secara deep
+    // Clone the node deeply
     const clone = receiptContent.cloneNode(true);
 
-    // Reset utility class preview agar flow printnya full width mengikuti standard A4
+    // FIX: Reset utility layout class preview screen normal agar flow print stabil mengikuti standard A4
     clone.className = 'nota-paper w-full bg-white print:bg-white mx-auto relative overflow-hidden select-none';
 
     printWrapper.appendChild(clone);
     document.body.appendChild(printWrapper);
 
-    // Inject dynamic page margin & size properties
+    // Inject dynamic print page size style
     const styleId = 'custom-nota-print-page-size';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -593,11 +593,11 @@ const printNota = async () => {
         }
     `;
 
-    // Berikan delay sedikit agar DOM state stabil sebelum browser memicu dialog print
+    // Berikan delay sedikit agar rendering layout DOM hasil kloning stabil sebelum memicu print dialog
     setTimeout(() => {
         window.print();
 
-        // Cleanup wrapper dan restore status app setelah dialog print ditutup
+        // Cleanup after print dialog closes
         setTimeout(() => {
             document.title = originalTitle;
             if (printWrapper && printWrapper.parentNode) {
@@ -605,7 +605,7 @@ const printNota = async () => {
             }
             isPrinting.value = false;
         }, 500);
-    }, 200);
+    }, 300); // Naikkan tick threshold ke 300ms untuk browser rendering buffer
 };
 </script>
 
