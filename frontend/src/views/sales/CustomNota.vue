@@ -488,6 +488,11 @@ const printNota = () => {
     // Get the HTML content
     const htmlContent = content.outerHTML;
 
+    // Grab all stylesheets from the current document so Tailwind classes work in the print window
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(el => el.outerHTML)
+        .join('\n');
+
     // Create CSS for print
     const printCSS = `
         <style>
@@ -502,12 +507,11 @@ const printNota = () => {
             body {
                 font-family: 'Inter', sans-serif;
                 background: white;
-                padding: 10mm;
             }
             
             .nota-paper {
-                width: 100%;
-                max-width: 210mm;
+                width: 100% !important;
+                max-width: 148mm !important; /* A5 width */
                 margin: 0 auto;
                 background: white;
                 position: relative;
@@ -516,17 +520,26 @@ const printNota = () => {
             
             @media print {
                 @page {
-                    size: A4 portrait;
-                    margin: 10mm;
+                    size: A5 portrait;
+                    margin: 0mm;
                 }
                 
-                body {
-                    padding: 0;
+                html, body {
+                    width: 148mm;
+                    height: 210mm;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden; /* Prevent multi-page */
                 }
                 
                 .nota-paper {
                     box-shadow: none !important;
                     border: none !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    page-break-after: avoid;
+                    page-break-before: avoid;
+                    page-break-inside: avoid;
                 }
                 
                 * {
@@ -547,17 +560,19 @@ const printNota = () => {
         <html>
         <head>
             <title>Nota PSTORE</title>
-            ${printCSS}
+            \${styles}
+            \${printCSS}
         </head>
-        <body>
-            ${htmlContent}
+        <body class="bg-white">
+            \${htmlContent}
             <script>
-                window.onload = function() {
+                // Wait briefly to ensure styles and images load before printing
+                setTimeout(() => {
                     window.print();
                     window.onafterprint = function() {
                         window.close();
                     };
-                };
+                }, 500);
             <\/script>
         </body>
         </html>
