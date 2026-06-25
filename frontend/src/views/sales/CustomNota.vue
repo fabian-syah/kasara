@@ -124,9 +124,8 @@
             </div>
 
             <!-- Preview Nota -->
-            <Teleport to="body" :disabled="!isPrinting">
-                <div id="receipt-content"
-                    class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
+            <div id="receipt-content"
+                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
                 <div
                     class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
 
@@ -487,19 +486,16 @@
                                     {{ form.csName || 'PSTORE' }}
                                 </div>
                             </div>
-                            </div>
                         </div>
                     </div>
                 </div>
-            </Teleport>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
-
-const isPrinting = ref(false);
+import { ref } from 'vue';
 
 const form = ref({
     branch: 'PSTORE SERANG BANTEN',
@@ -524,14 +520,50 @@ const formatNumber = (num) => {
     return 'Rp ' + Number(num).toLocaleString('id-ID');
 };
 
-const printNota = async () => {
-    isPrinting.value = true;
-    await nextTick();
-    
+const printNota = () => {
+    const el = document.getElementById('receipt-content');
+    if (!el) return;
+
+    const wrapperId = 'custom-nota-print-clone';
+    let wrapper = document.getElementById(wrapperId);
+    if (wrapper) {
+        document.body.removeChild(wrapper);
+    }
+
+    wrapper = document.createElement('div');
+    wrapper.id = wrapperId;
+    // Clone the receipt content
+    wrapper.appendChild(el.cloneNode(true));
+    document.body.appendChild(wrapper);
+
+    let style = document.getElementById('custom-nota-print-style');
+    if (!style) {
+        style = document.createElement('style');
+        style.id = 'custom-nota-print-style';
+        style.innerHTML = `
+            @media screen {
+                #${wrapperId} { display: none !important; }
+            }
+            @media print {
+                body > :not(#${wrapperId}) { display: none !important; }
+                #${wrapperId} {
+                    display: block !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Small delay to ensure the DOM has rendered the clone
     setTimeout(() => {
         window.print();
-        isPrinting.value = false;
-    }, 150);
+    }, 50);
 };
 </script>
 
@@ -547,11 +579,6 @@ const printNota = async () => {
 @media print {
     @page {
         margin: 0;
-    }
-
-    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
-    body> :not(#receipt-content) {
-        display: none !important;
     }
 
     html,
