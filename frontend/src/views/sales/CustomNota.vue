@@ -51,6 +51,27 @@
                     </div>
 
                     <div class="border-t border-surface-700 pt-4 mt-4">
+                        <h3 class="text-sm font-semibold mb-3 text-text-primary">Social Media</h3>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">WhatsApp</label>
+                                <input v-model="form.wa" type="text" placeholder="0851-..."
+                                    class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:border-primary-500 outline-none" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">TikTok</label>
+                                <input v-model="form.tiktok" type="text" placeholder="pstore_jkt"
+                                    class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:border-primary-500 outline-none" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-text-secondary mb-1">Instagram</label>
+                                <input v-model="form.ig" type="text" placeholder="pstore_jakarta"
+                                    class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:border-primary-500 outline-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-surface-700 pt-4 mt-4">
                         <h3 class="text-sm font-semibold mb-3 text-text-primary">Detail Barang</h3>
                         <div class="space-y-3">
                             <div>
@@ -145,26 +166,28 @@
                                 </div>
 
                                 <!-- Social Bar -->
-                                <div class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800">
-                                    <span class="flex items-center gap-1">
+                                <div class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
+                                    <span v-if="form.wa" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
                                             <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
                                         </svg>
-                                        WA: 0851-3300-5600
+                                        WA: {{ form.wa }}
                                     </span>
-                                    <span class="text-neutral-300">|</span>
-                                    <span class="flex items-center gap-1">
+                                    <span v-if="form.wa && (form.tiktok || form.ig)" class="text-neutral-300">|</span>
+                                    
+                                    <span v-if="form.tiktok" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
                                             <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
                                         </svg>
-                                        TikTok: pstore_jkt
+                                        TikTok: {{ form.tiktok }}
                                     </span>
-                                    <span class="text-neutral-300">|</span>
-                                    <span class="flex items-center gap-1">
+                                    <span v-if="form.tiktok && form.ig" class="text-neutral-300">|</span>
+                                    
+                                    <span v-if="form.ig" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
                                             <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                                         </svg>
-                                        IG: pstore_jakarta
+                                        IG: {{ form.ig }}
                                     </span>
                                 </div>
                             </div>
@@ -409,7 +432,10 @@ const form = ref({
     price: 5250000,
     qty: 1,
     method: 'TRANSFER BCA',
-    notes: 'spider, 100% 26.5'
+    notes: 'spider, 100% 26.5',
+    wa: '0851-3300-5600',
+    tiktok: 'pstore_jkt',
+    ig: 'pstore_jakarta'
 });
 
 const formatNumber = (num) => {
@@ -435,6 +461,8 @@ const printNota = () => {
     /* Hide everything initially */
     body * {
         visibility: hidden;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
     /* Make the app container take normal flow */
@@ -458,6 +486,8 @@ const printNota = () => {
         top: 0;
         width: 100%;
         background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     /* Hide unnecessary backgrounds */
