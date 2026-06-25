@@ -244,6 +244,15 @@ const routes = [
                 }
             },
             {
+                path: 'security-scan/history',
+                name: 'SecurityHistory',
+                component: () => import('../views/security/SecurityHistory.vue'),
+                meta: {
+                    title: 'History Security',
+                    menu: 'security_history'
+                }
+            },
+            {
                 path: 'security-scan/start',
                 name: 'SecurityScanStart',
                 component: () => import('../views/security/ScanQR.vue'),

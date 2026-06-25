@@ -30,4 +30,9 @@ class SecurityCheck extends Model
     {
         return $this->belongsTo(StockOut::class, 'receipt_id', 'receipt_id');
     }
+
+    public function inventoryUser()
+    {
+        return $this->belongsTo(User::class, 'inventory_user_id');
+    }
 }

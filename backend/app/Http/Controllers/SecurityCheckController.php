@@ -73,4 +73,25 @@ class SecurityCheckController extends Controller
             ], 500);
         }
     }
+
+    public function history(Request $request)
+    {
+        $query = SecurityCheck::with([
+            'stockOut.items.product',
+            'stockOut.nonHpItems.product',
+            'inventoryUser',
+            'excessItems'
+        ])->orderBy('created_at', 'desc');
+
+        if ($request->has('q')) {
+            $q = $request->q;
+            $query->where('receipt_id', 'like', "%{$q}%")
+                  ->orWhere('security_name', 'like', "%{$q}%");
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $query->paginate(20)
+        ]);
+    }
 }

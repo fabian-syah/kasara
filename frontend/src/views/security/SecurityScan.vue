@@ -56,14 +56,7 @@ const fetchData = async () => {
             return;
         }
 
-        // Validate Branch
-        const authStore = useAuthStore();
-        const userBranchId = authStore.user?.branch_id;
-        if (userBranchId && transfer.branch?.id && transfer.branch?.id !== userBranchId) {
-            toast.error("Anda tidak memiliki akses! Surat Jalan ini bukan dikirim dari cabang Anda.");
-            router.push('/security-scan/start');
-            return;
-        }
+
         
         transferData.value = transfer;
         

@@ -281,6 +281,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transfers/track-expedition', [\App\Http\Controllers\StockOutController::class, 'trackExpedition']);
     
     // Security Scan
+    Route::get('/security-checks/history', [\App\Http\Controllers\SecurityCheckController::class, 'history']);
     Route::post('/security-checks', [\App\Http\Controllers\SecurityCheckController::class, 'store']);
 
     // Failed Transfers (Gagal Kirim/OTW)
