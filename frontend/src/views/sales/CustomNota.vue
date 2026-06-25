@@ -161,7 +161,7 @@
                             <div class="flex-1">
                                 <div class="flex items-baseline gap-1.5 flex-wrap">
                                     <span
-                                        class="text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
+                                        class="text-2xl font-black !text-red-600 uppercase tracking-tight leading-none" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">PSTORE</span>
                                     <span
                                         class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                         {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
