@@ -560,11 +560,11 @@ const printNota = () => {
         <html>
         <head>
             <title>Nota PSTORE</title>
-            \${styles}
-            \${printCSS}
+            ${styles}
+            ${printCSS}
         </head>
         <body class="bg-white">
-            \${htmlContent}
+            ${htmlContent}
             <script>
                 // Wait briefly to ensure styles and images load before printing
                 setTimeout(() => {
