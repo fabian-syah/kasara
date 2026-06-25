@@ -6,7 +6,6 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <!-- Form Input (No Print) -->
             <div class="bg-surface-900 border border-surface-700 p-6 rounded-2xl no-print shadow-sm">
                 <h2 class="text-lg font-semibold mb-4 text-text-primary">Data Nota</h2>
                 <div class="space-y-4">
@@ -123,13 +122,11 @@
                 </div>
             </div>
 
-            <!-- Preview Nota -->
             <div id="receipt-content"
                 class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
                 <div
                     class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
 
-                    <!-- ===== DYNAMIC CORNER ACCENTS (Mockup Style) ===== -->
                     <div class="absolute top-0 left-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
                         <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <polygon points="0,0 100,0 0,100" fill="#0a0a0a" />
@@ -150,14 +147,11 @@
                     </div>
 
                     <div class="relative z-10">
-                        <!-- ===== NOTA HEADER ===== -->
                         <div class="flex items-center gap-5 mb-4 mt-6 px-6">
-                            <!-- Giant Floating Logo Left -->
                             <div class="shrink-0">
                                 <img src="/images/ps.png" alt="PSTORE"
                                     class="w-16 h-16 print:w-20 print:h-20 object-contain" />
                             </div>
-                            <!-- Branch & Social Info -->
                             <div class="flex-1">
                                 <div class="flex items-baseline gap-1.5 flex-wrap">
                                     <span
@@ -166,14 +160,13 @@
                                     <span
                                         class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                         {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
-                                            '').replace('PSTORE', '') }}
+                                        '').replace('PSTORE', '') }}
                                     </span>
                                 </div>
                                 <div class="text-[10px] font-bold text-neutral-700 mt-1.5 leading-tight">
                                     Pusat Perbelanjaan Online
                                 </div>
 
-                                <!-- Social Bar -->
                                 <div
                                     class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
                                     <span v-if="form.wa" class="flex items-center gap-1">
@@ -211,12 +204,10 @@
                             </div>
                         </div>
 
-                        <!-- Thick Middle Segment Separator Line -->
                         <div class="relative w-full h-px bg-neutral-200 mb-4 mt-2 flex justify-center">
                             <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
                         </div>
 
-                        <!-- ===== INVOICE TYPE HEAD ===== -->
                         <div class="text-center mb-5 mt-2">
                             <h2 class="text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
                                 NOTA PENJUALAN STORE
@@ -231,12 +222,9 @@
                             </div>
                         </div>
 
-                        <!-- ===== METADATA INFO GRID (3 Columns, 2 Rows) ===== -->
                         <div
                             class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
-                            <!-- Column 1: No Nota & Tanggal -->
                             <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
-                                <!-- No Nota -->
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
                                         style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
@@ -256,7 +244,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Tanggal & Waktu -->
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
                                         style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
@@ -277,9 +264,7 @@
                                 </div>
                             </div>
 
-                            <!-- Column 2: Atas Nama & No HP -->
                             <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
-                                <!-- Atas Nama -->
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
                                         style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
@@ -299,7 +284,6 @@
                                     </div>
                                 </div>
 
-                                <!-- No HP -->
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
                                         style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
@@ -320,7 +304,6 @@
                                 </div>
                             </div>
 
-                            <!-- Column 3: Customer Service -->
                             <div class="flex flex-col gap-4 pl-4">
                                 <div class="flex items-center gap-2.5">
                                     <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
@@ -343,7 +326,6 @@
                             </div>
                         </div>
 
-                        <!-- ===== TABEL ITEMS (6 Columns) ===== -->
                         <div
                             class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                             <table class="w-full text-[10px] sm:text-xs border-collapse">
@@ -391,11 +373,8 @@
                             </table>
                         </div>
 
-                        <!-- ===== SPLIT COLUMN: Left (Note, Warranty) | Right (Breakdown, Total) ===== -->
                         <div class="flex flex-col md:flex-row gap-6 mb-6 mt-2">
-                            <!-- Left Column: Notes & Warranty -->
                             <div class="flex-1">
-                                <!-- Catatan Ribbon Box -->
                                 <div class="mb-5 relative">
                                     <div class="relative inline-block bg-red-600 !text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10"
                                         style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
@@ -407,7 +386,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Syarat & Ketentuan (Warranty) -->
                                 <div class="mb-4">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span class="text-[10px] font-black !text-red-600 tracking-wider uppercase"
@@ -418,32 +396,26 @@
                                     <ul
                                         class="text-[8px] sm:text-[9px] text-neutral-600 font-bold space-y-1 list-disc pl-4 leading-relaxed">
                                         <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
-                                        <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.
-                                        </li>
+                                        <li>Garansi yang sudah melewati batas tanggal tidak bisa diklaim.</li>
                                         <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
                                     </ul>
                                 </div>
                             </div>
 
-                            <!-- Right Column: Financial Details & Slanted Total -->
                             <div class="w-full md:w-[260px] shrink-0">
-                                <!-- Small Subtotal Breakdown -->
                                 <div
                                     class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
                                     <div class="flex justify-between">
                                         <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
-                                        <span class="text-neutral-900 font-bold">
-                                            {{ formatNumber(form.price * form.qty) }}
-                                        </span>
+                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                            }}</span>
                                     </div>
                                     <div class="flex justify-between border-t border-neutral-200/50 pt-1">
                                         <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
-                                        }}</span>
+                                            }}</span>
                                         <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
-                                        }}</span>
+                                            }}</span>
                                     </div>
-
-                                    <!-- Slanted or Red Divider Line -->
                                     <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
                                         <span class="font-black !text-red-600 text-[10px] uppercase tracking-wider"
                                             style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Selisih
@@ -455,25 +427,19 @@
                                     </div>
                                 </div>
 
-                                <!-- Exact Slanted Grand Total Header Box -->
                                 <div
                                     class="flex rounded-xl overflow-hidden shadow-md h-[60px] bg-red-600 w-full relative">
-                                    <!-- Black Trapezoid Part -->
                                     <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
                                         style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
                                         <div class="text-[8px] font-black uppercase tracking-wider leading-none !text-white"
-                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                            Yang Harus</div>
+                                            style="color: #ffffff !important;">Yang Harus</div>
                                         <div class="text-[8px] font-black uppercase tracking-wider leading-tight !text-white"
-                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                            Dibayarkan</div>
+                                            style="color: #ffffff !important;">Dibayarkan</div>
                                     </div>
-                                    <!-- Red Total Part -->
                                     <div class="flex-1 flex items-center justify-end pr-4 !text-white"
-                                        style="z-index: 1; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <span class="text-lg sm:text-xl font-black !text-white tracking-tight"
-                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">{{
-                                                formatNumber(form.price * form.qty) }}</span>
+                                        style="z-index: 1; color: #ffffff !important;">
+                                        <span class="text-lg sm:text-xl font-black !text-white tracking-tight">{{
+                                            formatNumber(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
 
@@ -483,14 +449,11 @@
                             </div>
                         </div>
 
-                        <!-- ===== SIGNATURE AREA ===== -->
                         <div
                             class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                             <div class="text-center border-r border-neutral-200">
                                 <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12"
-                                    style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                    Customer
-                                    / Pembeli</div>
+                                    style="color: #dc2626 !important;">Customer / Pembeli</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
                                     {{ form.customerName || 'Umum' }}
@@ -498,9 +461,7 @@
                             </div>
                             <div class="text-center">
                                 <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12"
-                                    style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                    Hormat
-                                    Kami</div>
+                                    style="color: #dc2626 !important;">Hormat Kami</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
                                     {{ form.csName || 'PSTORE' }}
@@ -543,117 +504,79 @@ const formatNumber = (num) => {
 };
 
 const printNota = async () => {
+    isPrinting.value = true;
     await nextTick();
 
-    const receipt = document.querySelector(".nota-paper");
+    const originalTitle = document.title;
+    document.title = ' ';
 
-    if (!receipt) {
-        alert("Nota tidak ditemukan!");
+    // Fix: Clone elemen .nota-paper langsung agar clean dari wrapper responsive CSS screen normal
+    const receiptContent = document.querySelector('.nota-paper');
+    if (!receiptContent) {
+        alert('Element nota tidak ditemukan!');
+        isPrinting.value = false;
         return;
     }
 
-    // tunggu font selesai
-    if (document.fonts) {
-        await document.fonts.ready;
+    const printWrapper = document.createElement('div');
+    printWrapper.id = 'custom-nota-print-wrapper';
+
+    printWrapper.style.position = 'absolute';
+    printWrapper.style.top = '0';
+    printWrapper.style.left = '0';
+    printWrapper.style.width = '100%';
+    printWrapper.style.backgroundColor = 'white';
+    printWrapper.style.zIndex = '9999999';
+
+    const clone = receiptContent.cloneNode(true);
+    // Fix: Normalisasi class clone node agar layout mengalir presisi di lembar kertas printer
+    clone.className = 'nota-paper w-full bg-white print:bg-white mx-auto relative overflow-hidden select-none';
+
+    printWrapper.appendChild(clone);
+    document.body.appendChild(printWrapper);
+
+    const styleId = 'custom-nota-print-page-size';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
     }
+    styleEl.textContent = `
+        @media print {
+            @page { size: A4 portrait; margin: 0 !important; }
+        }
+    `;
 
-    // tunggu semua gambar selesai load
-    const imgs = [...receipt.querySelectorAll("img")];
+    setTimeout(() => {
+        window.print();
 
-    await Promise.all(
-        imgs.map(img => {
-            if (img.complete) return Promise.resolve();
-
-            return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
-            });
-        })
-    );
-
-    const printWindow = window.open("", "_blank");
-
-    printWindow.document.write(`
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Nota</title>
-
-<style>
-${[...document.styleSheets]
-            .map(sheet => {
-                try {
-                    return [...sheet.cssRules].map(r => r.cssText).join("\n");
-                } catch {
-                    return "";
-                }
-            })
-            .join("\n")}
-
-html,
-body{
-    margin:0;
-    padding:0;
-    background:white;
-}
-
-@page{
-    size:A4 portrait;
-    margin:0;
-}
-
-body{
-    display:flex;
-    justify-content:center;
-}
-
-.nota-paper{
-    width:210mm !important;
-    min-height:297mm;
-    margin:0;
-    box-shadow:none !important;
-}
-</style>
-
-</head>
-
-<body>
-${receipt.outerHTML}
-</body>
-</html>
-`);
-
-    printWindow.document.close();
-
-    printWindow.onload = () => {
         setTimeout(() => {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
+            document.title = originalTitle;
+            if (printWrapper && printWrapper.parentNode) {
+                printWrapper.parentNode.removeChild(printWrapper);
+            }
+            isPrinting.value = false;
         }, 500);
-    };
+    }, 300); // Buffer threshold browser render diperpanjang agar asset SVG & font selesai termuat
 };
 </script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
-/* General styles inside the nota wrapper */
 .nota-paper {
     font-family: 'Inter', sans-serif;
 }
 
-/* Print styles - same approach as ReceiptModal.vue */
 @media print {
     @page {
         margin: 0;
     }
 
-    /* Hide ALL other body children except our print wrapper - same as ReceiptModal
     body> :not(#custom-nota-print-wrapper) {
         display: none !important;
-    } */
+    }
 
     html,
     body {
@@ -665,7 +588,6 @@ ${receipt.outerHTML}
         overflow: visible !important;
     }
 
-    /* COMPLETE PARENT RESET - same as ReceiptModal */
     #custom-nota-print-wrapper,
     #custom-nota-print-wrapper>div,
     #receipt-content {
@@ -684,14 +606,11 @@ ${receipt.outerHTML}
         background: white !important;
         z-index: 9999999 !important;
         flex: none !important;
-        align-items: flex-start !important;
-        justify-content: flex-start !important;
         transform: none !important;
         border: 0 !important;
         outline: 0 !important;
     }
 
-    /* CRITICAL FIX: nota-paper sizing for print */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
@@ -703,20 +622,14 @@ ${receipt.outerHTML}
         box-sizing: border-box !important;
         display: flex !important;
         flex-direction: column !important;
-
         width: 100% !important;
         max-width: 210mm !important;
         height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
         overflow: visible !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-
-        transform-origin: top center !important;
     }
 
-    /* COMPLETE ARTIFACT ELIMINATION */
     #custom-nota-print-wrapper,
     #custom-nota-print-wrapper *,
     .nota-paper,
@@ -732,7 +645,7 @@ ${receipt.outerHTML}
         color-adjust: exact !important;
     }
 
-    /* Typography scaling for print */
+    /* Typography scaling */
     .nota-paper .text-\[6px\] {
         font-size: 9px !important;
     }
@@ -796,7 +709,6 @@ ${receipt.outerHTML}
         height: auto !important;
     }
 
-    /* Visual spacing */
     .nota-paper .mb-6 {
         margin-bottom: 1.1rem !important;
     }
@@ -864,7 +776,6 @@ ${receipt.outerHTML}
         display: none !important;
     }
 
-    /* Force translucent elements to solid white */
     .nota-paper .signature-area,
     .nota-paper .notes-box {
         background-color: #ffffff !important;
