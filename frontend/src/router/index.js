@@ -649,6 +649,16 @@ const routes = [
                 }
             },
             {
+                path: 'sales/custom-nota',
+                name: 'CustomNota',
+                component: () => import('../views/sales/CustomNota.vue'),
+                meta: {
+                    title: 'Custom Nota',
+                    menu: 'custom_nota',
+                    permissions: ['super_admin']
+                }
+            },
+            {
                 path: 'sales/ranking',
                 name: 'SalesRankingHistory',
                 component: () => import('../views/sales/RankingHistory.vue'),
