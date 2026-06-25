@@ -28,7 +28,22 @@ const mainNotes = ref("");
 const excessItems = ref([]);
 const brands = ref([]);
 const typesCache = ref({});
-const storageOptions = ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'];
+
+const getSelectedType = (brandId, typeName) => {
+    if (!brandId || !typeName) return null;
+    const types = typesCache.value[brandId] || [];
+    return types.find(t => t.name === typeName);
+};
+
+const getStorageOptions = (item) => {
+    const typeObj = getSelectedType(item.brand_id, item.type);
+    if (!typeObj || !typeObj.storage) return [];
+    return typeObj.storage.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+const onTypeChange = (item) => {
+    item.storage = "";
+};
 
 const addExcessItem = () => {
     excessItems.value.push({
@@ -428,20 +443,20 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-text-secondary mb-1">Tipe Barang</label>
-                                    <select v-model="item.type" :disabled="!item.brand_id" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500 disabled:opacity-50">
+                                    <select v-model="item.type" @change="onTypeChange(item)" :disabled="!item.brand_id" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500 disabled:opacity-50">
                                         <option value="">Pilih Tipe</option>
                                         <option v-for="t in (typesCache[item.brand_id] || [])" :key="t.id" :value="t.name">{{ t.name }}</option>
                                     </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4 sm:col-span-2">
-                                    <div>
+                                    <div v-if="['imei', 'HP / Gadget'].includes(getSelectedType(item.brand_id, item.type)?.category)">
                                         <label class="block text-xs font-medium text-text-secondary mb-1">Storage</label>
-                                        <select v-model="item.storage" :disabled="!item.type" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500 disabled:opacity-50">
+                                        <select v-model="item.storage" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500">
                                             <option value="">Pilih Storage</option>
-                                            <option v-for="s in storageOptions" :key="s" :value="s">{{ s }}</option>
+                                            <option v-for="s in getStorageOptions(item)" :key="s" :value="s">{{ s }}</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div :class="['imei', 'HP / Gadget'].includes(getSelectedType(item.brand_id, item.type)?.category) ? '' : 'col-span-2'">
                                         <label class="block text-xs font-medium text-text-secondary mb-1">Total Unit Lebih</label>
                                         <input v-model.number="item.excess_qty" @change="handleQtyChange(item)" type="number" min="1" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
                                     </div>
