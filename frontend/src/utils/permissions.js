@@ -207,7 +207,7 @@ export const ROLE_MENUS = {
     [ROLES.ANALIST]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'reports', 'report_ranking', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis', 'sold_analysis'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'master_data_group', 'brands', 'types', 'prices', 'support_group', 'track'],
     [ROLES.AUDIT]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_pin_resets', 'audit_photo_approvals', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'master_data_group', 'users', 'support_group', 'track', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis'],
-    [ROLES.SECURITY]: ['dashboard', 'security_scan', 'track'],
+    [ROLES.SECURITY]: ['dashboard', 'security_scan', 'security_history', 'track'],
     [ROLES.LEADER]: ['dashboard', 'monitoring_group', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'support_group', 'track'],
     [ROLES.DISTRIBUTOR]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'support_group', 'track'],
     [ROLES.DISTRIBUTION]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'support_group', 'track'],
