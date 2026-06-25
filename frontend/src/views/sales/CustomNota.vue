@@ -543,142 +543,337 @@ const formatNumber = (num) => {
 };
 
 const printNota = async () => {
-    isPrinting.value = true;
     await nextTick();
 
-    const originalTitle = document.title;
-    document.title = 'Nota PSTORE';
+    const receipt = document.querySelector(".nota-paper");
 
-    const receiptContent = document.querySelector('.nota-paper');
-    if (!receiptContent) {
-        alert('Element nota tidak ditemukan!');
-        isPrinting.value = false;
+    if (!receipt) {
+        alert("Nota tidak ditemukan!");
         return;
     }
 
-    // Create wrapper with proper styling
-    const printWrapper = document.createElement('div');
-    printWrapper.id = 'custom-nota-print-wrapper';
-    printWrapper.style.cssText = `
-        position: relative;
-        width: 100%;
-        background: white;
-        z-index: 9999999;
-        padding: 0;
-        margin: 0;
-    `;
-
-    const clone = receiptContent.cloneNode(true);
-    clone.className = 'nota-paper w-full bg-white mx-auto relative select-none';
-    clone.style.cssText = `
-        width: 100%;
-        max-width: 210mm;
-        margin: 0 auto;
-        background: white !important;
-        padding: 10mm;
-        box-sizing: border-box;
-        box-shadow: none !important;
-        border: none !important;
-    `;
-
-    printWrapper.appendChild(clone);
-    document.body.appendChild(printWrapper);
-
-    // Inject print styles
-    const styleId = 'custom-nota-print-styles';
-    let styleEl = document.getElementById(styleId);
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
+    // tunggu font selesai
+    if (document.fonts) {
+        await document.fonts.ready;
     }
-    styleEl.textContent = `
-        @media print {
-            @page { 
-                size: A4 portrait; 
-                margin: 10mm !important; 
-            }
-            
-            /* Hide everything except our wrapper */
-            body > *:not(#custom-nota-print-wrapper) {
-                display: none !important;
-                visibility: hidden !important;
-            }
-            
-            /* Ensure wrapper is visible and flows properly */
-            #custom-nota-print-wrapper {
-                display: block !important;
-                position: static !important;
-                width: 100% !important;
-                background: white !important;
-                visibility: visible !important;
-                z-index: auto !important;
-            }
-            
-            /* Reset nota-paper for print */
-            #custom-nota-print-wrapper .nota-paper {
-                width: 100% !important;
-                max-width: none !important;
-                box-shadow: none !important;
-                border: none !important;
-                border-radius: 0 !important;
-                background: white !important;
-                color: black !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                overflow: visible !important;
-                page-break-inside: avoid !important;
-            }
-            
-            /* Force colors to print */
-            #custom-nota-print-wrapper * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-            
-            /* Remove shadows and effects */
-            #custom-nota-print-wrapper * {
-                box-shadow: none !important;
-                text-shadow: none !important;
-                filter: none !important;
-                backdrop-filter: none !important;
-            }
-        }
-    `;
 
-    // Wait for DOM to stabilize
-    setTimeout(() => {
-        window.print();
+    // tunggu semua gambar selesai load
+    const imgs = [...receipt.querySelectorAll("img")];
 
-        // Cleanup after print dialog
+    await Promise.all(
+        imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        })
+    );
+
+    const printWindow = window.open("", "_blank");
+
+    printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Nota</title>
+
+<style>
+${[...document.styleSheets]
+            .map(sheet => {
+                try {
+                    return [...sheet.cssRules].map(r => r.cssText).join("\n");
+                } catch {
+                    return "";
+                }
+            })
+            .join("\n")}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    background:white;
+}
+
+@page{
+    size:A4 portrait;
+    margin:0;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+}
+
+.nota-paper{
+    width:210mm !important;
+    min-height:297mm;
+    margin:0;
+    box-shadow:none !important;
+}
+</style>
+
+</head>
+
+<body>
+${receipt.outerHTML}
+</body>
+</html>
+`);
+
+    printWindow.document.close();
+
+    printWindow.onload = () => {
         setTimeout(() => {
-            document.title = originalTitle;
-            if (printWrapper && printWrapper.parentNode) {
-                printWrapper.parentNode.removeChild(printWrapper);
-            }
-            if (styleEl && styleEl.parentNode) {
-                styleEl.parentNode.removeChild(styleEl);
-            }
-            isPrinting.value = false;
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
         }, 500);
-    }, 300);
+    };
 };
 </script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
+/* General styles inside the nota wrapper */
 .nota-paper {
     font-family: 'Inter', sans-serif;
 }
 
-/* Screen-only styles for preview */
-@media screen {
+/* Print styles - same approach as ReceiptModal.vue */
+@media print {
+    @page {
+        margin: 0;
+    }
+
+    /* Hide ALL other body children except our print wrapper - same as ReceiptModal
+    body> :not(#custom-nota-print-wrapper) {
+        display: none !important;
+    } */
+
+    html,
+    body {
+        height: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+    }
+
+    /* COMPLETE PARENT RESET - same as ReceiptModal */
+    #custom-nota-print-wrapper,
+    #custom-nota-print-wrapper>div,
+    #receipt-content {
+        display: block !important;
+        position: relative !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        z-index: 9999999 !important;
+        flex: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        transform: none !important;
+        border: 0 !important;
+        outline: 0 !important;
+    }
+
+    /* CRITICAL FIX: nota-paper sizing for print */
     .nota-paper {
-        max-width: 650px;
-        margin: 0 auto;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4mm 8mm !important;
+        margin: 0 auto !important;
+        color: black !important;
+        background: white !important;
+        border-radius: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+
+        width: 100% !important;
+        max-width: 210mm !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+
+        transform-origin: top center !important;
+    }
+
+    /* COMPLETE ARTIFACT ELIMINATION */
+    #custom-nota-print-wrapper,
+    #custom-nota-print-wrapper *,
+    .nota-paper,
+    .nota-paper * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+    }
+
+    /* Typography scaling for print */
+    .nota-paper .text-\[6px\] {
+        font-size: 9px !important;
+    }
+
+    .nota-paper .text-\[7px\] {
+        font-size: 10px !important;
+    }
+
+    .nota-paper .text-\[8px\] {
+        font-size: 11px !important;
+    }
+
+    .nota-paper .text-\[9px\] {
+        font-size: 11.5px !important;
+    }
+
+    .nota-paper .text-\[10px\] {
+        font-size: 12px !important;
+    }
+
+    .nota-paper .text-\[11px\] {
+        font-size: 13px !important;
+    }
+
+    .nota-paper .text-xs {
+        font-size: 0.95rem !important;
+    }
+
+    .nota-paper .text-sm {
+        font-size: 1.05rem !important;
+    }
+
+    .nota-paper .text-base {
+        font-size: 1.2rem !important;
+    }
+
+    .nota-paper .text-lg {
+        font-size: 1.3rem !important;
+    }
+
+    .nota-paper .text-xl {
+        font-size: 1.5rem !important;
+    }
+
+    .nota-paper .text-2xl {
+        font-size: 1.8rem !important;
+    }
+
+    .nota-paper .text-3xl {
+        font-size: 2.1rem !important;
+    }
+
+    .nota-paper svg {
+        transform: scale(1.05);
+    }
+
+    .nota-paper>.relative.z-10 {
+        flex: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    /* Visual spacing */
+    .nota-paper .mb-6 {
+        margin-bottom: 1.1rem !important;
+    }
+
+    .nota-paper .mb-5 {
+        margin-bottom: 1rem !important;
+    }
+
+    .nota-paper .mb-4 {
+        margin-bottom: 0.85rem !important;
+    }
+
+    .nota-paper .mt-6 {
+        margin-top: 1.1rem !important;
+    }
+
+    .nota-paper .mt-8 {
+        margin-top: 4.5rem !important;
+    }
+
+    .nota-paper .gap-6 {
+        gap: 1.2rem !important;
+    }
+
+    .nota-paper .gap-4 {
+        gap: 0.85rem !important;
+    }
+
+    .nota-paper .py-4 {
+        padding-top: 0.65rem !important;
+        padding-bottom: 0.65rem !important;
+    }
+
+    .nota-paper .py-3 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .nota-paper .p-4 {
+        padding: 0.9rem !important;
+    }
+
+    .nota-paper .p-6 {
+        padding: 1.1rem !important;
+    }
+
+    .nota-paper .px-6 {
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
+    }
+
+    .nota-paper img {
+        height: auto !important;
+        max-height: none !important;
+        object-fit: contain !important;
+    }
+
+    .nota-paper tr,
+    .nota-paper .payment-section,
+    .nota-paper .signature-area {
+        break-inside: avoid;
+    }
+
+    .print\:hidden {
+        display: none !important;
+    }
+
+    /* Force translucent elements to solid white */
+    .nota-paper .signature-area,
+    .nota-paper .notes-box {
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
+    }
+
+    img {
+        display: block !important;
     }
 }
 </style>
