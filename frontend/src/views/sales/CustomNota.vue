@@ -523,13 +523,36 @@ const formatNumber = (num) => {
 };
 
 const printNota = async () => {
-    // Same approach as ReceiptModal: show the Teleport wrapper, then window.print()
     isPrinting.value = true;
     await nextTick();
 
     // Temporarily clear page title to remove browser header/footer text
     const originalTitle = document.title;
     document.title = ' ';
+
+    // Clone the receipt content to the body for clean printing
+    const receiptContent = document.getElementById('receipt-content');
+    if (!receiptContent) return;
+
+    // Create a wrapper div directly in the body
+    const printWrapper = document.createElement('div');
+    printWrapper.id = 'custom-nota-print-wrapper';
+    
+    // Set styles on the wrapper for print isolation
+    printWrapper.style.position = 'absolute';
+    printWrapper.style.top = '0';
+    printWrapper.style.left = '0';
+    printWrapper.style.width = '100%';
+    printWrapper.style.backgroundColor = 'white';
+    printWrapper.style.zIndex = '9999999';
+
+    // Clone the node deeply
+    const clone = receiptContent.cloneNode(true);
+    // Remove the rounded corners and margins that the preview div might have
+    clone.className = 'w-full flex justify-center bg-white print:bg-white';
+    
+    printWrapper.appendChild(clone);
+    document.body.appendChild(printWrapper);
 
     // Inject dynamic print page size style
     const styleId = 'custom-nota-print-page-size';
@@ -547,8 +570,15 @@ const printNota = async () => {
 
     setTimeout(() => {
         window.print();
-        isPrinting.value = false;
-        setTimeout(() => { document.title = originalTitle; }, 500);
+        
+        // Cleanup after print dialog closes
+        setTimeout(() => { 
+            document.title = originalTitle; 
+            if (printWrapper && printWrapper.parentNode) {
+                printWrapper.parentNode.removeChild(printWrapper);
+            }
+            isPrinting.value = false;
+        }, 500);
     }, 200);
 };
 </script>
