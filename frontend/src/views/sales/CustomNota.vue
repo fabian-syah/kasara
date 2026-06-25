@@ -309,7 +309,7 @@
                         </div>
 
                         <!-- Table -->
-                        <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60">
+                        <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                             <table class="w-full text-[10px] sm:text-xs border-collapse">
                                 <thead>
                                     <tr style="background-color: #0a0a0a !important;"
@@ -384,20 +384,20 @@
                                     class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
                                     <div class="flex justify-between">
                                         <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
-                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                        <span class="text-neutral-900 font-bold">{{ formatCurrency(form.price * form.qty)
                                         }}</span>
                                     </div>
                                     <div class="flex justify-between border-t border-neutral-200/50 pt-1">
                                         <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
                                         }}</span>
-                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                        <span class="text-neutral-900 font-bold">{{ formatCurrency(form.price * form.qty)
                                         }}</span>
                                     </div>
                                     <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
                                         <span
                                             class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih
                                             Harga</span>
-                                        <span class="text-red-600 font-black text-sm">{{ formatNumber(form.price *
+                                        <span class="text-red-600 font-black text-sm">{{ formatCurrency(form.price *
                                             form.qty) }}</span>
                                     </div>
                                 </div>
@@ -416,7 +416,7 @@
                                     <div class="flex-1 flex items-center justify-end pr-4 text-white"
                                         style="z-index: 1;">
                                         <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{
-                                            formatNumber(form.price * form.qty) }}</span>
+                                            formatCurrency(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
 
@@ -473,9 +473,14 @@ const form = ref({
     ig: 'pstore_jakarta'
 });
 
+const formatCurrency = (num) => {
+    if (!num) return 'Rp 0';
+    return 'Rp ' + Number(num).toLocaleString('id-ID');
+};
+
 const formatNumber = (num) => {
     if (!num) return '0';
-    return 'Rp ' + Number(num).toLocaleString('id-ID');
+    return Number(num).toLocaleString('id-ID');
 };
 
 const printNota = () => {
