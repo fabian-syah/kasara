@@ -123,9 +123,17 @@
                 </div>
             </div>
 
-            <!-- Preview Nota -->
+            <!-- Preview Nota / Print Wrapper -->
+    </div>
+    </div>
+
+    <!-- Teleport to body like ReceiptModal: always active, wraps nota for print isolation -->
+    <Teleport to="body" :disabled="!isPrinting">
+        <div v-show="isPrinting || true" id="custom-nota-print-wrapper"
+            :class="isPrinting ? 'fixed inset-0 z-[99999] flex items-center justify-center bg-white print:p-0 print:bg-white' : 'flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 overflow-hidden rounded-2xl'"
+            >
             <div id="receipt-content"
-                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
+                class="w-full flex justify-center bg-white print:bg-white">
                 <div
                     class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
 
@@ -491,11 +499,13 @@
                 </div>
             </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
+
+const isPrinting = ref(false);
 
 const form = ref({
     branch: 'PSTORE SERANG BANTEN',
@@ -520,109 +530,34 @@ const formatNumber = (num) => {
     return 'Rp ' + Number(num).toLocaleString('id-ID');
 };
 
-const printNota = () => {
-    const el = document.getElementById('receipt-content');
-    if (!el) return;
+const printNota = async () => {
+    // Same approach as ReceiptModal: show the Teleport wrapper, then window.print()
+    isPrinting.value = true;
+    await nextTick();
 
-    // Collect all stylesheets from the current page
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-        .map(s => s.outerHTML)
-        .join('\n');
+    // Temporarily clear page title to remove browser header/footer text
+    const originalTitle = document.title;
+    document.title = ' ';
 
-    const printWindow = window.open('', '_blank', 'width=800,height=1100');
-    if (!printWindow) {
-        alert('Popup diblokir! Izinkan popup untuk mencetak nota.');
-        return;
+    // Inject dynamic print page size style
+    const styleId = 'custom-nota-print-page-size';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
     }
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Cetak Nota</title>
-    ${styles}
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            width: 100%; height: auto;
-            background: white; overflow: visible;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-        }
-        @page { margin: 0; }
-        #receipt-content {
-            display: block !important;
-            width: 100% !important;
-            height: auto !important;
-            max-height: none !important;
-            overflow: visible !important;
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .nota-paper {
-            font-family: 'Inter', sans-serif;
-            width: 100% !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 4mm 8mm !important;
-            background: white !important;
-            color: black !important;
-            box-shadow: none !important;
-            border: none !important;
-            border-radius: 0 !important;
-            overflow: visible !important;
-            height: auto !important;
-            max-height: none !important;
-        }
-        .nota-paper, .nota-paper * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            box-shadow: none !important;
-            text-shadow: none !important;
-            filter: none !important;
-            -webkit-filter: none !important;
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-        .nota-paper .signature-area,
-        .nota-paper .notes-box {
-            background-color: #ffffff !important;
-            background: white !important;
-            border-color: #e5e7eb !important;
-        }
+    styleEl.textContent = `
         @media print {
-            .no-print, .print\\:hidden { display: none !important; }
+            @page { size: A4 portrait; margin: 0 !important; }
         }
-    </style>
-</head>
-<body>
-    ${el.outerHTML}
-</body>
-</html>`);
+    `;
 
-    printWindow.document.close();
-
-    // Wait for stylesheets and fonts to load, then print
-    printWindow.onload = () => {
-        setTimeout(() => {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-        }, 300);
-    };
-
-    // Fallback if onload doesn't fire
     setTimeout(() => {
-        if (!printWindow.closed) {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-        }
-    }, 2000);
+        window.print();
+        isPrinting.value = false;
+        setTimeout(() => { document.title = originalTitle; }, 500);
+    }, 200);
 };
 </script>
 
@@ -634,10 +569,15 @@ const printNota = () => {
     font-family: 'Inter', sans-serif;
 }
 
-/* Print styles targeted for the modal */
+/* Print styles - same approach as ReceiptModal.vue */
 @media print {
     @page {
         margin: 0;
+    }
+
+    /* Hide ALL other body children except our print wrapper - same as ReceiptModal */
+    body> :not(#custom-nota-print-wrapper) {
+        display: none !important;
     }
 
     html,
@@ -650,10 +590,12 @@ const printNota = () => {
         overflow: visible !important;
     }
 
-    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
+    /* COMPLETE PARENT RESET - same as ReceiptModal */
+    #custom-nota-print-wrapper,
+    #custom-nota-print-wrapper>div,
     #receipt-content {
         display: block !important;
-        position: absolute !important;
+        position: relative !important;
         left: 0 !important;
         top: 0 !important;
         width: 100% !important;
@@ -674,7 +616,7 @@ const printNota = () => {
         outline: 0 !important;
     }
 
-    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
+    /* CRITICAL FIX: nota-paper sizing for print */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
@@ -700,8 +642,8 @@ const printNota = () => {
     }
 
     /* COMPLETE ARTIFACT ELIMINATION */
-    #receipt-content,
-    #receipt-content *,
+    #custom-nota-print-wrapper,
+    #custom-nota-print-wrapper *,
     .nota-paper,
     .nota-paper * {
         box-shadow: none !important;
@@ -715,123 +657,20 @@ const printNota = () => {
         color-adjust: exact !important;
     }
 
-    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
-    body> :not(#app) {
-        display: none !important;
-    }
-
-    html,
-    body {
-        height: auto !important;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background: white !important;
-        overflow: visible !important;
-    }
-
-    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
-    #receipt-content {
-        display: block !important;
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        box-sizing: border-box !important;
-        background: white !important;
-        z-index: 9999999 !important;
-        flex: none !important;
-        align-items: flex-start !important;
-        justify-content: flex-start !important;
-        transform: none !important;
-        border: 0 !important;
-        outline: 0 !important;
-    }
-
-    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
-    .nota-paper {
-        border: none !important;
-        box-shadow: none !important;
-        padding: 4mm 8mm !important;
-        margin: 0 auto !important;
-        color: black !important;
-        background: white !important;
-        border-radius: 0 !important;
-        box-sizing: border-box !important;
-        display: flex !important;
-        flex-direction: column !important;
-
-        width: 100% !important;
-        max-width: 210mm !important;
-        height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-
-        transform-origin: top center !important;
-    }
-
-    /* Typography scaling for print - tightly optimized to prevent expansion/overflow on mobile/desktop */
-    /* Typography scaling for print - generously upgraded to fill out page coverage and maximize legibility */
-    .nota-paper .text-\[6px\] {
-        font-size: 9px !important;
-    }
-
-    .nota-paper .text-\[7px\] {
-        font-size: 10px !important;
-    }
-
-    .nota-paper .text-\[8px\] {
-        font-size: 11px !important;
-    }
-
-    .nota-paper .text-\[9px\] {
-        font-size: 11.5px !important;
-    }
-
-    .nota-paper .text-\[10px\] {
-        font-size: 12px !important;
-    }
-
-    .nota-paper .text-\[11px\] {
-        font-size: 13px !important;
-    }
-
-    .nota-paper .text-xs {
-        font-size: 0.95rem !important;
-    }
-
-    .nota-paper .text-sm {
-        font-size: 1.05rem !important;
-    }
-
-    .nota-paper .text-base {
-        font-size: 1.2rem !important;
-    }
-
-    .nota-paper .text-lg {
-        font-size: 1.3rem !important;
-    }
-
-    .nota-paper .text-xl {
-        font-size: 1.5rem !important;
-    }
-
-    .nota-paper .text-2xl {
-        font-size: 1.8rem !important;
-    }
-
-    .nota-paper .text-3xl {
-        font-size: 2.1rem !important;
-    }
+    /* Typography scaling for print */
+    .nota-paper .text-\[6px\] { font-size: 9px !important; }
+    .nota-paper .text-\[7px\] { font-size: 10px !important; }
+    .nota-paper .text-\[8px\] { font-size: 11px !important; }
+    .nota-paper .text-\[9px\] { font-size: 11.5px !important; }
+    .nota-paper .text-\[10px\] { font-size: 12px !important; }
+    .nota-paper .text-\[11px\] { font-size: 13px !important; }
+    .nota-paper .text-xs { font-size: 0.95rem !important; }
+    .nota-paper .text-sm { font-size: 1.05rem !important; }
+    .nota-paper .text-base { font-size: 1.2rem !important; }
+    .nota-paper .text-lg { font-size: 1.3rem !important; }
+    .nota-paper .text-xl { font-size: 1.5rem !important; }
+    .nota-paper .text-2xl { font-size: 1.8rem !important; }
+    .nota-paper .text-3xl { font-size: 2.1rem !important; }
 
     .nota-paper svg {
         transform: scale(1.05);
@@ -844,58 +683,19 @@ const printNota = () => {
         height: auto !important;
     }
 
-    /* Premium visual spacing to beautifully fill up the A4 layout gracefully and eliminate excessive empty bottom space */
-    .nota-paper .mb-6 {
-        margin-bottom: 1.1rem !important;
-    }
-
-    .nota-paper .mb-5 {
-        margin-bottom: 1rem !important;
-    }
-
-    .nota-paper .mb-4 {
-        margin-bottom: 0.85rem !important;
-    }
-
-    .nota-paper .mt-6 {
-        margin-top: 1.1rem !important;
-    }
-
-    .nota-paper .mt-8 {
-        margin-top: 4.5rem !important;
-        /* Spacious, elegant visual separation to comfortably expand page coverage */
-    }
-
-    .nota-paper .gap-6 {
-        gap: 1.2rem !important;
-    }
-
-    .nota-paper .gap-4 {
-        gap: 0.85rem !important;
-    }
-
-    .nota-paper .py-4 {
-        padding-top: 0.65rem !important;
-        padding-bottom: 0.65rem !important;
-    }
-
-    .nota-paper .py-3 {
-        padding-top: 0.5rem !important;
-        padding-bottom: 0.5rem !important;
-    }
-
-    .nota-paper .p-4 {
-        padding: 0.9rem !important;
-    }
-
-    .nota-paper .p-6 {
-        padding: 1.1rem !important;
-    }
-
-    .nota-paper .px-6 {
-        padding-left: 1.2rem !important;
-        padding-right: 1.2rem !important;
-    }
+    /* Visual spacing */
+    .nota-paper .mb-6 { margin-bottom: 1.1rem !important; }
+    .nota-paper .mb-5 { margin-bottom: 1rem !important; }
+    .nota-paper .mb-4 { margin-bottom: 0.85rem !important; }
+    .nota-paper .mt-6 { margin-top: 1.1rem !important; }
+    .nota-paper .mt-8 { margin-top: 4.5rem !important; }
+    .nota-paper .gap-6 { gap: 1.2rem !important; }
+    .nota-paper .gap-4 { gap: 0.85rem !important; }
+    .nota-paper .py-4 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+    .nota-paper .py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+    .nota-paper .p-4 { padding: 0.9rem !important; }
+    .nota-paper .p-6 { padding: 1.1rem !important; }
+    .nota-paper .px-6 { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
 
     .nota-paper img {
         height: auto !important;
@@ -913,23 +713,7 @@ const printNota = () => {
         display: none !important;
     }
 
-    /* COMPLETE ARTIFACT ELIMINATION: Universally strips all box-shadows and blurs which render as solid gray halos in browser print engines */
-    #receipt-content,
-    #receipt-content *,
-    .nota-paper,
-    .nota-paper * {
-        box-shadow: none !important;
-        text-shadow: none !important;
-        filter: none !important;
-        -webkit-filter: none !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-    }
-
-    /* Force translucent elements to be 100% solid pure white opaque to prevent gray backgrounds */
+    /* Force translucent elements to solid white */
     .nota-paper .signature-area,
     .nota-paper .notes-box {
         background-color: #ffffff !important;
