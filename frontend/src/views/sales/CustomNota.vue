@@ -124,8 +124,9 @@
             </div>
 
             <!-- Preview Nota -->
-            <div id="receipt-content"
-                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
+            <Teleport to="body" :disabled="!isPrinting">
+                <div id="receipt-content"
+                    class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
                 <div
                     class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
 
@@ -486,16 +487,19 @@
                                     {{ form.csName || 'PSTORE' }}
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </Teleport>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick } from 'vue';
+
+const isPrinting = ref(false);
 
 const form = ref({
     branch: 'PSTORE SERANG BANTEN',
@@ -520,8 +524,14 @@ const formatNumber = (num) => {
     return 'Rp ' + Number(num).toLocaleString('id-ID');
 };
 
-const printNota = () => {
-    window.print();
+const printNota = async () => {
+    isPrinting.value = true;
+    await nextTick();
+    
+    setTimeout(() => {
+        window.print();
+        isPrinting.value = false;
+    }, 150);
 };
 </script>
 
@@ -540,7 +550,7 @@ const printNota = () => {
     }
 
     /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
-    body> :not(#app) {
+    body> :not(#receipt-content) {
         display: none !important;
     }
 
