@@ -49,7 +49,7 @@ const removeExcessItem = (index) => {
 const fetchBrands = async () => {
     try {
         const res = await api.get('/brands', { params: { per_page: 100 } });
-        brands.value = res.data.data.data || [];
+        brands.value = res.data.data || [];
     } catch(e) {
         console.error(e);
     }
@@ -60,7 +60,7 @@ const loadTypesForBrand = async (brandId) => {
     if(typesCache.value[brandId]) return typesCache.value[brandId];
     try {
         const res = await api.get('/types', { params: { brand_id: brandId, per_page: 100 } });
-        typesCache.value[brandId] = res.data.data.data || [];
+        typesCache.value[brandId] = res.data.data || [];
         return typesCache.value[brandId];
     } catch(e) {
         console.error(e);
@@ -70,6 +70,7 @@ const loadTypesForBrand = async (brandId) => {
 
 const onBrandChange = async (item) => {
     item.type = "";
+    item.storage = ""; // Reset storage when brand changes (type resets)
     const b = brands.value.find(x => x.id === item.brand_id);
     item.brand = b ? b.name : "";
     if(item.brand_id) {
@@ -435,7 +436,7 @@ onMounted(() => {
                                 <div class="grid grid-cols-2 gap-4 sm:col-span-2">
                                     <div>
                                         <label class="block text-xs font-medium text-text-secondary mb-1">Storage</label>
-                                        <select v-model="item.storage" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500">
+                                        <select v-model="item.storage" :disabled="!item.type" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500 disabled:opacity-50">
                                             <option value="">Pilih Storage</option>
                                             <option v-for="s in storageOptions" :key="s" :value="s">{{ s }}</option>
                                         </select>
@@ -461,7 +462,7 @@ onMounted(() => {
                                         <label v-if="(item.photos?.length || 0) < item.excess_qty" class="w-16 h-16 rounded-lg border-2 border-dashed border-surface-600 flex flex-col items-center justify-center text-surface-400 hover:text-primary-500 hover:border-primary-500 cursor-pointer transition-colors bg-surface-800">
                                             <Camera :size="20" />
                                             <span class="text-[9px] mt-1 font-medium">Upload</span>
-                                            <input type="file" multiple accept="image/*" class="hidden" @change="(e) => handlePhotoUpload(e, item)" />
+                                            <input type="file" multiple accept="image/*" capture="environment" class="hidden" @change="(e) => handlePhotoUpload(e, item)" />
                                         </label>
                                     </div>
                                     <p class="text-[10px] text-text-secondary mt-1 italic">*Jumlah foto harus sama dengan total unit lebih</p>
