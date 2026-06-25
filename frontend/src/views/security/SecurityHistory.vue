@@ -108,10 +108,10 @@
                 </div>
               </td>
               <td class="px-6 py-4">
-                <div v-if="item.excess_items && item.excess_items.length > 0" class="flex flex-col gap-1.5">
-                  <span class="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    Ada Barang Lebih
-                  </span>
+                <div v-if="item.excess_items && item.excess_items.length > 0" class="flex flex-col gap-1.5 items-start">
+                  <button @click="viewExcessDetails(item.excess_items)" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer shadow-sm">
+                    <Eye :size="14" /> Lihat Detail
+                  </button>
                   <div class="text-[11px] text-text-secondary line-clamp-2" :title="item.excess_items.map(e => e.type + ' (' + e.excess_qty + ')').join(', ')">
                     {{ item.excess_items.map(e => `${e.brand || ''} ${e.type || ''} (${e.excess_qty})`).join(', ') }}
                   </div>
@@ -142,6 +142,59 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Detail Barang Lebih -->
+    <div v-if="showExcessModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between p-5 border-b border-surface-700">
+          <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
+            <Plus :size="20" class="text-amber-500" /> Detail Barang Lebih
+          </h2>
+          <button @click="showExcessModal = false" class="text-surface-400 hover:text-text-primary transition-colors">
+            <X :size="20" />
+          </button>
+        </div>
+        <div class="p-5 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+          <div v-for="(excess, idx) in selectedExcessItems" :key="idx" class="bg-surface-900 border border-surface-700 rounded-xl p-4">
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Brand & Tipe</span>
+                <span class="text-sm font-bold text-text-primary">{{ excess.brand }} {{ excess.type }}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Storage</span>
+                <span class="text-sm font-semibold text-text-primary">{{ excess.storage || '-' }}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Jumlah Unit</span>
+                <span class="text-sm font-semibold text-text-primary">{{ excess.excess_qty }}</span>
+              </div>
+              <div>
+                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Keterangan / IMEI</span>
+                <span class="text-sm font-semibold text-text-primary">{{ excess.notes || '-' }}</span>
+              </div>
+            </div>
+            
+            <div v-if="excess.photos && parsePhotos(excess.photos).length > 0">
+              <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-2">Foto Barang</span>
+              <div class="flex flex-wrap gap-2">
+                <a v-for="(photo, pIdx) in parsePhotos(excess.photos)" :key="pIdx" :href="getImageUrl(photo)" target="_blank" class="block w-20 h-20 rounded-lg overflow-hidden border border-surface-600 hover:border-primary-500 transition-colors">
+                  <img :src="getImageUrl(photo)" class="w-full h-full object-cover" />
+                </a>
+              </div>
+            </div>
+            <div v-else>
+               <span class="text-xs text-text-secondary italic">Tidak ada foto dilampirkan.</span>
+            </div>
+          </div>
+        </div>
+        <div class="p-4 border-t border-surface-700 flex justify-end">
+          <button @click="showExcessModal = false" class="px-5 py-2 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-lg font-medium transition-colors">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -150,7 +203,7 @@ import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { 
-  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight 
+  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight, Eye, X, Plus
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -160,6 +213,28 @@ const searchQuery = ref('');
 const currentPage = ref(1);
 const totalPages = ref(1);
 let debounceTimeout = null;
+
+const showExcessModal = ref(false);
+const selectedExcessItems = ref([]);
+
+const viewExcessDetails = (items) => {
+  selectedExcessItems.value = items;
+  showExcessModal.value = true;
+};
+
+const parsePhotos = (photosStr) => {
+  try {
+    if (Array.isArray(photosStr)) return photosStr;
+    return JSON.parse(photosStr) || [];
+  } catch(e) {
+    return [];
+  }
+};
+
+const getImageUrl = (path) => {
+  if(path.startsWith('http')) return path;
+  return import.meta.env.VITE_API_URL.replace('/api', '') + '/' + path;
+};
 
 const fetchHistory = async (page = 1) => {
   isLoading.value = true;

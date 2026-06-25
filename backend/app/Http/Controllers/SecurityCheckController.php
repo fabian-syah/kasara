@@ -24,6 +24,8 @@ class SecurityCheckController extends Controller
             'excess_items.*.storage' => 'nullable|string',
             'excess_items.*.excess_qty' => 'required|integer|min:1',
             'excess_items.*.notes' => 'nullable|string',
+            'excess_items.*.photos' => 'nullable|array',
+            'excess_items.*.photos.*' => 'string',
         ]);
 
         try {
@@ -47,12 +49,30 @@ class SecurityCheckController extends Controller
 
             if (!empty($validated['excess_items'])) {
                 foreach ($validated['excess_items'] as $item) {
+                    $savedPhotos = [];
+                    if (!empty($item['photos'])) {
+                        foreach ($item['photos'] as $photoData) {
+                            if (preg_match('/^data:image\/(\w+);base64,/', $photoData, $type)) {
+                                $data = substr($photoData, strpos($photoData, ',') + 1);
+                                $type = strtolower($type[1]);
+                                if (!in_array($type, ['jpg', 'jpeg', 'png', 'webp'])) {
+                                    continue;
+                                }
+                                $data = base64_decode($data);
+                                $fileName = 'excess_' . time() . '_' . uniqid() . '.' . $type;
+                                \Illuminate\Support\Facades\Storage::disk('public')->put('security_excess_photos/' . $fileName, $data);
+                                $savedPhotos[] = 'storage/security_excess_photos/' . $fileName;
+                            }
+                        }
+                    }
+
                     $securityCheck->excessItems()->create([
                         'brand' => $item['brand'] ?? null,
                         'type' => $item['type'] ?? null,
                         'storage' => $item['storage'] ?? null,
                         'excess_qty' => $item['excess_qty'],
                         'notes' => $item['notes'] ?? null,
+                        'photos' => empty($savedPhotos) ? null : json_encode($savedPhotos),
                     ]);
                 }
             }

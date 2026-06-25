@@ -5,7 +5,7 @@ import api, { questions as questionsApi } from "../../api/axios";
 import { useAuthStore } from "../../store/auth";
 import { useToast } from "../../composables/useToast";
 import {
-    Loader2, CheckCircle2, ShieldCheck, Plus, Trash2, Smartphone, Package, Box, MapPin, Calendar, Clock, ArrowRight, User
+    Loader2, CheckCircle2, ShieldCheck, Plus, Trash2, Smartphone, Package, Box, MapPin, Calendar, Clock, ArrowRight, User, Camera, X as XIcon
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -26,19 +26,117 @@ const inventoryUserId = ref(route.query.inventory_user_id || "");
 const mainNotes = ref("");
 
 const excessItems = ref([]);
+const brands = ref([]);
+const typesCache = ref({});
+const storageOptions = ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'];
 
 const addExcessItem = () => {
     excessItems.value.push({
+        brand_id: "",
         brand: "",
         type: "",
         storage: "",
         excess_qty: 1,
-        notes: ""
+        notes: "",
+        photos: []
     });
 };
 
 const removeExcessItem = (index) => {
     excessItems.value.splice(index, 1);
+};
+
+const fetchBrands = async () => {
+    try {
+        const res = await api.get('/brands', { params: { per_page: 100 } });
+        brands.value = res.data.data.data || [];
+    } catch(e) {
+        console.error(e);
+    }
+};
+
+const loadTypesForBrand = async (brandId) => {
+    if(!brandId) return [];
+    if(typesCache.value[brandId]) return typesCache.value[brandId];
+    try {
+        const res = await api.get('/types', { params: { brand_id: brandId, per_page: 100 } });
+        typesCache.value[brandId] = res.data.data.data || [];
+        return typesCache.value[brandId];
+    } catch(e) {
+        console.error(e);
+        return [];
+    }
+};
+
+const onBrandChange = async (item) => {
+    item.type = "";
+    const b = brands.value.find(x => x.id === item.brand_id);
+    item.brand = b ? b.name : "";
+    if(item.brand_id) {
+        await loadTypesForBrand(item.brand_id);
+    }
+};
+
+const compressImage = (file) => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                const MAX_HEIGHT = 800;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/webp', 0.8));
+            };
+        };
+    });
+};
+
+const handlePhotoUpload = async (event, item) => {
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
+    
+    if (!item.photos) item.photos = [];
+    const remainingSlots = item.excess_qty - item.photos.length;
+    const filesToProcess = files.slice(0, remainingSlots);
+    
+    if (files.length > remainingSlots) {
+        toast.error(`Hanya bisa menambah ${remainingSlots} foto lagi untuk jumlah unit ${item.excess_qty}.`);
+    }
+
+    for (const file of filesToProcess) {
+        if (file.size > 20 * 1024 * 1024) {
+            toast.error("File terlalu besar, maksimal 20MB.");
+            continue;
+        }
+        const compressedBase64 = await compressImage(file);
+        item.photos.push(compressedBase64);
+    }
+    event.target.value = '';
+};
+
+const removePhoto = (item, idx) => {
+    item.photos.splice(idx, 1);
 };
 
 const fetchData = async () => {
@@ -60,6 +158,8 @@ const fetchData = async () => {
         
         transferData.value = transfer;
         
+        await fetchBrands();
+
         // Fetch questions
         const qRes = await questionsApi.list();
         const allQuestions = Array.isArray(qRes.data) ? qRes.data : [];
@@ -101,7 +201,12 @@ const submitSecurityCheck = async () => {
             question_id: q.id,
             answer: answers.value[q.id] === 'yes' ? true : false
         })),
-        excess_items: excessItems.value.filter(item => item.excess_qty > 0)
+        excess_items: excessItems.value.filter(item => item.excess_qty > 0).map(item => {
+            if (item.photos && item.photos.length !== item.excess_qty) {
+                throw new Error(`Jumlah foto barang lebih (${item.brand} ${item.type}) harus persis sama dengan jumlah unit (${item.excess_qty}).`);
+            }
+            return item;
+        })
     };
 
     isSubmitting.value = true;
@@ -302,32 +407,58 @@ onMounted(() => {
                             </button>
                         </div>
 
-                        <div v-for="(item, idx) in excessItems" :key="idx" class="bg-surface-900 border border-surface-700 rounded-xl p-4 relative relative group">
+                        <div v-for="(item, idx) in excessItems" :key="idx" class="bg-surface-900 border border-surface-700 rounded-xl p-4 relative group">
                             <button @click="removeExcessItem(idx)" class="absolute -top-3 -right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 z-10">
                                 <Trash2 :size="14" />
                             </button>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-medium text-text-secondary mb-1">Brand</label>
-                                    <input v-model="item.brand" type="text" placeholder="Contoh: Samsung" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                    <select v-model="item.brand_id" @change="onBrandChange(item)" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500">
+                                        <option value="">Pilih Brand</option>
+                                        <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-text-secondary mb-1">Tipe Barang</label>
-                                    <input v-model="item.type" type="text" placeholder="Contoh: Galaxy S24" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                    <select v-model="item.type" :disabled="!item.brand_id" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500 disabled:opacity-50">
+                                        <option value="">Pilih Tipe</option>
+                                        <option v-for="t in (typesCache[item.brand_id] || [])" :key="t.id" :value="t.name">{{ t.name }}</option>
+                                    </select>
                                 </div>
                                 <div class="grid grid-cols-2 gap-4 sm:col-span-2">
                                     <div>
-                                        <label class="block text-xs font-medium text-text-secondary mb-1">Storage (GB)</label>
-                                        <input v-model="item.storage" type="text" placeholder="Contoh: 8/256" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                        <label class="block text-xs font-medium text-text-secondary mb-1">Storage</label>
+                                        <select v-model="item.storage" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500">
+                                            <option value="">Pilih Storage</option>
+                                            <option v-for="s in storageOptions" :key="s" :value="s">{{ s }}</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-text-secondary mb-1">Total Unit Lebih</label>
-                                        <input v-model.number="item.excess_qty" type="number" min="1" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                        <input v-model.number="item.excess_qty" @change="if(item.photos.length > item.excess_qty) item.photos = item.photos.slice(0, item.excess_qty)" type="number" min="1" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
                                     </div>
                                 </div>
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-medium text-text-secondary mb-1">Keterangan / IMEI</label>
                                     <input v-model="item.notes" type="text" placeholder="Isi IMEI jika ada, atau info tambahan" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-medium text-text-secondary mb-1">Foto Barang ({{ item.photos?.length || 0 }} / {{ item.excess_qty }})</label>
+                                    <div class="flex flex-wrap gap-2">
+                                        <div v-for="(photo, pIdx) in item.photos" :key="pIdx" class="relative w-16 h-16 rounded-lg overflow-hidden border border-surface-600 group/photo">
+                                            <img :src="photo" class="w-full h-full object-cover" />
+                                            <button @click="removePhoto(item, pIdx)" class="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 text-white rounded-full flex items-center justify-center backdrop-blur-sm opacity-0 group-hover/photo:opacity-100 transition-opacity">
+                                                <XIcon :size="12" />
+                                            </button>
+                                        </div>
+                                        <label v-if="(item.photos?.length || 0) < item.excess_qty" class="w-16 h-16 rounded-lg border-2 border-dashed border-surface-600 flex flex-col items-center justify-center text-surface-400 hover:text-primary-500 hover:border-primary-500 cursor-pointer transition-colors bg-surface-800">
+                                            <Camera :size="20" />
+                                            <span class="text-[9px] mt-1 font-medium">Upload</span>
+                                            <input type="file" multiple accept="image/*" class="hidden" @change="(e) => handlePhotoUpload(e, item)" />
+                                        </label>
+                                    </div>
+                                    <p class="text-[10px] text-text-secondary mt-1 italic">*Jumlah foto harus sama dengan total unit lebih</p>
                                 </div>
                             </div>
                         </div>
