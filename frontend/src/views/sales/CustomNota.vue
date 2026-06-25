@@ -502,31 +502,39 @@ const printNota = () => {
             body {
                 font-family: 'Inter', sans-serif;
                 background: white;
-                padding: 10mm;
             }
             
             .nota-paper {
-                width: 100%;
-                max-width: 210mm;
                 margin: 0 auto;
                 background: white;
                 position: relative;
-                overflow: hidden;
             }
             
             @media print {
                 @page {
-                    size: A4 portrait;
-                    margin: 10mm;
+                    size: A5 portrait;
+                    margin: 0;
                 }
                 
-                body {
-                    padding: 0;
+                html, body {
+                    width: 148mm;
+                    min-height: 210mm;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: white;
                 }
                 
                 .nota-paper {
                     box-shadow: none !important;
                     border: none !important;
+                    width: 148mm !important;
+                    max-width: 148mm !important;
+                    min-height: 210mm !important;
+                    padding: 8mm !important;
+                    margin: 0 !important;
+                    page-break-after: avoid;
+                    page-break-before: avoid;
+                    page-break-inside: avoid;
                 }
                 
                 * {
