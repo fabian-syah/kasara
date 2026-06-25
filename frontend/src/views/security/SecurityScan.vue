@@ -139,6 +139,12 @@ const removePhoto = (item, idx) => {
     item.photos.splice(idx, 1);
 };
 
+const handleQtyChange = (item) => {
+    if (item.photos && item.photos.length > item.excess_qty) {
+        item.photos = item.photos.slice(0, item.excess_qty);
+    }
+};
+
 const fetchData = async () => {
     isLoading.value = true;
     try {
@@ -436,7 +442,7 @@ onMounted(() => {
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-text-secondary mb-1">Total Unit Lebih</label>
-                                        <input v-model.number="item.excess_qty" @change="if(item.photos.length > item.excess_qty) item.photos = item.photos.slice(0, item.excess_qty)" type="number" min="1" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
+                                        <input v-model.number="item.excess_qty" @change="handleQtyChange(item)" type="number" min="1" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
                                     </div>
                                 </div>
                                 <div class="sm:col-span-2">
