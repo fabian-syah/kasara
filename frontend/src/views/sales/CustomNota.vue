@@ -524,46 +524,105 @@ const printNota = () => {
     const el = document.getElementById('receipt-content');
     if (!el) return;
 
-    const wrapperId = 'custom-nota-print-clone';
-    let wrapper = document.getElementById(wrapperId);
-    if (wrapper) {
-        document.body.removeChild(wrapper);
+    // Collect all stylesheets from the current page
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(s => s.outerHTML)
+        .join('\n');
+
+    const printWindow = window.open('', '_blank', 'width=800,height=1100');
+    if (!printWindow) {
+        alert('Popup diblokir! Izinkan popup untuk mencetak nota.');
+        return;
     }
 
-    wrapper = document.createElement('div');
-    wrapper.id = wrapperId;
-    // Clone the receipt content
-    wrapper.appendChild(el.cloneNode(true));
-    document.body.appendChild(wrapper);
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cetak Nota</title>
+    ${styles}
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; height: auto;
+            background: white; overflow: visible;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        @page { margin: 0; }
+        #receipt-content {
+            display: block !important;
+            width: 100% !important;
+            height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .nota-paper {
+            font-family: 'Inter', sans-serif;
+            width: 100% !important;
+            max-width: 210mm !important;
+            margin: 0 auto !important;
+            padding: 4mm 8mm !important;
+            background: white !important;
+            color: black !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+        }
+        .nota-paper, .nota-paper * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            filter: none !important;
+            -webkit-filter: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        .nota-paper .signature-area,
+        .nota-paper .notes-box {
+            background-color: #ffffff !important;
+            background: white !important;
+            border-color: #e5e7eb !important;
+        }
+        @media print {
+            .no-print, .print\\:hidden { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    ${el.outerHTML}
+</body>
+</html>`);
 
-    let style = document.getElementById('custom-nota-print-style');
-    if (!style) {
-        style = document.createElement('style');
-        style.id = 'custom-nota-print-style';
-        style.innerHTML = `
-            @media screen {
-                #${wrapperId} { display: none !important; }
-            }
-            @media print {
-                body > :not(#${wrapperId}) { display: none !important; }
-                #${wrapperId} {
-                    display: block !important;
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    width: 100% !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                }
-            }
-        `;
-        document.head.appendChild(style);
-    }
+    printWindow.document.close();
 
-    // Small delay to ensure the DOM has rendered the clone
+    // Wait for stylesheets and fonts to load, then print
+    printWindow.onload = () => {
+        setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }, 300);
+    };
+
+    // Fallback if onload doesn't fire
     setTimeout(() => {
-        window.print();
-    }, 50);
+        if (!printWindow.closed) {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+    }, 2000);
 };
 </script>
 
