@@ -529,6 +529,7 @@ const printNota = () => {
                 height: auto !important;
                 width: 100% !important;
                 overflow: visible !important;
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
             }
             
             #receipt-modal-print-wrapper,
@@ -560,6 +561,21 @@ const printNota = () => {
                 font-size: 6.5px !important;
                 box-shadow: none !important;
                 border: none !important;
+                background-color: #ffffff !important;
+                color: #0f172a !important;
+                font-weight: 600 !important;
+                text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+            }
+            .nota-paper * {
+                font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+                filter: none !important;
+                -webkit-filter: none !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
             }
             .nota-paper .text-3xl { font-size: 1rem !important; }
             .nota-paper .text-2xl { font-size: 0.9rem !important; }
@@ -650,12 +666,26 @@ const printNota = () => {
             
             /* Background & Color Ensure */
             .bg-red-600 { background-color: #dc2626 !important; }
-            .text-red-600 { color: #dc2626 !important; }
+            .text-red-600 { color: #e11d48 !important; }
             .bg-neutral-950, .bg-black { background-color: #0a0a0a !important; }
             .text-neutral-950, .text-neutral-900, .text-black { color: #0a0a0a !important; }
             .text-white { color: #ffffff !important; }
             .bg-white { background-color: #ffffff !important; }
+            .border-neutral-200 { border-color: #e5e7eb !important; }
             th { background-color: #0a0a0a !important; color: #ffffff !important; }
+            
+            .nota-paper tr,
+            .nota-paper .payment-section,
+            .nota-paper .signature-area {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            
+            /* Force solid white backgrounds for boxes */
+            .nota-paper .signature-area,
+            .nota-paper .notes-box {
+                background-color: #ffffff !important;
+            }
             
             .nota-paper, .nota-paper * {
                 -webkit-print-color-adjust: exact !important;
