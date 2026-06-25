@@ -161,7 +161,8 @@
                             <div class="flex-1">
                                 <div class="flex items-baseline gap-1.5 flex-wrap">
                                     <span
-                                        class="text-2xl font-black !text-red-600 uppercase tracking-tight leading-none" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">PSTORE</span>
+                                        class="text-2xl font-black !text-red-600 uppercase tracking-tight leading-none"
+                                        style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">PSTORE</span>
                                     <span
                                         class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                         {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
@@ -176,7 +177,9 @@
                                 <div
                                     class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
                                     <span v-if="form.wa" class="flex items-center gap-1">
-                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600"
+                                            viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
                                         </svg>
@@ -185,7 +188,9 @@
                                     <span v-if="form.wa && (form.tiktok || form.ig)" class="text-neutral-300">|</span>
 
                                     <span v-if="form.tiktok" class="flex items-center gap-1">
-                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600"
+                                            viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
                                         </svg>
@@ -194,7 +199,9 @@
                                     <span v-if="form.tiktok && form.ig" class="text-neutral-300">|</span>
 
                                     <span v-if="form.ig" class="flex items-center gap-1">
-                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current !text-red-600"
+                                            viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                                         </svg>
@@ -214,10 +221,12 @@
                             <h2 class="text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
                                 NOTA PENJUALAN STORE
                             </h2>
-                            <div
-                                class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider !text-red-600 mt-0.5" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                            <div class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider !text-red-600 mt-0.5"
+                                style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                <span class="!text-red-600 font-bold" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">BUKTI TRANSAKSI</span>
+                                <span class="!text-red-600 font-bold"
+                                    style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">BUKTI
+                                    TRANSAKSI</span>
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                             </div>
                         </div>
@@ -229,9 +238,10 @@
                             <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                 <!-- No Nota -->
                                 <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
+                                        style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                                         </svg>
@@ -248,9 +258,10 @@
 
                                 <!-- Tanggal & Waktu -->
                                 <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
+                                        style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
                                         </svg>
@@ -270,9 +281,10 @@
                             <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
                                 <!-- Atas Nama -->
                                 <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
+                                        style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                                         </svg>
@@ -289,9 +301,10 @@
 
                                 <!-- No HP -->
                                 <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
+                                        style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
                                         </svg>
@@ -310,9 +323,10 @@
                             <!-- Column 3: Customer Service -->
                             <div class="flex flex-col gap-4 pl-4">
                                 <div class="flex items-center gap-2.5">
-                                    <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24" style="color: #dc2626 !important; fill: #dc2626 !important;">
+                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600"
+                                        style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <svg class="w-3.5 h-3.5 fill-current !text-red-600" viewBox="0 0 24 24"
+                                            style="color: #dc2626 !important; fill: #dc2626 !important;">
                                             <path
                                                 d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
                                         </svg>
@@ -383,8 +397,8 @@
                             <div class="flex-1">
                                 <!-- Catatan Ribbon Box -->
                                 <div class="mb-5 relative">
-                                    <div
-                                        class="relative inline-block bg-red-600 !text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                    <div class="relative inline-block bg-red-600 !text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10"
+                                        style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         Catatan
                                     </div>
                                     <div
@@ -396,8 +410,8 @@
                                 <!-- Syarat & Ketentuan (Warranty) -->
                                 <div class="mb-4">
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span
-                                            class="text-[10px] font-black !text-red-600 tracking-wider uppercase" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Syarat
+                                        <span class="text-[10px] font-black !text-red-600 tracking-wider uppercase"
+                                            style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Syarat
                                             & Ketentuan</span>
                                         <div class="h-0.5 w-10 bg-red-200 rounded-full"></div>
                                     </div>
@@ -424,17 +438,18 @@
                                     </div>
                                     <div class="flex justify-between border-t border-neutral-200/50 pt-1">
                                         <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
-                                        }}</span>
+                                            }}</span>
                                         <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
-                                        }}</span>
+                                            }}</span>
                                     </div>
 
                                     <!-- Slanted or Red Divider Line -->
                                     <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
-                                        <span
-                                            class="font-black !text-red-600 text-[10px] uppercase tracking-wider" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Selisih
+                                        <span class="font-black !text-red-600 text-[10px] uppercase tracking-wider"
+                                            style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Selisih
                                             Harga</span>
-                                        <span class="!text-red-600 font-black text-sm" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <span class="!text-red-600 font-black text-sm"
+                                            style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             {{ formatNumber(form.price * form.qty) }}
                                         </span>
                                     </div>
@@ -446,18 +461,19 @@
                                     <!-- Black Trapezoid Part -->
                                     <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
                                         style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
-                                        <div
-                                            class="text-[8px] font-black uppercase tracking-wider leading-none !text-white" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <div class="text-[8px] font-black uppercase tracking-wider leading-none !text-white"
+                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             Yang Harus</div>
-                                        <div
-                                            class="text-[8px] font-black uppercase tracking-wider leading-tight !text-white" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <div class="text-[8px] font-black uppercase tracking-wider leading-tight !text-white"
+                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             Dibayarkan</div>
                                     </div>
                                     <!-- Red Total Part -->
                                     <div class="flex-1 flex items-center justify-end pr-4 !text-white"
                                         style="z-index: 1; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
-                                        <span class="text-lg sm:text-xl font-black !text-white tracking-tight" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">{{
-                                            formatNumber(form.price * form.qty) }}</span>
+                                        <span class="text-lg sm:text-xl font-black !text-white tracking-tight"
+                                            style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">{{
+                                                formatNumber(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
 
@@ -471,7 +487,9 @@
                         <div
                             class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                             <div class="text-center border-r border-neutral-200">
-                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Customer
+                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12"
+                                    style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                    Customer
                                     / Pembeli</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
@@ -479,7 +497,9 @@
                                 </div>
                             </div>
                             <div class="text-center">
-                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Hormat
+                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12"
+                                    style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                    Hormat
                                     Kami</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
@@ -526,19 +546,23 @@ const printNota = async () => {
     isPrinting.value = true;
     await nextTick();
 
-    // Temporarily clear page title to remove browser header/footer text
+    // Simpan judul asli document
     const originalTitle = document.title;
     document.title = ' ';
 
-    // Clone the receipt content to the body for clean printing
-    const receiptContent = document.getElementById('receipt-content');
-    if (!receiptContent) return;
+    // Ambil element .nota-paper langsung agar bersih dari layout wrapper luar preview
+    const receiptContent = document.querySelector('.nota-paper');
+    if (!receiptContent) {
+        alert('Element nota tidak ditemukan!');
+        isPrinting.value = false;
+        return;
+    }
 
-    // Create a wrapper div directly in the body
+    // Buat wrapper div khusus di root body
     const printWrapper = document.createElement('div');
     printWrapper.id = 'custom-nota-print-wrapper';
-    
-    // Set styles on the wrapper for print isolation
+
+    // Set style print isolation agar menutupi screen utama dengan solid white
     printWrapper.style.position = 'absolute';
     printWrapper.style.top = '0';
     printWrapper.style.left = '0';
@@ -546,15 +570,16 @@ const printNota = async () => {
     printWrapper.style.backgroundColor = 'white';
     printWrapper.style.zIndex = '9999999';
 
-    // Clone the node deeply
+    // Clone element nota secara deep
     const clone = receiptContent.cloneNode(true);
-    // Remove the rounded corners and margins that the preview div might have
-    clone.className = 'w-full flex justify-center bg-white print:bg-white';
-    
+
+    // Reset utility class preview agar flow printnya full width mengikuti standard A4
+    clone.className = 'nota-paper w-full bg-white print:bg-white mx-auto relative overflow-hidden select-none';
+
     printWrapper.appendChild(clone);
     document.body.appendChild(printWrapper);
 
-    // Inject dynamic print page size style
+    // Inject dynamic page margin & size properties
     const styleId = 'custom-nota-print-page-size';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -568,12 +593,13 @@ const printNota = async () => {
         }
     `;
 
+    // Berikan delay sedikit agar DOM state stabil sebelum browser memicu dialog print
     setTimeout(() => {
         window.print();
-        
-        // Cleanup after print dialog closes
-        setTimeout(() => { 
-            document.title = originalTitle; 
+
+        // Cleanup wrapper dan restore status app setelah dialog print ditutup
+        setTimeout(() => {
+            document.title = originalTitle;
             if (printWrapper && printWrapper.parentNode) {
                 printWrapper.parentNode.removeChild(printWrapper);
             }
@@ -680,19 +706,57 @@ const printNota = async () => {
     }
 
     /* Typography scaling for print */
-    .nota-paper .text-\[6px\] { font-size: 9px !important; }
-    .nota-paper .text-\[7px\] { font-size: 10px !important; }
-    .nota-paper .text-\[8px\] { font-size: 11px !important; }
-    .nota-paper .text-\[9px\] { font-size: 11.5px !important; }
-    .nota-paper .text-\[10px\] { font-size: 12px !important; }
-    .nota-paper .text-\[11px\] { font-size: 13px !important; }
-    .nota-paper .text-xs { font-size: 0.95rem !important; }
-    .nota-paper .text-sm { font-size: 1.05rem !important; }
-    .nota-paper .text-base { font-size: 1.2rem !important; }
-    .nota-paper .text-lg { font-size: 1.3rem !important; }
-    .nota-paper .text-xl { font-size: 1.5rem !important; }
-    .nota-paper .text-2xl { font-size: 1.8rem !important; }
-    .nota-paper .text-3xl { font-size: 2.1rem !important; }
+    .nota-paper .text-\[6px\] {
+        font-size: 9px !important;
+    }
+
+    .nota-paper .text-\[7px\] {
+        font-size: 10px !important;
+    }
+
+    .nota-paper .text-\[8px\] {
+        font-size: 11px !important;
+    }
+
+    .nota-paper .text-\[9px\] {
+        font-size: 11.5px !important;
+    }
+
+    .nota-paper .text-\[10px\] {
+        font-size: 12px !important;
+    }
+
+    .nota-paper .text-\[11px\] {
+        font-size: 13px !important;
+    }
+
+    .nota-paper .text-xs {
+        font-size: 0.95rem !important;
+    }
+
+    .nota-paper .text-sm {
+        font-size: 1.05rem !important;
+    }
+
+    .nota-paper .text-base {
+        font-size: 1.2rem !important;
+    }
+
+    .nota-paper .text-lg {
+        font-size: 1.3rem !important;
+    }
+
+    .nota-paper .text-xl {
+        font-size: 1.5rem !important;
+    }
+
+    .nota-paper .text-2xl {
+        font-size: 1.8rem !important;
+    }
+
+    .nota-paper .text-3xl {
+        font-size: 2.1rem !important;
+    }
 
     .nota-paper svg {
         transform: scale(1.05);
@@ -706,18 +770,56 @@ const printNota = async () => {
     }
 
     /* Visual spacing */
-    .nota-paper .mb-6 { margin-bottom: 1.1rem !important; }
-    .nota-paper .mb-5 { margin-bottom: 1rem !important; }
-    .nota-paper .mb-4 { margin-bottom: 0.85rem !important; }
-    .nota-paper .mt-6 { margin-top: 1.1rem !important; }
-    .nota-paper .mt-8 { margin-top: 4.5rem !important; }
-    .nota-paper .gap-6 { gap: 1.2rem !important; }
-    .nota-paper .gap-4 { gap: 0.85rem !important; }
-    .nota-paper .py-4 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
-    .nota-paper .py-3 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
-    .nota-paper .p-4 { padding: 0.9rem !important; }
-    .nota-paper .p-6 { padding: 1.1rem !important; }
-    .nota-paper .px-6 { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
+    .nota-paper .mb-6 {
+        margin-bottom: 1.1rem !important;
+    }
+
+    .nota-paper .mb-5 {
+        margin-bottom: 1rem !important;
+    }
+
+    .nota-paper .mb-4 {
+        margin-bottom: 0.85rem !important;
+    }
+
+    .nota-paper .mt-6 {
+        margin-top: 1.1rem !important;
+    }
+
+    .nota-paper .mt-8 {
+        margin-top: 4.5rem !important;
+    }
+
+    .nota-paper .gap-6 {
+        gap: 1.2rem !important;
+    }
+
+    .nota-paper .gap-4 {
+        gap: 0.85rem !important;
+    }
+
+    .nota-paper .py-4 {
+        padding-top: 0.65rem !important;
+        padding-bottom: 0.65rem !important;
+    }
+
+    .nota-paper .py-3 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .nota-paper .p-4 {
+        padding: 0.9rem !important;
+    }
+
+    .nota-paper .p-6 {
+        padding: 1.1rem !important;
+    }
+
+    .nota-paper .px-6 {
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
+    }
 
     .nota-paper img {
         height: auto !important;
