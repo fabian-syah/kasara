@@ -215,9 +215,9 @@
                                 NOTA PENJUALAN STORE
                             </h2>
                             <div
-                                class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                                class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider !text-red-600 mt-0.5" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                <span>BUKTI TRANSAKSI</span>
+                                <span class="!text-red-600 font-bold" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">BUKTI TRANSAKSI</span>
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                             </div>
                         </div>
@@ -384,7 +384,7 @@
                                 <!-- Catatan Ribbon Box -->
                                 <div class="mb-5 relative">
                                     <div
-                                        class="relative inline-block bg-red-600 text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10">
+                                        class="relative inline-block bg-red-600 !text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         Catatan
                                     </div>
                                     <div
@@ -397,7 +397,7 @@
                                 <div class="mb-4">
                                     <div class="flex items-center gap-2 mb-2">
                                         <span
-                                            class="text-[10px] font-black text-red-600 tracking-wider uppercase">Syarat
+                                            class="text-[10px] font-black !text-red-600 tracking-wider uppercase" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Syarat
                                             & Ketentuan</span>
                                         <div class="h-0.5 w-10 bg-red-200 rounded-full"></div>
                                     </div>
@@ -432,7 +432,7 @@
                                     <!-- Slanted or Red Divider Line -->
                                     <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
                                         <span
-                                            class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih
+                                            class="font-black !text-red-600 text-[10px] uppercase tracking-wider" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Selisih
                                             Harga</span>
                                         <span class="!text-red-600 font-black text-sm" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             {{ formatNumber(form.price * form.qty) }}
@@ -447,16 +447,16 @@
                                     <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
                                         style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
                                         <div
-                                            class="text-[8px] font-black uppercase tracking-wider leading-none text-white">
+                                            class="text-[8px] font-black uppercase tracking-wider leading-none !text-white" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             Yang Harus</div>
                                         <div
-                                            class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
+                                            class="text-[8px] font-black uppercase tracking-wider leading-tight !text-white" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             Dibayarkan</div>
                                     </div>
                                     <!-- Red Total Part -->
-                                    <div class="flex-1 flex items-center justify-end pr-4 text-white"
-                                        style="z-index: 1;">
-                                        <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{
+                                    <div class="flex-1 flex items-center justify-end pr-4 !text-white"
+                                        style="z-index: 1; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                                        <span class="text-lg sm:text-xl font-black !text-white tracking-tight" style="color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">{{
                                             formatNumber(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
@@ -471,7 +471,7 @@
                         <div
                             class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                             <div class="text-center border-r border-neutral-200">
-                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Customer
+                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Customer
                                     / Pembeli</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
@@ -479,7 +479,7 @@
                                 </div>
                             </div>
                             <div class="text-center">
-                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Hormat
+                                <div class="text-[9px] font-black !text-red-600 uppercase tracking-widest mb-12" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">Hormat
                                     Kami</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
@@ -663,7 +663,6 @@ const printNota = () => {
         border: none !important;
         box-shadow: none !important;
         padding: 4mm 8mm !important;
-        /* Compressed internal print padding */
         margin: 0 auto !important;
         color: black !important;
         background: white !important;
@@ -675,7 +674,6 @@ const printNota = () => {
         width: 100% !important;
         max-width: 210mm !important;
         height: auto !important;
-        /* Fluid auto height to 100% guarantee 1-page fitting regardless of native browser margins */
         min-height: auto !important;
         max-height: none !important;
         overflow: visible !important;
