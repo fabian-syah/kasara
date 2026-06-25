@@ -543,69 +543,96 @@ const formatNumber = (num) => {
 };
 
 const printNota = async () => {
-    isPrinting.value = true;
     await nextTick();
 
-    // Temporarily clear page title to remove browser header/footer text
-    const originalTitle = document.title;
-    document.title = ' ';
+    const receipt = document.querySelector(".nota-paper");
 
-    // FIX: Ambil element fisik kertas .nota-paper langsung, bukan container preview-nya
-    const receiptContent = document.querySelector('.nota-paper');
-    if (!receiptContent) {
-        alert('Elemen nota tidak ditemukan!');
-        isPrinting.value = false;
+    if (!receipt) {
+        alert("Nota tidak ditemukan!");
         return;
     }
 
-    // Create a wrapper div directly in the body
-    const printWrapper = document.createElement('div');
-    printWrapper.id = 'custom-nota-print-wrapper';
-
-    // Set styles on the wrapper for print isolation
-    printWrapper.style.position = 'absolute';
-    printWrapper.style.top = '0';
-    printWrapper.style.left = '0';
-    printWrapper.style.width = '100%';
-    printWrapper.style.backgroundColor = 'white';
-    printWrapper.style.zIndex = '9999999';
-
-    // Clone the node deeply
-    const clone = receiptContent.cloneNode(true);
-
-    // FIX: Reset utility layout class preview screen normal agar flow print stabil mengikuti standard A4
-    clone.className = 'nota-paper w-full bg-white print:bg-white mx-auto relative overflow-hidden select-none';
-
-    printWrapper.appendChild(clone);
-    document.body.appendChild(printWrapper);
-
-    // Inject dynamic print page size style
-    const styleId = 'custom-nota-print-page-size';
-    let styleEl = document.getElementById(styleId);
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
+    // tunggu font selesai
+    if (document.fonts) {
+        await document.fonts.ready;
     }
-    styleEl.textContent = `
-        @media print {
-            @page { size: A4 portrait; margin: 0 !important; }
-        }
-    `;
 
-    // Berikan delay sedikit agar rendering layout DOM hasil kloning stabil sebelum memicu print dialog
-    setTimeout(() => {
-        window.print();
+    // tunggu semua gambar selesai load
+    const imgs = [...receipt.querySelectorAll("img")];
 
-        // Cleanup after print dialog closes
+    await Promise.all(
+        imgs.map(img => {
+            if (img.complete) return Promise.resolve();
+
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        })
+    );
+
+    const printWindow = window.open("", "_blank");
+
+    printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Nota</title>
+
+<style>
+${[...document.styleSheets]
+            .map(sheet => {
+                try {
+                    return [...sheet.cssRules].map(r => r.cssText).join("\n");
+                } catch {
+                    return "";
+                }
+            })
+            .join("\n")}
+
+html,
+body{
+    margin:0;
+    padding:0;
+    background:white;
+}
+
+@page{
+    size:A4 portrait;
+    margin:0;
+}
+
+body{
+    display:flex;
+    justify-content:center;
+}
+
+.nota-paper{
+    width:210mm !important;
+    min-height:297mm;
+    margin:0;
+    box-shadow:none !important;
+}
+</style>
+
+</head>
+
+<body>
+${receipt.outerHTML}
+</body>
+</html>
+`);
+
+    printWindow.document.close();
+
+    printWindow.onload = () => {
         setTimeout(() => {
-            document.title = originalTitle;
-            if (printWrapper && printWrapper.parentNode) {
-                printWrapper.parentNode.removeChild(printWrapper);
-            }
-            isPrinting.value = false;
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
         }, 500);
-    }, 300); // Naikkan tick threshold ke 300ms untuk browser rendering buffer
+    };
 };
 </script>
 
@@ -623,10 +650,10 @@ const printNota = async () => {
         margin: 0;
     }
 
-    /* Hide ALL other body children except our print wrapper - same as ReceiptModal */
+    /* Hide ALL other body children except our print wrapper - same as ReceiptModal
     body> :not(#custom-nota-print-wrapper) {
         display: none !important;
-    }
+    } */
 
     html,
     body {
