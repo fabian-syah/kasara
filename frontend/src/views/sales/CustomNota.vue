@@ -1,13 +1,13 @@
 <template>
-    <div class="p-6">
-        <div class="mb-6">
+    <div class="p-6 print:p-0">
+        <div class="mb-6 print:hidden">
             <h1 class="text-2xl font-bold text-text-primary">Buat Custom Nota</h1>
             <p class="text-text-secondary">Isi form berikut untuk menghasilkan nota custom secara instan.</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start print:block print:gap-0">
             <!-- Form Input -->
-            <div class="bg-surface-900 border border-surface-700 p-6 rounded-2xl shadow-sm">
+            <div class="bg-surface-900 border border-surface-700 p-6 rounded-2xl shadow-sm print:hidden">
                 <h2 class="text-lg font-semibold mb-4 text-text-primary">Data Nota</h2>
                 <div class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
@@ -124,18 +124,18 @@
 
             <!-- Preview Nota -->
             <div id="receipt-content"
-                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 overflow-hidden rounded-2xl">
+                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 overflow-hidden rounded-2xl print:p-0 print:bg-white print:overflow-visible print:block">
                 <div ref="notaPaper"
-                    class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-4 text-neutral-900 font-sans text-sm shadow-xl relative overflow-hidden select-none">
+                    class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-6 text-neutral-900 font-sans text-sm shadow-xl relative overflow-hidden select-none">
 
                     <!-- Corner Accents -->
-                    <div class="absolute top-0 left-0 w-16 h-16 pointer-events-none overflow-hidden z-20">
+                    <div class="absolute top-0 left-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
                         <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <polygon points="0,0 100,0 0,100" fill="#0a0a0a" />
                             <polygon points="0,0 55,0 0,55" fill="#dc2626" />
                         </svg>
                     </div>
-                    <div class="absolute top-0 right-0 w-16 h-16 pointer-events-none overflow-hidden z-20">
+                    <div class="absolute top-0 right-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
                         <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <polygon points="100,0 0,0 100,100" fill="#0a0a0a" />
                             <polygon points="100,0 45,0 100,55" fill="#dc2626" />
@@ -144,157 +144,303 @@
 
                     <!-- Watermark -->
                     <div
-                        class="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none z-0">
-                        <img src="/images/ps.png" alt="" class="w-[300px] h-[300px] object-contain" />
+                        class="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none z-0">
+                        <img src="/images/ps.png" alt=""
+                            class="w-[400px] h-[400px] object-contain transform scale-125" />
                     </div>
 
-                    <div class="relative z-10 space-y-3">
-                        <!-- Header - Compact -->
-                        <div class="flex items-center gap-3 px-4">
+                    <div class="relative z-10">
+                        <!-- Header -->
+                        <div class="flex items-center gap-5 mb-4 mt-6 px-6">
                             <div class="shrink-0">
-                                <img src="/images/ps.png" alt="PSTORE" class="w-12 h-12 object-contain" />
+                                <img src="/images/ps.png" alt="PSTORE" class="w-16 h-16 object-contain" />
                             </div>
                             <div class="flex-1">
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-xl font-black text-red-600 uppercase">PSTORE</span>
-                                    <span class="text-xl font-black text-neutral-900 uppercase">
+                                <div class="flex items-baseline gap-1.5 flex-wrap">
+                                    <span
+                                        class="text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
+                                    <span
+                                        class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                         {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
-                                        '').replace('PSTORE', '') }}
+                                            '').replace('PSTORE', '') }}
                                     </span>
                                 </div>
-                                <div class="text-[8px] font-bold text-neutral-700">Pusat Perbelanjaan Online</div>
-                                <div class="flex gap-2 text-[7px] font-bold text-neutral-800 flex-wrap mt-1">
-                                    <span v-if="form.wa">WA: {{ form.wa }}</span>
-                                    <span v-if="form.tiktok">| TT: {{ form.tiktok }}</span>
-                                    <span v-if="form.ig">| IG: {{ form.ig }}</span>
+                                <div class="text-[10px] font-bold text-neutral-700 mt-1.5 leading-tight">Pusat
+                                    Perbelanjaan Online</div>
+
+                                <div
+                                    class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
+                                    <span v-if="form.wa" class="flex items-center gap-1">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
+                                        </svg>
+                                        WA: {{ form.wa }}
+                                    </span>
+                                    <span v-if="form.tiktok" class="flex items-center gap-1">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
+                                        </svg>
+                                        TikTok: {{ form.tiktok }}
+                                    </span>
+                                    <span v-if="form.ig" class="flex items-center gap-1">
+                                        <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z" />
+                                        </svg>
+                                        IG: {{ form.ig }}
+                                    </span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="relative w-full h-px bg-neutral-200 mb-4 mt-2 flex justify-center">
+                            <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
                         </div>
 
                         <!-- Title -->
-                        <div class="text-center py-2 border-y border-neutral-200">
-                            <h2 class="text-2xl font-black text-neutral-950 uppercase">NOTA PENJUALAN</h2>
-                            <div class="text-[8px] font-black text-red-600 uppercase tracking-wider mt-0.5">BUKTI
-                                TRANSAKSI</div>
-                        </div>
-
-                        <!-- Info Grid - 2 Rows, 3 Cols -->
-                        <div class="grid grid-cols-3 gap-2 text-[8px]">
-                            <div class="space-y-1.5">
-                                <div>
-                                    <div class="font-black text-neutral-500 uppercase text-[6px]">No. Nota</div>
-                                    <div class="font-bold text-neutral-900">{{ form.noNota || '-' }}</div>
-                                </div>
-                                <div>
-                                    <div class="font-black text-neutral-500 uppercase text-[6px]">Tanggal</div>
-                                    <div class="font-bold text-neutral-900">{{ form.date || '-' }}</div>
-                                </div>
-                            </div>
-                            <div class="space-y-1.5 border-x border-neutral-200 px-2">
-                                <div>
-                                    <div class="font-black text-neutral-500 uppercase text-[6px]">Atas Nama</div>
-                                    <div class="font-bold text-neutral-900">{{ form.customerName || 'Umum' }}</div>
-                                </div>
-                                <div>
-                                    <div class="font-black text-neutral-500 uppercase text-[6px]">No. HP</div>
-                                    <div class="font-bold text-neutral-900">{{ form.customerPhone || '-' }}</div>
-                                </div>
-                            </div>
-                            <div class="space-y-1.5">
-                                <div>
-                                    <div class="font-black text-neutral-500 uppercase text-[6px]">Customer Service</div>
-                                    <div class="font-bold text-neutral-900">{{ form.csName || '-' }}</div>
-                                </div>
+                        <div class="text-center mb-5 mt-2">
+                            <h2 class="text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">NOTA
+                                PENJUALAN STORE</h2>
+                            <div
+                                class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                                <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
+                                <span class="font-bold">BUKTI TRANSAKSI</span>
+                                <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                             </div>
                         </div>
 
-                        <!-- Table - Compact -->
-                        <div class="border border-neutral-300 rounded overflow-hidden">
-                            <table class="w-full text-[8px]">
-                                <thead style="background-color: #0a0a0a !important;">
-                                    <tr>
-                                        <th class="py-1.5 px-2 text-left font-black text-white w-[100px]">IMEI</th>
-                                        <th class="py-1.5 px-2 text-left font-black text-white">Barang</th>
-                                        <th class="py-1.5 px-2 text-right font-black text-white w-[70px]">Harga</th>
-                                        <th class="py-1.5 px-2 text-center font-black text-white w-[30px]">Qty</th>
-                                        <th class="py-1.5 px-2 text-right font-black text-white w-[70px]">Total</th>
+                        <!-- Metadata Grid -->
+                        <div class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 rounded-xl p-4 border border-neutral-200">
+                            <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
+                                <div class="flex items-center gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 text-red-600">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            No. Nota</div>
+                                        <div
+                                            class="text-[10px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.noNota || '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 text-red-600">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Tanggal & Waktu</div>
+                                        <div
+                                            class="text-[10px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.date || '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
+                                <div class="flex items-center gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 text-red-600">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Atas Nama</div>
+                                        <div
+                                            class="text-[10px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.customerName || 'Umum' }}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 text-red-600">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            No. HP</div>
+                                        <div
+                                            class="text-[10px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.customerPhone || '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-4 pl-4">
+                                <div class="flex items-center gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 text-red-600">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Customer Service</div>
+                                        <div
+                                            class="text-[10px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.csName || '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60">
+                            <table class="w-full text-[10px] sm:text-xs border-collapse">
+                                <thead>
+                                    <tr style="background-color: #0a0a0a !important;"
+                                        class="text-[9px] sm:text-[10px] uppercase tracking-wider">
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-left font-black w-[110px]">IMEI</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr class="bg-white">
-                                        <td class="py-1.5 px-2 font-mono text-[7px]">{{ form.imei || '-' }}</td>
-                                        <td class="py-1.5 px-2 font-bold text-[9px] uppercase">{{ form.itemName }}</td>
-                                        <td class="py-1.5 px-2 text-right font-bold">{{ formatNumber(form.price) }}</td>
-                                        <td class="py-1.5 px-2 text-center font-black">{{ form.qty }}</td>
-                                        <td class="py-1.5 px-2 text-right font-black">{{ formatNumber(form.price *
-                                            form.qty) }}</td>
+                                    <tr class="bg-white/90 border-b border-neutral-300">
+                                        <td class="py-3 px-3 align-middle text-left">
+                                            <div class="text-[10px] font-black font-mono text-neutral-900">{{ form.imei
+                                                || '-' }}</div>
+                                        </td>
+                                        <td class="py-3 px-3 align-middle">
+                                            <div class="font-bold text-neutral-800 text-[11px] uppercase">{{
+                                                form.itemName }}</div>
+                                        </td>
+                                        <td
+                                            class="py-3 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
+                                            {{ formatNumber(form.price) }}</td>
+                                        <td
+                                            class="py-3 px-3 text-neutral-950 text-center font-black align-middle text-xs">
+                                            {{ form.qty }}</td>
+                                        <td
+                                            class="py-3 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
+                                            {{ formatNumber(form.price * form.qty) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Bottom Section - 2 Columns -->
-                        <div class="flex gap-3">
-                            <!-- Left: Notes & Warranty -->
-                            <div class="flex-1 space-y-2">
-                                <div>
+                        <!-- Split Column -->
+                        <div class="flex flex-col md:flex-row gap-6 mb-6 mt-2">
+                            <div class="flex-1">
+                                <div class="mb-5 relative">
                                     <div
-                                        class="bg-red-600 text-white text-[7px] font-black uppercase px-2 py-0.5 rounded-tr inline-block">
+                                        class="relative inline-block bg-red-600 text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10">
                                         Catatan</div>
                                     <div
-                                        class="bg-neutral-50 border border-neutral-200 rounded p-1.5 text-[7px] font-bold mt-0.5">
-                                        {{ form.notes || '-' }}
-                                    </div>
+                                        class="notes-box bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
+                                        {{ form.notes || 'Tidak ada catatan tambahan.' }}</div>
                                 </div>
-                                <div>
-                                    <div class="text-[7px] font-black text-red-600 uppercase mb-1">Syarat & Ketentuan
+
+                                <div class="mb-4">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span
+                                            class="text-[10px] font-black text-red-600 tracking-wider uppercase">Syarat
+                                            & Ketentuan</span>
+                                        <div class="h-0.5 w-10 bg-red-200 rounded-full"></div>
                                     </div>
-                                    <ul class="text-[6px] text-neutral-600 space-y-0.5 list-disc pl-3">
-                                        <li>Garansi 1 bulan dari tanggal nota</li>
-                                        <li>Segel wajib utuh</li>
-                                        <li>Human error tidak bergaransi</li>
+                                    <ul
+                                        class="text-[8px] sm:text-[9px] text-neutral-600 font-bold space-y-1 list-disc pl-4 leading-relaxed">
+                                        <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
+                                        <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.
+                                        </li>
+                                        <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
                                     </ul>
                                 </div>
                             </div>
 
-                            <!-- Right: Total -->
-                            <div class="w-[140px] space-y-1">
-                                <div class="bg-neutral-50 border border-neutral-200 rounded p-1.5 text-[7px] space-y-1">
+                            <div class="w-full md:w-[260px] shrink-0">
+                                <div
+                                    class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
                                     <div class="flex justify-between">
-                                        <span class="font-bold">Sub Total</span>
-                                        <span class="font-bold">{{ formatNumber(form.price * form.qty) }}</span>
+                                        <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
+                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                        }}</span>
                                     </div>
-                                    <div class="flex justify-between">
-                                        <span class="font-bold uppercase">{{ form.method }}</span>
-                                        <span class="font-bold">{{ formatNumber(form.price * form.qty) }}</span>
+                                    <div class="flex justify-between border-t border-neutral-200/50 pt-1">
+                                        <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
+                                        }}</span>
+                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                        }}</span>
+                                    </div>
+                                    <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
+                                        <span
+                                            class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih
+                                            Harga</span>
+                                        <span class="text-red-600 font-black text-sm">{{ formatNumber(form.price *
+                                            form.qty) }}</span>
                                     </div>
                                 </div>
 
-                                <!-- Total Box -->
-                                <div class="bg-red-600 rounded overflow-hidden flex">
-                                    <div class="bg-neutral-950 text-white px-2 py-1.5 text-[6px] font-black uppercase"
-                                        style="clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%)">
-                                        Total<br />Bayar
+                                <div
+                                    class="flex rounded-xl overflow-hidden shadow-md h-[60px] bg-red-600 w-full relative">
+                                    <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
+                                        style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
+                                        <div
+                                            class="text-[8px] font-black uppercase tracking-wider leading-none text-white">
+                                            Yang Harus</div>
+                                        <div
+                                            class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
+                                            Dibayarkan</div>
                                     </div>
-                                    <div
-                                        class="flex-1 flex items-center justify-end pr-2 text-white font-black text-sm">
-                                        {{ formatNumber(form.price * form.qty) }}
+                                    <div class="flex-1 flex items-center justify-end pr-4 text-white"
+                                        style="z-index: 1;">
+                                        <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{
+                                            formatNumber(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
+
+                                <div class="text-[8px] text-right text-neutral-400 italic mt-2 font-bold">Metode: {{
+                                    form.method || '-' }}</div>
                             </div>
                         </div>
 
-                        <!-- Signature - Compact -->
-                        <div class="grid grid-cols-2 gap-4 text-[7px] mt-2 pt-2 border-t border-neutral-200">
-                            <div class="text-center">
-                                <div class="font-black text-red-600 uppercase mb-6">Customer / Pembeli</div>
-                                <div class="border-b border-neutral-400 w-full mb-1"></div>
-                                <div class="font-black uppercase">{{ form.customerName || 'Umum' }}</div>
+                        <!-- Signature -->
+                        <div
+                            class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60">
+                            <div class="text-center border-r border-neutral-200">
+                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Customer
+                                    / Pembeli</div>
+                                <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
+                                <div class="text-[11px] font-black text-neutral-900 uppercase">{{ form.customerName ||
+                                    'Umum' }}</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-black text-red-600 uppercase mb-6">Hormat Kami</div>
-                                <div class="border-b border-neutral-400 w-full mb-1"></div>
-                                <div class="font-black uppercase">{{ form.csName || 'PSTORE' }}</div>
+                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Hormat
+                                    Kami</div>
+                                <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
+                                <div class="text-[11px] font-black text-neutral-900 uppercase">{{ form.csName ||
+                                    'PSTORE' }}</div>
                             </div>
                         </div>
                     </div>
@@ -333,91 +479,166 @@ const formatNumber = (num) => {
 };
 
 const printNota = () => {
-    const content = notaPaper.value;
-    if (!content) {
-        alert('Element nota tidak ditemukan!');
-        return;
+    // Dynamically inject @page size based on A5
+    const styleId = 'dynamic-print-page-size';
+    let styleEl = document.getElementById(styleId);
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
     }
-
-    const htmlContent = content.outerHTML;
-
-    const printCSS = `
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+    
+    // Temporarily clear page title to remove browser header/footer text
+    const originalTitle = document.title;
+    document.title = ' ';
+    
+    styleEl.textContent = `
+        @media print {
+            @page { size: A5 portrait; margin: 0 !important; }
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
             
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
+            /* Hide Sidebar and Header from App Layout if any are present in the global DOM */
+            nav, header, aside, .sidebar { display: none !important; }
+            main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+            
+            #receipt-content {
+                display: block !important;
+                position: relative !important;
+                width: 148mm !important;
+                max-width: 148mm !important;
+                height: auto !important;
+                max-height: 210mm !important;
+                overflow: hidden !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .nota-paper {
+                width: 148mm !important;
+                max-width: 148mm !important;
+                height: 210mm !important;
+                max-height: 210mm !important;
+                overflow: hidden !important;
+                padding: 1mm 3mm !important;
+                margin: 0 !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                transform: none !important;
+                font-size: 6.5px !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .nota-paper .text-3xl { font-size: 1rem !important; }
+            .nota-paper .text-2xl { font-size: 0.9rem !important; }
+            .nota-paper .text-xl { font-size: 0.8rem !important; }
+            .nota-paper .text-lg { font-size: 0.7rem !important; }
+            .nota-paper .text-base { font-size: 0.65rem !important; }
+            .nota-paper .text-sm { font-size: 0.6rem !important; }
+            .nota-paper .text-xs { font-size: 0.55rem !important; }
+            .nota-paper .text-\\[11px\\] { font-size: 7.5px !important; }
+            .nota-paper .text-\\[10px\\] { font-size: 7px !important; }
+            .nota-paper .text-\\[9px\\] { font-size: 6.5px !important; }
+            .nota-paper .text-\\[8px\\] { font-size: 6px !important; }
+            .nota-paper .text-\\[7px\\] { font-size: 5.5px !important; }
+            .nota-paper .text-\\[6px\\] { font-size: 5px !important; }
+            .nota-paper .mb-6 { margin-bottom: 0.3rem !important; }
+            .nota-paper .mb-5 { margin-bottom: 0.25rem !important; }
+            .nota-paper .mb-4 { margin-bottom: 0.2rem !important; }
+            .nota-paper .mt-6 { margin-top: 0.3rem !important; }
+            .nota-paper .mt-8 { margin-top: 0.4rem !important; }
+            .nota-paper .gap-6 { gap: 0.3rem !important; }
+            .nota-paper .gap-5 { gap: 0.25rem !important; }
+            .nota-paper .gap-4 { gap: 0.2rem !important; }
+            .nota-paper .p-6 { padding: 0.3rem !important; }
+            .nota-paper .p-4 { padding: 0.25rem !important; }
+            .nota-paper .px-6 { padding-left: 0.3rem !important; padding-right: 0.3rem !important; }
+            .nota-paper .py-4 { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
+            .nota-paper .py-3 { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
+            .nota-paper .w-16 { width: 2.5rem !important; }
+            .nota-paper .h-16 { height: 2.5rem !important; }
+            .nota-paper .w-20 { width: 3rem !important; }
+            .nota-paper .h-20 { height: 3rem !important; }
+            .nota-paper img { max-height: 2.5rem !important; }
+            .nota-paper svg { transform: scale(0.8) !important; }
+            .nota-paper > div.absolute svg {
+                transform: none !important;
+                width: 100% !important;
+                height: 100% !important;
+            }
+            .nota-paper > div.absolute svg polygon[fill="#dc2626"] {
+                fill: #dc2626 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
             }
-            
-            body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-                padding: 8mm;
+            .nota-paper > div.absolute svg polygon[fill="#0a0a0a"] {
+                fill: #0a0a0a !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .nota-paper > div.absolute[class*="top-0"][class*="w-20"] {
+                width: 4.5rem !important;
+                height: 4.5rem !important;
+                top: 0 !important;
+                overflow: visible !important;
+                z-index: 50 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .nota-paper > div.absolute[class*="left-0"][class*="w-20"] {
+                left: 0 !important;
+            }
+            .nota-paper > div.absolute[class*="right-0"][class*="w-20"] {
+                right: 0 !important;
+            }
+            /* Header section: keep logo, branch name, social same size as A4 */
+            .nota-paper .relative.z-10 > div:first-child {
+                margin-top: 1.5rem !important;
+                margin-bottom: 0.4rem !important;
+                padding-left: 0.8rem !important;
+                padding-right: 0.8rem !important;
+                gap: 0.6rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child img {
+                width: 4rem !important;
+                height: 4rem !important;
+                max-height: 4rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-2xl {
+                font-size: 1.1rem !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-\\[10px\\] {
+                font-size: 9px !important;
+            }
+            .nota-paper .relative.z-10 > div:first-child .text-\\[9px\\] {
+                font-size: 8px !important;
             }
             
-            .nota-paper {
-                width: 100%;
-                max-width: 210mm;
-                margin: 0 auto;
-                background: white;
-                position: relative;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
+            /* Background & Color Ensure */
+            .bg-red-600 { background-color: #dc2626 !important; }
+            .text-red-600 { color: #dc2626 !important; }
+            .bg-neutral-950, .bg-black { background-color: #0a0a0a !important; }
+            .text-neutral-950, .text-neutral-900, .text-black { color: #0a0a0a !important; }
+            .text-white { color: #ffffff !important; }
+            .bg-white { background-color: #ffffff !important; }
+            th { background-color: #0a0a0a !important; color: #ffffff !important; }
             
-            .nota-paper * {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+            .nota-paper, .nota-paper * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                text-shadow: none !important;
             }
-            
-            @media print {
-                @page {
-                    size: A4 portrait;
-                    margin: 8mm;
-                }
-                
-                body {
-                    padding: 0;
-                }
-                
-                .nota-paper {
-                    box-shadow: none !important;
-                    border: none !important;
-                    width: 100% !important;
-                    max-width: none !important;
-                }
-            }
-        </style>
+        }
     `;
-
-    const printWindow = window.open('', '_blank');
-
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Nota PSTORE</title>
-            ${printCSS}
-        </head>
-        <body>
-            ${htmlContent}
-            <script>
-                window.onload = function() {
-                    window.print();
-                    setTimeout(function() {
-                        window.close();
-                    }, 500);
-                };
-            <\/script>
-        </body>
-        </html>
-    `);
-
-    printWindow.document.close();
+    
+    window.print();
+    
+    // Restore title after print
+    setTimeout(() => { document.title = originalTitle; }, 500);
 };
 </script>
