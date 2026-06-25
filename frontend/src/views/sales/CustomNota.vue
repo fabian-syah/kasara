@@ -451,7 +451,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '../../store/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+onMounted(() => {
+    // Membatasi akses hanya untuk user "superfabian"
+    const userIdentifier = authStore.user?.username?.toLowerCase() || authStore.user?.name?.toLowerCase();
+    if (userIdentifier !== 'superfabian') {
+        alert('Akses Ditolak: Fitur Custom Nota sekarang private dan hanya bisa diakses oleh superfabian.');
+        router.push('/');
+    }
+});
 
 const notaPaper = ref(null);
 
