@@ -162,7 +162,7 @@
                                     <span
                                         class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                         {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
-                                        '').replace('PSTORE', '') }}
+                                            '').replace('PSTORE', '') }}
                                     </span>
                                 </div>
                                 <div class="text-[10px] font-bold text-neutral-700 mt-1.5 leading-tight">Pusat
@@ -488,11 +488,6 @@ const printNota = () => {
     // Get the HTML content
     const htmlContent = content.outerHTML;
 
-    // Grab all stylesheets from the current document so Tailwind classes work in the print window
-    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-        .map(el => el.outerHTML)
-        .join('\n');
-
     // Create CSS for print
     const printCSS = `
         <style>
@@ -507,11 +502,12 @@ const printNota = () => {
             body {
                 font-family: 'Inter', sans-serif;
                 background: white;
+                padding: 10mm;
             }
             
             .nota-paper {
-                width: 100% !important;
-                max-width: 148mm !important; /* A5 width */
+                width: 100%;
+                max-width: 210mm;
                 margin: 0 auto;
                 background: white;
                 position: relative;
@@ -520,26 +516,17 @@ const printNota = () => {
             
             @media print {
                 @page {
-                    size: A5 portrait;
-                    margin: 0mm;
+                    size: A4 portrait;
+                    margin: 10mm;
                 }
                 
-                html, body {
-                    width: 148mm;
-                    height: 210mm;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    overflow: hidden; /* Prevent multi-page */
+                body {
+                    padding: 0;
                 }
                 
                 .nota-paper {
                     box-shadow: none !important;
                     border: none !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    page-break-after: avoid;
-                    page-break-before: avoid;
-                    page-break-inside: avoid;
                 }
                 
                 * {
@@ -560,19 +547,17 @@ const printNota = () => {
         <html>
         <head>
             <title>Nota PSTORE</title>
-            ${styles}
             ${printCSS}
         </head>
-        <body class="bg-white">
+        <body>
             ${htmlContent}
             <script>
-                // Wait briefly to ensure styles and images load before printing
-                setTimeout(() => {
+                window.onload = function() {
                     window.print();
                     window.onafterprint = function() {
                         window.close();
                     };
-                }, 500);
+                };
             <\/script>
         </body>
         </html>
