@@ -224,6 +224,10 @@ onMounted(() => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-surface-600 rounded-full;
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.5);
 }
 </style>
