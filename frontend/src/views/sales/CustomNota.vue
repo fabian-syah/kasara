@@ -123,17 +123,9 @@
                 </div>
             </div>
 
-            <!-- Preview Nota / Print Wrapper -->
-    </div>
-    </div>
-
-    <!-- Teleport to body like ReceiptModal: always active, wraps nota for print isolation -->
-    <Teleport to="body" :disabled="!isPrinting">
-        <div v-show="isPrinting || true" id="custom-nota-print-wrapper"
-            :class="isPrinting ? 'fixed inset-0 z-[99999] flex items-center justify-center bg-white print:p-0 print:bg-white' : 'flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 overflow-hidden rounded-2xl'"
-            >
+            <!-- Preview Nota -->
             <div id="receipt-content"
-                class="w-full flex justify-center bg-white print:bg-white">
+                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
                 <div
                     class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
 
@@ -499,7 +491,7 @@
                 </div>
             </div>
         </div>
-    </Teleport>
+    </div>
 </template>
 
 <script setup>
