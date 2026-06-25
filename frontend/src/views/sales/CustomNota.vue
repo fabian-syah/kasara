@@ -458,57 +458,237 @@ const printNota = () => {
 
 /* Print styles targeted for the modal */
 @media print {
-    /* Hide everything initially */
-    body * {
-        visibility: hidden;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
+    @page {
+        margin: 0;
     }
 
-    /* Make the app container take normal flow */
-    #app {
-        display: block !important;
-        position: absolute;
-        left: 0;
-        top: 0;
-    }
-
-    /* Show the receipt content area */
-    #receipt-content,
-    #receipt-content * {
-        visibility: visible;
-    }
-
-    /* Position the content perfectly */
-    #receipt-content {
-        position: absolute !important;
-        left: 0;
-        top: 0;
-        width: 100%;
-        background: white !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-    
-    /* Hide unnecessary backgrounds */
-    .no-print-bg {
-        background: white !important;
-    }
-
-    .no-print {
+    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
+    body> :not(#app) {
         display: none !important;
     }
 
-    @page {
-        margin: 0;
-        size: auto;
+    html,
+    body {
+        height: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
     }
 
-    /* Explicitly keep backgrounds for Tailwind classes */
-    * {
+    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
+    #receipt-content {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        z-index: 9999999 !important;
+        flex: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        transform: none !important;
+        border: 0 !important;
+        outline: 0 !important;
+    }
+
+    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
+    .nota-paper {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4mm 8mm !important;
+        /* Compressed internal print padding */
+        margin: 0 auto !important;
+        color: black !important;
+        background: white !important;
+        border-radius: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+
+        width: 100% !important;
+        max-width: 210mm !important;
+        height: auto !important;
+        /* Fluid auto height to 100% guarantee 1-page fitting regardless of native browser margins */
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+
+        transform-origin: top center !important;
+    }
+
+    /* Typography scaling for print - tightly optimized to prevent expansion/overflow on mobile/desktop */
+    /* Typography scaling for print - generously upgraded to fill out page coverage and maximize legibility */
+    .nota-paper .text-\[6px\] {
+        font-size: 9px !important;
+    }
+
+    .nota-paper .text-\[7px\] {
+        font-size: 10px !important;
+    }
+
+    .nota-paper .text-\[8px\] {
+        font-size: 11px !important;
+    }
+
+    .nota-paper .text-\[9px\] {
+        font-size: 11.5px !important;
+    }
+
+    .nota-paper .text-\[10px\] {
+        font-size: 12px !important;
+    }
+
+    .nota-paper .text-\[11px\] {
+        font-size: 13px !important;
+    }
+
+    .nota-paper .text-xs {
+        font-size: 0.95rem !important;
+    }
+
+    .nota-paper .text-sm {
+        font-size: 1.05rem !important;
+    }
+
+    .nota-paper .text-base {
+        font-size: 1.2rem !important;
+    }
+
+    .nota-paper .text-lg {
+        font-size: 1.3rem !important;
+    }
+
+    .nota-paper .text-xl {
+        font-size: 1.5rem !important;
+    }
+
+    .nota-paper .text-2xl {
+        font-size: 1.8rem !important;
+    }
+
+    .nota-paper .text-3xl {
+        font-size: 2.1rem !important;
+    }
+
+    .nota-paper svg {
+        transform: scale(1.05);
+    }
+
+    .nota-paper>.relative.z-10 {
+        flex: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+    }
+
+    /* Premium visual spacing to beautifully fill up the A4 layout gracefully and eliminate excessive empty bottom space */
+    .nota-paper .mb-6 {
+        margin-bottom: 1.1rem !important;
+    }
+
+    .nota-paper .mb-5 {
+        margin-bottom: 1rem !important;
+    }
+
+    .nota-paper .mb-4 {
+        margin-bottom: 0.85rem !important;
+    }
+
+    .nota-paper .mt-6 {
+        margin-top: 1.1rem !important;
+    }
+
+    .nota-paper .mt-8 {
+        margin-top: 4.5rem !important;
+        /* Spacious, elegant visual separation to comfortably expand page coverage */
+    }
+
+    .nota-paper .gap-6 {
+        gap: 1.2rem !important;
+    }
+
+    .nota-paper .gap-4 {
+        gap: 0.85rem !important;
+    }
+
+    .nota-paper .py-4 {
+        padding-top: 0.65rem !important;
+        padding-bottom: 0.65rem !important;
+    }
+
+    .nota-paper .py-3 {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.5rem !important;
+    }
+
+    .nota-paper .p-4 {
+        padding: 0.9rem !important;
+    }
+
+    .nota-paper .p-6 {
+        padding: 1.1rem !important;
+    }
+
+    .nota-paper .px-6 {
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
+    }
+
+    .nota-paper img {
+        height: auto !important;
+        max-height: none !important;
+        object-fit: contain !important;
+    }
+
+    .nota-paper tr,
+    .nota-paper .payment-section,
+    .nota-paper .signature-area {
+        break-inside: avoid;
+    }
+
+    .print\:hidden {
+        display: none !important;
+    }
+
+    /* COMPLETE ARTIFACT ELIMINATION: Universally strips all box-shadows and blurs which render as solid gray halos in browser print engines */
+    #receipt-content,
+    #receipt-content *,
+    .nota-paper,
+    .nota-paper * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
     }
+
+    /* Force translucent elements to be 100% solid pure white opaque to prevent gray backgrounds */
+    .nota-paper .signature-area,
+    .nota-paper .notes-box {
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
+    }
+
+    img {
+        display: block !important;
+    }
 }
 </style>
+
