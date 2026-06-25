@@ -479,7 +479,34 @@ const formatNumber = (num) => {
 };
 
 const printNota = () => {
-    // Dynamically inject @page size based on A5
+    // 1. Get the screen preview elements
+    const element = document.querySelector('.nota-paper');
+    if (!element) {
+        alert('Element nota tidak ditemukan!');
+        return;
+    }
+
+    // 2. Clone the element
+    const cloned = element.cloneNode(true);
+
+    // 3. Create wrapper elements identical to ReceiptModal.vue structure
+    const printWrapper = document.createElement('div');
+    printWrapper.id = 'receipt-modal-print-wrapper';
+    
+    // Set style to hide it on screen before print triggers
+    printWrapper.style.position = 'absolute';
+    printWrapper.style.left = '-9999px';
+    printWrapper.style.top = '-9999px';
+
+    const contentDiv = document.createElement('div');
+    contentDiv.id = 'receipt-content';
+    contentDiv.appendChild(cloned);
+    printWrapper.appendChild(contentDiv);
+
+    // 4. Append directly to body to bypass '#app' display:none constraint
+    document.body.appendChild(printWrapper);
+
+    // 5. Dynamically inject A5 page styles
     const styleId = 'dynamic-print-page-size';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -499,15 +526,18 @@ const printNota = () => {
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
+                height: auto !important;
+                width: 100% !important;
+                overflow: visible !important;
             }
             
-            /* Hide Sidebar and Header from App Layout if any are present in the global DOM */
-            nav, header, aside, .sidebar { display: none !important; }
-            main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
-            
+            #receipt-modal-print-wrapper,
+            #receipt-modal-print-wrapper > div,
             #receipt-content {
                 display: block !important;
                 position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
                 width: 148mm !important;
                 max-width: 148mm !important;
                 height: auto !important;
@@ -636,9 +666,15 @@ const printNota = () => {
         }
     `;
     
+    // 6. Trigger print
     window.print();
     
-    // Restore title after print
-    setTimeout(() => { document.title = originalTitle; }, 500);
+    // 7. Cleanup
+    setTimeout(() => {
+        if (printWrapper && printWrapper.parentNode) {
+            document.body.removeChild(printWrapper);
+        }
+        document.title = originalTitle;
+    }, 500);
 };
 </script>
