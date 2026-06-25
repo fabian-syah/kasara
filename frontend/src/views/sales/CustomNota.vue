@@ -674,6 +674,20 @@ const printNota = () => {
             .border-neutral-200 { border-color: #e5e7eb !important; }
             th { background-color: #0a0a0a !important; color: #ffffff !important; }
             
+            /* Explicit Border Radius Overrides for Print Engine */
+            .rounded-xl {
+                border-radius: 8px !important;
+            }
+            .rounded-full {
+                border-radius: 9999px !important;
+            }
+            .rounded-tr-2xl {
+                border-top-right-radius: 12px !important;
+            }
+            .rounded-bl-sm {
+                border-bottom-left-radius: 2px !important;
+            }
+            
             .nota-paper tr,
             .nota-paper .payment-section,
             .nota-paper .signature-area {
