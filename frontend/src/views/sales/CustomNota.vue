@@ -124,9 +124,11 @@
             </div>
 
             <!-- Preview Nota -->
-            <div id="receipt-content" class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
-                <div class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
-                    
+            <div id="receipt-content"
+                class="flex-1 w-full flex justify-center bg-gray-100/50 dark:bg-surface-900/50 print:bg-white overflow-hidden rounded-2xl no-print-bg">
+                <div
+                    class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
+
                     <!-- ===== DYNAMIC CORNER ACCENTS (Mockup Style) ===== -->
                     <div class="absolute top-0 left-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
                         <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -141,8 +143,10 @@
                         </svg>
                     </div>
 
-                    <div class="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none z-0">
-                        <img src="/images/ps.png" alt="" class="w-[400px] h-[400px] object-contain transform scale-125" />
+                    <div
+                        class="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none z-0">
+                        <img src="/images/ps.png" alt=""
+                            class="w-[400px] h-[400px] object-contain transform scale-125" />
                     </div>
 
                     <div class="relative z-10">
@@ -156,9 +160,12 @@
                             <!-- Branch & Social Info -->
                             <div class="flex-1">
                                 <div class="flex items-baseline gap-1.5 flex-wrap">
-                                    <span class="text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
-                                    <span class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
-                                        {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ', '').replace('PSTORE', '') }}
+                                    <span
+                                        class="text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
+                                    <span
+                                        class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
+                                        {{ (form.branch || 'CABANG').toUpperCase().replace('PSTORE ',
+                                            '').replace('PSTORE', '') }}
                                     </span>
                                 </div>
                                 <div class="text-[10px] font-bold text-neutral-700 mt-1.5 leading-tight">
@@ -166,26 +173,30 @@
                                 </div>
 
                                 <!-- Social Bar -->
-                                <div class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
+                                <div
+                                    class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800 flex-wrap">
                                     <span v-if="form.wa" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                            <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
+                                            <path
+                                                d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
                                         </svg>
                                         WA: {{ form.wa }}
                                     </span>
                                     <span v-if="form.wa && (form.tiktok || form.ig)" class="text-neutral-300">|</span>
-                                    
+
                                     <span v-if="form.tiktok" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
+                                            <path
+                                                d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
                                         </svg>
                                         TikTok: {{ form.tiktok }}
                                     </span>
                                     <span v-if="form.tiktok && form.ig" class="text-neutral-300">|</span>
-                                    
+
                                     <span v-if="form.ig" class="flex items-center gap-1">
                                         <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                                            <path
+                                                d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                                         </svg>
                                         IG: {{ form.ig }}
                                     </span>
@@ -203,7 +214,8 @@
                             <h2 class="text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
                                 NOTA PENJUALAN STORE
                             </h2>
-                            <div class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                            <div
+                                class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                                 <span>BUKTI TRANSAKSI</span>
                                 <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
@@ -211,32 +223,45 @@
                         </div>
 
                         <!-- ===== METADATA INFO GRID (3 Columns, 2 Rows) ===== -->
-                        <div class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
+                        <div
+                            class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
                             <!-- Column 1: No Nota & Tanggal -->
                             <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                 <!-- No Nota -->
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                                            <path
+                                                d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
                                         </svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. Nota</div>
-                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ form.noNota || '-' }}</div>
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            No. Nota</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.noNota || '-' }}</div>
                                     </div>
                                 </div>
 
                                 <!-- Tanggal & Waktu -->
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+                                            <path
+                                                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
                                         </svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Tanggal & Waktu</div>
-                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ form.date || '-' }}</div>
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Tanggal & Waktu</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.date || '-' }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -245,27 +270,39 @@
                             <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
                                 <!-- Atas Nama -->
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                            <path
+                                                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                                         </svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Atas Nama</div>
-                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ form.customerName || 'Umum' }}</div>
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Atas Nama</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.customerName || 'Umum' }}</div>
                                     </div>
                                 </div>
 
                                 <!-- No HP -->
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
+                                            <path
+                                                d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
                                         </svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">No. HP</div>
-                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ form.customerPhone || '-' }}</div>
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            No. HP</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.customerPhone || '-' }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -273,48 +310,66 @@
                             <!-- Column 3: Customer Service -->
                             <div class="flex flex-col gap-4 pl-4">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm !text-red-600" style="color: #dc2626 !important; background-color: #fafafa !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                         <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
+                                            <path
+                                                d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
                                         </svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">Customer Service</div>
-                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">{{ form.csName || '-' }}</div>
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Customer Service</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                            {{ form.csName || '-' }}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- ===== TABEL ITEMS (6 Columns) ===== -->
-                        <div class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
+                        <div
+                            class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                             <table class="w-full text-[10px] sm:text-xs border-collapse">
                                 <thead>
-                                    <tr style="background-color: #0a0a0a !important;" class="text-[9px] sm:text-[10px] uppercase tracking-wider">
-                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black w-[110px]">IMEI</th>
-                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
-                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
-                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
-                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;" class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
+                                    <tr style="background-color: #0a0a0a !important;"
+                                        class="text-[9px] sm:text-[10px] uppercase tracking-wider">
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-left font-black w-[110px]">IMEI</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
+                                        <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                            class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr class="bg-white/90 border-b border-neutral-300">
                                         <td class="py-3 px-3 align-middle text-left">
-                                            <div class="text-[10px] font-black font-mono text-neutral-900">{{ form.imei || '-' }}</div>
+                                            <div class="text-[10px] font-black font-mono text-neutral-900">{{ form.imei
+                                                || '-' }}</div>
                                         </td>
                                         <td class="py-3 px-3 align-middle">
-                                            <div class="font-bold text-neutral-800 text-[11px] uppercase flex items-start">
+                                            <div
+                                                class="font-bold text-neutral-800 text-[11px] uppercase flex items-start">
                                                 <span>{{ form.itemName }}</span>
                                             </div>
                                         </td>
-                                        <td class="py-3 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
+                                        <td
+                                            class="py-3 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
                                             {{ formatNumber(form.price) }}
                                         </td>
-                                        <td class="py-3 px-3 text-neutral-950 text-center font-black align-middle text-xs">
+                                        <td
+                                            class="py-3 px-3 text-neutral-950 text-center font-black align-middle text-xs">
                                             {{ form.qty }}
                                         </td>
-                                        <td class="py-3 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
+                                        <td
+                                            class="py-3 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
                                             {{ formatNumber(form.price * form.qty) }}
                                         </td>
                                     </tr>
@@ -328,10 +383,12 @@
                             <div class="flex-1">
                                 <!-- Catatan Ribbon Box -->
                                 <div class="mb-5 relative">
-                                    <div class="relative inline-block bg-red-600 text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10">
+                                    <div
+                                        class="relative inline-block bg-red-600 text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10">
                                         Catatan
                                     </div>
-                                    <div class="notes-box bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
+                                    <div
+                                        class="notes-box bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
                                         {{ form.notes || 'Tidak ada catatan tambahan.' }}
                                     </div>
                                 </div>
@@ -339,12 +396,16 @@
                                 <!-- Syarat & Ketentuan (Warranty) -->
                                 <div class="mb-4">
                                     <div class="flex items-center gap-2 mb-2">
-                                        <span class="text-[10px] font-black text-red-600 tracking-wider uppercase">Syarat & Ketentuan</span>
+                                        <span
+                                            class="text-[10px] font-black text-red-600 tracking-wider uppercase">Syarat
+                                            & Ketentuan</span>
                                         <div class="h-0.5 w-10 bg-red-200 rounded-full"></div>
                                     </div>
-                                    <ul class="text-[8px] sm:text-[9px] text-neutral-600 font-bold space-y-1 list-disc pl-4 leading-relaxed">
+                                    <ul
+                                        class="text-[8px] sm:text-[9px] text-neutral-600 font-bold space-y-1 list-disc pl-4 leading-relaxed">
                                         <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
-                                        <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.</li>
+                                        <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim garansi.
+                                        </li>
                                         <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
                                     </ul>
                                 </div>
@@ -353,7 +414,8 @@
                             <!-- Right Column: Financial Details & Slanted Total -->
                             <div class="w-full md:w-[260px] shrink-0">
                                 <!-- Small Subtotal Breakdown -->
-                                <div class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
+                                <div
+                                    class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
                                     <div class="flex justify-between">
                                         <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
                                         <span class="text-neutral-900 font-bold">
@@ -361,29 +423,41 @@
                                         </span>
                                     </div>
                                     <div class="flex justify-between border-t border-neutral-200/50 pt-1">
-                                        <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method }}</span>
-                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty) }}</span>
+                                        <span class="font-bold text-neutral-500 text-[10px] uppercase">{{ form.method
+                                        }}</span>
+                                        <span class="text-neutral-900 font-bold">{{ formatNumber(form.price * form.qty)
+                                        }}</span>
                                     </div>
 
                                     <!-- Slanted or Red Divider Line -->
                                     <div class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
-                                        <span class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih Harga</span>
-                                        <span class="text-red-600 font-black text-sm">
+                                        <span
+                                            class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih
+                                            Harga</span>
+                                        <span class="!text-red-600 font-black text-sm" style="color: #dc2626 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
                                             {{ formatNumber(form.price * form.qty) }}
                                         </span>
                                     </div>
                                 </div>
 
                                 <!-- Exact Slanted Grand Total Header Box -->
-                                <div class="flex rounded-xl overflow-hidden shadow-md h-[60px] bg-red-600 w-full relative">
+                                <div
+                                    class="flex rounded-xl overflow-hidden shadow-md h-[60px] bg-red-600 w-full relative">
                                     <!-- Black Trapezoid Part -->
-                                    <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none" style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
-                                        <div class="text-[8px] font-black uppercase tracking-wider leading-none text-white">Yang Harus</div>
-                                        <div class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">Dibayarkan</div>
+                                    <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
+                                        style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
+                                        <div
+                                            class="text-[8px] font-black uppercase tracking-wider leading-none text-white">
+                                            Yang Harus</div>
+                                        <div
+                                            class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
+                                            Dibayarkan</div>
                                     </div>
                                     <!-- Red Total Part -->
-                                    <div class="flex-1 flex items-center justify-end pr-4 text-white" style="z-index: 1;">
-                                        <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{ formatNumber(form.price * form.qty) }}</span>
+                                    <div class="flex-1 flex items-center justify-end pr-4 text-white"
+                                        style="z-index: 1;">
+                                        <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{
+                                            formatNumber(form.price * form.qty) }}</span>
                                     </div>
                                 </div>
 
@@ -394,16 +468,19 @@
                         </div>
 
                         <!-- ===== SIGNATURE AREA ===== -->
-                        <div class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
+                        <div
+                            class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
                             <div class="text-center border-r border-neutral-200">
-                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Customer / Pembeli</div>
+                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Customer
+                                    / Pembeli</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
                                     {{ form.customerName || 'Umum' }}
                                 </div>
                             </div>
                             <div class="text-center">
-                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Hormat Kami</div>
+                                <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">Hormat
+                                    Kami</div>
                                 <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5"></div>
                                 <div class="text-[11px] font-black text-neutral-900 uppercase">
                                     {{ form.csName || 'PSTORE' }}
@@ -460,6 +537,86 @@ const printNota = () => {
 @media print {
     @page {
         margin: 0;
+    }
+
+    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
+    body> :not(#app) {
+        display: none !important;
+    }
+
+    html,
+    body {
+        height: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+    }
+
+    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
+    #receipt-content {
+        display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-sizing: border-box !important;
+        background: white !important;
+        z-index: 9999999 !important;
+        flex: none !important;
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        transform: none !important;
+        border: 0 !important;
+        outline: 0 !important;
+    }
+
+    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
+    .nota-paper {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 4mm 8mm !important;
+        margin: 0 auto !important;
+        color: black !important;
+        background: white !important;
+        border-radius: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        flex-direction: column !important;
+
+        width: 100% !important;
+        max-width: 210mm !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+
+        transform-origin: top center !important;
+    }
+
+    /* COMPLETE ARTIFACT ELIMINATION */
+    #receipt-content,
+    #receipt-content *,
+    .nota-paper,
+    .nota-paper * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        filter: none !important;
+        -webkit-filter: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
 
     /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
@@ -691,4 +848,3 @@ const printNota = () => {
     }
 }
 </style>
-
