@@ -485,30 +485,32 @@ const printNota = () => {
         return;
     }
 
-    // Get the HTML content
     const htmlContent = content.outerHTML;
 
-    // Create CSS for print
+    // Grab all stylesheets from the current document so Tailwind classes work in the print window
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+        .map(el => {
+            if (el.tagName === 'LINK' && el.href) {
+                return `<link rel="stylesheet" href="${el.href}">`;
+            }
+            return el.outerHTML;
+        })
+        .join('\n');
+
+    // Create an invisible iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const printDocument = iframe.contentWindow.document;
+
+    // Create CSS for print to force 1 A5 page
     const printCSS = `
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
-            
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Inter', sans-serif;
-                background: white;
-            }
-            
-            .nota-paper {
-                margin: 0 auto;
-                background: white;
-                position: relative;
-            }
             
             @media print {
                 @page {
@@ -517,11 +519,12 @@ const printNota = () => {
                 }
                 
                 html, body {
-                    width: 148mm;
-                    min-height: 210mm;
+                    width: 148mm !important;
+                    height: 210mm !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    background: white;
+                    background: white !important;
+                    overflow: hidden !important; /* Force 1 page */
                 }
                 
                 .nota-paper {
@@ -529,12 +532,14 @@ const printNota = () => {
                     border: none !important;
                     width: 148mm !important;
                     max-width: 148mm !important;
-                    min-height: 210mm !important;
+                    height: 210mm !important;
+                    max-height: 210mm !important;
                     padding: 8mm !important;
                     margin: 0 !important;
-                    page-break-after: avoid;
-                    page-break-before: avoid;
-                    page-break-inside: avoid;
+                    overflow: hidden !important; /* Prevent content spilling */
+                    page-break-after: avoid !important;
+                    page-break-before: avoid !important;
+                    page-break-inside: avoid !important;
                 }
                 
                 * {
@@ -546,31 +551,32 @@ const printNota = () => {
         </style>
     `;
 
-    // Open new window
-    const printWindow = window.open('', '_blank');
-
-    // Write complete HTML document
-    printWindow.document.write(`
+    // Write complete HTML document into iframe
+    printDocument.open();
+    printDocument.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Nota PSTORE</title>
+            ${styles}
             ${printCSS}
         </head>
-        <body>
+        <body class="bg-white">
             ${htmlContent}
-            <script>
-                window.onload = function() {
-                    window.print();
-                    window.onafterprint = function() {
-                        window.close();
-                    };
-                };
-            <\/script>
         </body>
         </html>
     `);
+    printDocument.close();
 
-    printWindow.document.close();
+    // Wait briefly to ensure styles and images load before printing
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        
+        // Cleanup after print dialog closes
+        setTimeout(() => {
+            document.body.removeChild(iframe);
+        }, 1000);
+    }, 800);
 };
 </script>
