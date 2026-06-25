@@ -18,6 +18,7 @@ const isSubmitting = ref(false);
 const isSuccess = ref(false);
 
 const transferData = ref(null);
+const alreadyCheckedData = ref(null);
 const questions = ref([]);
 const answers = ref({});
 
@@ -176,7 +177,16 @@ const fetchData = async () => {
             return;
         }
 
+        // Check if already scanned
+        const historyRes = await api.get('/security-checks/history', { params: { q: receiptId } });
+        const historyItems = historyRes.data.data.data || [];
+        const existingCheck = historyItems.find(item => item.receipt_id === receiptId);
 
+        if (existingCheck) {
+            transferData.value = transfer;
+            alreadyCheckedData.value = existingCheck;
+            return; // Stop loading questions and brands, just show the checked state
+        }
         
         transferData.value = transfer;
         
@@ -288,9 +298,67 @@ onMounted(() => {
             </div>
             <h2 class="text-2xl font-bold text-text-primary mb-2">Pengecekan Selesai</h2>
             <p class="text-text-secondary mb-6 max-w-md mx-auto">Data inspeksi security untuk surat jalan {{ receiptId }} telah berhasil disimpan ke sistem.</p>
-            <button @click="router.push('/')" class="px-6 py-2.5 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium transition-all shadow-sm">
-                Kembali ke Beranda
+            <button @click="router.push('/security_scan/history')" class="px-6 py-2.5 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium transition-all shadow-sm">
+                Ke History Security
             </button>
+        </div>
+
+        <div v-else-if="alreadyCheckedData" class="bg-surface-800 border border-amber-500/30 rounded-2xl p-8 text-center shadow-lg shadow-amber-500/10">
+            <div class="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-5 border border-amber-500/20">
+                <ShieldCheck :size="40" class="text-amber-500" />
+            </div>
+            <h2 class="text-2xl font-bold text-text-primary mb-2">Sudah Dicek!</h2>
+            <p class="text-text-secondary mb-6 max-w-md mx-auto">Surat jalan <span class="font-bold text-text-primary">{{ receiptId }}</span> sudah pernah di-scan dan di-ACC oleh security.</p>
+            
+            <div class="bg-surface-900 border border-surface-700 rounded-xl p-5 text-left inline-block w-full max-w-sm mx-auto mb-6 shadow-inner">
+                <div class="flex flex-col gap-4">
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-surface-800 rounded-lg">
+                            <User :size="16" class="text-surface-400" />
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Security & Staff Inventory</span>
+                            <span class="text-sm font-bold text-text-primary block">Sec: {{ alreadyCheckedData.security_name }}</span>
+                            <span class="text-sm text-text-secondary block">Inv: {{ alreadyCheckedData.inventory_user?.name || '-' }}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <div class="p-2 bg-surface-800 rounded-lg">
+                            <MapPin :size="16" class="text-surface-400" />
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Lokasi Pengecekan</span>
+                            <span class="text-sm font-bold text-text-primary">{{ transferData?.destination?.name || 'Cabang Tujuan' }}</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-surface-800">
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-surface-800 rounded-lg">
+                                <Calendar :size="16" class="text-surface-400" />
+                            </div>
+                            <div>
+                                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Tanggal</span>
+                                <span class="text-xs font-bold text-text-primary">{{ formatDate(alreadyCheckedData.created_at) }}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="p-2 bg-surface-800 rounded-lg">
+                                <Clock :size="16" class="text-surface-400" />
+                            </div>
+                            <div>
+                                <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Jam</span>
+                                <span class="text-xs font-bold text-text-primary">{{ formatTime(alreadyCheckedData.created_at) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <button @click="router.push('/security_scan/history')" class="px-6 py-2.5 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium transition-all shadow-sm">
+                    Kembali ke History
+                </button>
+            </div>
         </div>
 
         <div v-else-if="transferData" class="space-y-6">
