@@ -59,7 +59,7 @@ const loadTypesForBrand = async (brandId) => {
     if(!brandId) return [];
     if(typesCache.value[brandId]) return typesCache.value[brandId];
     try {
-        const res = await api.get('/types', { params: { brand_id: brandId, per_page: 100 } });
+        const res = await api.get('/product-types', { params: { brand_id: brandId, per_page: 100 } });
         typesCache.value[brandId] = res.data.data || [];
         return typesCache.value[brandId];
     } catch(e) {
