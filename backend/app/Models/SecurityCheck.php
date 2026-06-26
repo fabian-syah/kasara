@@ -14,6 +14,11 @@ class SecurityCheck extends Model
         'security_name',
         'inventory_user_id',
         'notes',
+        'checked_items',
+    ];
+
+    protected $casts = [
+        'checked_items' => 'array',
     ];
 
     public function answers()

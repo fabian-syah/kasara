@@ -18,6 +18,10 @@ class SecurityCheckController extends Controller
             'answers' => 'nullable|array',
             'answers.*.question_id' => 'required|exists:questions,id',
             'answers.*.answer' => 'required|boolean',
+            'checked_items' => 'nullable|array',
+            'checked_items.*.is_present' => 'required|boolean',
+            'checked_items.*.product_name' => 'nullable|string',
+            'checked_items.*.brand' => 'nullable|string',
             'excess_items' => 'nullable|array',
             'excess_items.*.brand' => 'nullable|string',
             'excess_items.*.type' => 'nullable|string',
@@ -36,6 +40,7 @@ class SecurityCheckController extends Controller
                 'security_name' => $validated['security_name'],
                 'inventory_user_id' => $validated['inventory_user_id'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'checked_items' => $validated['checked_items'] ?? null,
             ]);
 
             if (!empty($validated['answers'])) {

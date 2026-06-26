@@ -21,8 +21,7 @@ const isSuccess = ref(false);
 
 const transferData = ref(null);
 const alreadyCheckedData = ref(null);
-const questions = ref([]);
-const answers = ref({});
+const itemChecks = ref([]);
 
 const securityName = ref(route.query.security_name || "");
 const inventoryUserId = ref(route.query.inventory_user_id || "");
@@ -130,15 +129,8 @@ const fetchData = async () => {
 
         await fetchBrands();
 
-        // Fetch questions
-        const qRes = await questionsApi.list();
-        const allQuestions = Array.isArray(qRes.data) ? qRes.data : [];
-        questions.value = allQuestions.filter(q => q.category === 'security_check');
-
-        // Initialize answers to null
-        questions.value.forEach(q => {
-            answers.value[q.id] = null;
-        });
+        // Initialize item checks
+        itemChecks.value = transfer.items.map(() => null);
 
     } catch (e) {
         toast.error("Gagal memuat data: " + (e.response?.data?.message || e.message));
@@ -184,12 +176,10 @@ const submitSecurityCheck = async () => {
         return;
     }
 
-    // Check if all questions answered
-    for (const q of questions.value) {
-        if (answers.value[q.id] === null) {
-            toast.error("Mohon jawab semua pertanyaan security!");
-            return;
-        }
+    // Check if all items are checked
+    if (itemChecks.value.includes(null)) {
+        toast.error("Mohon ceklis semua barang pada Daftar Pengecekan!");
+        return;
     }
 
     // Prepare payload
@@ -198,9 +188,10 @@ const submitSecurityCheck = async () => {
         security_name: securityName.value,
         inventory_user_id: inventoryUserId.value,
         notes: mainNotes.value,
-        answers: questions.value.map(q => ({
-            question_id: q.id,
-            answer: answers.value[q.id] === 'yes' ? true : false
+        checked_items: transferData.value.items.map((item, idx) => ({
+            is_present: itemChecks.value[idx] === 'yes',
+            product_name: item.product_name || item.product?.name,
+            brand: item.brand || item.brand_name || item.product?.brand
         })),
         excess_items: excessItems.value.filter(item => item.excess_qty > 0).map(item => {
             return {
@@ -458,34 +449,41 @@ onMounted(() => {
                             class="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-surface-400 font-semibold cursor-not-allowed" />
                     </div>
 
-                    <!-- Pertanyaan -->
-                    <div v-if="questions.length > 0" class="space-y-4 pt-4 border-t border-surface-700">
+                    <!-- Pengecekan Barang -->
+                    <div v-if="transferData?.items?.length > 0" class="space-y-4 pt-4 border-t border-surface-700">
                         <h3 class="font-bold text-text-primary flex items-center gap-2">
-                            <ShieldCheck :size="18" class="text-primary-500" /> Daftar Pengecekan
+                            <ShieldCheck :size="18" class="text-primary-500" /> Checklist Fisik Barang
                         </h3>
-                        <div v-for="q in questions" :key="q.id"
+                        <div v-for="(item, idx) in transferData.items" :key="'check-'+idx"
                             class="bg-surface-900/50 border border-surface-700 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <p class="text-sm text-text-primary flex-1">{{ q.content }}</p>
+                            <div class="flex-1">
+                                <p class="text-sm font-bold text-text-primary">{{ item.brand || item.brand_name || item.product?.brand || '' }} {{ item.product_name || item.product?.name || '' }}</p>
+                                <p class="text-xs text-text-secondary mt-1">
+                                    <span v-if="item.imei && item.imei !== '-'">IMEI: {{ item.imei }}</span>
+                                    <span v-else>Qty: {{ item.quantity || item.qty }}</span>
+                                    <span v-if="item.storage"> | {{ item.storage }}</span>
+                                </p>
+                            </div>
                             <div class="flex items-center gap-3 shrink-0">
                                 <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="radio" :name="'q_' + q.id" value="yes" v-model="answers[q.id]"
+                                    <input type="radio" :name="'check_' + idx" value="yes" v-model="itemChecks[idx]"
                                         class="sr-only" />
                                     <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
-                                        :class="answers[q.id] === 'yes' ? 'border-green-500 bg-green-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-green-400'">
-                                        <div v-if="answers[q.id] === 'yes'" class="w-2 h-2 bg-white rounded-full"></div>
+                                        :class="itemChecks[idx] === 'yes' ? 'border-green-500 bg-green-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-green-400'">
+                                        <div v-if="itemChecks[idx] === 'yes'" class="w-2 h-2 bg-white rounded-full"></div>
                                     </div>
                                     <span class="text-sm font-medium"
-                                        :class="answers[q.id] === 'yes' ? 'text-green-500' : 'text-text-secondary'">Yes</span>
+                                        :class="itemChecks[idx] === 'yes' ? 'text-green-500' : 'text-text-secondary'">Ada / Sesuai</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="radio" :name="'q_' + q.id" value="no" v-model="answers[q.id]"
+                                    <input type="radio" :name="'check_' + idx" value="no" v-model="itemChecks[idx]"
                                         class="sr-only" />
                                     <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
-                                        :class="answers[q.id] === 'no' ? 'border-red-500 bg-red-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-red-400'">
-                                        <div v-if="answers[q.id] === 'no'" class="w-2 h-2 bg-white rounded-full"></div>
+                                        :class="itemChecks[idx] === 'no' ? 'border-red-500 bg-red-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-red-400'">
+                                        <div v-if="itemChecks[idx] === 'no'" class="w-2 h-2 bg-white rounded-full"></div>
                                     </div>
                                     <span class="text-sm font-medium"
-                                        :class="answers[q.id] === 'no' ? 'text-red-500' : 'text-text-secondary'">No</span>
+                                        :class="itemChecks[idx] === 'no' ? 'text-red-500' : 'text-text-secondary'">Tidak Ada</span>
                                 </label>
                             </div>
                         </div>
@@ -635,16 +633,6 @@ onMounted(() => {
                     <p><strong>Waktu Selesai:</strong> {{ new Date().toLocaleString('id-ID') }}</p>
                 </div>
 
-                <div class="mb-6">
-                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Daftar Pengecekan</h2>
-                    <ul class="list-disc pl-5 text-sm">
-                        <li v-for="q in questions" :key="q.id" class="mb-1">
-                            {{ q.content }}: <strong>{{ answers[q.id] === 'yes' ? 'SESUAI (YES)' : 'TIDAK SESUAI (NO)'
-                                }}</strong>
-                        </li>
-                    </ul>
-                </div>
-
                 <div class="mb-10">
                     <h2 class="font-bold border-b border-gray-300 pb-2 mb-4 flex justify-between items-end">
                         <span>Daftar Barang (Bawaan)</span>
@@ -659,6 +647,7 @@ onMounted(() => {
                                 <th class="border border-black px-3 py-2 text-left uppercase w-36">IMEI</th>
                                 <th class="border border-black px-3 py-2 text-left uppercase w-28">KONDISI</th>
                                 <th class="border border-black px-2 py-2 text-center uppercase w-12">QTY</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase w-16">CEK</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -679,6 +668,11 @@ onMounted(() => {
                                 <td class="border border-black px-2 py-2 text-center align-middle">
                                     <template v-if="item.imei && item.imei !== '-'">1</template>
                                     <template v-else>{{ item.quantity || item.qty }}</template>
+                                </td>
+                                <td class="border border-black px-2 py-2 text-center align-middle">
+                                    <span v-if="itemChecks[idx] === 'yes'" class="text-green-600">✔</span>
+                                    <span v-else-if="itemChecks[idx] === 'no'" class="text-red-600">✘</span>
+                                    <span v-else>-</span>
                                 </td>
                             </tr>
                         </tbody>
