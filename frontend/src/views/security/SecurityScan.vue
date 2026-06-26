@@ -363,8 +363,6 @@ onMounted(() => {
                         <p class="text-xs text-text-secondary mt-1">Pengirim: {{ transferData.processed_by || '-' }}</p>
                     </div>
                     <div class="bg-surface-900/50 p-3 rounded-xl border border-surface-700/50 relative">
-                        <ArrowRight :size="16"
-                            class="absolute -left-3 top-1/2 -translate-y-1/2 text-surface-600 hidden sm:block" />
                         <p class="text-[10px] text-text-secondary uppercase tracking-wider mb-1">Tujuan Cabang</p>
                         <p class="text-sm font-semibold text-text-primary">{{ transferData.destination?.name || '-' }}
                         </p>
