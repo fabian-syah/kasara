@@ -398,38 +398,62 @@ onMounted(() => {
                 </div>
                 <div class="divide-y divide-surface-700">
                     <div v-for="(item, idx) in transferData.items" :key="idx"
-                        class="p-4 hover:bg-surface-800/50 transition-colors flex items-start gap-3">
-                        <div class="p-2 rounded-lg bg-surface-700 mt-0.5 shrink-0">
-                            <component :is="item.imei && item.imei !== '-' ? Smartphone : Box" :size="16"
-                                class="text-surface-400" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
-                                <span class="text-xs font-bold text-primary-400 uppercase tracking-wider">{{
-                                    item.brand_name || 'Brand' }}</span>
-                                <h3 class="text-sm font-semibold text-text-primary">{{ item.product_name }}</h3>
+                        class="p-4 hover:bg-surface-800/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="flex items-start gap-3 flex-1 min-w-0">
+                            <div class="p-2 rounded-lg bg-surface-700 mt-0.5 shrink-0">
+                                <component :is="item.imei && item.imei !== '-' ? Smartphone : Box" :size="16"
+                                    class="text-surface-400" />
                             </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
+                                    <span class="text-xs font-bold text-primary-400 uppercase tracking-wider">{{
+                                        item.brand_name || 'Brand' }}</span>
+                                    <h3 class="text-sm font-semibold text-text-primary">{{ item.product_name }}</h3>
+                                </div>
 
-                            <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-                                <div v-if="item.imei && item.imei !== '-'">
-                                    <span class="text-text-secondary">IMEI:</span>
-                                    <span
-                                        class="font-mono text-text-primary ml-1 bg-surface-900 px-1.5 py-0.5 rounded">{{
-                                        item.imei }}</span>
-                                </div>
-                                <div v-else>
-                                    <span class="text-text-secondary">Qty:</span>
-                                    <span class="font-bold text-text-primary ml-1">{{ item.quantity }}</span>
-                                </div>
-                                <div v-if="item.condition">
-                                    <span class="text-text-secondary">Kondisi:</span>
-                                    <span class="text-text-primary ml-1 capitalize">{{ item.condition }}</span>
-                                </div>
-                                <div v-if="item.storage">
-                                    <span class="text-text-secondary">Storage:</span>
-                                    <span class="text-text-primary ml-1">{{ item.storage }}</span>
+                                <div class="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                                    <div v-if="item.imei && item.imei !== '-'">
+                                        <span class="text-text-secondary">IMEI:</span>
+                                        <span
+                                            class="font-mono text-text-primary ml-1 bg-surface-900 px-1.5 py-0.5 rounded">{{
+                                            item.imei }}</span>
+                                    </div>
+                                    <div v-else>
+                                        <span class="text-text-secondary">Qty:</span>
+                                        <span class="font-bold text-text-primary ml-1">{{ item.quantity || item.qty }}</span>
+                                    </div>
+                                    <div v-if="item.condition">
+                                        <span class="text-text-secondary">Kondisi:</span>
+                                        <span class="text-text-primary ml-1 capitalize">{{ item.condition }}</span>
+                                    </div>
+                                    <div v-if="item.storage">
+                                        <span class="text-text-secondary">Storage:</span>
+                                        <span class="text-text-primary ml-1">{{ item.storage }}</span>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="radio" :name="'check_' + idx" value="yes" v-model="itemChecks[idx]"
+                                    class="sr-only" />
+                                <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
+                                    :class="itemChecks[idx] === 'yes' ? 'border-green-500 bg-green-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-green-400'">
+                                    <div v-if="itemChecks[idx] === 'yes'" class="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                                <span class="text-sm font-medium"
+                                    :class="itemChecks[idx] === 'yes' ? 'text-green-500' : 'text-text-secondary'">Ada / Sesuai</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer group">
+                                <input type="radio" :name="'check_' + idx" value="no" v-model="itemChecks[idx]"
+                                    class="sr-only" />
+                                <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
+                                    :class="itemChecks[idx] === 'no' ? 'border-red-500 bg-red-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-red-400'">
+                                    <div v-if="itemChecks[idx] === 'no'" class="w-2 h-2 bg-white rounded-full"></div>
+                                </div>
+                                <span class="text-sm font-medium"
+                                    :class="itemChecks[idx] === 'no' ? 'text-red-500' : 'text-text-secondary'">Tidak Ada</span>
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -449,45 +473,7 @@ onMounted(() => {
                             class="w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-surface-400 font-semibold cursor-not-allowed" />
                     </div>
 
-                    <!-- Pengecekan Barang -->
-                    <div v-if="transferData?.items?.length > 0" class="space-y-4 pt-4 border-t border-surface-700">
-                        <h3 class="font-bold text-text-primary flex items-center gap-2">
-                            <ShieldCheck :size="18" class="text-primary-500" /> Checklist Fisik Barang
-                        </h3>
-                        <div v-for="(item, idx) in transferData.items" :key="'check-'+idx"
-                            class="bg-surface-900/50 border border-surface-700 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div class="flex-1">
-                                <p class="text-sm font-bold text-text-primary">{{ item.brand || item.brand_name || item.product?.brand || '' }} {{ item.product_name || item.product?.name || '' }}</p>
-                                <p class="text-xs text-text-secondary mt-1">
-                                    <span v-if="item.imei && item.imei !== '-'">IMEI: {{ item.imei }}</span>
-                                    <span v-else>Qty: {{ item.quantity || item.qty }}</span>
-                                    <span v-if="item.storage"> | {{ item.storage }}</span>
-                                </p>
-                            </div>
-                            <div class="flex items-center gap-3 shrink-0">
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="radio" :name="'check_' + idx" value="yes" v-model="itemChecks[idx]"
-                                        class="sr-only" />
-                                    <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
-                                        :class="itemChecks[idx] === 'yes' ? 'border-green-500 bg-green-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-green-400'">
-                                        <div v-if="itemChecks[idx] === 'yes'" class="w-2 h-2 bg-white rounded-full"></div>
-                                    </div>
-                                    <span class="text-sm font-medium"
-                                        :class="itemChecks[idx] === 'yes' ? 'text-green-500' : 'text-text-secondary'">Ada / Sesuai</span>
-                                </label>
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="radio" :name="'check_' + idx" value="no" v-model="itemChecks[idx]"
-                                        class="sr-only" />
-                                    <div class="w-5 h-5 rounded-full border flex items-center justify-center transition-colors"
-                                        :class="itemChecks[idx] === 'no' ? 'border-red-500 bg-red-500 text-white' : 'border-surface-500 bg-surface-800 group-hover:border-red-400'">
-                                        <div v-if="itemChecks[idx] === 'no'" class="w-2 h-2 bg-white rounded-full"></div>
-                                    </div>
-                                    <span class="text-sm font-medium"
-                                        :class="itemChecks[idx] === 'no' ? 'text-red-500' : 'text-text-secondary'">Tidak Ada</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
+
 
                     <!-- Kelebihan Barang -->
                     <div class="pt-4 border-t border-surface-700 space-y-4">
