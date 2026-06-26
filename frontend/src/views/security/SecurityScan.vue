@@ -4,6 +4,8 @@ import { useRoute, useRouter } from "vue-router";
 import api, { questions as questionsApi } from "../../api/axios";
 import { useAuthStore } from "../../store/auth";
 import { useToast } from "../../composables/useToast";
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
     Loader2, CheckCircle2, ShieldCheck, Plus, Trash2, Smartphone, Package, Box, MapPin, Calendar, Clock, ArrowRight, User, Camera, X as XIcon
 } from "lucide-vue-next";
@@ -209,6 +211,37 @@ const fetchData = async () => {
     }
 };
 
+const pdfTemplate = ref(null);
+
+const generatePDF = async () => {
+    if (!pdfTemplate.value) return;
+    
+    try {
+        const canvas = await html2canvas(pdfTemplate.value, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+        
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Bukti_Security_${receiptId}.pdf`);
+    } catch (e) {
+        console.error("Failed to generate PDF", e);
+        toast.error("Gagal membuat PDF otomatis");
+    }
+};
+
 const submitSecurityCheck = async () => {
     if (!securityName.value.trim()) {
         toast.error("Nama Security harus diisi!");
@@ -246,10 +279,13 @@ const submitSecurityCheck = async () => {
         await api.post('/security-checks', payload);
         toast.success("Data berhasil disimpan!");
         isSuccess.value = true;
+        
+        toast.info("Sedang membuat PDF...");
+        await generatePDF();
     } catch (e) {
         toast.error("Gagal menyimpan data: " + (e.response?.data?.message || e.message));
     } finally {
-        isSubmitting.value = true;
+        isSubmitting.value = false;
     }
 };
 
@@ -580,4 +616,67 @@ onMounted(() => {
         </div>
 
     </div>
+
+        <!-- Hidden Print Area for PDF Generation -->
+        <div class="fixed" style="top: -9999px; left: -9999px;">
+            <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black" style="font-family: sans-serif;">
+                <div class="text-center mb-6 border-b-2 border-black pb-4">
+                    <h1 class="text-2xl font-bold uppercase">Bukti Pengecekan Security</h1>
+                    <p class="text-sm mt-1">No. Surat Jalan: {{ receiptId }}</p>
+                </div>
+                
+                <div class="flex justify-between mb-6">
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase">Dari Cabang</p>
+                        <p class="font-bold">{{ transferData?.source_name || '-' }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500 uppercase">Tujuan Cabang</p>
+                        <p class="font-bold">{{ transferData?.destination?.name || '-' }}</p>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <p class="text-xs text-gray-500 uppercase mb-2">Data Pemeriksa</p>
+                    <p><strong>Security:</strong> {{ securityName }}</p>
+                    <p><strong>Waktu Selesai:</strong> {{ new Date().toLocaleString('id-ID') }}</p>
+                </div>
+
+                <div class="mb-6">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Daftar Pengecekan</h2>
+                    <ul class="list-disc pl-5">
+                        <li v-for="q in questions" :key="q.id" class="mb-1">
+                            {{ q.content }}: <strong>{{ answers[q.id] === 'yes' ? 'SESUAI (YES)' : 'TIDAK SESUAI (NO)' }}</strong>
+                        </li>
+                    </ul>
+                </div>
+
+                <div v-if="excessItems.length > 0" class="mb-6">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Barang Lebih / Tidak Terdaftar</h2>
+                    <ul class="list-disc pl-5">
+                        <li v-for="(item, idx) in excessItems" :key="idx" class="mb-1">
+                            {{ item.brand }} - {{ item.type }} (Qty: {{ item.excess_qty }}) 
+                            <span v-if="item.notes">- {{ item.notes }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div v-if="mainNotes" class="mb-6">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Catatan Tambahan</h2>
+                    <p>{{ mainNotes }}</p>
+                </div>
+
+                <div class="mt-12 flex justify-between px-10">
+                    <div class="text-center w-40">
+                        <p class="mb-16 text-sm font-bold">Security</p>
+                        <p class="border-t border-black pt-1">{{ securityName }}</p>
+                    </div>
+                    <div class="text-center w-40">
+                        <p class="mb-16 text-sm font-bold">Admin Inventory</p>
+                        <p class="border-t border-black pt-1">{{ alreadyCheckedData?.inventory_user?.name || 'Staff' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 </template>

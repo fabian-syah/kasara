@@ -227,13 +227,15 @@ const visibleMenuItems = computed(() => {
     const role = authStore.userRole;
     if (!role) return menuItems.filter((item) => item.id === "dashboard");
 
-    if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
-        return menuItems.filter(item => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(item.id));
-    }
+    let filtered = [];
 
-    // Get allowed menus for role
-    const allowedMenus = getMenuForRole(role);
-    let filtered = menuItems.filter((item) => allowedMenus.includes(item.id));
+    if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
+        filtered = menuItems.filter(item => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(item.id));
+    } else {
+        // Get allowed menus for role
+        const allowedMenus = getMenuForRole(role);
+        filtered = menuItems.filter((item) => allowedMenus.includes(item.id));
+    }
 
     // For leader role: dynamically hide monitoring menus based on placements
     if (role === 'leader') {
@@ -252,6 +254,26 @@ const visibleMenuItems = computed(() => {
             return true;
         });
     }
+
+    // Hide Custom Nota menu unless the user is superfabian
+    const userIdentifier = authStore.user?.username?.toLowerCase() || authStore.user?.name?.toLowerCase();
+    filtered = filtered.map(group => {
+        if (group.items) {
+            return {
+                ...group,
+                items: group.items.filter(sub => {
+                    if (sub.id === 'custom_nota' && userIdentifier !== 'superfabian') {
+                        return false;
+                    }
+                    return true;
+                })
+            };
+        }
+        if (group.id === 'custom_nota' && userIdentifier !== 'superfabian') {
+            return null;
+        }
+        return group;
+    }).filter(Boolean);
 
     return filtered;
 });
