@@ -604,7 +604,7 @@ onMounted(() => {
                                 <tr v-for="(item, idx) in transferData?.items" :key="'item-'+idx">
                                     <td class="border border-black px-2 py-2 text-center align-middle">{{ idx + 1 }}</td>
                                     <td class="border border-black px-3 py-2 align-middle uppercase">
-                                        {{ item.brand_name || item.product?.brand || '' }} {{ item.product_name || item.product?.name || '' }} <span v-if="item.storage">{{ item.storage }} GB</span>
+                                        {{ item.brand || item.brand_name || item.product?.brand || '' }} {{ item.product_name || item.product?.name || '' }} <span v-if="item.storage">{{ item.storage }} GB</span>
                                     </td>
                                     <td class="border border-black px-3 py-2 align-middle uppercase">
                                         <template v-if="item.imei && item.imei !== '-'">{{ item.imei }}</template>
