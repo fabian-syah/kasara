@@ -176,6 +176,11 @@ const submitSecurityCheck = async () => {
         return;
     }
 
+    if (!mainNotes.value.trim()) {
+        toast.error("Catatan Tambahan wajib diisi!");
+        return;
+    }
+
     // Check if all items are checked
     if (itemChecks.value.includes(null)) {
         toast.error("Mohon ceklis semua barang pada Daftar Pengecekan!");
@@ -558,9 +563,8 @@ onMounted(() => {
 
                     <!-- Catatan Tambahan -->
                     <div class="pt-4 border-t border-surface-700">
-                        <label class="block text-sm font-medium text-text-secondary mb-2">Catatan Tambahan
-                            (Opsional)</label>
-                        <textarea v-model="mainNotes" rows="2" placeholder="Masukkan catatan lain jika diperlukan..."
+                        <label class="block text-sm font-medium text-text-secondary mb-2">Catatan Tambahan <span class="text-red-500">*</span></label>
+                        <textarea v-model="mainNotes" rows="2" placeholder="Wajib diisi (contoh: Barang lengkap dan aman...)"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50"></textarea>
                     </div>
 

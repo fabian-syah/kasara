@@ -14,7 +14,7 @@ class SecurityCheckController extends Controller
             'receipt_id' => 'required|string',
             'security_name' => 'required|string',
             'inventory_user_id' => 'nullable|integer',
-            'notes' => 'nullable|string',
+            'notes' => 'required|string',
             'answers' => 'nullable|array',
             'answers.*.question_id' => 'required|exists:questions,id',
             'answers.*.answer' => 'required|boolean',
