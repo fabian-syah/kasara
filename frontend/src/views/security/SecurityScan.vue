@@ -585,63 +585,54 @@ onMounted(() => {
                         </ul>
                     </div>
 
-                    <div class="mb-6">
-                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2 flex justify-between items-end">
+                    <div class="mb-10">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-4 flex justify-between items-end">
                             <span>Daftar Barang (Bawaan)</span>
                             <span class="text-xs font-normal">Total: {{ transferData?.items?.length || 0 }}</span>
                         </h2>
                         <table class="w-full text-xs border-collapse">
                             <thead>
                                 <tr class="bg-gray-100">
-                                    <th class="border border-gray-300 px-2 py-1 text-left">Brand & Tipe</th>
-                                    <th class="border border-gray-300 px-2 py-1 text-center w-24">IMEI / Qty</th>
-                                    <th class="border border-gray-300 px-2 py-1 text-left w-32">Kondisi / Storage</th>
+                                    <th class="border border-gray-300 px-3 py-2 text-left align-middle">Detail Barang</th>
+                                    <th class="border border-gray-300 px-3 py-2 text-center w-40 align-middle">IMEI / Qty</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(item, idx) in transferData?.items" :key="'item-'+idx">
-                                    <td class="border border-gray-300 px-2 py-1">{{ item.brand_name || 'Brand' }} - {{ item.product_name }}</td>
-                                    <td class="border border-gray-300 px-2 py-1 text-center font-mono font-bold">
+                                    <td class="border border-gray-300 px-3 py-2 align-middle">
+                                        <span class="font-bold">{{ item.brand_name || 'Brand' }}</span> - {{ item.product_name }}
+                                        <template v-if="item.imei && item.imei !== '-'">
+                                            <span v-if="item.storage"> - {{ item.storage }}</span>
+                                            <span v-if="item.condition" class="capitalize"> - {{ item.condition }}</span>
+                                        </template>
+                                    </td>
+                                    <td class="border border-gray-300 px-3 py-2 text-center font-mono font-bold align-middle text-sm">
                                         <template v-if="item.imei && item.imei !== '-'">{{ item.imei }}</template>
                                         <template v-else>{{ item.quantity }} Pcs</template>
-                                    </td>
-                                    <td class="border border-gray-300 px-2 py-1">
-                                        <div v-if="item.condition">Kondisi: <span class="capitalize">{{ item.condition }}</span></div>
-                                        <div v-if="item.storage">Storage: {{ item.storage }}</div>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
 
-                    <div class="mb-6">
-                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Barang Lebih / Tambahan</h2>
-                        <ul v-if="excessItems.length > 0" class="list-disc pl-5 text-sm">
-                            <li v-for="(item, idx) in excessItems" :key="idx" class="mb-1">
+                    <div class="mb-10">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-4">Barang Lebih / Tambahan</h2>
+                        <ul v-if="excessItems.length > 0" class="list-disc pl-5 text-sm space-y-1">
+                            <li v-for="(item, idx) in excessItems" :key="idx">
                                 <strong>{{ item.brand }} - {{ item.type }}</strong> 
-                                <span v-if="item.storage">(Storage: {{ item.storage }})</span> 
+                                <span v-if="item.storage"> - {{ item.storage }}</span> 
                                 (Qty: {{ item.excess_qty }}) 
                                 <span v-if="item.notes">- <em>{{ item.notes }}</em></span>
                             </li>
                         </ul>
-                        <p v-else class="text-sm italic text-gray-500">Tidak ada barang tambahan</p>
+                        <p v-else class="text-sm italic text-gray-500 mt-2">Tidak ada barang tambahan</p>
                     </div>
 
-                    <div v-if="mainNotes" class="mb-6">
-                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Catatan Tambahan</h2>
-                        <p class="text-sm">{{ mainNotes }}</p>
+                    <div v-if="mainNotes" class="mb-10">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-4">Catatan Tambahan</h2>
+                        <p class="text-sm bg-gray-50 p-4 rounded-lg border border-gray-200">{{ mainNotes }}</p>
                     </div>
 
-                    <div class="mt-12 flex justify-between px-10">
-                        <div class="text-center w-40">
-                            <p class="mb-16 text-sm font-bold">Security</p>
-                            <p class="border-t border-black pt-1 font-semibold">{{ securityName }}</p>
-                        </div>
-                        <div class="text-center w-40">
-                            <p class="mb-16 text-sm font-bold">Admin Inventory</p>
-                            <p class="border-t border-black pt-1 font-semibold">{{ alreadyCheckedData?.inventory_user?.name || 'Staff' }}</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
