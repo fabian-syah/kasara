@@ -585,18 +585,16 @@ onMounted(() => {
         <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black relative"
             style="font-family: sans-serif; min-height: 1122px;">
             <!-- Watermark -->
-            <div class="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none z-0">
-                <img src="/images/ps.png" alt="" class="w-[600px] h-[600px] object-contain" />
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0" style="z-index: 0;">
+                <img src="/images/ps.png" alt="" style="width: 600px; height: 600px; object-fit: contain; opacity: 0.08;" />
             </div>
 
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-6 border-b-2 border-black pb-4">
-                    <div class="flex items-center gap-4">
-                        <img src="/images/logo-pstore.png" alt="PSTORE" class="h-12 object-contain" />
-                        <div>
-                            <h1 class="text-2xl font-bold uppercase">Bukti Pengecekan Security</h1>
-                            <p class="text-sm mt-1">No. Surat Jalan: {{ receiptId }}</p>
-                        </div>
+            <div class="relative z-10" style="z-index: 10;">
+                <div class="flex items-center mb-6 border-b-2 border-black pb-4" style="gap: 16px;">
+                    <img src="/images/logo-pstore.png" alt="PSTORE" style="height: 50px; width: auto; object-fit: contain; flex-shrink: 0;" />
+                    <div style="flex: 1;">
+                        <h1 class="font-bold uppercase" style="font-size: 24px; margin: 0; line-height: 1.2;">Bukti Pengecekan Security</h1>
+                        <p style="font-size: 14px; margin: 4px 0 0 0;">No. Surat Jalan: {{ receiptId }}</p>
                     </div>
                 </div>
 
@@ -622,16 +620,16 @@ onMounted(() => {
                         <span>Daftar Barang (Bawaan)</span>
                         <span class="text-xs font-normal">Total: {{ transferData?.items?.length || 0 }}</span>
                     </h2>
-                    <table class="w-full text-xs border-collapse border border-black text-black font-bold">
+                    <table class="w-full border-collapse border border-black text-black font-bold" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
-                                <th class="border border-black px-2 py-2 text-center uppercase w-10">NO</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase">DESKRIPSI
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 5%;">NO</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 35%;">DESKRIPSI
                                     BARANG<br>(MEREK, TIPE)</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase w-36">IMEI</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase w-28">KONDISI</th>
-                                <th class="border border-black px-2 py-2 text-center uppercase w-12">QTY</th>
-                                <th class="border border-black px-2 py-2 text-center uppercase w-16">CEK</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 25%;">IMEI</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 15%;">KONDISI</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%;">QTY</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%;">CEK</th>
                             </tr>
                         </thead>
                         <tbody>
