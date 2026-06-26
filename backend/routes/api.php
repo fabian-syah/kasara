@@ -283,6 +283,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Security Scan
     Route::get('/security-checks/history', [\App\Http\Controllers\SecurityCheckController::class, 'history']);
     Route::post('/security-checks', [\App\Http\Controllers\SecurityCheckController::class, 'store']);
+    Route::delete('/security-checks/{id}', [\App\Http\Controllers\SecurityCheckController::class, 'destroy']);
 
     // Failed Transfers (Gagal Kirim/OTW)
     Route::get('/transfers/failed', [FailedTransferController::class, 'indexFailed']);

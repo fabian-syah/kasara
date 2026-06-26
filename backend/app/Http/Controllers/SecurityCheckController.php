@@ -84,7 +84,6 @@ class SecurityCheckController extends Controller
                 'message' => 'Security check saved successfully.',
                 'data' => $securityCheck->load(['answers', 'excessItems']),
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -106,12 +105,30 @@ class SecurityCheckController extends Controller
         if ($request->has('q')) {
             $q = $request->q;
             $query->where('receipt_id', 'like', "%{$q}%")
-                  ->orWhere('security_name', 'like', "%{$q}%");
+                ->orWhere('security_name', 'like', "%{$q}%");
         }
 
         return response()->json([
             'status' => 'success',
             'data' => $query->paginate(20)
         ]);
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $securityCheck = SecurityCheck::findOrFail($id);
+            $securityCheck->delete();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Security check deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete security check: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

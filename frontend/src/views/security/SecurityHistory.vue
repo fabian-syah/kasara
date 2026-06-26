@@ -34,6 +34,7 @@
               <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Staff & Security</th>
               <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider min-w-[250px]">Barang Yang Di-ACC</th>
               <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Info Lebih</th>
+              <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-surface-700 bg-surface-800">
@@ -120,6 +121,11 @@
                   <span class="text-xs text-surface-500">Aman / Pas</span>
                 </div>
               </td>
+              <td class="px-6 py-4">
+                <button @click="deleteHistory(item.id)" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Hapus Riwayat">
+                  <Trash2 :size="16" />
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -203,7 +209,7 @@ import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { 
-  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight, Eye, X, Plus
+  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight, Eye, X, Plus, Trash2
 } from 'lucide-vue-next';
 
 const toast = useToast();
@@ -255,6 +261,18 @@ const fetchHistory = async (page = 1) => {
     toast.error('Gagal memuat history security: ' + (err.response?.data?.message || err.message));
   } finally {
     isLoading.value = false;
+  }
+};
+
+const deleteHistory = async (id) => {
+  if (!confirm('Apakah Anda yakin ingin menghapus riwayat scan ini? Anda dapat melakukan scan ulang setelahnya.')) return;
+  
+  try {
+    await api.delete(`/security-checks/${id}`);
+    toast.success('Riwayat berhasil dihapus.');
+    fetchHistory(currentPage.value);
+  } catch (err) {
+    toast.error('Gagal menghapus riwayat: ' + (err.response?.data?.message || err.message));
   }
 };
 

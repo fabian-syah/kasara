@@ -96,72 +96,8 @@ const onBrandChange = async (item) => {
     }
 };
 
-const compressImage = (file) => {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target.result;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800;
-                const MAX_HEIGHT = 800;
-                let width = img.width;
-                let height = img.height;
-
-                if (width > height) {
-                    if (width > MAX_WIDTH) {
-                        height *= MAX_WIDTH / width;
-                        width = MAX_WIDTH;
-                    }
-                } else {
-                    if (height > MAX_HEIGHT) {
-                        width *= MAX_HEIGHT / height;
-                        height = MAX_HEIGHT;
-                    }
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/webp', 0.8));
-            };
-        };
-    });
-};
-
-const handlePhotoUpload = async (event, item) => {
-    const files = Array.from(event.target.files);
-    if (!files.length) return;
-    
-    if (!item.photos) item.photos = [];
-    const remainingSlots = item.excess_qty - item.photos.length;
-    const filesToProcess = files.slice(0, remainingSlots);
-    
-    if (files.length > remainingSlots) {
-        toast.error(`Hanya bisa menambah ${remainingSlots} foto lagi untuk jumlah unit ${item.excess_qty}.`);
-    }
-
-    for (const file of filesToProcess) {
-        if (file.size > 20 * 1024 * 1024) {
-            toast.error("File terlalu besar, maksimal 20MB.");
-            continue;
-        }
-        const compressedBase64 = await compressImage(file);
-        item.photos.push(compressedBase64);
-    }
-    event.target.value = '';
-};
-
-const removePhoto = (item, idx) => {
-    item.photos.splice(idx, 1);
-};
-
 const handleQtyChange = (item) => {
-    if (item.photos && item.photos.length > item.excess_qty) {
-        item.photos = item.photos.slice(0, item.excess_qty);
-    }
+    // No photo logic anymore
 };
 
 const fetchData = async () => {
@@ -267,10 +203,14 @@ const submitSecurityCheck = async () => {
             answer: answers.value[q.id] === 'yes' ? true : false
         })),
         excess_items: excessItems.value.filter(item => item.excess_qty > 0).map(item => {
-            if (item.photos && item.photos.length !== item.excess_qty) {
-                throw new Error(`Jumlah foto barang lebih (${item.brand} ${item.type}) harus persis sama dengan jumlah unit (${item.excess_qty}).`);
-            }
-            return item;
+            return {
+                brand_id: item.brand_id,
+                brand: item.brand,
+                type: item.type,
+                storage: item.storage,
+                excess_qty: item.excess_qty,
+                notes: item.notes
+            };
         })
     };
 
@@ -569,23 +509,6 @@ onMounted(() => {
                                     <label class="block text-xs font-medium text-text-secondary mb-1">Keterangan / IMEI</label>
                                     <input v-model="item.notes" type="text" placeholder="Isi IMEI jika ada, atau info tambahan" class="w-full bg-surface-800 border border-surface-700 rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-primary-500" />
                                 </div>
-                                <div class="sm:col-span-2">
-                                    <label class="block text-xs font-medium text-text-secondary mb-1">Foto Barang ({{ item.photos?.length || 0 }} / {{ item.excess_qty }})</label>
-                                    <div class="flex flex-wrap gap-2">
-                                        <div v-for="(photo, pIdx) in item.photos" :key="pIdx" class="relative w-16 h-16 rounded-lg overflow-hidden border border-surface-600 group/photo">
-                                            <img :src="photo" class="w-full h-full object-cover" />
-                                            <button @click="removePhoto(item, pIdx)" class="absolute top-1 right-1 w-5 h-5 bg-red-500/80 hover:bg-red-500 text-white rounded-full flex items-center justify-center backdrop-blur-sm opacity-0 group-hover/photo:opacity-100 transition-opacity">
-                                                <XIcon :size="12" />
-                                            </button>
-                                        </div>
-                                        <label v-if="(item.photos?.length || 0) < item.excess_qty" class="w-16 h-16 rounded-lg border-2 border-dashed border-surface-600 flex flex-col items-center justify-center text-surface-400 hover:text-primary-500 hover:border-primary-500 cursor-pointer transition-colors bg-surface-800">
-                                            <Camera :size="20" />
-                                            <span class="text-[9px] mt-1 font-medium">Upload</span>
-                                            <input type="file" multiple accept="image/*" capture="environment" class="hidden" @change="(e) => handlePhotoUpload(e, item)" />
-                                        </label>
-                                    </div>
-                                    <p class="text-[10px] text-text-secondary mt-1 italic">*Jumlah foto harus sama dengan total unit lebih</p>
-                                </div>
                             </div>
                         </div>
 
@@ -619,61 +542,105 @@ onMounted(() => {
 
         <!-- Hidden Print Area for PDF Generation -->
         <div class="fixed" style="top: -9999px; left: -9999px;">
-            <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black" style="font-family: sans-serif;">
-                <div class="text-center mb-6 border-b-2 border-black pb-4">
-                    <h1 class="text-2xl font-bold uppercase">Bukti Pengecekan Security</h1>
-                    <p class="text-sm mt-1">No. Surat Jalan: {{ receiptId }}</p>
+            <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black relative" style="font-family: sans-serif; min-height: 1122px;">
+                <!-- Watermark -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-[0.05] pointer-events-none z-0">
+                    <img src="/images/ps.png" alt="" class="w-[600px] h-[600px] object-contain" />
                 </div>
                 
-                <div class="flex justify-between mb-6">
-                    <div>
-                        <p class="text-xs text-gray-500 uppercase">Dari Cabang</p>
-                        <p class="font-bold">{{ transferData?.source_name || '-' }}</p>
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-6 border-b-2 border-black pb-4">
+                        <div class="flex items-center gap-4">
+                            <img src="/images/logo-pstore.png" alt="PSTORE" class="h-12 object-contain" />
+                            <div>
+                                <h1 class="text-2xl font-bold uppercase">Bukti Pengecekan Security</h1>
+                                <p class="text-sm mt-1">No. Surat Jalan: {{ receiptId }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500 uppercase">Tujuan Cabang</p>
-                        <p class="font-bold">{{ transferData?.destination?.name || '-' }}</p>
+                    
+                    <div class="flex justify-between mb-6">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase">Dari Cabang</p>
+                            <p class="font-bold">{{ transferData?.source_name || '-' }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 uppercase">Tujuan Cabang</p>
+                            <p class="font-bold">{{ transferData?.destination?.name || '-' }}</p>
+                        </div>
                     </div>
-                </div>
 
-                <div class="mb-6">
-                    <p class="text-xs text-gray-500 uppercase mb-2">Data Pemeriksa</p>
-                    <p><strong>Security:</strong> {{ securityName }}</p>
-                    <p><strong>Waktu Selesai:</strong> {{ new Date().toLocaleString('id-ID') }}</p>
-                </div>
-
-                <div class="mb-6">
-                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Daftar Pengecekan</h2>
-                    <ul class="list-disc pl-5">
-                        <li v-for="q in questions" :key="q.id" class="mb-1">
-                            {{ q.content }}: <strong>{{ answers[q.id] === 'yes' ? 'SESUAI (YES)' : 'TIDAK SESUAI (NO)' }}</strong>
-                        </li>
-                    </ul>
-                </div>
-
-                <div v-if="excessItems.length > 0" class="mb-6">
-                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Barang Lebih / Tidak Terdaftar</h2>
-                    <ul class="list-disc pl-5">
-                        <li v-for="(item, idx) in excessItems" :key="idx" class="mb-1">
-                            {{ item.brand }} - {{ item.type }} (Qty: {{ item.excess_qty }}) 
-                            <span v-if="item.notes">- {{ item.notes }}</span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div v-if="mainNotes" class="mb-6">
-                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Catatan Tambahan</h2>
-                    <p>{{ mainNotes }}</p>
-                </div>
-
-                <div class="mt-12 flex justify-between px-10">
-                    <div class="text-center w-40">
-                        <p class="mb-16 text-sm font-bold">Security</p>
-                        <p class="border-t border-black pt-1">{{ securityName }}</p>
+                    <div class="mb-6">
+                        <p class="text-xs text-gray-500 uppercase mb-2">Data Pemeriksa</p>
+                        <p><strong>Security:</strong> {{ securityName }}</p>
+                        <p><strong>Waktu Selesai:</strong> {{ new Date().toLocaleString('id-ID') }}</p>
                     </div>
-                    <div class="text-center w-40">
-                        <p class="mb-16 text-sm font-bold">Admin Inventory</p>
-                        <p class="border-t border-black pt-1">{{ alreadyCheckedData?.inventory_user?.name || 'Staff' }}</p>
+
+                    <div class="mb-6">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Daftar Pengecekan</h2>
+                        <ul class="list-disc pl-5 text-sm">
+                            <li v-for="q in questions" :key="q.id" class="mb-1">
+                                {{ q.content }}: <strong>{{ answers[q.id] === 'yes' ? 'SESUAI (YES)' : 'TIDAK SESUAI (NO)' }}</strong>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-6">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2 flex justify-between items-end">
+                            <span>Daftar Barang (Bawaan)</span>
+                            <span class="text-xs font-normal">Total: {{ transferData?.items?.length || 0 }}</span>
+                        </h2>
+                        <table class="w-full text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="border border-gray-300 px-2 py-1 text-left">Brand & Tipe</th>
+                                    <th class="border border-gray-300 px-2 py-1 text-center w-24">IMEI / Qty</th>
+                                    <th class="border border-gray-300 px-2 py-1 text-left w-32">Kondisi / Storage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, idx) in transferData?.items" :key="'item-'+idx">
+                                    <td class="border border-gray-300 px-2 py-1">{{ item.brand_name || 'Brand' }} - {{ item.product_name }}</td>
+                                    <td class="border border-gray-300 px-2 py-1 text-center font-mono font-bold">
+                                        <template v-if="item.imei && item.imei !== '-'">{{ item.imei }}</template>
+                                        <template v-else>{{ item.quantity }} Pcs</template>
+                                    </td>
+                                    <td class="border border-gray-300 px-2 py-1">
+                                        <div v-if="item.condition">Kondisi: <span class="capitalize">{{ item.condition }}</span></div>
+                                        <div v-if="item.storage">Storage: {{ item.storage }}</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-6">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Barang Lebih / Tambahan</h2>
+                        <ul v-if="excessItems.length > 0" class="list-disc pl-5 text-sm">
+                            <li v-for="(item, idx) in excessItems" :key="idx" class="mb-1">
+                                <strong>{{ item.brand }} - {{ item.type }}</strong> 
+                                <span v-if="item.storage">(Storage: {{ item.storage }})</span> 
+                                (Qty: {{ item.excess_qty }}) 
+                                <span v-if="item.notes">- <em>{{ item.notes }}</em></span>
+                            </li>
+                        </ul>
+                        <p v-else class="text-sm italic text-gray-500">Tidak ada barang tambahan</p>
+                    </div>
+
+                    <div v-if="mainNotes" class="mb-6">
+                        <h2 class="font-bold border-b border-gray-300 pb-2 mb-2">Catatan Tambahan</h2>
+                        <p class="text-sm">{{ mainNotes }}</p>
+                    </div>
+
+                    <div class="mt-12 flex justify-between px-10">
+                        <div class="text-center w-40">
+                            <p class="mb-16 text-sm font-bold">Security</p>
+                            <p class="border-t border-black pt-1 font-semibold">{{ securityName }}</p>
+                        </div>
+                        <div class="text-center w-40">
+                            <p class="mb-16 text-sm font-bold">Admin Inventory</p>
+                            <p class="border-t border-black pt-1 font-semibold">{{ alreadyCheckedData?.inventory_user?.name || 'Staff' }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
