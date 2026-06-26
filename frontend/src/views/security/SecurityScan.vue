@@ -590,25 +590,32 @@ onMounted(() => {
                             <span>Daftar Barang (Bawaan)</span>
                             <span class="text-xs font-normal">Total: {{ transferData?.items?.length || 0 }}</span>
                         </h2>
-                        <table class="w-full text-xs border-collapse">
+                        <table class="w-full text-xs border-collapse border border-black text-black font-bold">
                             <thead>
-                                <tr class="bg-gray-100">
-                                    <th class="border border-gray-300 px-3 py-2 text-left align-middle">Detail Barang</th>
-                                    <th class="border border-gray-300 px-3 py-2 text-center w-40 align-middle">IMEI / Qty</th>
+                                <tr>
+                                    <th class="border border-black px-2 py-2 text-center uppercase w-10">NO</th>
+                                    <th class="border border-black px-3 py-2 text-left uppercase">DESKRIPSI BARANG<br>(MEREK, TIPE)</th>
+                                    <th class="border border-black px-3 py-2 text-left uppercase w-36">IMEI</th>
+                                    <th class="border border-black px-3 py-2 text-left uppercase w-28">KONDISI</th>
+                                    <th class="border border-black px-2 py-2 text-center uppercase w-12">QTY</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(item, idx) in transferData?.items" :key="'item-'+idx">
-                                    <td class="border border-gray-300 px-3 py-2 align-middle">
-                                        <span class="font-bold">{{ item.brand_name || 'Brand' }}</span> - {{ item.product_name }}
-                                        <template v-if="item.imei && item.imei !== '-'">
-                                            <span v-if="item.storage"> - {{ item.storage }}</span>
-                                            <span v-if="item.condition" class="capitalize"> - {{ item.condition }}</span>
-                                        </template>
+                                    <td class="border border-black px-2 py-2 text-center align-middle">{{ idx + 1 }}</td>
+                                    <td class="border border-black px-3 py-2 align-middle uppercase">
+                                        {{ item.brand_name || item.product?.brand || '' }} {{ item.product_name || item.product?.name || '' }} <span v-if="item.storage">{{ item.storage }} GB</span>
                                     </td>
-                                    <td class="border border-gray-300 px-3 py-2 text-center font-mono font-bold align-middle text-sm">
+                                    <td class="border border-black px-3 py-2 align-middle uppercase">
                                         <template v-if="item.imei && item.imei !== '-'">{{ item.imei }}</template>
-                                        <template v-else>{{ item.quantity }} Pcs</template>
+                                        <template v-else>-</template>
+                                    </td>
+                                    <td class="border border-black px-3 py-2 align-middle uppercase">
+                                        {{ item.condition || '-' }}
+                                    </td>
+                                    <td class="border border-black px-2 py-2 text-center align-middle">
+                                        <template v-if="item.imei && item.imei !== '-'">1</template>
+                                        <template v-else>{{ item.quantity || item.qty }}</template>
                                     </td>
                                 </tr>
                             </tbody>
