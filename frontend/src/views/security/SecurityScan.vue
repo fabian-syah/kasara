@@ -623,35 +623,35 @@ onMounted(() => {
                     <table class="w-full border-collapse border border-black text-black font-bold" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
-                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 5%;">NO</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 35%;">DESKRIPSI
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 5%; vertical-align: middle;">NO</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 35%; vertical-align: middle;">DESKRIPSI
                                     BARANG<br>(MEREK, TIPE)</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 25%;">IMEI</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 15%;">KONDISI</th>
-                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%;">QTY</th>
-                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%;">CEK</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 25%; vertical-align: middle;">IMEI</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 15%; vertical-align: middle;">KONDISI</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%; vertical-align: middle;">QTY</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%; vertical-align: middle;">CEK</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="(item, idx) in transferData?.items" :key="'item-' + idx">
-                                <td class="border border-black px-2 py-2 text-center align-middle">{{ idx + 1 }}</td>
-                                <td class="border border-black px-3 py-2 align-middle uppercase">
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">{{ idx + 1 }}</td>
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
                                     {{ item.brand || item.brand_name || item.product?.brand || '' }} {{
                                         item.product_name || item.product?.name || '' }} <span v-if="item.storage">{{
                                         item.storage }}</span>
                                 </td>
-                                <td class="border border-black px-3 py-2 align-middle uppercase">
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
                                     <template v-if="item.imei && item.imei !== '-'">{{ item.imei }}</template>
                                     <template v-else>-</template>
                                 </td>
-                                <td class="border border-black px-3 py-2 align-middle uppercase">
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
                                     {{ item.condition || '-' }}
                                 </td>
-                                <td class="border border-black px-2 py-2 text-center align-middle">
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">
                                     <template v-if="item.imei && item.imei !== '-'">1</template>
                                     <template v-else>{{ item.quantity || item.qty }}</template>
                                 </td>
-                                <td class="border border-black px-2 py-2 text-center align-middle">
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">
                                     <span v-if="itemChecks[idx] === 'yes'" class="text-green-600">✔</span>
                                     <span v-else-if="itemChecks[idx] === 'no'" class="text-red-600">✘</span>
                                     <span v-else>-</span>
