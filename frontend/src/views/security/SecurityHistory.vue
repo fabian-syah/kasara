@@ -328,26 +328,14 @@ const isGeneratingPdf = ref(false);
 const getMergedPdfItems = (item) => {
   if (!item) return [];
   
-  // Jika field checked_items sudah tersimpan di database
-  if (item.checked_items && item.checked_items.length > 0) {
-    return item.checked_items.map(c => ({
-      brand: c.brand,
-      product_name: c.product_name,
-      imei: c.imei || '-',
-      condition: c.condition || '-',
-      qty: c.qty || (c.is_present ? 1 : 0),
-      is_present: c.is_present
-    }));
-  }
-
-  // Jika data lama, mapping dari stock_out items & non_hp_items
-  const items = [];
+  // Mengumpulkan data barang asli dari stock_out (untuk mendapatkan IMEI dan kondisi)
+  const originalItems = [];
   if (item.stock_out) {
     if (item.stock_out.items) {
       item.stock_out.items.forEach(hp => {
-        items.push({
-          brand: hp.product?.brand || 'Brand',
-          product_name: hp.product?.name + (hp.product?.storage ? ` ${hp.product.storage}GB` : ''),
+        originalItems.push({
+          brand: hp.product?.brand || hp.product?.brandRelation?.name || 'Brand',
+          product_name: hp.product?.name + (hp.storage ? ` ${hp.storage}` : ''),
           imei: hp.pivot?.notes || hp.imei || '-',
           condition: hp.condition || '-',
           qty: 1,
@@ -357,7 +345,7 @@ const getMergedPdfItems = (item) => {
     }
     if (item.stock_out.non_hp_items) {
       item.stock_out.non_hp_items.forEach(nonHp => {
-        items.push({
+        originalItems.push({
           brand: nonHp.product?.brand || nonHp.brand || 'Brand',
           product_name: nonHp.product?.name || nonHp.product_name || 'Aksesoris',
           imei: '-',
@@ -368,7 +356,25 @@ const getMergedPdfItems = (item) => {
       });
     }
   }
-  return items;
+
+  // Jika hasil cek sudah tersimpan di database, gabungkan status is_present-nya dengan data original 
+  // berdasarkan index/urutan, karena array checked_items di-save persis sesuai urutan.
+  if (item.checked_items && item.checked_items.length > 0) {
+    return item.checked_items.map((c, idx) => {
+      const orig = originalItems[idx] || {};
+      return {
+        brand: orig.brand || c.brand,
+        product_name: orig.product_name || c.product_name,
+        imei: orig.imei || c.imei || '-',
+        condition: orig.condition || c.condition || '-',
+        qty: orig.qty || c.qty || (c.is_present ? 1 : 0),
+        is_present: c.is_present
+      };
+    });
+  }
+
+  // Fallback ke data asli
+  return originalItems;
 };
 
 const downloadPdf = async (item) => {
