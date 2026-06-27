@@ -585,11 +585,10 @@ onMounted(() => {
     </div>
 
     <!-- Hidden Print Area for PDF Generation -->
-    <div class="fixed" style="top: -9999px; left: -9999px;">
-        <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black relative"
-            style="font-family: sans-serif; min-height: 1122px;">
+    <div style="position: absolute; left: 0; top: 0; width: 800px; height: 0; overflow: hidden; pointer-events: none; z-index: -9999;">
+        <div ref="pdfTemplate" style="width: 800px; background-color: #ffffff; padding: 32px; color: #000000; position: relative; font-family: sans-serif; min-height: 1122px; box-sizing: border-box;">
             <!-- Watermark -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0" style="z-index: 0; opacity: 0.08;">
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="z-index: 0; opacity: 0.08; will-change: opacity; transform: translateZ(0); -webkit-transform: translateZ(0);">
                 <img src="/images/ps.png" alt="" style="width: 600px; height: 600px; object-fit: contain;" />
             </div>
 
