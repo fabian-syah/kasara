@@ -245,29 +245,42 @@
                 <div class="mb-10">
                     <h2 class="font-bold border-b border-gray-300 pb-2 mb-4 flex justify-between items-end">
                         <span>Daftar Barang (Bawaan)</span>
-                        <span class="text-xs font-normal">Total: {{ (selectedPdfItem.checked_items || []).length }}</span>
+                        <span class="text-xs font-normal">Total: {{ getMergedPdfItems(selectedPdfItem).length }}</span>
                     </h2>
                     <table class="w-full border-collapse border border-black text-black font-bold" style="width: 100%; font-size: 12px;">
                         <thead>
                             <tr>
                                 <th class="border border-black px-2 py-2 text-center uppercase" style="width: 5%; vertical-align: middle;">NO</th>
-                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 70%; vertical-align: middle;">DESKRIPSI BARANG</th>
-                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 25%; vertical-align: middle;">CEK</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 35%; vertical-align: middle;">DESKRIPSI
+                                    BARANG<br>(MEREK, TIPE)</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 25%; vertical-align: middle;">IMEI</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 15%; vertical-align: middle;">KONDISI</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%; vertical-align: middle;">QTY</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 10%; vertical-align: middle;">CEK</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(chk, idx) in selectedPdfItem.checked_items" :key="'chk-' + idx">
+                            <tr v-for="(chk, idx) in getMergedPdfItems(selectedPdfItem)" :key="'chk-' + idx">
                                 <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">{{ idx + 1 }}</td>
                                 <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
                                     {{ chk.brand || '' }} {{ chk.product_name || '' }}
                                 </td>
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
+                                    {{ chk.imei || '-' }}
+                                </td>
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
+                                    {{ chk.condition || '-' }}
+                                </td>
                                 <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">
-                                    <span v-if="chk.is_present" class="text-green-600">✔ (Ada)</span>
-                                    <span v-else class="text-red-600">✘ (Tidak)</span>
+                                    {{ chk.qty || 1 }}
+                                </td>
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">
+                                    <span v-if="chk.is_present" class="text-green-600">✔</span>
+                                    <span v-else class="text-red-600">✘</span>
                                 </td>
                             </tr>
-                            <tr v-if="!selectedPdfItem.checked_items || selectedPdfItem.checked_items.length === 0">
-                                <td colspan="3" class="border border-black px-2 py-2 text-center italic text-gray-500">Tidak ada data pengecekan detail</td>
+                            <tr v-if="getMergedPdfItems(selectedPdfItem).length === 0">
+                                <td colspan="6" class="border border-black px-2 py-2 text-center italic text-gray-500">Tidak ada data pengecekan detail</td>
                             </tr>
                         </tbody>
                     </table>
@@ -311,6 +324,52 @@ const toast = useToast();
 const pdfTemplate = ref(null);
 const selectedPdfItem = ref(null);
 const isGeneratingPdf = ref(false);
+
+const getMergedPdfItems = (item) => {
+  if (!item) return [];
+  
+  // Jika field checked_items sudah tersimpan di database
+  if (item.checked_items && item.checked_items.length > 0) {
+    return item.checked_items.map(c => ({
+      brand: c.brand,
+      product_name: c.product_name,
+      imei: c.imei || '-',
+      condition: c.condition || '-',
+      qty: c.qty || (c.is_present ? 1 : 0),
+      is_present: c.is_present
+    }));
+  }
+
+  // Jika data lama, mapping dari stock_out items & non_hp_items
+  const items = [];
+  if (item.stock_out) {
+    if (item.stock_out.items) {
+      item.stock_out.items.forEach(hp => {
+        items.push({
+          brand: hp.product?.brand || 'Brand',
+          product_name: hp.product?.name + (hp.product?.storage ? ` ${hp.product.storage}GB` : ''),
+          imei: hp.pivot?.notes || hp.imei || '-',
+          condition: hp.condition || '-',
+          qty: 1,
+          is_present: true
+        });
+      });
+    }
+    if (item.stock_out.non_hp_items) {
+      item.stock_out.non_hp_items.forEach(nonHp => {
+        items.push({
+          brand: nonHp.product?.brand || nonHp.brand || 'Brand',
+          product_name: nonHp.product?.name || nonHp.product_name || 'Aksesoris',
+          imei: '-',
+          condition: '-',
+          qty: nonHp.quantity || nonHp.qty || 1,
+          is_present: true
+        });
+      });
+    }
+  }
+  return items;
+};
 
 const downloadPdf = async (item) => {
   if (isGeneratingPdf.value) return;
