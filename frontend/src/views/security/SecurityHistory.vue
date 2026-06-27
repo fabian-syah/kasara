@@ -122,9 +122,15 @@
                 </div>
               </td>
               <td class="px-6 py-4">
-                <button @click="deleteHistory(item.id)" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Hapus Riwayat">
-                  <Trash2 :size="16" />
-                </button>
+                <div class="flex items-center gap-1">
+                  <button @click="downloadPdf(item)" :disabled="isGeneratingPdf" class="p-2 text-primary-500 hover:bg-primary-500/10 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50" title="Download PDF">
+                    <Loader2 v-if="isGeneratingPdf && selectedPdfItem?.id === item.id" :size="16" class="animate-spin" />
+                    <Download v-else :size="16" />
+                  </button>
+                  <!-- <button @click="deleteHistory(item.id)" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Hapus Riwayat">
+                    <Trash2 :size="16" />
+                  </button> -->
+                </div>
               </td>
             </tr>
           </tbody>
@@ -201,18 +207,150 @@
         </div>
       </div>
     </div>
+    <!-- Hidden Print Area for PDF Generation -->
+    <div class="fixed" style="top: -9999px; left: -9999px;">
+        <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black relative"
+            style="font-family: sans-serif; min-height: 1122px;">
+            <!-- Watermark -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0" style="z-index: 0;">
+                <img src="/images/ps.png" alt="" style="width: 600px; height: 600px; object-fit: contain; opacity: 0.08;" />
+            </div>
+
+            <div class="relative z-10" v-if="selectedPdfItem" style="z-index: 10;">
+                <div class="flex items-center mb-6 border-b-2 border-black pb-4" style="gap: 16px;">
+                    <img src="/images/logo-pstore.png" alt="PSTORE" style="height: 50px; width: auto; object-fit: contain; flex-shrink: 0;" />
+                    <div style="flex: 1;">
+                        <h1 class="font-bold uppercase" style="font-size: 24px; margin: 0; line-height: 1.2;">Bukti Pengecekan Security</h1>
+                        <p style="font-size: 14px; margin: 4px 0 0 0;">No. Surat Jalan: {{ selectedPdfItem.receipt_id }}</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between mb-6">
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase">Dari Cabang</p>
+                        <p class="font-bold">{{ selectedPdfItem.stock_out?.source_name || '-' }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500 uppercase">Tujuan Cabang</p>
+                        <p class="font-bold">{{ selectedPdfItem.stock_out?.destination?.name || 'Cabang Tujuan' }}</p>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <p class="text-xs text-gray-500 uppercase mb-2">Data Pemeriksa</p>
+                    <p><strong>Security:</strong> {{ selectedPdfItem.security_name }}</p>
+                    <p><strong>Waktu Selesai:</strong> {{ new Date(selectedPdfItem.created_at).toLocaleString('id-ID') }}</p>
+                </div>
+
+                <div class="mb-10">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-4 flex justify-between items-end">
+                        <span>Daftar Barang (Bawaan)</span>
+                        <span class="text-xs font-normal">Total: {{ (selectedPdfItem.checked_items || []).length }}</span>
+                    </h2>
+                    <table class="w-full border-collapse border border-black text-black font-bold" style="width: 100%; font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 5%; vertical-align: middle;">NO</th>
+                                <th class="border border-black px-3 py-2 text-left uppercase" style="width: 70%; vertical-align: middle;">DESKRIPSI BARANG</th>
+                                <th class="border border-black px-2 py-2 text-center uppercase" style="width: 25%; vertical-align: middle;">CEK</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(chk, idx) in selectedPdfItem.checked_items" :key="'chk-' + idx">
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">{{ idx + 1 }}</td>
+                                <td class="border border-black px-3 py-2 align-middle uppercase" style="vertical-align: middle;">
+                                    {{ chk.brand || '' }} {{ chk.product_name || '' }}
+                                </td>
+                                <td class="border border-black px-2 py-2 text-center align-middle" style="vertical-align: middle;">
+                                    <span v-if="chk.is_present" class="text-green-600">✔ (Ada)</span>
+                                    <span v-else class="text-red-600">✘ (Tidak)</span>
+                                </td>
+                            </tr>
+                            <tr v-if="!selectedPdfItem.checked_items || selectedPdfItem.checked_items.length === 0">
+                                <td colspan="3" class="border border-black px-2 py-2 text-center italic text-gray-500">Tidak ada data pengecekan detail</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mb-10">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-4">Barang Lebih / Tambahan</h2>
+                    <ul v-if="selectedPdfItem.excess_items && selectedPdfItem.excess_items.length > 0" class="list-disc pl-5 text-sm space-y-1">
+                        <li v-for="(excess, idx) in selectedPdfItem.excess_items" :key="idx">
+                            <strong>{{ excess.brand }} - {{ excess.type }}</strong>
+                            <span v-if="excess.storage"> - {{ excess.storage }}</span>
+                            (Qty: {{ excess.excess_qty }})
+                            <span v-if="excess.notes">- <em>{{ excess.notes }}</em></span>
+                        </li>
+                    </ul>
+                    <p v-else class="text-sm italic text-gray-500 mt-2">Tidak ada barang tambahan</p>
+                </div>
+
+                <div v-if="selectedPdfItem.notes" class="mb-10">
+                    <h2 class="font-bold border-b border-gray-300 pb-2 mb-4">Catatan Tambahan</h2>
+                    <p class="text-sm bg-gray-50 p-4 rounded-lg border border-gray-200">{{ selectedPdfItem.notes }}</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import api from '../../api/axios';
 import { useToast } from '../../composables/useToast';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { 
-  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight, Eye, X, Plus, Trash2
+  Search, RefreshCw, Loader2, ShieldCheck, User, UserCircle, ChevronLeft, ChevronRight, Eye, X, Plus, Trash2, Download
 } from 'lucide-vue-next';
 
 const toast = useToast();
+const pdfTemplate = ref(null);
+const selectedPdfItem = ref(null);
+const isGeneratingPdf = ref(false);
+
+const downloadPdf = async (item) => {
+  if (isGeneratingPdf.value) return;
+  
+  selectedPdfItem.value = item;
+  isGeneratingPdf.value = true;
+  toast.info('Sedang menyiapkan file PDF...');
+
+  try {
+    await nextTick();
+    await new Promise(r => setTimeout(r, 600)); // wait for images to load if any
+
+    const canvas = await html2canvas(pdfTemplate.value, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+    const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Bukti_Security_${item.receipt_id}.pdf`);
+  } catch (e) {
+    console.error("Failed to generate PDF", e);
+    toast.error("Gagal membuat PDF");
+  } finally {
+    isGeneratingPdf.value = false;
+    selectedPdfItem.value = null;
+  }
+};
+
 const history = ref([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
