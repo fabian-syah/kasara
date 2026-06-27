@@ -410,7 +410,7 @@ onMounted(() => {
                             <div class="flex-1 min-w-0">
                                 <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-1">
                                     <span class="text-xs font-bold text-primary-400 uppercase tracking-wider">{{
-                                        item.brand_name || 'Brand' }}</span>
+                                        item.brand || item.brand_name || 'Brand' }}</span>
                                     <h3 class="text-sm font-semibold text-text-primary">{{ item.product_name }}</h3>
                                 </div>
 

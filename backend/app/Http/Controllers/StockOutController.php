@@ -1201,6 +1201,7 @@ class StockOutController extends Controller
                 },
                 'items.product',
                 'items.distributor',
+                'nonHpDetails.product',
                 'user.branch',
                 'inventoryUser.branch',
                 'destinationBranch',
@@ -1254,10 +1255,22 @@ class StockOutController extends Controller
                     'condition' => $i->condition,
                 ])->toArray();
 
-                // Non-HP enrich
+                // Non-HP enrich from relation
+                foreach ($out->nonHpDetails as $detail) {
+                    $mergedItems[] = [
+                        'type' => 'non-hp',
+                        'product_name' => $detail->product?->name ?? 'Unknown Product',
+                        'quantity' => $detail->quantity,
+                        'tracking_no' => null,
+                        'notes' => $detail->notes,
+                        'brand' => $detail->product?->brandRelation?->name ?? ($detail->product?->brand ?? '-'),
+                    ];
+                }
+
+                // Non-HP enrich from JSON (fallback)
                 $nhData = $out->non_hp_items;
                 $nonHpItems = is_string($nhData) ? json_decode($nhData, true) : (is_array($nhData) ? $nhData : []);
-                if (!empty($nonHpItems)) {
+                if ($out->nonHpDetails->isEmpty() && !empty($nonHpItems)) {
                     $productIds = array_column($nonHpItems, 'product_id');
                     $products = \App\Models\Product::with('brandRelation')->whereIn('id', $productIds)->get()->keyBy('id');
                     foreach ($nonHpItems as $nhp) {
