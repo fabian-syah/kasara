@@ -127,9 +127,9 @@
                     <Loader2 v-if="isGeneratingPdf && selectedPdfItem?.id === item.id" :size="16" class="animate-spin" />
                     <Download v-else :size="16" />
                   </button>
-                  <!-- <button @click="deleteHistory(item.id)" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Hapus Riwayat">
+                  <button @click="deleteHistory(item.id)" class="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Hapus Riwayat">
                     <Trash2 :size="16" />
-                  </button> -->
+                  </button>
                 </div>
               </td>
             </tr>
