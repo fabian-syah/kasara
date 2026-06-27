@@ -102,7 +102,11 @@ class SecurityCheckController extends Controller
     {
         $query = SecurityCheck::with([
             'stockOut.items.product',
-            'stockOut.nonHpItems.product',
+            'stockOut.nonHpDetails.product',
+            'stockOut.branch',
+            'stockOut.warehouse',
+            'stockOut.onlineShop',
+            'stockOut.destination',
             'inventoryUser',
             'excessItems'
         ])->orderBy('created_at', 'desc');

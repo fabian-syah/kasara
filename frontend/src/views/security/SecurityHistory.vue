@@ -228,7 +228,7 @@
                 <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
                     <div style="flex: 1; text-align: left;">
                         <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin: 0 0 4px 0;">Dari Cabang</p>
-                        <p style="font-weight: bold; margin: 0;">{{ selectedPdfItem.stock_out?.source_name || '-' }}</p>
+                        <p style="font-weight: bold; margin: 0;">{{ selectedPdfItem.stock_out?.source_name || selectedPdfItem.stock_out?.branch?.name || selectedPdfItem.stock_out?.warehouse?.name || selectedPdfItem.stock_out?.online_shop?.name || '-' }}</p>
                     </div>
                     <div style="flex: 1; text-align: right;">
                         <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin: 0 0 4px 0;">Tujuan Cabang</p>
