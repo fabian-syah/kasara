@@ -212,27 +212,27 @@
         <div ref="pdfTemplate" class="w-[800px] bg-white p-8 text-black relative"
             style="font-family: sans-serif; min-height: 1122px;">
             <!-- Watermark -->
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0" style="z-index: 0;">
-                <img src="/images/ps.png" alt="" style="width: 600px; height: 600px; object-fit: contain; opacity: 0.08;" />
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0" style="z-index: 0; opacity: 0.08;">
+                <img src="/images/ps.png" alt="" style="width: 600px; height: 600px; object-fit: contain;" />
             </div>
 
             <div class="relative z-10" v-if="selectedPdfItem" style="z-index: 10;">
-                <div class="flex items-center mb-6 border-b-2 border-black pb-4" style="gap: 16px;">
-                    <img src="/images/logo-pstore.png" alt="PSTORE" style="height: 50px; width: auto; object-fit: contain; flex-shrink: 0;" />
+                <div style="display: flex; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid black;">
+                    <img src="/images/logo-pstore.png" alt="PSTORE" style="height: 50px; width: 160px; object-fit: contain; flex-shrink: 0; margin-right: 16px; display: block;" />
                     <div style="flex: 1;">
-                        <h1 class="font-bold uppercase" style="font-size: 24px; margin: 0; line-height: 1.2;">Bukti Pengecekan Security</h1>
+                        <h1 style="font-weight: bold; text-transform: uppercase; font-size: 24px; margin: 0; line-height: 1.2;">Bukti Pengecekan Security</h1>
                         <p style="font-size: 14px; margin: 4px 0 0 0;">No. Surat Jalan: {{ selectedPdfItem.receipt_id }}</p>
                     </div>
                 </div>
 
-                <div class="flex justify-between mb-6">
-                    <div>
-                        <p class="text-xs text-gray-500 uppercase">Dari Cabang</p>
-                        <p class="font-bold">{{ selectedPdfItem.stock_out?.source_name || '-' }}</p>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 24px;">
+                    <div style="flex: 1; text-align: left;">
+                        <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin: 0 0 4px 0;">Dari Cabang</p>
+                        <p style="font-weight: bold; margin: 0;">{{ selectedPdfItem.stock_out?.source_name || '-' }}</p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-xs text-gray-500 uppercase">Tujuan Cabang</p>
-                        <p class="font-bold">{{ selectedPdfItem.stock_out?.destination?.name || 'Cabang Tujuan' }}</p>
+                    <div style="flex: 1; text-align: right;">
+                        <p style="font-size: 12px; color: #6b7280; text-transform: uppercase; margin: 0 0 4px 0;">Tujuan Cabang</p>
+                        <p style="font-weight: bold; margin: 0;">{{ selectedPdfItem.stock_out?.destination?.name || 'Cabang Tujuan' }}</p>
                     </div>
                 </div>
 
