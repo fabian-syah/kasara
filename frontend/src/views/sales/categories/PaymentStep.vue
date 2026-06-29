@@ -383,6 +383,7 @@ async function processPayment(pin = null) {
             sales_name: props.salesAccount,
             inventory_account_name: props.salesAccount,
             branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
+            branch_timezone: props.selectedAccountObject?.branch?.timezone || authStore.user?.branch?.timezone || 'WIB',
             customer_name: customerForm.value.customer_name,
             customer_phone: customerForm.value.customer_phone,
             notes: customerForm.value.notes,
@@ -393,6 +394,10 @@ async function processPayment(pin = null) {
                 year: 'numeric'
             }),
             time: now.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
+            proof_images: [
+                proofImagePreview.value,
+                paymentProofImagePreview.value
+            ].filter(Boolean)
         };
 
         emit('transaction-complete', lastTransaction);

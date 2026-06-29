@@ -484,8 +484,19 @@ async function submitRefund(pin = null) {
             category: 'refund',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
-            time: new Date().toLocaleString("id-ID"),
-            inventory_user_name: props.salesAccount || authStore.user?.name
+            branch_timezone: authStore.user?.branch?.timezone || 'WIB',
+            created_at: new Date().toISOString(),
+            date: new Date().toLocaleDateString("id-ID", {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }),
+            time: new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
+            inventory_user_name: props.salesAccount || authStore.user?.name,
+            proof_images: [
+                data.photo_unit ? `${authStore.storageBaseUrl}/storage/${data.photo_unit}` : null,
+                data.photo_customer ? `${authStore.storageBaseUrl}/storage/${data.photo_customer}` : null
+            ].filter(Boolean)
         };
 
         emit("transaction-complete", transaction);

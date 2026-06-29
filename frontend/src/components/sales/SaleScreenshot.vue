@@ -240,16 +240,45 @@ const saleItems = computed(() => {
   }]
 })
 
+const branchTimezone = computed(() => {
+  if (!props.sale) return 'WIB';
+  return props.sale.branch_timezone
+    || props.sale.branch?.timezone
+    || props.sale.user?.branch?.timezone
+    || props.sale.inventory_user?.branch?.timezone
+    || props.sale.inventoryUser?.branch?.timezone
+    || 'WIB';
+})
+
 const formattedDate = computed(() => {
-  if (!props.sale?.date) return '-'
-  return new Date(props.sale.date).toLocaleDateString('id-ID', {
+  const dateStr = props.sale?.created_at || props.sale?.date
+  if (!dateStr) return '-'
+  
+  const d = new Date(dateStr)
+  if (isNaN(d)) return props.sale?.date
+  
+  const tz = branchTimezone.value
+  const ianaTz = tz === 'WIT' ? 'Asia/Jayapura' : tz === 'WITA' ? 'Asia/Makassar' : 'Asia/Jakarta'
+  
+  const formattedStr = d.toLocaleDateString('id-ID', {
+    timeZone: ianaTz,
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   })
+  
+  return `${formattedStr} ${tz}`
 })
 
 const formattedDateShort = computed(() => {
-  if (!props.sale?.date) return '-'
-  return new Date(props.sale.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const dateStr = props.sale?.created_at || props.sale?.date
+  if (!dateStr) return '-'
+  
+  const d = new Date(dateStr)
+  if (isNaN(d)) return props.sale?.date
+  
+  const tz = branchTimezone.value
+  const ianaTz = tz === 'WIT' ? 'Asia/Jayapura' : tz === 'WITA' ? 'Asia/Makassar' : 'Asia/Jakarta'
+  
+  return d.toLocaleDateString('id-ID', { timeZone: ianaTz, day: '2-digit', month: '2-digit', year: 'numeric' })
 })
 
 const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(parseFloat(val) || 0)
