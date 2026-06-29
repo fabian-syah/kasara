@@ -444,6 +444,16 @@ function closeStockDropdown() {
 }
 
 async function submitUnitExchange(pin = null) {
+    if (
+        isImeiExchange.value && 
+        selectedOutgoingItem.value?.imei && 
+        unitExchangeForm.value.incoming_imei &&
+        selectedOutgoingItem.value.imei.toLowerCase().trim() === unitExchangeForm.value.incoming_imei.toLowerCase().trim()
+    ) {
+        alert("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
+        return;
+    }
+
     if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id || !unitExchangeForm.value.outgoing_price || !unitExchangeForm.value.distributor_id) {
         alert("Mohon lengkapi semua data wajib (Customer, Distributor, Unit Masuk, Unit Keluar, Harga Jual, Alasan).");
         return;

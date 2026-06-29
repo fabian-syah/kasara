@@ -452,6 +452,16 @@ function closeStockDropdown() {
 }
 
 async function submitTukarTambah(pin = null) {
+    if (
+        isImeiTukarTambah.value && 
+        selectedOutgoingTukarTambah.value?.imei && 
+        tukarTambahForm.value.incoming_imei &&
+        selectedOutgoingTukarTambah.value.imei.toLowerCase().trim() === tukarTambahForm.value.incoming_imei.toLowerCase().trim()
+    ) {
+        alert("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
+        return;
+    }
+
     if (tukarTambahPriceDiff.value < 0) {
         alert("Harga Unit Keluar lebih kecil dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar atau sama dengan Unit Masuk. Silakan gunakan menu 'Downgrade' jika unit toko lebih murah.");
         return;
