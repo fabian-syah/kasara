@@ -288,6 +288,20 @@ const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currenc
  * Returns { data: base64string, aspect: paddingBottom% }
  */
 const fetchImageBase64 = async (url) => {
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
+    const aspect = await new Promise((resolve) => {
+      const img = new Image()
+      img.onload = () => {
+        const ratio = (img.naturalHeight / img.naturalWidth) * 100
+        resolve(`${ratio}%`)
+      }
+      img.onerror = () => resolve('75%')
+      setTimeout(() => resolve('75%'), 3000)
+      img.src = url
+    })
+    return { data: url, aspect }
+  }
+
   let storagePath = ''
   if (url.includes('/storage/')) {
     storagePath = url.split('/storage/')[1]
