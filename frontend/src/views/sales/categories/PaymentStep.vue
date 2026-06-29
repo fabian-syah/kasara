@@ -373,6 +373,7 @@ async function processPayment(pin = null) {
             cash: cashAmount,
             transfer: transferAmount,
             total: cartTotal.value,
+            grand_total: cartTotal.value,
             paid: totalPaid,
             change: totalPaid - cartTotal.value,
             change_amount: totalPaid - cartTotal.value,
