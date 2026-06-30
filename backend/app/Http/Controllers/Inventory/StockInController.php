@@ -959,8 +959,8 @@ class StockInController extends Controller
             $hpSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
                 $detail->condition ?? '-',
                 str_replace("'", "", $imei),
@@ -987,8 +987,8 @@ class StockInController extends Controller
             $nonHpSheet[] = [
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $locationName,
                 (int)$item->quantity,
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
@@ -1068,8 +1068,8 @@ class StockInController extends Controller
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
                 strtoupper($outCategory),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $spec,
                 str_replace("'", "", $imei),
                 $locationName,
@@ -1105,8 +1105,8 @@ class StockInController extends Controller
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
                 strtoupper($outCategory),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $locationName,
                 (int)$item->quantity,
                 $item->description ?? '-',
@@ -1186,8 +1186,8 @@ class StockInController extends Controller
                 $item->created_at->format('d/m/Y H:i'),
                 $source,
                 $category,
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
                 $detail->condition ?? '-',
                 str_replace("'", "", $imei),
@@ -1228,8 +1228,8 @@ class StockInController extends Controller
                 $item->created_at->format('d/m/Y H:i'),
                 $source,
                 $category,
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $locationName,
                 (int)$item->quantity,
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
@@ -1284,8 +1284,8 @@ class StockInController extends Controller
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
                 strtoupper($outCategory),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $spec,
                 str_replace("'", "", $imei),
                 $locationName,
@@ -1321,8 +1321,8 @@ class StockInController extends Controller
                 $idx + 1,
                 $item->created_at->format('d/m/Y H:i'),
                 strtoupper($outCategory),
-                $item->product->brand ?? '-',
-                $item->product->name ?? '-',
+                $item->product?->brand ?? '-',
+                $item->product?->name ?? '-',
                 $locationName,
                 (int)$item->quantity,
                 $item->description ?? '-',
@@ -1483,6 +1483,18 @@ class StockInController extends Controller
                   ->orWhere(function ($sq) use ($request) {
                       $start = $request->date . ' 05:00:00';
                       $end = date('Y-m-d', strtotime($request->date . ' +1 day')) . ' 04:59:59';
+                      $sq->whereNull('reporting_date')
+                         ->whereBetween('created_at', [$start, $end]);
+                  });
+            });
+        } elseif ($request->month && $request->year) {
+            $m = (int) $request->month;
+            $y = (int) $request->year;
+            $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->startOfDay()->toDateTimeString();
+            $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->endOfDay()->toDateTimeString();
+            $query->where(function ($q) use ($start, $end) {
+                $q->whereBetween('reporting_date', [$start, $end])
+                  ->orWhere(function ($sq) use ($start, $end) {
                       $sq->whereNull('reporting_date')
                          ->whereBetween('created_at', [$start, $end]);
                   });
