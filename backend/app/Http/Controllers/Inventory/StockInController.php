@@ -1136,6 +1136,7 @@ class StockInController extends Controller
 
     public function exportStockHistoryCombined(Request $request)
     {
+        try {
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
@@ -1351,6 +1352,17 @@ class StockInController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Export Stock History Error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'message' => 'Export gagal: ' . $e->getMessage(),
+                'file' => basename($e->getFile()) . ':' . $e->getLine(),
+            ], 500);
+        }
     }
 
     public function voidStockIn(Request $request, $id)
