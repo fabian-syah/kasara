@@ -171,9 +171,9 @@ class SimpleXLSXGen {
                     }
 
                     if (!$forceText && is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
-                        $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
+                        $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars((string)$val).'</v></c>';
                     } else {
-                        $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
+                        $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars((string)$val).'</t></is></c>';
                     }
                 }
                 $ws .= '</row>';
