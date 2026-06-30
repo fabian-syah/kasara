@@ -1170,13 +1170,13 @@ class StockInController extends Controller
                 elseif (str_contains($desc, 'pindah cabang') || str_contains($desc, 'transfer')) $source = 'Pindah Cabang';
             }
 
-            $category = $item->product->category ?? '-';
+            $category = $item->product?->category ?? '-';
             $locationName = '-';
             if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
             elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
             elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
-            $imei = $detail->imei ?? '-';
+            $imei = $detail?->imei ?? '-';
             if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
                 $imei = $matches[1];
             }
@@ -1189,12 +1189,12 @@ class StockInController extends Controller
                 $item->product?->brand ?? '-',
                 $item->product?->name ?? '-',
                 $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
-                $detail->condition ?? '-',
+                $detail?->condition ?? '-',
                 "\t" . str_replace("'", "", (string)$imei),
                 $locationName,
-                $item->distributor?->name ?? ($item->supplier_name ?? ($detail->distributor?->name ?? ($detail->supplier_name ?? '-'))),
-                (float)($detail->cost_price ?? ($item->cost_price ?? 0)),
-                $item->user->name ?? '-',
+                $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
+                (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
+                $item->user?->name ?? '-',
                 $item->notes ?: ($item->description ?? '-'),
             ];
         }
@@ -1221,7 +1221,7 @@ class StockInController extends Controller
             elseif (str_contains($desc, 'downgrade')) $source = 'Downgrade';
             elseif (str_contains($desc, 'pindah cabang') || str_contains($desc, 'transfer')) $source = 'Pindah Cabang';
 
-            $category = $item->product->category ?? '-';
+            $category = $item->product?->category ?? '-';
 
             $nonHpInSheet[] = [
                 $idx + 1,
@@ -1234,7 +1234,7 @@ class StockInController extends Controller
                 (int)$item->quantity,
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
                 $item->notes ?: ($item->description ?? '-'),
             ];
         }
@@ -1290,7 +1290,7 @@ class StockInController extends Controller
                 "\t" . str_replace("'", "", (string)$imei),
                 $locationName,
                 $item->description ?? '-',
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
             ];
         }
 
@@ -1326,7 +1326,7 @@ class StockInController extends Controller
                 $locationName,
                 (int)$item->quantity,
                 $item->description ?? '-',
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
             ];
         }
 
