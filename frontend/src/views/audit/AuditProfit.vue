@@ -61,9 +61,9 @@
 
                     <!-- Branch Filter -->
                     <div v-if="canFilterBranch && locations.length > 1" class="relative min-w-[200px]">
-                        <select v-model="selectedLocationKey" @change="fetchData"
+                        <select v-model="selectedLocationKey" @change="fetchData()"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option value="all">Semua Cabang/Toko</option>
+                            <option v-if="isAlwaysGlobal" value="all">Semua Cabang/Toko</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
                                 {{ loc.name }}
@@ -1030,8 +1030,14 @@ const handleMonthChange = () => {
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return privilegedRoles.some(r => role.includes(r));
-})
+    return privilegedRoles.some((r) => role.includes(r));
+});
+
+const isAlwaysGlobal = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
+    return alwaysGlobalRoles.some(r => role.includes(r));
+});
 
 const formatCurrency = (value) => {
     const num = Number(value) || 0
@@ -1083,9 +1089,6 @@ const fetchBranches = async () => {
         const user = userRes ? (userRes.data.user || userRes.data.data || userRes.data) : authStore.user;
         const role = (authStore.userRole || '').toLowerCase();
 
-        const alwaysGlobalRoles = ['super_admin', 'owner', 'admin_produk'];
-        const isAlwaysGlobal = alwaysGlobalRoles.some(r => role.includes(r));
-
         let allowedBranchIds = [];
         if (user?.branch_id) allowedBranchIds.push(user.branch_id);
 
@@ -1109,7 +1112,7 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0 || allowedDistributorIds.length > 0;
 
-        if (isAlwaysGlobal) {
+        if (isAlwaysGlobal.value) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter(loc => {
@@ -1118,7 +1121,7 @@ const fetchBranches = async () => {
                 if (loc.type === 'distributor') return allowedDistributorIds.includes(Number(loc.id));
                 return false;
             });
-            if (locations.value.length === 1 && selectedLocationKey.value === 'all') {
+            if (locations.value.length > 0 && selectedLocationKey.value === 'all') {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'distributor' ? 'D' : 'W'}:${loc.id}`;
             }
