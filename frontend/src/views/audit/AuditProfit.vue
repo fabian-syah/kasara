@@ -333,6 +333,30 @@
                                 <!-- Actions -->
                                 <td class="px-4 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
+                                        <!-- Bukti Buttons -->
+                                        <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
+                                            <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
+                                                @click="viewProof(img)"
+                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
+                                                :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
+                                                <Image :size="12" stroke-width="3" />
+                                                <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
+                                            </button>
+                                        </div>
+                                        <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                            class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
+                                            title="Lihat Foto Bukti">
+                                            <Image :size="14" stroke-width="2.5" />
+                                            <span>Lihat Bukti</span>
+                                        </button>
+
+                                        <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image)"
+                                            class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                            title="Lihat Foto Bukti Pembayaran/Transfer">
+                                            <Wallet :size="12" stroke-width="3" />
+                                            <span>Bayar</span>
+                                        </button>
+
                                         <button @click="openReceipt(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Lihat Nota">
@@ -502,12 +526,80 @@
             </div>
         </div>
     </Teleport>
+    <!-- Proof Photo Modal (HD Gallery) -->
+    <div v-if="showProofModal"
+        class="fixed inset-0 z-[99999] flex items-center justify-center p-4 px-6 sm:px-20 bg-black/90 backdrop-blur-md">
+        <div class="relative w-full max-w-5xl h-full flex flex-col items-center justify-center py-12">
+            <!-- Close Button -->
+            <button @click="showProofModal = false"
+                class="absolute top-4 right-0 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] backdrop-blur-md border border-white/20 active:scale-95"
+                title="Tutup (ESC)">
+                <X :size="28" stroke-width="3" />
+            </button>
+
+            <!-- Images Container (HD Grid/Gallery) -->
+            <div class="w-full flex-1 overflow-y-auto custom-scrollbar p-2">
+                <div :class="[
+                    'w-full max-w-7xl mx-auto',
+                    currentProofImages.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start' : 'flex flex-col gap-10 items-center'
+                ]">
+                    <div v-for="(imgUrl, index) in currentProofImages" :key="index"
+                        class="w-full bg-white dark:bg-surface-800 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group">
+
+                        <!-- HD Image Wrapper -->
+                        <div class="relative overflow-hidden bg-gray-900 aspect-square sm:aspect-auto">
+                            <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)"
+                                class="w-full h-auto min-h-[400px] max-h-[70vh] object-contain transition-all duration-700 group-hover:scale-105"
+                                style="image-rendering: -webkit-optimize-contrast; filter: contrast(1.05) brightness(1.02) saturate(1.1);" />
+
+                            <!-- HD Badge -->
+                            <div
+                                class="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/20 text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
+                                <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                                HD Processing Active
+                            </div>
+                        </div>
+
+                        <!-- Image Info Overlay (Glassmorphism) -->
+                        <div
+                            class="p-6 bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border-t border-gray-100 dark:border-surface-700 flex flex-col gap-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
+                                        FOTO #{{ index + 1 }}
+                                        <span v-if="index === 0 && currentProofImages.length > 1"
+                                            class="ml-2 text-gray-400">— UNIT</span>
+                                        <span v-else-if="index === 1" class="ml-2 text-gray-400">— CUSTOMER</span>
+                                    </span>
+                                    <h4 class="text-lg font-black text-text-primary leading-tight">Bukti Transaksi
+                                    </h4>
+                                </div>
+                                <div class="flex gap-2">
+                                    <a :href="imgUrl" target="_blank"
+                                        class="p-3 bg-gray-100 dark:bg-surface-700 text-gray-600 dark:text-gray-300 rounded-2xl hover:bg-gray-200 dark:hover:bg-surface-600 transition-all active:scale-95"
+                                        title="Buka Ukuran Penuh">
+                                        <TrendingUp :size="20" />
+                                    </a>
+                                    <button @click="downloadImage(imgUrl)"
+                                        class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl hover:bg-primary-700 transition-all text-xs font-black uppercase tracking-widest shadow-lg shadow-primary-500/30 active:scale-95">
+                                        <Download :size="18" />
+                                        Download
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch, reactive } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil, Download } from 'lucide-vue-next'
+import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil, Download, Image, Wallet, X } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
@@ -528,6 +620,39 @@ const openReceipt = (item) => {
     showReceiptModal.value = true;
 }
 
+// Proof Modal
+const showProofModal = ref(false)
+const currentProofImages = ref([])
+
+const viewProof = (imgUrl) => {
+    currentProofImages.value = [imgUrl]
+    showProofModal.value = true
+}
+
+const downloadImage = async (url) => {
+    try {
+        const response = await axios.get('/audit/sales/download-proof', {
+            params: { url },
+            responseType: 'blob'
+        });
+
+        const blob = new Blob([response.data]);
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const filename = url.split('/').pop() || 'bukti.jpg';
+        link.download = filename;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+        console.error('Download failed:', error);
+        window.open(url, '_blank');
+    }
+}
+
 // Audit Checklist Modal State
 const showChecklistModal = ref(false)
 const checklistLoading = ref(false)
@@ -543,6 +668,7 @@ const closeChecklist = () => {
 
 useEscapeKey(() => {
     if (showChecklistModal.value) closeChecklist();
+    if (showProofModal.value) showProofModal.value = false;
 });
 
 const openChecklist = async (item) => {
