@@ -143,10 +143,18 @@ class SimpleXLSXGen {
                 $ws .= '<row r="'.($rIdx+1).'">';
                 foreach ($row as $cIdx => $val) {
                     $col = $this->num2alpha($cIdx) . ($rIdx + 1);
+                    
+                    // Force-text convention: values starting with \t are always rendered as text
+                    $forceText = false;
+                    if (is_string($val) && str_starts_with($val, "\t")) {
+                        $val = substr($val, 1); // Strip the leading tab
+                        $forceText = true;
+                    }
+                    
                     $s = 0; 
                     if ($rIdx === 0) {
                         $s = 2; // Header
-                    } elseif (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                    } elseif (!$forceText && is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         // Right align numbers. Format as rupiah if value looks like a price
                         if (abs((float)$val) > 10000) {
                             $s = 7; 
@@ -162,7 +170,7 @@ class SimpleXLSXGen {
                         elseif ($s === 7) $s = 10;
                     }
 
-                    if (is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
+                    if (!$forceText && is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
                         $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($val).'</v></c>';
                     } else {
                         $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($val).'</t></is></c>';
