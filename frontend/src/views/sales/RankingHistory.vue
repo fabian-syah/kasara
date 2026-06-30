@@ -2017,11 +2017,11 @@ const handleLocationTypeChange = () => {
 
 const fetchLocations = async () => {
     try {
-        const [bRes, oRes, dRes, wRes] = await Promise.all([ // Pastikan wRes ada
+        const [bRes, oRes, dRes, wRes] = await Promise.all([
             axios.get('/branches'),
             axios.get('/online-shops'),
             axios.get('/distributors'),
-            axios.get('/warehouses') // Tambahkan endpoint gudang jika belum
+            axios.get('/warehouses')
         ]);
 
         const branchList = bRes.data?.data || bRes.data || [];
@@ -2032,9 +2032,8 @@ const fetchLocations = async () => {
         onlineShops.value = shopList;
         distributors.value = dRes.data?.data || dRes.data || [];
 
-        const locs = [];
+        let locs = [];
 
-        // Simpan referensi ikon langsung ke objek
         if (Array.isArray(branchList)) {
             branchList.forEach(b => {
                 locs.push({ key: `branch_${b.id}`, value: b.id, label: b.name, type: 'branch', icon: MapPin });
@@ -2053,21 +2052,33 @@ const fetchLocations = async () => {
             });
         }
 
+        if (isRestricted.value) {
+            const allowedBranches = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+            const allowedShops = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+            
+            locs = locs.filter(l => {
+                if (l.type === 'branch') return allowedBranches.includes(Number(l.value));
+                if (l.type === 'online_shop') return allowedShops.includes(Number(l.value));
+                return false;
+            });
+            
+            if (locs.length > 0) {
+                const first = locs[0];
+                filters.value.branch_id = first.type === 'branch' ? first.value : null;
+                filters.value.online_shop_id = first.type === 'online_shop' ? first.value : null;
+                locationType.value = first.type === 'online_shop' ? 'online' : 'branch';
+            }
+        }
+
         availableLocations.value = locs;
     } catch (error) {
         console.error('Error fetching locations:', error);
     }
 }
 
-onMounted(() => {
+onMounted(async () => {
     fetchGlobalFilters() // Always fetch distributors and products for filtering
-    if (isRestricted.value) {
-        filters.value.branch_id = authStore.user?.branch_id || null;
-        filters.value.online_shop_id = authStore.user?.online_shop_id || null;
-        locationType.value = authStore.user?.branch_id ? 'branch' : 'online';
-    } else {
-        fetchLocations()
-    }
+    await fetchLocations()
     fetchData()
 })
 

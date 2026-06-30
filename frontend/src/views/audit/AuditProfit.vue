@@ -197,7 +197,10 @@
                                     profitRecords.daily_sales.per_page + index + 1 }}</td>
                                 <td class="px-4 py-4 font-medium text-text-primary text-xs whitespace-nowrap">
                                     {{ formatDate(item.date) }}</td>
-                                <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no }}</td>
+                                <td class="px-4 py-4 text-text-primary font-medium text-xs">
+                                    <div>{{ item.order_no }}</div>
+                                    <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
+                                </td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
@@ -594,6 +597,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Sale Screenshot Modal -->
+    <SaleScreenshot 
+        :is-open="showScreenshotModal" 
+        :sale="selectedSaleForScreenshot" 
+        @close="showScreenshotModal = false" 
+    />
 </template>
 
 <script setup>
@@ -603,6 +613,15 @@ import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, Clipbo
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
+import SaleScreenshot from '../../components/sales/SaleScreenshot.vue'
+
+const showScreenshotModal = ref(false)
+const selectedSaleForScreenshot = ref(null)
+
+const openScreenshot = (item) => {
+    selectedSaleForScreenshot.value = item;
+    showScreenshotModal.value = true;
+}
 
 const authStore = useAuthStore()
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')

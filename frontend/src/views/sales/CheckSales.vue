@@ -25,7 +25,7 @@
                 <div v-if="canFilterBranch" class="relative min-w-[200px]">
                     <select v-model="selectedLocationKey" @change="handleLocationChange"
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
-                        <option value="all" class="dark:bg-surface-800 dark:text-white">Semua Cabang/Toko</option>
+                        <option v-if="!isRestrictedLocation" value="all" class="dark:bg-surface-800 dark:text-white">Semua Cabang/Toko</option>
                         <option v-for="loc in filteredLocations" :key="`${loc.type}:${loc.id}`"
                             :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`"
                             class="dark:bg-surface-800 dark:text-white">
@@ -694,8 +694,8 @@ const filteredLocations = computed(() => {
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
     return (locations.value || []).filter(loc => !excluded.some(term => (loc.name || '').toLowerCase().includes(term)));
 });
+const isRestrictedLocation = computed(() => { const role = (authStore.userRole || '').toLowerCase(); return !privilegedRoles.some(r => role.includes(r)); });
 const selectedLocationKey = ref('all')
-
 const selectedBranchId = computed(() => {
     if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
     return selectedLocationKey.value.split(':')[1];
@@ -756,6 +756,10 @@ const fetchLocations = async () => {
                 if (loc.type === 'online_shop') return allowedShopIds.includes(Number(loc.id));
                 return false;
             });
+            if (locations.value.length > 0 && selectedLocationKey.value === 'all') {
+                const first = locations.value[0];
+                selectedLocationKey.value = `${first.type === 'branch' ? 'B' : 'S'}:${first.id}`;
+            }
         } else {
             locations.value = [];
         }
