@@ -1045,8 +1045,48 @@ const summaryStats = computed(() => {
         }
     });
 
-    const finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
-    const finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (finalOmset - (outlay + tradeIncomingTotal));
+    let finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
+    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (finalOmset - (outlay + tradeIncomingTotal));
+
+    if (hasSummary && summary.activities && summary.activities.details) {
+        const acts = summary.activities.details;
+        let summaryOutlay = 0;
+        let summaryTradeIncoming = 0;
+        
+        // Sum deductions from activity details
+        ['refund', 'angkat_barang'].forEach(cat => {
+            if (acts[cat]) {
+                acts[cat].forEach(item => {
+                    summaryOutlay += parseFloat(item.price || 0);
+                });
+            }
+        });
+        
+        // Sum downgrade and in_tt for trade incoming
+        ['downgrade', 'in_tt'].forEach(cat => {
+            if (acts[cat]) {
+                acts[cat].forEach(item => {
+                    summaryTradeIncoming += parseFloat(item.price || 0);
+                });
+            }
+        });
+
+        // The user explicitly requested: omset bersih = total omset - (angkat barang + refund + selisih downgrade)
+        // We ensure totalOmset matches the expectation and compute omsetBersih dynamically to override the flawed backend omset_bersih
+        
+        // We use local baseSales + tradeOutgoingTotal if available and matches Excel better, else fallback to summary
+        if (activeRecords.value.length <= 150 && activeRecords.value.length > 0) {
+            // If we are on the first page and it has all records, local calculation is 100% accurate (matches Excel)
+            finalOmset = baseSales + tradeOutgoingTotal;
+            finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
+        } else {
+            // Fallback for paginated results (more than 150)
+            finalOmsetBersih = finalOmset - (summaryOutlay + summaryTradeIncoming);
+        }
+    } else if (!hasSummary) {
+        finalOmset = baseSales + tradeOutgoingTotal;
+        finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
+    }
 
     // Unit HP & Non-HP values fall back to backend report_summary values when available
     let finalHpUnitsOut = hpUnitsOut;
