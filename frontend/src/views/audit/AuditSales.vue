@@ -152,6 +152,19 @@
             </div>
 
             <!-- Table -->
+            <div
+                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead
+                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
+                            <tr>
+                                <th class="px-6 py-4">No</th>
+                                <th class="px-6 py-4">Waktu Pesanan</th>
+                                <th class="px-6 py-4">Nomor Pesanan</th>
+                                <th class="px-6 py-4">Cabang</th>
+                                <th class="px-6 py-4">Nama</th>
+                                <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
                                 <th colspan="3"
                                     class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:!bg-surface-700/50">
