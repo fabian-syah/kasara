@@ -123,20 +123,35 @@
                 </div>
             </div>
 
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6" v-if="salesRecords.daily_sales.data && salesRecords.daily_sales.data.length > 0">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Transaksi</p>
+                    <p class="text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Cancel</p>
+                    <p class="text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Belum Diaudit (Hal ini)</p>
+                    <p class="text-lg font-bold text-amber-500">{{ summaryStats.belumDiaudit }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Sudah Diaudit (Hal ini)</p>
+                    <p class="text-lg font-bold text-emerald-500">{{ summaryStats.sudahDiaudit }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total All Omset</p>
+                    <p class="text-lg font-bold text-blue-500">{{ formatCurrency(summaryStats.totalOmset) }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Omset Bersih</p>
+                    <p class="text-lg font-bold text-purple-500">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
+                </div>
+            </div>
+
             <!-- Table -->
-            <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead
-                            class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700">
-                            <tr>
-                                <th class="px-6 py-4">No</th>
-                                <th class="px-6 py-4">Waktu Pesanan</th>
-                                <th class="px-6 py-4">Nomor Pesanan</th>
-                                <th class="px-6 py-4">Cabang</th>
-                                <th class="px-6 py-4">Nama</th>
-                                <th class="px-6 py-4">No HP</th>
                                 <th class="px-6 py-4">Kategori</th>
                                 <th colspan="3"
                                     class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:!bg-surface-700/50">
@@ -873,6 +888,135 @@ const filters = ref({
 
 const locations = ref([])
 const selectedLocationKey = ref('all')
+
+const summaryStats = computed(() => {
+    const list = salesRecords.value.daily_sales?.data || []
+    const activeRecords = list.filter(item => item.category !== 'cancel_penjualan')
+    const cancelRecords = list.filter(item => item.category === 'cancel_penjualan')
+    
+    let totalCancelGlobal = cancelRecords.length;
+    let globalTransaksi = salesRecords.value.daily_sales?.total || 0;
+    
+    // If we have report_summary from backend, we could calculate Omset properly
+    const summary = salesRecords.value?.report_summary;
+    const hasSummary = summary !== undefined && summary !== null;
+    
+    if (hasSummary && summary.activities && summary.activities.cancel_penjualan) {
+        totalCancelGlobal = summary.activities.cancel_penjualan.length;
+    }
+
+    let baseSales = 0;
+    let tradeSelisih = 0;
+    let tradeOutgoingTotal = 0;
+    let tradeOutgoingTT = 0;
+    let tradeIncomingTotal = 0;
+    let outlay = 0;
+
+    const resolveActualCategory = (category, notes, salesAccount) => {
+        const cat = (category || '').toLowerCase();
+        const n = (notes || '').toLowerCase();
+        const sa = (salesAccount || '').toLowerCase();
+
+        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
+            if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
+                return 'tukar_tambah';
+            }
+            return cat;
+        }
+
+        if (n.includes('barang angkat') || n.includes('angkat barang') || n.includes('angkat_barang') || sa.includes('barang angkat') || sa.includes('angkat barang') || sa.includes('angkat_barang')) {
+            return 'angkat_barang';
+        }
+        if (n.includes('refund') || sa.includes('refund')) {
+            return 'refund';
+        }
+        if (n.includes('downgrade') || sa.includes('downgrade')) {
+            return 'downgrade';
+        }
+        if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
+            return 'tukar_tambah';
+        }
+        return cat;
+    };
+
+    activeRecords.forEach(item => {
+        const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
+        
+        let total = 0;
+        const discount = parseFloat(item.total_discount) || 0;
+        if (item.items && item.items.length > 0) {
+            total = item.items.reduce((sum, detail) => sum + (Math.abs(parseFloat(detail.price || detail.harga_jual)) * parseFloat(detail.qty || 1)), 0);
+        } else {
+            total = Math.abs(parseFloat(item.original_price || item.total_amount || item.grand_total) || 0);
+        }
+        total = Math.max(0, total - discount);
+
+        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);
+        const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
+        const isDeduction = ['refund', 'angkat_barang'].includes(cat);
+
+        if (isBaseSale) {
+            baseSales += total;
+        } else if (isTradeIn) {
+            const outVal = Math.abs(parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0));
+            const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
+            if (cat === 'tukar_tambah') {
+                tradeOutgoingTotal += outVal;
+                tradeIncomingTotal += inVal;
+            } else if (cat === 'downgrade') {
+                tradeIncomingTotal += Math.max(0, inVal - outVal);
+            }
+        }
+
+        if (isDeduction) {
+            outlay += total;
+        }
+    });
+
+    let finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
+    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (finalOmset - (outlay + tradeIncomingTotal));
+
+    if (hasSummary && summary.activities && summary.activities.details) {
+        const acts = summary.activities.details;
+        let summaryOutlay = 0;
+        let summaryTradeIncoming = 0;
+        
+        ['refund', 'angkat_barang'].forEach(cat => {
+            if (acts[cat]) {
+                acts[cat].forEach(item => {
+                    summaryOutlay += parseFloat(item.price || 0);
+                });
+            }
+        });
+        
+        ['downgrade', 'in_tt'].forEach(cat => {
+            if (acts[cat]) {
+                acts[cat].forEach(item => {
+                    summaryTradeIncoming += parseFloat(item.price || 0);
+                });
+            }
+        });
+
+        if (activeRecords.length <= 150 && activeRecords.length > 0) {
+            finalOmset = baseSales + tradeOutgoingTotal;
+            finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
+        } else {
+            finalOmsetBersih = finalOmset - (summaryOutlay + summaryTradeIncoming);
+        }
+    } else if (!hasSummary) {
+        finalOmset = baseSales + tradeOutgoingTotal;
+        finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
+    }
+
+    return {
+        totalTransaksi: globalTransaksi - totalCancelGlobal,
+        totalCancel: totalCancelGlobal,
+        belumDiaudit: activeRecords.filter(r => r.audit_score == null).length,
+        sudahDiaudit: activeRecords.filter(r => r.audit_score != null).length,
+        totalOmset: finalOmset,
+        omsetBersih: finalOmsetBersih
+    }
+})
 
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';

@@ -106,19 +106,32 @@
             </div>
 
             <!-- Summary Cards (Current Page) -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
-                <div
-                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Transaksi</p>
+                    <p class="text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Cancel</p>
+                    <p class="text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Belum Diaudit (Hal ini)</p>
+                    <p class="text-lg font-bold text-amber-500">{{ summaryStats.belumDiaudit }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Sudah Diaudit (Hal ini)</p>
+                    <p class="text-lg font-bold text-emerald-500">{{ summaryStats.sudahDiaudit }}</p>
+                </div>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Jual (Hal ini)</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaJual) }}</p>
                 </div>
-                <div
-                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Modal (Hal ini)</p>
                     <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
-                <div
-                    class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Profit (Hal ini)</p>
                     <p class="text-lg font-bold"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
@@ -981,6 +994,29 @@ const filters = ref({
 
 const locations = ref([])
 const selectedLocationKey = ref('all')
+
+const summaryStats = computed(() => {
+    const list = profitRecords.value.daily_sales?.data || []
+    const activeRecords = list.filter(item => item.category !== 'cancel_penjualan')
+    const cancelRecords = list.filter(item => item.category === 'cancel_penjualan')
+    
+    let totalCancelGlobal = cancelRecords.length;
+    let globalTransaksi = profitRecords.value.daily_sales?.total || 0;
+    
+    const summary = profitRecords.value?.report_summary;
+    const hasSummary = summary !== undefined && summary !== null;
+    
+    if (hasSummary && summary.activities && summary.activities.cancel_penjualan) {
+        totalCancelGlobal = summary.activities.cancel_penjualan.length;
+    }
+
+    return {
+        totalTransaksi: globalTransaksi - totalCancelGlobal,
+        totalCancel: totalCancelGlobal,
+        belumDiaudit: activeRecords.filter(r => r.audit_score == null).length,
+        sudahDiaudit: activeRecords.filter(r => r.audit_score != null).length,
+    }
+})
 
 // Summary computeds
 const totalHargaJual = computed(() =>
