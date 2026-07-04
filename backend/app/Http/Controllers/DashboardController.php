@@ -566,8 +566,8 @@ class DashboardController extends Controller
                 });
 
                 $stats = $query->select(
-                    DB::raw('COALESCE(stock_outs.branch_id, inventory_users.branch_id, users.branch_id) as branch_id'),
-                    DB::raw('COALESCE(stock_outs.online_shop_id, inventory_users.online_shop_id, users.online_shop_id) as online_shop_id'),
+                    DB::raw('COALESCE(inventory_users.branch_id, stock_outs.branch_id, users.branch_id) as branch_id'),
+                    DB::raw('COALESCE(inventory_users.online_shop_id, stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
@@ -598,7 +598,7 @@ class DashboardController extends Controller
                         END
                     ) as omset_bersih")
                 )
-                    ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, inventory_users.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, inventory_users.online_shop_id, users.online_shop_id)'))
+                    ->groupBy(DB::raw('COALESCE(inventory_users.branch_id, stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(inventory_users.online_shop_id, stock_outs.online_shop_id, users.online_shop_id)'))
                     ->get();
 
                 $ranks = collect();
