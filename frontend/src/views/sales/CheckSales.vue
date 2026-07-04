@@ -517,22 +517,52 @@
         </div>
 
         <!-- Pagination Controls -->
-        <div v-if="salesRecords.daily_sales?.last_page > 1" class="flex items-center justify-between bg-white dark:!bg-surface-800 p-4 rounded-xl border border-gray-100 dark:border-surface-700">
-            <div class="text-sm text-text-secondary">
-                Menampilkan halaman <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.current_page }}</span> dari <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.last_page }}</span> (Total {{ salesRecords.daily_sales.total }} data)
+        <div v-if="salesRecords.daily_sales?.last_page > 1" class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:!bg-surface-800 p-4 rounded-xl border border-gray-100 dark:border-surface-700">
+            <div class="text-sm text-text-secondary text-center sm:text-left w-full sm:w-auto">
+                Menampilkan <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.current_page }}</span> dari <span class="font-bold text-text-primary">{{ salesRecords.daily_sales.last_page }}</span> <span class="hidden sm:inline">(Total {{ salesRecords.daily_sales.total }} data)</span>
             </div>
-            <div class="flex gap-2">
+            
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                 <button 
                     @click="fetchData(salesRecords.daily_sales.current_page - 1)" 
                     :disabled="salesRecords.daily_sales.current_page === 1"
-                    class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-gray-50 dark:bg-surface-700 text-text-primary hover:bg-gray-100 dark:hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-surface-600">
-                    Sebelumnya
+                    class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-gray-50 dark:bg-surface-700 text-text-primary hover:bg-gray-100 dark:hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200 dark:border-surface-600 text-center">
+                    <span class="hidden sm:inline">Sebelumnya</span>
+                    <span class="sm:hidden">&larr; Prev</span>
                 </button>
+
+                <!-- Desktop Page Numbers -->
+                <div class="hidden md:flex items-center gap-1 mx-2">
+                    <button v-for="page in Math.min(salesRecords.daily_sales.last_page, 5)" 
+                        :key="page"
+                        @click="fetchData(page)"
+                        :class="[
+                            'min-w-[32px] h-8 px-2 flex items-center justify-center rounded-lg text-sm font-semibold transition-all',
+                            salesRecords.daily_sales.current_page === page
+                                ? 'bg-primary-500 text-white shadow-sm'
+                                : 'text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-600'
+                        ]">
+                        {{ page }}
+                    </button>
+                    <span v-if="salesRecords.daily_sales.last_page > 5" class="px-1 text-gray-400">...</span>
+                    <button v-if="salesRecords.daily_sales.last_page > 5"
+                        @click="fetchData(salesRecords.daily_sales.last_page)"
+                        :class="[
+                            'min-w-[32px] h-8 px-2 flex items-center justify-center rounded-lg text-sm font-semibold transition-all',
+                            salesRecords.daily_sales.current_page === salesRecords.daily_sales.last_page
+                                ? 'bg-primary-500 text-white shadow-sm'
+                                : 'text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-600'
+                        ]">
+                        {{ salesRecords.daily_sales.last_page }}
+                    </button>
+                </div>
+
                 <button 
                     @click="fetchData(salesRecords.daily_sales.current_page + 1)" 
                     :disabled="salesRecords.daily_sales.current_page === salesRecords.daily_sales.last_page"
-                    class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-primary-50 dark:bg-primary-500/10 text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-primary-100 dark:border-primary-500/20">
-                    Selanjutnya
+                    class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-primary-50 dark:bg-primary-500/10 text-primary-600 hover:bg-primary-100 dark:hover:bg-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed border border-primary-100 dark:border-primary-500/20 text-center">
+                    <span class="hidden sm:inline">Selanjutnya</span>
+                    <span class="sm:hidden">Next &rarr;</span>
                 </button>
             </div>
         </div>
