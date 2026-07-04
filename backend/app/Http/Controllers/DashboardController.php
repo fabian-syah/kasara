@@ -130,11 +130,6 @@ class DashboardController extends Controller
                         if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
                         if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
                     });
-                })->orWhereHas('inventoryUser', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                    $qu->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                        if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
-                        if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-                    });
                 });
 
                 if (!empty($accessibleBranchIds)) $q->orWhereIn('branch_id', $accessibleBranchIds);
@@ -566,8 +561,8 @@ class DashboardController extends Controller
                 });
 
                 $stats = $query->select(
-                    DB::raw('COALESCE(inventory_users.branch_id, stock_outs.branch_id, users.branch_id) as branch_id'),
-                    DB::raw('COALESCE(inventory_users.online_shop_id, stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
+                    DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
+                    DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
@@ -598,7 +593,7 @@ class DashboardController extends Controller
                         END
                     ) as omset_bersih")
                 )
-                    ->groupBy(DB::raw('COALESCE(inventory_users.branch_id, stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(inventory_users.online_shop_id, stock_outs.online_shop_id, users.online_shop_id)'))
+                    ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
                     ->get();
 
                 $ranks = collect();
@@ -633,19 +628,16 @@ class DashboardController extends Controller
 
                 $query = DB::table('stock_outs')
                     ->join('users', 'stock_outs.user_id', '=', 'users.id')
-                    ->leftJoin('users as inventory_users', 'stock_outs.inventory_user_id', '=', 'inventory_users.id')
                     ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
                 $query->where(function ($q) use ($user) {
                     if ($user->branch_id) {
                         $q->where('stock_outs.branch_id', $user->branch_id)
-                          ->orWhere('users.branch_id', $user->branch_id)
-                          ->orWhere('inventory_users.branch_id', $user->branch_id);
+                          ->orWhere('users.branch_id', $user->branch_id);
                     } elseif ($user->online_shop_id) {
                         $q->where('stock_outs.online_shop_id', $user->online_shop_id)
-                          ->orWhere('users.online_shop_id', $user->online_shop_id)
-                          ->orWhere('inventory_users.online_shop_id', $user->online_shop_id);
+                          ->orWhere('users.online_shop_id', $user->online_shop_id);
                     }
                 });
 

@@ -271,12 +271,10 @@ class AuditController extends Controller
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
                                 $q->where('stock_outs.branch_id', $requestedBranchId)
-                                    ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId))
-                                    ->orWhereHas('inventoryUser', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                                    ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
                             } elseif ($requestedOnlineShopId) {
                                 $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                    ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId))
-                                    ->orWhereHas('inventoryUser', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                                    ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
                             } elseif ($requestedWarehouseId) {
                                 $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
                                     ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
@@ -286,13 +284,11 @@ class AuditController extends Controller
                                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                                     if (!empty($branchIds)) {
                                         $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                            ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds))
-                                            ->orWhereHas('inventoryUser', fn($uq) => $uq->whereIn('branch_id', $branchIds));
+                                            ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
                                     }
                                     if (!empty($onlineShopIds)) {
                                         $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                            ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds))
-                                            ->orWhereHas('inventoryUser', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
+                                            ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
                                     }
                                     if (!empty($warehouseIds)) {
                                         $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
