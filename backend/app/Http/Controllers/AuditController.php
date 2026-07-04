@@ -242,8 +242,10 @@ class AuditController extends Controller
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
                 // 1. Paginated Sales Query
                 function () use ($salesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
+                    $normalizedSalesCategories = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $salesCategories));
+
                     return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
-                        ->whereIn('category', $salesCategories)
+                        ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedSalesCategories)
                         ->where(function ($q) use ($startDate, $endDate) {
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
@@ -401,12 +403,12 @@ class AuditController extends Controller
                         ->select('sales_account')
                         ->where(function ($q) {
                             $q->whereNull('inventory_user_id')
-                              ->orWhereRaw('inventory_user_id = user_id');
+                                ->orWhereRaw('inventory_user_id = user_id');
                         })
                         ->whereNotNull('sales_account')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('reporting_date', [$startDate, $endDate])
-                              ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                ->orWhereBetween('created_at', [$startTS, $endTS]);
                         })
                         ->distinct()
                         ->pluck('sales_account');
@@ -428,20 +430,20 @@ class AuditController extends Controller
                                 $usersMap[$typedName] = $matchedUser->id;
                             }
                         }
-                            
+
                         foreach ($usersMap as $name => $userId) {
                             DB::table('stock_outs')
                                 ->where(function ($q) {
                                     $q->whereNull('inventory_user_id')
-                                      ->orWhereRaw('inventory_user_id = user_id');
+                                        ->orWhereRaw('inventory_user_id = user_id');
                                 })
                                 ->where('sales_account', $name)
                                 ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                                     $q->whereBetween('reporting_date', [$startDate, $endDate])
-                                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                        ->orWhereBetween('created_at', [$startTS, $endTS]);
                                 })
                                 ->where(function ($q) use ($userId) {
-                                     $q->whereNull('inventory_user_id')->orWhere('inventory_user_id', '!=', $userId);
+                                    $q->whereNull('inventory_user_id')->orWhere('inventory_user_id', '!=', $userId);
                                 })
                                 ->update(['inventory_user_id' => $userId]);
                         }
@@ -792,14 +794,14 @@ class AuditController extends Controller
                         ->groupBy(DB::raw("COALESCE(stock_outs.reporting_date, CAST(stock_outs.created_at - INTERVAL '5 hours' AS DATE))"))->get()->keyBy('reporting_date');
 
                     $transactions = (clone $baseQuery)->select(
-                        'stock_outs.id', 
-                        'stock_outs.category', 
+                        'stock_outs.id',
+                        'stock_outs.category',
                         'stock_outs.receipt_id',
-                        'stock_outs.reporting_date', 
-                        'stock_outs.created_at', 
-                        'stock_outs.selling_price', 
-                        'stock_outs.total_discount', 
-                        'stock_outs.notes', 
+                        'stock_outs.reporting_date',
+                        'stock_outs.created_at',
+                        'stock_outs.selling_price',
+                        'stock_outs.total_discount',
+                        'stock_outs.notes',
                         'stock_outs.sales_account',
                         DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
                         DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
@@ -1415,7 +1417,7 @@ class AuditController extends Controller
                                     $outPrice = $price;
                                 }
                                 $inPrice = floatval($ps->tt_incoming_cost_price ?? 0);
-                                
+
                                 $totalTradeOutgoing += $outPrice;
                                 $totalTradeIncoming += $inPrice;
                                 $tradeSelisih += $price;
@@ -1522,8 +1524,8 @@ class AuditController extends Controller
                                     'name' => $hp->name,
                                     'imei' => $hp->imei,
                                     'storage' => $hp->storage,
-                                    'price' => in_array($catLower, ['tukar_tambah']) 
-                                        ? abs((float) $hp->total_diff) 
+                                    'price' => in_array($catLower, ['tukar_tambah'])
+                                        ? abs((float) $hp->total_diff)
                                         : (float) ($hp->item_price > 0 ? $hp->item_price : ($hp->cost_price ?? 0))
                                 ];
                             }
@@ -1557,15 +1559,17 @@ class AuditController extends Controller
                             ->leftJoin('product_types', 'tukar_tambahs.incoming_product_type_id', '=', 'product_types.id')
                             ->whereNull('stock_outs.deleted_at')
                             ->where('stock_outs.category', '!=', 'cancel_penjualan');
-                        
+
                         $applyLocalScope($ttIncomingQuery);
 
-                        foreach ($ttIncomingQuery->select(
-                            'product_types.name as incoming_name', 
-                            'tukar_tambahs.incoming_cost_price',
-                            'tukar_tambahs.incoming_imei',
-                            'tukar_tambahs.incoming_storage'
-                        )->get() as $itt) {
+                        foreach (
+                            $ttIncomingQuery->select(
+                                'product_types.name as incoming_name',
+                                'tukar_tambahs.incoming_cost_price',
+                                'tukar_tambahs.incoming_imei',
+                                'tukar_tambahs.incoming_storage'
+                            )->get() as $itt
+                        ) {
                             $activityDetails['in_tt'][] = [
                                 'name' => 'IN: ' . ($itt->incoming_name ?? 'Unit Masuk'),
                                 'imei' => $itt->incoming_imei ?? '-',
@@ -1580,16 +1584,18 @@ class AuditController extends Controller
                             ->leftJoin('product_types', 'downgrades.incoming_product_type_id', '=', 'product_types.id')
                             ->whereNull('stock_outs.deleted_at')
                             ->where('stock_outs.category', '!=', 'cancel_penjualan');
-                        
+
                         $applyLocalScope($dgIncomingQuery);
 
-                        foreach ($dgIncomingQuery->select(
-                            'product_types.name as incoming_name', 
-                            'downgrades.incoming_cost_price',
-                            'downgrades.incoming_imei',
-                            'downgrades.incoming_storage',
-                            'stock_outs.selling_price'
-                        )->get() as $idg) {
+                        foreach (
+                            $dgIncomingQuery->select(
+                                'product_types.name as incoming_name',
+                                'downgrades.incoming_cost_price',
+                                'downgrades.incoming_imei',
+                                'downgrades.incoming_storage',
+                                'stock_outs.selling_price'
+                            )->get() as $idg
+                        ) {
                             $activityDetails['downgrade'][] = [
                                 'name' => 'IN: ' . ($idg->incoming_name ?? 'Unit Downgrade'),
                                 'imei' => $idg->incoming_imei ?? '-',
@@ -1602,10 +1608,10 @@ class AuditController extends Controller
                         // 2. Non-IMEI transactions
                         $nhpItems = \App\Models\StockOutNonHpItem::with(['product', 'stockOut'])
                             ->whereHas('stockOut', function ($q) use ($startDate, $endDate, $salesCategories, $applyLocalScope) {
-                            $q->whereIn('category', $salesCategories)
-                                ->whereBetween('reporting_date', [$startDate, $endDate]);
-                            $applyLocalScope($q);
-                        })
+                                $q->whereIn('category', $salesCategories)
+                                    ->whereBetween('reporting_date', [$startDate, $endDate]);
+                                $applyLocalScope($q);
+                            })
                             ->get();
 
                         $nhpLogMemo = [];
@@ -1636,7 +1642,7 @@ class AuditController extends Controller
                                 $lType = $trx->branch_id ? 'b' : ($trx->warehouse_id ? 'w' : ($trx->online_shop_id ? 'o' : 'n'));
                                 $lId = $trx->branch_id ?: ($trx->warehouse_id ?: ($trx->online_shop_id ?: 0));
                                 $cKey = "{$item->product_id}_{$lType}_{$lId}";
-                                
+
                                 if (array_key_exists($cKey, $nhpLogMemo)) {
                                     $did = $nhpLogMemo[$cKey];
                                 } else {
@@ -1790,10 +1796,10 @@ class AuditController extends Controller
                             }
                         }
                         $selisihTT = $tradeSelisih > 0 ? $tradeSelisih : $productTradeSelisih;
-                        
+
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
                         $paymentTotal = $baseSalesOnly + $tradeOutVal;
-                        
+
                         // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions
                         $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
 
@@ -1853,8 +1859,7 @@ class AuditController extends Controller
                         ];
                     }
                 }
-            ]);
-            ;
+            ]);;
 
 
 
@@ -2143,7 +2148,7 @@ class AuditController extends Controller
                             } else {
                                 $amt = abs($amt);
                             }
-                            
+
                             $pm = $pmId ? $paymentMethods->get($pmId) : null;
                             $pmCat = strtolower($pm->category ?? '');
                             if ($pmCat === 'cash') $cash += $amt;
@@ -2172,8 +2177,8 @@ class AuditController extends Controller
                 } else {
                     $u = $trx->inventoryUser ?? $trx->user;
                     if ($u) {
-                         if ($u->branch_id && isset($branches[$u->branch_id])) $outletName = $branches[$u->branch_id]->name;
-                         elseif ($u->online_shop_id && isset($onlineShops[$u->online_shop_id])) $outletName = $onlineShops[$u->online_shop_id]->name;
+                        if ($u->branch_id && isset($branches[$u->branch_id])) $outletName = $branches[$u->branch_id]->name;
+                        elseif ($u->online_shop_id && isset($onlineShops[$u->online_shop_id])) $outletName = $onlineShops[$u->online_shop_id]->name;
                     }
                 }
 
@@ -2473,8 +2478,7 @@ class AuditController extends Controller
             'out' => $outHp + $outNonHp,
             'out_hp' => $outHp,
             'out_non_hp' => (int) $outNonHp
-        ]);
-        ;
+        ]);;
     }
 
     /**
@@ -2689,8 +2693,7 @@ class AuditController extends Controller
                 })->groupBy('users.id', 'users.name', 'users.full_name')
                 ->select('users.name', 'users.full_name as full_name', DB::raw('SUM(selling_price) as revenue'), DB::raw('COUNT(*) as count'))
                 ->get(),
-        ]);
-        ;
+        ]);;
 
         return response()->json([
             'summary' => [
@@ -2699,8 +2702,7 @@ class AuditController extends Controller
             ],
             'profit_trend' => $trendRaw->map(fn($t) => ['date' => $t->reporting_date, 'revenue' => (float) $t->revenue]),
             'sales_breakdown' => $breakdownRaw->map(fn($b) => ['name' => $b->full_name ?: $b->name, 'revenue' => (float) $b->revenue, 'items' => $b->count]),
-        ]);
-        ;
+        ]);;
     }
 
     /**
@@ -2729,9 +2731,9 @@ class AuditController extends Controller
         $currentQuestions = Question::withTrashed()
             ->where('category', $category)
             ->where('created_at', '<=', $txDateTime)
-            ->where(function($q) use ($txDateTime) {
+            ->where(function ($q) use ($txDateTime) {
                 $q->whereNull('deleted_at')
-                  ->orWhere('deleted_at', '>', $txDateTime);
+                    ->orWhere('deleted_at', '>', $txDateTime);
             })
             ->orderBy('id')
             ->get();
@@ -3158,8 +3160,7 @@ class AuditController extends Controller
                 'total' => $paginatedProfit->total(),
                 'per_page' => $paginatedProfit->perPage(),
             ],
-        ]);
-        ;
+        ]);;
     }
 
     /**
@@ -3213,9 +3214,9 @@ class AuditController extends Controller
         $currentQuestions = Question::withTrashed()
             ->where('category', 'profit')
             ->where('created_at', '<=', $txDateTime)
-            ->where(function($q) use ($txDateTime) {
+            ->where(function ($q) use ($txDateTime) {
                 $q->whereNull('deleted_at')
-                  ->orWhere('deleted_at', '>', $txDateTime);
+                    ->orWhere('deleted_at', '>', $txDateTime);
             })
             ->orderBy('id')
             ->get();
@@ -3444,7 +3445,7 @@ class AuditController extends Controller
                     ($row['total_pengeluaran'] === '') ? '' : (float)($row['total_pengeluaran'] ?? 0),
                     $row['status'] ?? ''
                 ]);
-                
+
                 // Inject metadata for zebra striping helper
                 if (isset($row['__bg_striped'])) {
                     $xlsxRow['__bg_striped'] = $row['__bg_striped'];
@@ -3458,13 +3459,13 @@ class AuditController extends Controller
                 $colCount = count($xlsxData[0]);
                 $footerRow = array_fill(0, $colCount, '');
                 $footerRow[0] = 'TOTAL AKHIR';
-                
+
                 // Start summation from column index 17 (first payment/money column) 
                 // up to the second-to-last column (Total Pengeluaran). Skip the final Status column.
                 // Recalibrated from index 17 up to 19 (+2 for added columns: bundling and in_tukar_tambah)
                 $startSumCol = 19;
-                $endSumCol = $colCount - 2; 
-                
+                $endSumCol = $colCount - 2;
+
                 if ($endSumCol >= $startSumCol) {
                     // Initialize numerical slots with zero
                     for ($col = $startSumCol; $col <= $endSumCol; $col++) {
@@ -3478,7 +3479,7 @@ class AuditController extends Controller
                         }
                     }
                 }
-                
+
                 // Append total summary to the spreadsheet dataset
                 $xlsxData[] = $footerRow;
             }
@@ -3500,7 +3501,7 @@ class AuditController extends Controller
             // Striping per customer group (same order_no = same color)
             $imeiSheetData = [['Tanggal', 'Nama Customer', 'WhatsApp', 'Produk Keluar', 'IMEI', 'Uang Masuk', 'Uang Keluar']];
             $rows2 = $export->collection();
-            
+
             // Group rows by order_no to combine multi-row transactions
             $groupedByOrder = [];
             foreach ($rows2 as $row) {
@@ -3516,20 +3517,20 @@ class AuditController extends Controller
             foreach ($groupedByOrder as $orderNo => $orderRows) {
                 $firstRow = $orderRows[0];
                 $cat = strtolower($firstRow['category'] ?? '');
-                
+
                 // Collect all IMEI items (outgoing + incoming) for this transaction
                 $outProducts = [];
                 $inProducts = [];
                 $outImeis = [];
                 $inImeis = [];
                 $outPrices = [];
-                
+
                 foreach ($orderRows as $row) {
                     $prodKeluar = $row['produk_keluar'] ?? '';
                     $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
                     $prodMasuk = $row['produk_masuk'] ?? '';
                     $imeiMasuk = str_replace("'", "", $row['imei_masuk'] ?? '');
-                    
+
                     // Only HP items (has real IMEI, length > 5, not just '-')
                     if ($prodKeluar && $imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5) {
                         $outProducts[] = $prodKeluar;
@@ -3541,10 +3542,10 @@ class AuditController extends Controller
                         $inImeis[] = $imeiMasuk;
                     }
                 }
-                
+
                 // Skip if no HP items at all
                 if (empty($outImeis) && empty($inImeis)) continue;
-                
+
                 // Toggle stripe when order changes
                 if ($orderNo !== $imeiLastOrderNo) {
                     $imeiStriped = !$imeiStriped;
@@ -3569,12 +3570,12 @@ class AuditController extends Controller
                     foreach ($outProducts as $p) $prodParts[] = $p;
                     foreach ($inProducts as $p) $prodParts[] = $p;
                     $combinedProd = $catLabel . ' ' . implode(' ', $prodParts);
-                    
+
                     // Combine IMEIs with out/in labels
                     $imeiParts = [];
                     foreach ($outImeis as $oi) $imeiParts[] = $oi . ' out';
                     foreach ($inImeis as $ii) $imeiParts[] = $ii . ' in';
-                    
+
                     $imeiRow = [
                         $firstRow['waktu'] ?? '',
                         $firstRow['customer'] ?? '',
@@ -3623,10 +3624,10 @@ class AuditController extends Controller
                 $cat = strtolower($row['category'] ?? '');
                 $prodKeluar = $row['produk_keluar'] ?? '';
                 $imeiKeluar = str_replace("'", "", $row['imei_keluar'] ?? '');
-                
+
                 // Non-HP: has product but no IMEI
                 if (!$prodKeluar || ($imeiKeluar && $imeiKeluar !== '-' && strlen($imeiKeluar) > 5)) continue;
-                
+
                 // Toggle stripe when order_no changes (new transaction/customer)
                 $currentOrderNo = $row['order_no'] ?? '';
                 if ($currentOrderNo !== $nhpLastOrderNo) {
@@ -3871,7 +3872,11 @@ class AuditController extends Controller
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
                 'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
-                'conditions' => $trx->items->map(fn($i) => match ($i->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second'})->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) {
+                    'new' => 'Baru',
+                    'ex_ibox' => 'Ex iBox',
+                    default => 'Second'
+                })->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'outlet_name' => $outletName,
