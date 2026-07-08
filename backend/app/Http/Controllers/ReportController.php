@@ -653,10 +653,27 @@ class ReportController extends Controller
             'stock_outs.id as stock_out_id',
             'products.brand',
             'product_details.condition',
+            'product_details.cost_price',
             'stock_out_items.selling_price as item_price'
         )->get();
 
         $itemsByTx = $items->groupBy('stock_out_id');
+
+        $nonHpItemsQuery = DB::table('stock_out_non_hp_items')
+            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+            ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+            ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->whereNull('stock_outs.deleted_at');
+            
+        if ($startDate) $nonHpItemsQuery->where('stock_outs.reporting_date', '>=', $startDate);
+        if ($endDate) $nonHpItemsQuery->where('stock_outs.reporting_date', '<=', $endDate);
+
+        $nonHpItems = $nonHpItemsQuery->select(
+            'stock_outs.id as stock_out_id',
+            'stock_out_non_hp_items.quantity',
+            'products.price as product_price'
+        )->get();
+        $nonHpItemsByTx = $nonHpItems->groupBy('stock_out_id');
 
         $tukarTambahs = DB::table('tukar_tambahs')
             ->whereIn('receipt_id', $transactions->pluck('receipt_id')->unique())
@@ -674,6 +691,7 @@ class ReportController extends Controller
                 $statsByLocation[$locKey] = [
                     'omset' => 0,
                     'omset_bersih' => 0,
+                    'profit' => 0,
                     'payments' => [],
                     'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                     'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
@@ -704,6 +722,17 @@ class ReportController extends Controller
             $sellingPrice = (float) $tx->selling_price;
             $txOmset = 0;
             $txOmsetBersih = 0;
+            
+            $txItems = $itemsByTx->get($tx->id, []);
+            $txNonHpItems = $nonHpItemsByTx->get($tx->id, []);
+            
+            $txModal = 0;
+            foreach ($txItems as $item) {
+                $txModal += (float) $item->cost_price;
+            }
+            foreach ($txNonHpItems as $item) {
+                $txModal += (float) ($item->product_price ?? 0) * $item->quantity;
+            }
 
             if ($isTukarTambah) {
                 $tt = $tukarTambahs->get($tx->receipt_id);
@@ -711,31 +740,39 @@ class ReportController extends Controller
                 $ttCost = $tt ? $tt->sum('incoming_cost_price') : 0;
                 $txOmset = max(0, abs($ttOutgoing));
                 $txOmsetBersih = max(0, $ttOutgoing - $ttCost);
+                $txProfit = max(0, abs($ttOutgoing)) - $txModal;
                 $statsByLocation[$locKey]['tukar_tambah_qty'] += 1;
                 $statsByLocation[$locKey]['tukar_tambah_amt'] += $txOmset;
             } elseif ($isNormalSales) {
                 $txOmset = max(0, abs($sellingPrice));
                 $txOmsetBersih = $txOmset;
+                $txProfit = max(0, abs($sellingPrice)) - $txModal;
             } elseif ($isAngkatBarang) {
                 $txOmsetBersih = -abs($sellingPrice);
+                $txProfit = $txModal - abs($sellingPrice);
                 $statsByLocation[$locKey]['angkat_barang_qty'] += 1;
                 $statsByLocation[$locKey]['angkat_barang_amt'] += abs($sellingPrice);
             } elseif ($isRefund) {
                 $txOmsetBersih = -abs($sellingPrice);
+                $txProfit = $txModal - abs($sellingPrice);
                 $statsByLocation[$locKey]['refund_qty'] += 1;
                 $statsByLocation[$locKey]['refund_amt'] += abs($sellingPrice);
             } elseif ($isDowngrade) {
                 $dg = $downgrades->get($tx->receipt_id);
+                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
                 $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->outgoing_price - $d->incoming_cost_price) : -abs($sellingPrice);
+                $txProfit = $dgOutgoing - $txModal;
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
                 $statsByLocation[$locKey]['downgrade_amt'] += abs($sellingPrice);
             } elseif ($isTukarUnit) {
+                $txProfit = abs($sellingPrice) - $txModal;
                 $statsByLocation[$locKey]['tukar_unit_qty'] += 1;
                 $statsByLocation[$locKey]['tukar_unit_amt'] += abs($sellingPrice);
             }
 
             $statsByLocation[$locKey]['omset'] += $txOmset;
             $statsByLocation[$locKey]['omset_bersih'] += $txOmsetBersih;
+            $statsByLocation[$locKey]['profit'] += $txProfit ?? 0;
 
             // Payments - match AuditController exactly
             if ($isNormalSales || $isTukarTambah) {
@@ -811,7 +848,7 @@ class ReportController extends Controller
             usort($finalData, fn($a, $b) => strcmp($a['name'], $b['name']));
         }
 
-        $header = ['No', 'Nama Cabang', 'Total Omset Kotor', 'Total Omset Bersih'];
+        $header = ['No', 'Nama Cabang', 'Total Omset Kotor', 'Total Omset Bersih', 'Profit'];
         foreach ($paymentMethods as $pm) {
             $header[] = $pm->name;
         }
@@ -827,20 +864,22 @@ class ReportController extends Controller
         ]);
 
         $rows = [$header];
-        $no = 1;
-        foreach ($finalData as $row) {
+        
+        $offlineData = array_filter($finalData, fn($r) => $r['type'] === 'Offline');
+        $onlineData = array_filter($finalData, fn($r) => $r['type'] === 'Online');
+        
+        $buildRow = function($row, $no) use ($paymentMethods) {
             $excelRow = [
-                $no++,
+                $no,
                 $row['name'],
                 $row['omset'],
                 $row['omset_bersih'],
+                $row['profit'] ?? 0,
             ];
-            
             foreach ($paymentMethods as $pm) {
                 $excelRow[] = $row['payments'][$pm->id] ?? 0;
             }
-
-            $excelRow = array_merge($excelRow, [
+            return array_merge($excelRow, [
                 $row['iphone_new_qty'], $row['iphone_new_amt'],
                 $row['iphone_scd_qty'], $row['iphone_scd_amt'],
                 $row['android_qty'], $row['android_amt'],
@@ -850,8 +889,67 @@ class ReportController extends Controller
                 $row['tukar_unit_qty'], $row['tukar_unit_amt'],
                 $row['downgrade_qty'], $row['downgrade_amt'],
             ]);
-            
-            $rows[] = $excelRow;
+        };
+        
+        $createTotal = function($data, $label) use ($paymentMethods, $buildRow) {
+            if (empty($data)) return null;
+            $total = [
+                'name' => $label,
+                'omset' => 0, 'omset_bersih' => 0, 'profit' => 0,
+                'payments' => [],
+                'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
+                'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
+                'android_qty' => 0, 'android_amt' => 0,
+                'refund_qty' => 0, 'refund_amt' => 0,
+                'angkat_barang_qty' => 0, 'angkat_barang_amt' => 0,
+                'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
+                'tukar_unit_qty' => 0, 'tukar_unit_amt' => 0,
+                'downgrade_qty' => 0, 'downgrade_amt' => 0,
+            ];
+            foreach ($data as $r) {
+                $total['omset'] += $r['omset'];
+                $total['omset_bersih'] += $r['omset_bersih'];
+                $total['profit'] += $r['profit'] ?? 0;
+                foreach ($paymentMethods as $pm) {
+                    $total['payments'][$pm->id] = ($total['payments'][$pm->id] ?? 0) + ($r['payments'][$pm->id] ?? 0);
+                }
+                $total['iphone_new_qty'] += $r['iphone_new_qty']; $total['iphone_new_amt'] += $r['iphone_new_amt'];
+                $total['iphone_scd_qty'] += $r['iphone_scd_qty']; $total['iphone_scd_amt'] += $r['iphone_scd_amt'];
+                $total['android_qty'] += $r['android_qty']; $total['android_amt'] += $r['android_amt'];
+                $total['refund_qty'] += $r['refund_qty']; $total['refund_amt'] += $r['refund_amt'];
+                $total['angkat_barang_qty'] += $r['angkat_barang_qty']; $total['angkat_barang_amt'] += $r['angkat_barang_amt'];
+                $total['tukar_tambah_qty'] += $r['tukar_tambah_qty']; $total['tukar_tambah_amt'] += $r['tukar_tambah_amt'];
+                $total['tukar_unit_qty'] += $r['tukar_unit_qty']; $total['tukar_unit_amt'] += $r['tukar_unit_amt'];
+                $total['downgrade_qty'] += $r['downgrade_qty']; $total['downgrade_amt'] += $r['downgrade_amt'];
+            }
+            return $buildRow($total, '');
+        };
+
+        $no = 1;
+        // Offline
+        foreach ($offlineData as $row) {
+            $rows[] = $buildRow($row, $no++);
+        }
+        if (!empty($offlineData)) {
+            $rows[] = $createTotal($offlineData, 'TOTAL CABANG FISIK');
+        }
+        
+        $rows[] = array_fill(0, count($header), ''); // Empty row
+        $rows[] = array_fill(0, count($header), ''); // Empty row
+
+        // Online
+        foreach ($onlineData as $row) {
+            $rows[] = $buildRow($row, $no++);
+        }
+        if (!empty($onlineData)) {
+            $rows[] = $createTotal($onlineData, 'TOTAL TOKO ONLINE');
+        }
+        
+        $rows[] = array_fill(0, count($header), ''); // Empty row
+        
+        // Total ALL
+        if (!empty($finalData)) {
+            $rows[] = $createTotal($finalData, 'TOTAL KESELURUHAN (ALL)');
         }
 
         $xlsx = \App\Utils\SimpleXLSXGen::fromArray($rows);
