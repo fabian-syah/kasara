@@ -620,6 +620,7 @@ class ReportController extends Controller
         $baseQuery = DB::table('stock_outs')
             ->join('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->whereNull('stock_outs.deleted_at');
 
         if ($startDate) $baseQuery->where('stock_outs.reporting_date', '>=', $startDate);
@@ -643,6 +644,7 @@ class ReportController extends Controller
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->whereNull('stock_outs.deleted_at')
             ->where('products.type', 'hp');
 
@@ -663,6 +665,7 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->whereNull('stock_outs.deleted_at');
             
         if ($startDate) $nonHpItemsQuery->where('stock_outs.reporting_date', '>=', $startDate);
