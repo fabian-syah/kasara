@@ -21,7 +21,8 @@ import {
     Download,
     SortAsc,
     Eye,
-    EyeOff
+    EyeOff,
+    FileSpreadsheet
 } from 'lucide-vue-next';
 import { toJpeg } from 'html-to-image';
 import { jsPDF } from 'jspdf';
@@ -222,6 +223,7 @@ const displayRanking = computed(() => {
 });
 
 const exportLoading = ref(false);
+const exportExcelLoading = ref(false);
 const exportPart = ref(0); // 0: none, 1...
 const exportRef = ref(null);
 
@@ -231,6 +233,35 @@ const currentExportData = computed(() => {
     const start = (exportPart.value - 1) * rowsPerPage;
     return displayRanking.value.slice(start, start + rowsPerPage);
 });
+
+const exportToExcel = async () => {
+    exportExcelLoading.value = true;
+    try {
+        const response = await api.get('/reports/ranking/export-excel', {
+            params: {
+                start_date: filters.value.start_date,
+                end_date: filters.value.end_date,
+                include_zero: showZero.value ? 1 : 0,
+                sort_by: sortBy.value
+            },
+            responseType: 'blob'
+        });
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        const fileName = `Ranking_Performa_${filters.value.start_date || 'All'}.xlsx`;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+    } finally {
+        exportExcelLoading.value = false;
+    }
+};
 
 const exportToPDF = async () => {
     if (!exportRef.value) return;
@@ -339,13 +370,20 @@ const exportToPDF = async () => {
                 </div>
 
                 <!-- Export Action -->
-                <div class="flex items-center gap-3 w-full md:w-auto">
+                <div class="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                    <button @click="exportToExcel" :disabled="loading || exportExcelLoading || (rankingData?.length || 0) === 0"
+                        class="group relative flex items-center justify-center gap-3 px-6 py-3 md:py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all duration-300 font-bold text-[10px] md:text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(37,99,235,0.2)] disabled:opacity-50 overflow-hidden w-full md:w-auto">
+                        <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shine"></div>
+                        <FileSpreadsheet v-if="!exportExcelLoading" class="w-4 h-4" />
+                        <Loader2 v-else class="w-4 h-4 animate-spin" />
+                        <span>Ekspor Excel</span>
+                    </button>
                     <button @click="exportToPDF" :disabled="loading || exportLoading || (rankingData?.length || 0) === 0"
                         class="group relative flex items-center justify-center gap-3 px-6 py-3 md:py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl transition-all duration-300 font-bold text-[10px] md:text-xs uppercase tracking-widest shadow-[0_10px_30px_rgba(16,185,129,0.2)] disabled:opacity-50 overflow-hidden w-full md:w-auto">
                         <div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shine"></div>
                         <Download v-if="!exportLoading" class="w-4 h-4" />
                         <Loader2 v-else class="w-4 h-4 animate-spin" />
-                        <span>Ekspor Laporan PDF</span>
+                        <span>Ekspor PDF</span>
                     </button>
                 </div>
             </div>
