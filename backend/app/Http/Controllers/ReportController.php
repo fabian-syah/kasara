@@ -737,17 +737,20 @@ class ReportController extends Controller
             $statsByLocation[$locKey]['omset'] += $txOmset;
             $statsByLocation[$locKey]['omset_bersih'] += $txOmsetBersih;
 
-            // Payments
-            $splits = json_decode($tx->split_payments, true);
-            if (is_array($splits) && count($splits) > 0) {
-                foreach ($splits as $split) {
-                    if (isset($split['payment_method_id']) && isset($statsByLocation[$locKey]['payments'][$split['payment_method_id']])) {
-                        $statsByLocation[$locKey]['payments'][$split['payment_method_id']] += (float) $split['amount'];
+            // Payments - match AuditController exactly
+            if ($isNormalSales || $isTukarTambah) {
+                $splits = json_decode($tx->split_payments, true);
+                if (is_array($splits) && count($splits) > 0) {
+                    foreach ($splits as $split) {
+                        $pmId = $split['payment_method_id'] ?? ($split['method_id'] ?? null);
+                        if ($pmId && isset($statsByLocation[$locKey]['payments'][$pmId])) {
+                            $statsByLocation[$locKey]['payments'][$pmId] += abs((float) ($split['amount'] ?? 0));
+                        }
                     }
-                }
-            } elseif ($tx->payment_method_id) {
-                if (isset($statsByLocation[$locKey]['payments'][$tx->payment_method_id])) {
-                    $statsByLocation[$locKey]['payments'][$tx->payment_method_id] += $txOmset > 0 ? $txOmset : abs($sellingPrice);
+                } elseif ($tx->payment_method_id) {
+                    if (isset($statsByLocation[$locKey]['payments'][$tx->payment_method_id])) {
+                        $statsByLocation[$locKey]['payments'][$tx->payment_method_id] += abs($sellingPrice);
+                    }
                 }
             }
 
