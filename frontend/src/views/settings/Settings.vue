@@ -1,15 +1,13 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
-import { users as usersApi, inventory as inventoryApi, auth as authApiApi } from "../../api/axios";
+import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { 
-    User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, Shield, Key, 
-    Edit2, AlertCircle, Clock, RefreshCw, FileText, Check, PlusCircle, 
-    Download, Info, CheckCircle2 
+    User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, 
+    Edit2, Download, Info, Building2
 } from "lucide-vue-next";
 import { formatDate } from "../../utils/formatters";
-import PinModal from "../../components/modals/PinModal.vue";
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -20,69 +18,15 @@ const isSaving = ref(false);
 const photoPreview = ref(null);
 const photoFile = ref(null);
 
-// PIN State
-const showPinModal = ref(false);
-const pinModalMode = ref('verify');
-const pinModalTitle = ref('Verifikasi PIN');
-const pinError = ref("");
-const isPinLoading = ref(false);
-
 const form = ref({
     full_name: "",
     username: "",
     email: "",
     phone: "",
-    address: ""
+    address: "",
+    new_password: "",
+    confirm_password: ""
 });
-
-// Multi-Account PIN State
-const inventoryAccounts = ref([]);
-const selectedAccountId = ref(null); // ID of the selected sub-account
-
-const selectedAccount = computed(() => {
-    return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || {};
-});
-
-// "Buat Akun Inventory Baru" Form State
-const newAccountName = ref("");
-const newAccountPin = ref("");
-const isCreatingAccount = ref(false);
-
-async function createInventoryAccount() {
-    if (!newAccountName.value) {
-        toast.error("Nama akun harus diisi!");
-        return;
-    }
-    isCreatingAccount.value = true;
-    try {
-        await inventoryApi.createAccount({
-            name: newAccountName.value,
-            transaction_pin: newAccountPin.value || null
-        });
-        toast.success("Akun inventory baru berhasil dibuat!");
-        newAccountName.value = "";
-        newAccountPin.value = "";
-        
-        // Refresh accounts list
-        const invRes = await inventoryApi.myAccounts();
-        inventoryAccounts.value = invRes.data.data || invRes.data;
-        if (inventoryAccounts.value.length > 0 && !selectedAccountId.value) {
-            selectedAccountId.value = inventoryAccounts.value[0].id;
-        }
-    } catch (e) {
-        console.error("Create account error:", e);
-        const errMsg = e.response?.data?.message || "Gagal membuat akun.";
-        toast.error(errMsg);
-    } finally {
-        isCreatingAccount.value = false;
-    }
-}
-
-function cancelCreateAccount() {
-    newAccountName.value = "";
-    newAccountPin.value = "";
-    toast.info("Pendaftaran akun dibatalkan.");
-}
 
 // Custom Cover Photo States
 const isUploadingCover = ref(false);
@@ -124,7 +68,6 @@ async function handleCoverChange(event) {
         return;
     }
 
-    // Set local preview instantly
     localCoverPreview.value = URL.createObjectURL(file);
 
     isUploadingCover.value = true;
@@ -139,15 +82,11 @@ async function handleCoverChange(event) {
 
         toast.success("Foto cover berhasil diperbarui!");
         
-        // Refresh user data from server
         const freshRes = await usersApi.get(user.value.id);
         user.value = freshRes.data.data;
         authStore.updateUserData(user.value);
         
-        // Update stable timestamp to bust cache only once on successful upload
         coverTimestamp.value = Date.now();
-        
-        // Clear local preview to fallback to database URL with cache-busting timestamp
         localCoverPreview.value = null;
     } catch (error) {
         console.error("Upload cover error", error);
@@ -158,7 +97,6 @@ async function handleCoverChange(event) {
     }
 }
 
-// Realtime Login Time adjusted to Branch Timezone in 24-hour format
 const lastLoginString = computed(() => {
     const date = new Date();
     let tz = 'Asia/Jakarta';
@@ -197,12 +135,13 @@ const lastLoginString = computed(() => {
     }
 });
 
-// Track modification state
 const isDirty = computed(() => {
     if (!user.value) return false;
     return (form.value.email || "") !== (user.value.email || "") ||
            (form.value.phone || "") !== (user.value.phone || "") ||
-           (form.value.address || "") !== (user.value.address || "");
+           (form.value.address || "") !== (user.value.address || "") ||
+           form.value.new_password !== "" ||
+           form.value.confirm_password !== "";
 });
 
 function resetForm() {
@@ -219,7 +158,6 @@ function resetForm() {
 onMounted(async () => {
     isLoading.value = true;
     try {
-        // Fetch fresh user data
         if (authStore.user?.id) {
             const res = await usersApi.get(authStore.user.id);
             user.value = res.data.data;
@@ -228,15 +166,6 @@ onMounted(async () => {
             form.value.email = user.value.email;
             form.value.phone = user.value.phone;
             form.value.address = user.value.address;
-
-            // Fetch my inventory accounts
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
-            
-            // Default to the first inventory account if exists
-            if (inventoryAccounts.value.length > 0) {
-                selectedAccountId.value = inventoryAccounts.value[0].id;
-            }
         }
     } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -265,7 +194,6 @@ async function handlePhotoChange(event) {
         }
     }
 
-    // Immediate Upload
     isUploadingPhoto.value = true;
     const formData = new FormData();
     formData.append("photo", file);
@@ -282,11 +210,9 @@ async function handlePhotoChange(event) {
             toast.success("Foto profil berhasil diperbarui!");
         }
 
-        // Refresh user data from server to get pending_photo status
         const freshRes = await usersApi.get(user.value.id);
         user.value = freshRes.data.data;
         
-        // Update Auth Store
         authStore.updateUserData(user.value);
         photoTimestamp.value = Date.now();
         photoPreview.value = null;
@@ -303,14 +229,25 @@ async function handlePhotoChange(event) {
 async function saveProfile() {
     isSaving.value = true;
     try {
+        if (form.value.new_password) {
+            if (form.value.new_password !== form.value.confirm_password) {
+                toast.error("Password baru dan konfirmasi tidak cocok!");
+                isSaving.value = false;
+                return;
+            }
+        }
+
         const formData = new FormData();
         formData.append("_method", "PUT");
-
         formData.append("full_name", form.value.full_name);
         formData.append("username", form.value.username);
         formData.append("email", form.value.email || "");
         formData.append("phone", form.value.phone || "");
         formData.append("address", form.value.address || "");
+        
+        if (form.value.new_password) {
+            formData.append("password", form.value.new_password);
+        }
 
         const res = await usersApi.updateProfile(user.value.id, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
@@ -318,120 +255,15 @@ async function saveProfile() {
 
         toast.success("Profil berhasil diperbarui!");
 
-        // Update store and persist
         authStore.updateUserData(res.data.data);
-
+        form.value.new_password = "";
+        form.value.confirm_password = "";
 
     } catch (error) {
         console.error("Update profile error", error);
         toast.error("Gagal memperbarui profil.");
     } finally {
         isSaving.value = false;
-    }
-}
-
-function openSetPin() {
-    pinModalMode.value = 'setup';
-    pinModalTitle.value = 'Pasang PIN Transaksi';
-    showPinModal.value = true;
-}
-
-
-async function handlePinToggle() {
-    const account = selectedAccount.value;
-    const exists = account.transaction_pin_exists;
-    const action = account.pin_enabled ? 'Matikan' : 'Aktifkan';
-    
-    // If turning OFF, mandate PIN verification first
-    if (account.pin_enabled) {
-        pinModalMode.value = 'verify';
-        pinModalTitle.value = `Matikan PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
-        pinError.value = "";
-        showPinModal.value = true;
-        return;
-    }
-
-    pinModalMode.value = 'setup'; // Always force setup mode when activating to allow fresh PIN
-    pinModalTitle.value = `${action} PIN ${selectedAccountId.value === 'main' ? 'Anda' : account.name}`;
-    pinError.value = "";
-    showPinModal.value = true;
-}
-
-const isRequestingReset = ref(false);
-async function requestPinReset() {
-    if (!confirm(`Ajukan reset PIN untuk ${selectedAccountId.value === 'main' ? 'Akun Utama' : selectedAccount.value.name} ke departemen Audit?`)) return;
-    
-    isRequestingReset.value = true;
-    try {
-        if (selectedAccountId.value === 'main') {
-            await authApiApi.requestResetPin();
-        } else {
-            await inventoryApi.requestResetPin(selectedAccountId.value);
-        }
-        
-        toast.success("Permintaan reset PIN berhasil diajukan!");
-        
-        // Refresh data
-        if (selectedAccountId.value === 'main') {
-            const res = await usersApi.get(authStore.user.id);
-            user.value = res.data.data;
-        } else {
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
-        }
-    } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal mengajukan reset PIN.");
-    } finally {
-        isRequestingReset.value = false;
-    }
-}
-
-async function handlePinSuccess(pin) {
-    isPinLoading.value = true;
-    try {
-        if (pinModalMode.value === 'setup' && pin !== null) {
-            if (selectedAccountId.value === 'main') {
-                await authStore.setPin(pin);
-            } else {
-                const fd = new FormData();
-                fd.append('transaction_pin', pin);
-                fd.append('pin_enabled', 1);
-                await inventoryApi.updateAccount(selectedAccountId.value, fd);
-            }
-            showPinModal.value = false;
-            toast.success("PIN berhasil dipasang dan diaktifkan!");
-        } else {
-            // Toggle Logic
-            let newState;
-            if (selectedAccountId.value === 'main') {
-                const res = await authStore.togglePin(pin);
-                newState = res.data.pin_enabled;
-            } else {
-                const res = await inventoryApi.togglePin(selectedAccountId.value, pin);
-                newState = res.data.data.pin_enabled;
-            }
-            showPinModal.value = false;
-            toast.success(`PIN berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}!`);
-        }
-        // Refresh user data
-        if (selectedAccountId.value === 'main') {
-            const res = await usersApi.get(authStore.user.id);
-            user.value = res.data.data;
-            authStore.updateUserData(user.value);
-        } else {
-            const invRes = await inventoryApi.myAccounts();
-            inventoryAccounts.value = invRes.data.data || invRes.data;
-        }
-    } catch (error) {
-        console.error("PIN operation failed", error);
-        // User requested: no error toast if PIN is wrong (422)
-        if (error.response?.status === 422) {
-            pinError.value = error.response.data.message || "PIN salah.";
-        } else {
-            toast.error(error.response?.data?.message || "Operasi PIN gagal.");
-        }
-    } finally {
-        isPinLoading.value = false;
     }
 }
 </script>
@@ -444,8 +276,6 @@ async function handlePinSuccess(pin) {
             <div v-if="coverPhotoUrl" class="absolute inset-0 bg-cover bg-center transition-all duration-500" :style="{ backgroundImage: 'url(' + coverPhotoUrl + ')' }"></div>
             <!-- Blank Empty State default matching theme (light/dark adaptive) -->
             <div v-else class="absolute inset-0 bg-gradient-to-br from-zinc-100 via-zinc-200 to-zinc-300 dark:from-zinc-850 dark:via-zinc-900 dark:to-zinc-950"></div>
-
-
 
             <!-- Change Cover Button with Recommended Size Hint -->
             <div class="absolute bottom-4 right-4 flex flex-col items-end gap-1.5">
@@ -509,7 +339,7 @@ async function handlePinSuccess(pin) {
 
         <!-- Multi-column Responsive Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <!-- Left Side: Personal Info & Create Sub-Account Form -->
+            <!-- Left Side: Personal Info -->
             <div class="lg:col-span-8 space-y-6">
                 <!-- Personal Info Card -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
@@ -538,50 +368,14 @@ async function handlePinSuccess(pin) {
                             <label class="label">Nomor Telepon</label>
                             <input v-model="form.phone" type="text" class="input" placeholder="08xx-xxxx-xxxx" autocomplete="off" />
                         </div>
+                        <!-- NEW BRANCH FIELD -->
+                        <div class="space-y-1.5 sm:col-span-2">
+                            <label class="label flex items-center gap-1.5"><Building2 :size="12" /> Cabang Yang Dipegang</label>
+                            <input :value="user.branch?.name || 'Cabang Utama / Tidak Ada'" type="text" class="input opacity-60 font-bold" disabled />
+                        </div>
                         <div class="sm:col-span-2 space-y-1.5">
                             <label class="label">Alamat Lengkap</label>
                             <textarea v-model="form.address" class="input min-h-[100px] resize-none" placeholder="Masukkan alamat lengkap..."></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Create Inventory Account (Special Feature Card) -->
-                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-5">
-                    <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
-                        <div class="flex items-center gap-2.5">
-                            <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                                <FileText :size="16" />
-                            </div>
-                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Buat Akun Inventory Baru</h3>
-                        </div>
-                        <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
-                            FITUR SPESIAL
-                        </span>
-                    </div>
-
-                    <p class="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-semibold">
-                        Buat akun khusus untuk operasional gudang. Akun ini memiliki akses terbatas hanya untuk pencatatan logistik dan pergerakan stok barang.
-                    </p>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
-                        <div class="space-y-1.5">
-                            <label class="label">NAMA AKUN / BAGIAN</label>
-                            <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="label">PIN TRANSAKSI (OPSIONAL)</label>
-                            <input v-model="newAccountPin" type="text" maxlength="4" style="-webkit-text-security: disc; -moz-text-security: disc; text-security: disc;" class="input tracking-[0.5em] font-mono" placeholder="••••" autocomplete="off" />
-                        </div>
-                        
-                        <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
-                            <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white px-3 py-2 transition-all">
-                                Batal
-                            </button>
-                            <button @click="createInventoryAccount" type="button" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
-                                <Loader2 v-if="isCreatingAccount" class="animate-spin" :size="14" />
-                                <PlusCircle v-else :size="14" />
-                                Daftarkan Akun
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -589,46 +383,24 @@ async function handlePinSuccess(pin) {
 
             <!-- Right Side: Security & Account Info -->
             <div class="lg:col-span-4 space-y-6">
-                <!-- Security Card -->
+                <!-- Security Card (Password) -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
                     <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
-                        <Shield :size="18" class="text-primary-500" />
-                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Keamanan</h3>
+                        <Lock :size="18" class="text-primary-500" />
+                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Ubah Password</h3>
                     </div>
 
                     <div class="space-y-4">
                         <div class="space-y-1.5">
-                            <label class="label">PIN TRANSAKSI</label>
-                                <div v-if="inventoryAccounts.length > 0" class="relative">
-                                    <select v-model="selectedAccountId" class="input font-bold text-xs uppercase tracking-wider">
-                                        <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">Staff: {{ acc.name }}</option>
-                                    </select>
-                                </div>
-                                <div v-else class="text-xs text-zinc-500 dark:text-zinc-400 font-bold p-3 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center">
-                                    Belum ada akun staff inventory.
-                                </div>
-                            </div>
-
-                            <!-- PIN Status Card -->
-                            <div v-if="inventoryAccounts.length > 0" class="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 flex items-center justify-between shadow-inner">
-                                <div class="flex items-center gap-2.5">
-                                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                                        <Key :size="14" />
-                                    </div>
-                                    <div>
-                                        <p class="text-[9px] font-black text-zinc-400 uppercase">Status PIN</p>
-                                        <p class="text-xs font-black uppercase" :class="selectedAccount.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
-                                            {{ selectedAccount.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <button @click="handlePinToggle" type="button" class="text-[10px] font-black uppercase tracking-wider text-primary-500 hover:text-primary-400 transition-colors">
-                                    {{ selectedAccount.pin_enabled ? 'MATIKAN' : 'AKTIFKAN SEKARANG' }}
-                                </button>
-                            </div>
+                            <label class="label">Password Baru (Opsional)</label>
+                            <input v-model="form.new_password" type="password" class="input" placeholder="Min. 8 karakter" autocomplete="new-password" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">Konfirmasi Password Baru</label>
+                            <input v-model="form.confirm_password" type="password" class="input" placeholder="Ulangi password baru" autocomplete="new-password" />
                         </div>
                     </div>
+                </div>
 
                 <!-- Account Info Card -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-4">
@@ -681,12 +453,6 @@ async function handlePinSuccess(pin) {
             </div>
         </div>
     </div>
-
-    <!-- PIN Modal Component -->
-    <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" 
-        :error="pinError" :loading="isPinLoading"
-        @close="showPinModal = false"
-        @success="handlePinSuccess" />
 </template>
 
 <style scoped>

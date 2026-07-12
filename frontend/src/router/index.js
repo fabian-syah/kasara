@@ -459,8 +459,17 @@ const routes = [
                 name: 'Settings',
                 component: () => import('../views/settings/Settings.vue'),
                 meta: {
-                    title: 'Pengaturan Profil',
+                    title: 'Pengaturan Toko',
                     menu: 'settings'
+                }
+            },
+            {
+                path: 'settings/inventory-account',
+                name: 'SettingsInventory',
+                component: () => import('../views/settings/SettingsInventory.vue'),
+                meta: {
+                    title: 'Pengaturan Akun Inventory',
+                    menu: 'settings_inventory'
                 }
             },
             {
