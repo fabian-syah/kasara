@@ -1800,6 +1800,18 @@ class StockOutController extends Controller
                 $warehouseIds = [];
                 $distributorIds = [];
                 $isUnrestricted = false;
+            } elseif ($request->warehouse_id) {
+                $warehouseIds = $isUnrestricted || in_array($request->warehouse_id, $warehouseIds) ? [$request->warehouse_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->distributor_id) {
+                $distributorIds = $isUnrestricted || in_array($request->distributor_id, $distributorIds) ? [$request->distributor_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $warehouseIds = [];
+                $isUnrestricted = false;
             }
 
             if (!empty($branchIds)) {
@@ -1896,6 +1908,18 @@ class StockOutController extends Controller
                 $branchIds = [];
                 $warehouseIds = [];
                 $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->warehouse_id) {
+                $warehouseIds = $isUnrestricted || in_array($request->warehouse_id, $warehouseIds) ? [$request->warehouse_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->distributor_id) {
+                $distributorIds = $isUnrestricted || in_array($request->distributor_id, $distributorIds) ? [$request->distributor_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $warehouseIds = [];
                 $isUnrestricted = false;
             }
 
@@ -2531,6 +2555,18 @@ class StockOutController extends Controller
                 $warehouseIds = [];
                 $distributorIds = [];
                 $isUnrestricted = false;
+            } elseif ($request->warehouse_id) {
+                $warehouseIds = $isUnrestricted || in_array($request->warehouse_id, $warehouseIds) ? [$request->warehouse_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->distributor_id) {
+                $distributorIds = $isUnrestricted || in_array($request->distributor_id, $distributorIds) ? [$request->distributor_id] : [];
+                $branchIds = [];
+                $onlineShopIds = [];
+                $warehouseIds = [];
+                $isUnrestricted = false;
             }
 
             if ($type === 'outgoing' || $type === 'failed') {
@@ -2914,3 +2950,4 @@ class StockOutController extends Controller
         }
     }
 }
+

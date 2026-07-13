@@ -1131,6 +1131,50 @@ async function exportInventory() {
         <!-- Filters Wrapper -->
         <div class="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto items-start md:items-center">
 
+          <!-- Location Filter (Global) -->
+          <div v-if="!isEmbedded && canFilterBranch" class="relative" ref="locationDropdownRef">
+            <button @click="isLocationDropdownOpen = !isLocationDropdownOpen"
+              class="btn btn-secondary w-full md:w-auto flex items-center justify-between gap-2 border-surface-700 bg-surface-800 hover:bg-surface-750">
+              <div class="flex items-center gap-2 max-w-[200px]">
+                <MapPin :size="16" class="text-text-secondary shrink-0" />
+                <span class="truncate text-sm">{{ selectedLocationLabel }}</span>
+              </div>
+              <ChevronDown :size="14" class="text-text-secondary transition-transform duration-200 shrink-0"
+                :class="{ 'rotate-180': isLocationDropdownOpen }" />
+            </button>
+            <div v-if="isLocationDropdownOpen"
+              class="absolute z-50 mt-2 w-full md:w-64 bg-surface-800 border border-surface-700 rounded-xl shadow-xl overflow-hidden right-0">
+              <div class="p-2 border-b border-surface-700">
+                <div class="relative">
+                  <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-secondary" :size="14" />
+                  <input v-model="locationSearchQuery" type="text" placeholder="Cari lokasi..."
+                    class="w-full bg-surface-900 border border-surface-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-primary-500" />
+                </div>
+              </div>
+              <div class="max-h-64 overflow-y-auto py-1">
+                <button @click="selectLocation('all')"
+                  class="w-full flex items-center px-3 py-2 text-sm text-left hover:bg-surface-700/50"
+                  :class="selectedLocationKey === 'all' ? 'text-primary-400 font-bold bg-primary-500/10' : 'text-text-secondary'">
+                  Semua Lokasi
+                  <Check v-if="selectedLocationKey === 'all'" :size="14" class="ml-auto" />
+                </button>
+                <button v-for="loc in filteredLocations" :key="loc.key" @click="selectLocation(loc.key)"
+                  class="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-surface-700/50 group"
+                  :class="selectedLocationKey === loc.key ? 'text-primary-400 font-bold bg-primary-500/10' : 'text-text-secondary'">
+                  <component :is="loc.icon" :size="14" class="shrink-0"
+                    :class="selectedLocationKey === loc.key ? 'text-primary-400' : 'text-text-secondary group-hover:text-primary-400'" />
+                  <div class="truncate flex-1">
+                    <div class="text-[10px] uppercase font-bold text-surface-400 leading-tight">
+                      {{ loc.type === 'branch' ? 'Cabang' : (loc.type === 'online_shop' ? 'Toko' : (loc.type === 'distributor' ? 'Distributor' : 'Gudang')) }}
+                    </div>
+                    <div class="truncate">{{ loc.label }}</div>
+                  </div>
+                  <Check v-if="selectedLocationKey === loc.key" :size="14" class="ml-auto shrink-0" />
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Month Filter -->
           <div class="w-full md:w-48">
             <label for="month-filter" class="sr-only">Filter Bulan</label>
