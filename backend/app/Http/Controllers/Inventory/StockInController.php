@@ -707,12 +707,12 @@ class StockInController extends Controller
         }
 
         // AUDIT BRANCH FILTER
-        if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
+        if ($request->branch_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
             $query->where('branch_id', $request->branch_id);
         }
 
         // AUDIT ONLINE SHOP FILTER
-        if ($request->online_shop_id && $user->hasRole($unrestrictedRoles)) {
+        if ($request->online_shop_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
             $query->where('online_shop_id', $request->online_shop_id);
         }
 
@@ -870,6 +870,16 @@ class StockInController extends Controller
                     $q->whereRaw('0 = 1');
                 }
             });
+        }
+
+        // AUDIT BRANCH FILTER
+        if ($request->branch_id && $user->hasAnyRole(['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'])) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        // AUDIT ONLINE SHOP FILTER
+        if ($request->online_shop_id && $user->hasAnyRole(['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'])) {
+            $query->where('online_shop_id', $request->online_shop_id);
         }
 
         // Analist Exclusion for Stock Out History

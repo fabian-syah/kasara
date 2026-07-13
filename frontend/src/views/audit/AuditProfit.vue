@@ -512,18 +512,18 @@
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Notes: read-only shows text, edit shows textarea -->
-                        <div v-if="checklistEditMode" class="ml-8">
-                            <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
-                                class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"></textarea>
-                        </div>
-                        <div v-else-if="q.notes" class="ml-8">
-                            <p
-                                class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:!bg-surface-700/50 px-3 py-2 rounded-lg">
-                                <span class="font-medium text-gray-600 dark:text-gray-300">Catatan:</span> {{ q.notes }}
-                            </p>
-                        </div>
+                    <!-- Global Notes textarea -->
+                    <div v-if="checklistEditMode" class="mt-6 flex flex-col gap-2 p-4 rounded-xl border border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30">
+                        <label class="text-sm font-bold text-text-primary">Catatan Audit (Opsional)</label>
+                        <textarea v-model="checklistData.notes" rows="3" placeholder="Masukkan catatan keseluruhan audit di sini..."
+                            class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"></textarea>
+                    </div>
+                    <div v-else-if="checklistData?.notes" class="mt-6">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:!bg-surface-700/50 px-3 py-2 rounded-lg">
+                            <span class="font-medium text-gray-600 dark:text-gray-300">Catatan:</span> {{ checklistData.notes }}
+                        </p>
                     </div>
                 </div>
 
@@ -711,7 +711,11 @@ const openChecklist = async (item) => {
     checklistLoading.value = true
     try {
         const res = await axios.get(`/audit/profit-checklist/${item.id}`)
-        checklistData.value = res.data
+        const globalNote = res.data.questions?.find(q => q.notes)?.notes || '';
+        checklistData.value = {
+            ...res.data,
+            notes: globalNote
+        };
     } catch (e) {
         console.error('Failed to load profit checklist', e)
         alert('Gagal memuat checklist: ' + (e.response?.data?.message || e.message))
@@ -738,10 +742,10 @@ const saveChecklist = async () => {
     checklistSaving.value = true
     try {
         const payload = {
-            answers: answeredQuestions.map(q => ({
+            answers: answeredQuestions.map((q, idx) => ({
                 question_id: q.question_id,
                 answer: q.answer,
-                notes: q.notes || null,
+                notes: idx === 0 ? (checklistData.value.notes || null) : null,
                 content: q.content
             }))
         }

@@ -58,8 +58,8 @@
                     </select>
                 </div>
 
-                <!-- Location Filter (Branch/OS) - Only for non-restricted users -->
-                <div v-if="!isRestricted"
+                <!-- Location Filter (Branch/OS) - Only for non-restricted users and audit -->
+                <div v-if="canChangeLocation"
                     class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
                     <div class="flex items-center gap-1 group">
                         <div
@@ -1197,14 +1197,35 @@ const isRestricted = computed(() => {
     return !['super_admin', 'analist', 'analis'].some(r => role.includes(r));
 });
 
+const canChangeLocation = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner'].some(r => role.includes(r));
+});
+
 const filteredBranches = computed(() => {
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-    return (branches.value || []).filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = (branches.value || []).filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
+    
+    // If they can't see all branches, filter by their placements
+    if (!['super_admin', 'analist', 'analis'].some(r => role.includes(r))) {
+        const allowedBranches = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(b => allowedBranches.includes(Number(b.id)));
+    }
+    return result;
 });
 
 const filteredOnlineShops = computed(() => {
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-    return (onlineShops.value || []).filter(s => !excluded.some(term => (s.name || '').toLowerCase().includes(term)));
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = (onlineShops.value || []).filter(s => !excluded.some(term => (s.name || '').toLowerCase().includes(term)));
+    
+    // If they can't see all shops, filter by their placements
+    if (!['super_admin', 'analist', 'analis'].some(r => role.includes(r))) {
+        const allowedShops = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(s => allowedShops.includes(Number(s.id)));
+    }
+    return result;
 });
 
 const availableMonths = computed(() => {

@@ -121,7 +121,7 @@ export const inventory = {
     myAccounts: () => api.get('/inventory/my-accounts'),
     togglePin: (id, pin) => api.post(`/inventory/account/${id}/toggle-pin`, { transaction_pin: pin }),
     requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`),
-    listPendingPhotos: () => api.get('/inventory/accounts/pending-photos'),
+    listPendingPhotos: (params) => api.get('/inventory/accounts/pending-photos', { params }),
     approvePhoto: (id) => api.post(`/inventory/account/${id}/approve-photo`),
     rejectPhoto: (id, reason) => api.post(`/inventory/account/${id}/reject-photo`, { reason }),
     deleteAccount: (id) => api.delete(`/inventory/account/${id}`),
@@ -142,7 +142,7 @@ export const users = {
     update: (id, data) => api.put(`/users/${id}`, data),
     updateProfile: (id, data, config = {}) => api.post(`/users/${id}`, data, config),
     delete: (id) => api.delete(`/users/${id}`),
-    listPendingPhotos: () => api.get('/users/pending-photos'),
+    listPendingPhotos: (params) => api.get('/users/pending-photos', { params }),
     approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
     rejectPhoto: (id, reason) => api.post(`/users/${id}/reject-photo`, { reason }),
     approvePinReset: (id) => api.post(`/users/${id}/approve-pin-reset`)

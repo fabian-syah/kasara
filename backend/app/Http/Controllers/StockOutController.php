@@ -64,9 +64,16 @@ class StockOutController extends Controller
         }
 
         // AUDIT BRANCH FILTER
-        if ($request->branch_id && $user->hasRole($unrestrictedRoles)) {
+        if ($request->branch_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
             $query->whereHas('user', function ($q) use ($request) {
                 $q->where('branch_id', $request->branch_id);
+            });
+        }
+
+        // AUDIT ONLINE SHOP FILTER
+        if ($request->online_shop_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('online_shop_id', $request->online_shop_id);
             });
         }
 
@@ -1759,7 +1766,7 @@ class StockOutController extends Controller
     }
 
     // List incoming transfers for current user's location
-    public function indexIncoming()
+    public function indexIncoming(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
@@ -1771,11 +1778,30 @@ class StockOutController extends Controller
             ->where('status', 'pending');
 
         // Filter by Destination
-        $query->where(function ($q) use ($user) {
+        $query->where(function ($q) use ($user, $request) {
             $hasFilter = false;
+            $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist']);
 
             // Branch
             $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $distributorIds = $user->getAccessibleDistributorIds();
+
+            if ($request->branch_id) {
+                $branchIds = $isUnrestricted || in_array($request->branch_id, $branchIds) ? [$request->branch_id] : [];
+                $warehouseIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->online_shop_id) {
+                $onlineShopIds = $isUnrestricted || in_array($request->online_shop_id, $onlineShopIds) ? [$request->online_shop_id] : [];
+                $branchIds = [];
+                $warehouseIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            }
+
             if (!empty($branchIds)) {
                 $q->orWhere(function ($sub) use ($branchIds) {
                     $sub->where('destination_type', 'branch')
@@ -1784,8 +1810,6 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
 
-            // Warehouse
-            $warehouseIds = $user->getAccessibleWarehouseIds();
             if (!empty($warehouseIds)) {
                 $q->orWhere(function ($sub) use ($warehouseIds) {
                     $sub->where('destination_type', 'warehouse')
@@ -1794,8 +1818,6 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
 
-            // Online Shop
-            $onlineShopIds = $user->getAccessibleOnlineShopIds();
             if (!empty($onlineShopIds)) {
                 $q->orWhere(function ($sub) use ($onlineShopIds) {
                     $sub->where('destination_type', 'online_shop')
@@ -1804,8 +1826,6 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
 
-            // Distributor
-            $distributorIds = $user->getAccessibleDistributorIds();
             if (!empty($distributorIds)) {
                 $q->orWhere(function ($sub) use ($distributorIds) {
                     $sub->where('destination_type', 'distributor')
@@ -1815,11 +1835,9 @@ class StockOutController extends Controller
             }
 
             if (!$hasFilter) {
-                if ($user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
-                    // Show all (do nothing, let base query stand)
+                if ($isUnrestricted) {
                     $q->orWhereRaw('1 = 1');
                 } else {
-                    // Block access
                     $q->whereRaw('0 = 1');
                 }
             }
@@ -1847,7 +1865,7 @@ class StockOutController extends Controller
     }
 
     // List outgoing transfers sent FROM current user's location
-    public function indexOutgoing()
+    public function indexOutgoing(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
@@ -1859,37 +1877,55 @@ class StockOutController extends Controller
             ->where('status', 'pending');
 
         // Filter by Source (Created by user in the same location)
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
-        if (!$user->hasRole($unrestrictedRoles)) {
-            $query->where(function ($q) use ($user) {
-                $branchIds = $user->getAccessibleBranchIds();
-                $warehouseIds = $user->getAccessibleWarehouseIds();
-                $onlineShopIds = $user->getAccessibleOnlineShopIds();
-                $distributorIds = $user->getAccessibleDistributorIds();
-                
-                $hasFilter = false;
-                if (!empty($branchIds)) {
-                    $q->orWhereIn('branch_id', $branchIds);
-                    $hasFilter = true;
-                }
-                if (!empty($warehouseIds)) {
-                    $q->orWhereIn('warehouse_id', $warehouseIds);
-                    $hasFilter = true;
-                }
-                if (!empty($onlineShopIds)) {
-                    $q->orWhereIn('online_shop_id', $onlineShopIds);
-                    $hasFilter = true;
-                }
-                if (!empty($distributorIds)) {
-                    $q->orWhereIn('distributor_id', $distributorIds);
-                    $hasFilter = true;
-                }
-                
-                if (!$hasFilter) {
-                    $q->where('user_id', $user->id);
-                }
-            });
-        }
+        $query->where(function ($q) use ($user, $request) {
+            $isUnrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
+            
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $distributorIds = $user->getAccessibleDistributorIds();
+
+            if ($request->branch_id) {
+                $branchIds = $isUnrestricted || in_array($request->branch_id, $branchIds) ? [$request->branch_id] : [];
+                $warehouseIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->online_shop_id) {
+                $onlineShopIds = $isUnrestricted || in_array($request->online_shop_id, $onlineShopIds) ? [$request->online_shop_id] : [];
+                $branchIds = [];
+                $warehouseIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            }
+
+            if ($isUnrestricted) {
+                $q->orWhereRaw('1 = 1');
+                return;
+            }
+
+            $hasFilter = false;
+            if (!empty($branchIds)) {
+                $q->orWhereIn('branch_id', $branchIds);
+                $hasFilter = true;
+            }
+            if (!empty($warehouseIds)) {
+                $q->orWhereIn('warehouse_id', $warehouseIds);
+                $hasFilter = true;
+            }
+            if (!empty($onlineShopIds)) {
+                $q->orWhereIn('online_shop_id', $onlineShopIds);
+                $hasFilter = true;
+            }
+            if (!empty($distributorIds)) {
+                $q->orWhereIn('distributor_id', $distributorIds);
+                $hasFilter = true;
+            }
+            
+            if (!$hasFilter) {
+                $q->where('user_id', $user->id);
+            }
+        });
 
         $transfers = $query->latest()->get();
 
@@ -2475,14 +2511,30 @@ class StockOutController extends Controller
         }
 
         // Filter by Destination or Source
-        $query->where(function ($q) use ($user, $type) {
+        $query->where(function ($q) use ($user, $type, $request) {
+            $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist']);
+
+            $branchIds = $user->getAccessibleBranchIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $distributorIds = $user->getAccessibleDistributorIds();
+
+            if ($request->branch_id) {
+                $branchIds = $isUnrestricted || in_array($request->branch_id, $branchIds) ? [$request->branch_id] : [];
+                $warehouseIds = [];
+                $onlineShopIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            } elseif ($request->online_shop_id) {
+                $onlineShopIds = $isUnrestricted || in_array($request->online_shop_id, $onlineShopIds) ? [$request->online_shop_id] : [];
+                $branchIds = [];
+                $warehouseIds = [];
+                $distributorIds = [];
+                $isUnrestricted = false;
+            }
+
             if ($type === 'outgoing' || $type === 'failed') {
                 $hasFilter = false;
-
-                $branchIds = $user->getAccessibleBranchIds();
-                $warehouseIds = $user->getAccessibleWarehouseIds();
-                $onlineShopIds = $user->getAccessibleOnlineShopIds();
-                $distributorIds = $user->getAccessibleDistributorIds();
 
                 if (!empty($branchIds)) {
                     $hasFilter = true;
@@ -2504,7 +2556,7 @@ class StockOutController extends Controller
                     $q->orWhereIn('distributor_id', $distributorIds);
                 }
 
-                if ($user->hasRole('super_admin')) {
+                if ($isUnrestricted) {
                     $q->orWhereRaw('1 = 1'); // Show all for super admin
                 } elseif (!$hasFilter) {
                     $q->whereRaw('0 = 1'); // Restrict if no locations assigned
@@ -2512,8 +2564,6 @@ class StockOutController extends Controller
             } else {
                 $hasFilter = false;
 
-                // Branch
-                $branchIds = $user->getAccessibleBranchIds();
                 if (!empty($branchIds)) {
                     $q->orWhere(function ($sub) use ($branchIds) {
                         $sub->where('destination_type', 'branch')
@@ -2523,7 +2573,6 @@ class StockOutController extends Controller
                 }
 
                 // Warehouse
-                $warehouseIds = $user->getAccessibleWarehouseIds();
                 if (!empty($warehouseIds)) {
                     $q->orWhere(function ($sub) use ($warehouseIds) {
                         $sub->where('destination_type', 'warehouse')
@@ -2533,7 +2582,6 @@ class StockOutController extends Controller
                 }
 
                 // Online Shop
-                $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 if (!empty($onlineShopIds)) {
                     $q->orWhere(function ($sub) use ($onlineShopIds) {
                         $sub->where('destination_type', 'online_shop')
@@ -2543,7 +2591,6 @@ class StockOutController extends Controller
                 }
 
                 // Distributor
-                $distributorIds = $user->getAccessibleDistributorIds();
                 if (!empty($distributorIds)) {
                     $q->orWhere(function ($sub) use ($distributorIds) {
                         $sub->where('destination_type', 'distributor')
@@ -2553,7 +2600,7 @@ class StockOutController extends Controller
                 }
 
                 if (!$hasFilter) {
-                    if ($user->hasRole('super_admin')) {
+                    if ($isUnrestricted) {
                         $q->orWhereRaw('1 = 1');
                     } else {
                         $q->whereRaw('0 = 1');

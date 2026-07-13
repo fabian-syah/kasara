@@ -326,7 +326,7 @@ class ReportController extends Controller
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
         $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
-        $isRestricted = !$user->hasRole(['super_admin', 'analist', 'audit']);
+        $isRestricted = !$user->hasRole(['super_admin', 'analist']);
 
         if ($isRestricted) {
             // Apply restrictions to the filters if they are provided

@@ -18,7 +18,7 @@ class FailedTransferController extends Controller
     /**
      * Get outgoing transfers with returning items (rejected by receiver)
      */
-    public function indexFailed()
+    public function indexFailed(Request $request)
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
@@ -30,17 +30,33 @@ class FailedTransferController extends Controller
                 $q->withPivot('status', 'notes');
             }])
             ->where('category', 'pindah_cabang')
-            ->where(function($q) use ($user) {
-                // Determine if user has global access
-                if ($user->hasRole(['super_admin', 'owner', 'admin_produk'])) {
-                    return; // No location restriction
-                }
+            ->where(function($q) use ($user, $request) {
+                /** @var \App\Models\User $user */
+                $isUnrestricted = $user->hasRole(['super_admin', 'owner', 'admin_produk']);
 
                 // Filter by Source Location (where it was sent from)
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 $distributorIds = $user->getAccessibleDistributorIds();
+
+                if ($request->branch_id) {
+                    $branchIds = $isUnrestricted || in_array($request->branch_id, $branchIds) ? [$request->branch_id] : [];
+                    $warehouseIds = [];
+                    $onlineShopIds = [];
+                    $distributorIds = [];
+                    $isUnrestricted = false;
+                } elseif ($request->online_shop_id) {
+                    $onlineShopIds = $isUnrestricted || in_array($request->online_shop_id, $onlineShopIds) ? [$request->online_shop_id] : [];
+                    $branchIds = [];
+                    $warehouseIds = [];
+                    $distributorIds = [];
+                    $isUnrestricted = false;
+                }
+
+                if ($isUnrestricted) {
+                    return; // No location restriction
+                }
 
                 $q->where(function($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, $user) {
                     $hasFilter = false;

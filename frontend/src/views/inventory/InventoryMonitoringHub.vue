@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "../../stores/auth";
 import PinModal from "../../components/modals/PinModal.vue";
 import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
@@ -28,11 +29,14 @@ import {
     FileText,
     Truck,
     LayoutDashboard,
-    Printer
+    Printer,
+    MapPin,
+    Globe
 } from "lucide-vue-next";
 
 const toast = useToast();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // Tab State
 const activeTab = ref("incoming_otw"); // Default to incoming_otw
@@ -78,6 +82,57 @@ const transfers = ref([]); // For OTW tabs
 const historyData = ref({ data: [], current_page: 1, last_page: 1, total: 0 }); // For History tabs
 const searchQuery = ref("");
 const currentPage = ref(1);
+
+// Location Filter States
+const canChangeLocation = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'analist', 'audit', 'leader', 'owner', 'admin_produk'].some(r => role.includes(r));
+});
+
+const locationType = ref('branch');
+const filters = ref({
+    branch_id: null,
+    online_shop_id: null
+});
+
+const branches = ref([]);
+const onlineShops = ref([]);
+
+const filteredBranches = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = branches.value || [];
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(b => allowed.includes(Number(b.id)));
+    }
+    return result;
+});
+
+const filteredOnlineShops = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = onlineShops.value || [];
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(o => allowed.includes(Number(o.id)));
+    }
+    return result;
+});
+
+const fetchLocations = async () => {
+    try {
+        const response = await api.get('/inventory/meta-locations');
+        branches.value = response.data.branches || [];
+        onlineShops.value = response.data.online_shops || [];
+    } catch (err) {
+        console.error("Gagal memuat filter lokasi:", err);
+    }
+};
+
+const handleLocationTypeChange = () => {
+    filters.value.branch_id = null;
+    filters.value.online_shop_id = null;
+    fetchData(1);
+};
 
 // Modal/Form States (Shared)
 const showPinModal = ref(false);
@@ -254,30 +309,36 @@ async function fetchData(page = 1) {
     isLoading.value = true;
     try {
         fetchAssetValues();
+        
+        const baseParams = {
+            branch_id: filters.value.branch_id,
+            online_shop_id: filters.value.online_shop_id
+        };
+
         if (activeTab.value === "incoming_otw") {
-            const response = await api.get('/transfers/pending');
+            const response = await api.get('/transfers/pending', { params: baseParams });
             transfers.value = response.data.data || response.data || [];
         } else if (activeTab.value === "outgoing_otw") {
-            const response = await api.get('/transfers/outgoing');
+            const response = await api.get('/transfers/outgoing', { params: baseParams });
             transfers.value = response.data.data || response.data || [];
         } else if (activeTab.value === "failed_otw") {
-            const response = await api.get('/transfers/failed');
+            const response = await api.get('/transfers/failed', { params: baseParams });
             transfers.value = response.data.data || response.data || [];
         } else if (activeTab.value === "history_in") {
             const response = await api.get('/transfers/history', {
-                params: { page, q: searchQuery.value, type: 'incoming' }
+                params: { ...baseParams, page, q: searchQuery.value, type: 'incoming' }
             });
             historyData.value = response.data;
             currentPage.value = page;
         } else if (activeTab.value === "history_out") {
             const response = await api.get('/transfers/history', {
-                params: { page, q: searchQuery.value, type: 'outgoing' }
+                params: { ...baseParams, page, q: searchQuery.value, type: 'outgoing' }
             });
             historyData.value = response.data;
             currentPage.value = page;
         } else if (activeTab.value === "history_failed") {
             const response = await api.get('/transfers/history', {
-                params: { page, q: searchQuery.value, type: 'failed' }
+                params: { ...baseParams, page, q: searchQuery.value, type: 'failed' }
             });
             historyData.value = response.data;
             currentPage.value = page;
@@ -474,6 +535,9 @@ async function submitExpedition() {
 }
 
 onMounted(() => {
+    if (canChangeLocation.value) {
+        fetchLocations();
+    }
     fetchInventoryAccounts();
     fetchData(1);
 });
@@ -502,12 +566,41 @@ onMounted(() => {
                         <input v-model="searchQuery" type="text" placeholder="Cari Resi atau Cabang..."
                             class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500 transition-all shadow-inner" />
                     </div>
- 
-                    <button @click="fetchData(1)" :disabled="isLoading"
-                        class="btn btn-secondary gap-2 px-5 h-11 rounded-xl text-sm font-bold border border-surface-700 hover:bg-surface-750 shrink-0">
-                        <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
-                        <span>Refresh</span>
-                    </button>
+
+                    <div class="flex items-center gap-3 ml-auto">
+                        <!-- Location Filter (Branch/OS) -->
+                        <div v-if="canChangeLocation"
+                            class="flex items-center gap-2 bg-surface-800 border border-surface-700 rounded-xl p-1 shadow-sm w-fit">
+                            <div class="flex items-center gap-1 group">
+                                <div class="p-1.5 bg-surface-750 rounded-lg group-hover:bg-primary-500/10 transition-colors">
+                                    <MapPin v-if="locationType === 'branch'" :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                                    <Globe v-else :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                                </div>
+                                <select v-model="locationType" @change="handleLocationTypeChange"
+                                    class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
+                                    <option value="branch">Cabang</option>
+                                    <option value="online">Online</option>
+                                </select>
+                            </div>
+                            <div class="w-px h-4 bg-surface-700 mr-1"></div>
+                            <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData(1)"
+                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                                <option :value="null">Semua Cabang</option>
+                                <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            </select>
+                            <select v-else v-model="filters.online_shop_id" @change="fetchData(1)"
+                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                                <option :value="null">Semua Online Shop</option>
+                                <option v-for="o in filteredOnlineShops" :key="o.id" :value="o.id">{{ o.name }}</option>
+                            </select>
+                        </div>
+
+                        <button @click="fetchData(1)" :disabled="isLoading"
+                            class="btn btn-secondary gap-2 px-5 h-11 rounded-xl text-sm font-bold border border-surface-700 hover:bg-surface-750 shrink-0">
+                            <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
+                            <span>Refresh</span>
+                        </button>
+                    </div>
                 </div>
  
                 <!-- 5 Big Cards at the Top (Fully Responsive Grid Layout) -->

@@ -2,9 +2,9 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-    Search, ArrowLeft, RefreshCw, Box, Calendar, User, Truck, ClipboardList, Info, Smartphone, Package, Download, AlertTriangle
+    Search, ArrowLeft, RefreshCw, Box, Calendar, User, Truck, ClipboardList, Info, Smartphone, Package, Download, AlertTriangle, MapPin, Globe
 } from 'lucide-vue-next';
-import { stockOut, inventory } from '../../api/axios';
+import api, { stockOut, inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { formatDate, formatCurrency, getLogicalDate, getTodayLocal } from '../../utils/formatters';
 
@@ -45,9 +45,59 @@ const pagination = ref({
 const filterMode = ref('month');
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
+    const privilegedRoles = ['super_admin', 'analist', 'admin_produk'];
     return !privilegedRoles.some(r => role.includes(r));
 });
+
+const canChangeLocation = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'analist', 'audit', 'leader', 'owner', 'admin_produk'].some(r => role.includes(r));
+});
+
+const locationType = ref('branch');
+const filters = ref({
+    branch_id: props.branchId || null,
+    online_shop_id: props.onlineShopId || null
+});
+
+const branches = ref([]);
+const onlineShops = ref([]);
+
+const filteredBranches = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = branches.value;
+    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(b => allowed.includes(Number(b.id)));
+    }
+    return result;
+});
+
+const filteredOnlineShops = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = onlineShops.value;
+    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(s => allowed.includes(Number(s.id)));
+    }
+    return result;
+});
+
+const fetchLocations = async () => {
+    try {
+        const response = await api.get('/inventory/meta-locations');
+        branches.value = response.data.branches || [];
+        onlineShops.value = response.data.online_shops || [];
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+const handleLocationTypeChange = () => {
+    filters.value.branch_id = null;
+    filters.value.online_shop_id = null;
+    fetchData(1);
+};
 
 
 // getTodayLocal is now imported
@@ -114,8 +164,8 @@ const fetchData = async (page = 1) => {
         const params = {
             page,
             search: searchQuery.value,
-            branch_id: props.branchId || undefined,
-            online_shop_id: props.onlineShopId || undefined
+            branch_id: props.isEmbedded ? props.branchId : filters.value.branch_id,
+            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id
         };
 
         const dateParam = getDateParam();
@@ -154,8 +204,8 @@ const exportExcel = async () => {
         const params = { 
             type: activeTab.value,
             search: searchQuery.value,
-            branch_id: props.branchId || undefined,
-            online_shop_id: props.onlineShopId || undefined
+            branch_id: props.isEmbedded ? props.branchId : filters.value.branch_id,
+            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id
         };
         const dateParam = getDateParam();
         if (dateParam) {
@@ -204,6 +254,9 @@ watch(() => props.onlineShopId, () => {
 });
 
 onMounted(() => {
+    if (canChangeLocation.value && !props.isEmbedded) {
+        fetchLocations();
+    }
     fetchData();
 
     if (window.Echo) {
@@ -340,6 +393,35 @@ const getCategoryColor = (cat) => {
                     <input v-model="searchQuery" type="text" placeholder="Cari ID, Penerima, atau Item..."
                         class="w-full bg-surface-900 border border-surface-700 rounded-xl py-2 pl-10 pr-4 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all placeholder:text-text-secondary" />
                 </div>
+            </div>
+
+            <!-- Location Filter (Branch/OS) - Only for non-restricted users and audit -->
+            <div v-if="canChangeLocation && !isEmbedded"
+                class="flex items-center gap-2 bg-surface-900 border border-surface-700 rounded-xl p-1 shadow-sm w-fit">
+                <div class="flex items-center gap-1 group">
+                    <div
+                        class="p-1.5 bg-surface-800 rounded-lg group-hover:bg-primary-500/10 transition-colors">
+                        <MapPin v-if="locationType === 'branch'" :size="14"
+                            class="text-text-secondary group-hover:text-primary-500" />
+                        <Globe v-else :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                    </div>
+                    <select v-model="locationType" @change="handleLocationTypeChange"
+                        class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
+                        <option value="branch">Cabang</option>
+                        <option value="online">Online</option>
+                    </select>
+                </div>
+                <div class="w-px h-4 bg-surface-700 mr-1"></div>
+                <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Cabang</option>
+                    <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                </select>
+                <select v-else v-model="filters.online_shop_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Toko Online</option>
+                    <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </select>
             </div>
 
             <!-- Date Filter -->

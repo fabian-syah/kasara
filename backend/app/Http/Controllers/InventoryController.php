@@ -1653,6 +1653,10 @@ class InventoryController extends Controller
             }
         }
 
+        if ($request->branch_id) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         $users = $query->get();
 
         return response()->json([

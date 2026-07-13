@@ -23,11 +23,10 @@ import {
   RefreshCw,
   Image as ImageIcon,
   Loader2,
+  MapPin, Globe
 } from "lucide-vue-next";
-
+import api, { users as usersApi, inventory as inventoryApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
-import { users as usersApi, inventory as inventoryApi } from "../../api/axios";
-
 import { useAuthStore } from "../../store/auth";
 
 const authStore = useAuthStore();
@@ -39,13 +38,67 @@ const pendingPhotos = ref([]);
 const isPhotosLoading = ref(false);
 const isDemoMode = ref(false);
 
+const locationType = ref('branch');
+const filters = ref({
+    branch_id: null,
+    online_shop_id: null
+});
+
+const branches = ref([]);
+const onlineShops = ref([]);
+
+const canChangeLocation = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'analist', 'audit', 'leader', 'owner', 'admin_produk'].some(r => role.includes(r));
+});
+
+const filteredBranches = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = branches.value;
+    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(b => allowed.includes(Number(b.id)));
+    }
+    return result;
+});
+
+const filteredOnlineShops = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = onlineShops.value;
+    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(s => allowed.includes(Number(s.id)));
+    }
+    return result;
+});
+
+const fetchLocations = async () => {
+    try {
+        const response = await api.get('/inventory/meta-locations');
+        branches.value = response.data.branches || [];
+        onlineShops.value = response.data.online_shops || [];
+    } catch (err) {
+        console.error(err);
+    }
+};
+
+const handleLocationTypeChange = () => {
+    filters.value.branch_id = null;
+    filters.value.online_shop_id = null;
+    fetchPendingPhotos();
+};
+
 async function fetchPendingPhotos() {
   isPhotosLoading.value = true;
   isDemoMode.value = false;
   
+  const params = {};
+  if (filters.value.branch_id) params.branch_id = filters.value.branch_id;
+  if (filters.value.online_shop_id) params.online_shop_id = filters.value.online_shop_id;
+
   try {
     // Fetch User pending photos - catch error individually
-    const userPhotos = await usersApi.listPendingPhotos()
+    const userPhotos = await usersApi.listPendingPhotos(params)
       .then(res => (res.data.data || []).map(u => ({ ...u, type: 'user' })))
       .catch(err => {
         console.warn("User photo endpoint error:", err.message);
@@ -53,7 +106,7 @@ async function fetchPendingPhotos() {
       });
 
     // Fetch Inventory pending photos - catch error individually
-    const invPhotos = await inventoryApi.listPendingPhotos()
+    const invPhotos = await inventoryApi.listPendingPhotos(params)
       .then(res => (res.data.data || []).map(i => ({ ...i, type: 'inventory' })))
       .catch(err => {
         console.warn("Inventory photo endpoint error:", err.message);
@@ -94,6 +147,9 @@ async function fetchPendingPhotos() {
 }
 
 onMounted(() => {
+  if (canChangeLocation.value) {
+      fetchLocations();
+  }
   fetchPendingPhotos();
 });
 
@@ -156,7 +212,36 @@ async function handleRejectPhoto(item) {
         </p>
       </div>
 
-      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3">
+          <!-- Location Filter -->
+          <div v-if="canChangeLocation"
+              class="flex items-center gap-2 bg-surface-900 border border-surface-700 rounded-xl p-1 shadow-sm w-fit hidden md:flex">
+              <div class="flex items-center gap-1 group">
+                  <div
+                      class="p-1.5 bg-surface-800 rounded-lg group-hover:bg-primary-500/10 transition-colors">
+                      <MapPin v-if="locationType === 'branch'" :size="14"
+                          class="text-text-secondary group-hover:text-primary-500" />
+                      <Globe v-else :size="14" class="text-text-secondary group-hover:text-primary-500" />
+                  </div>
+                  <select v-model="locationType" @change="handleLocationTypeChange"
+                      class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
+                      <option value="branch">Cabang</option>
+                      <option value="online">Online</option>
+                  </select>
+              </div>
+              <div class="w-px h-4 bg-surface-700 mr-1"></div>
+              <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchPendingPhotos"
+                  class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                  <option :value="null">Semua Cabang</option>
+                  <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+              </select>
+              <select v-else v-model="filters.online_shop_id" @change="fetchPendingPhotos"
+                  class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                  <option :value="null">Semua Toko Online</option>
+                  <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+              </select>
+          </div>
+
         <div v-if="isDemoMode" class="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-2">
             <div class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></div>
             <span class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Demo Mode (API Failing)</span>
