@@ -484,8 +484,7 @@
                         <!-- Notes textarea -->
                         <div class="ml-8">
                             <textarea v-model="q.notes" rows="2" placeholder="Catatan (opsional)..."
-                                class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none">
-                        </textarea>
+                                class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"></textarea>
                         </div>
                     </div>
                 </div>
