@@ -435,7 +435,7 @@ const locations = ref([]);
 const canFilterBranch = computed(() => {
   if (props.pageMode !== 'inventory') return true;
   const role = (authStore.userRole || '').toLowerCase();
-  return ['super_admin', 'audit', 'owner', 'analist'].some(r => role.includes(r));
+  return ['super_admin', 'audit', 'owner', 'analist', 'leader'].some(r => role.includes(r));
 });
 
 const canEditInventory = computed(() => {

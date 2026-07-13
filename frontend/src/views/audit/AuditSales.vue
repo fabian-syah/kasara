@@ -861,6 +861,16 @@ const restrictedMonths = computed(() => {
     return months.map((m, i) => ({ name: m, value: i + 1 }));
 });
 
+const filteredBranches = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    let result = branches.value || [];
+    if (!['super_admin', 'analist', 'admin_produk', 'owner', 'audit', 'leader'].some(r => role.includes(r))) {
+        const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        result = result.filter(b => allowed.includes(Number(b.id)));
+    }
+    return result;
+});
+
 const getMinDate = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];

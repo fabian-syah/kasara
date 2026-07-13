@@ -105,7 +105,7 @@ const distributors = ref([]);
 const filteredBranches = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = branches.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(b => allowed.includes(Number(b.id)));
     }
@@ -115,7 +115,7 @@ const filteredBranches = computed(() => {
 const filteredOnlineShops = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = onlineShops.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(o => allowed.includes(Number(o.id)));
     }
@@ -126,7 +126,7 @@ const filteredOnlineShops = computed(() => {
 const filteredWarehouses = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = warehouses.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.warehouse_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'warehouse').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(w => allowed.includes(Number(w.id)));
     }
@@ -136,7 +136,7 @@ const filteredWarehouses = computed(() => {
 const filteredDistributors = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = distributors.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.distributor_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'distributor').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(d => allowed.includes(Number(d.id)));
     }
@@ -622,6 +622,11 @@ onMounted(() => {
                                 <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                             
+                            <select v-else-if="locationType === 'online'" v-model="filters.online_shop_id" @change="fetchData(1)"
+                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                                <option :value="null">Semua Toko Online</option>
+                                <option v-for="o in filteredOnlineShops" :key="o.id" :value="o.id">{{ o.name }}</option>
+                            </select>
                             <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
                                 class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
                                 <option :value="null">Semua Gudang</option>

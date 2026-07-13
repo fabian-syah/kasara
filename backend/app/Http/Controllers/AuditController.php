@@ -142,9 +142,15 @@ class AuditController extends Controller
             $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                 $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
-                        $q->where('stock_outs.branch_id', $requestedBranchId);
+                        $q->where(function($sq) use ($requestedBranchId) {
+                            $sq->where('stock_outs.branch_id', $requestedBranchId)
+                               ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                        });
                     } elseif ($requestedOnlineShopId) {
-                        $q->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+                        $q->where(function($sq) use ($requestedOnlineShopId) {
+                            $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                               ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                        });
                     } elseif ($requestedWarehouseId) {
                         $q->where('stock_outs.warehouse_id', $requestedWarehouseId);
                     } elseif ($requestedDistributorId) {
@@ -270,11 +276,15 @@ class AuditController extends Controller
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
-                                $q->where('stock_outs.branch_id', $requestedBranchId)
-                                    ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                                $q->where(function($sq) use ($requestedBranchId) {
+                                    $sq->where('stock_outs.branch_id', $requestedBranchId)
+                                       ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                                });
                             } elseif ($requestedOnlineShopId) {
-                                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                    ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                                $q->where(function($sq) use ($requestedOnlineShopId) {
+                                    $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                                       ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                                });
                             } elseif ($requestedWarehouseId) {
                                 $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
                                     ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));

@@ -707,14 +707,14 @@ class StockInController extends Controller
         }
 
         // AUDIT LOCATION FILTERS
-        $auditRoles = array_merge($unrestrictedRoles, ['audit', 'leader']);
-        if ($request->branch_id && $user->hasAnyRole($auditRoles)) {
+        $auditRoles = ['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'];
+        if ($request->filled('branch_id') && $user->hasAnyRole($auditRoles)) {
             $query->where('branch_id', $request->branch_id);
-        } elseif ($request->online_shop_id && $user->hasAnyRole($auditRoles)) {
+        } elseif ($request->filled('online_shop_id') && $user->hasAnyRole($auditRoles)) {
             $query->where('online_shop_id', $request->online_shop_id);
-        } elseif ($request->warehouse_id && $user->hasAnyRole($auditRoles)) {
+        } elseif ($request->filled('warehouse_id') && $user->hasAnyRole($auditRoles)) {
             $query->where('warehouse_id', $request->warehouse_id);
-        } elseif ($request->distributor_id && $user->hasAnyRole($auditRoles)) {
+        } elseif ($request->filled('distributor_id') && $user->hasAnyRole($auditRoles)) {
             $query->where('distributor_id', $request->distributor_id);
         }
 
@@ -876,13 +876,13 @@ class StockInController extends Controller
 
         // AUDIT LOCATION FILTERS
         $auditRoles2 = ['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'];
-        if ($request->branch_id && $user->hasAnyRole($auditRoles2)) {
+        if ($request->filled('branch_id') && $user->hasAnyRole($auditRoles2)) {
             $query->where('branch_id', $request->branch_id);
-        } elseif ($request->online_shop_id && $user->hasAnyRole($auditRoles2)) {
+        } elseif ($request->filled('online_shop_id') && $user->hasAnyRole($auditRoles2)) {
             $query->where('online_shop_id', $request->online_shop_id);
-        } elseif ($request->warehouse_id && $user->hasAnyRole($auditRoles2)) {
+        } elseif ($request->filled('warehouse_id') && $user->hasAnyRole($auditRoles2)) {
             $query->where('warehouse_id', $request->warehouse_id);
-        } elseif ($request->distributor_id && $user->hasAnyRole($auditRoles2)) {
+        } elseif ($request->filled('distributor_id') && $user->hasAnyRole($auditRoles2)) {
             $query->where('distributor_id', $request->distributor_id);
         }
 
