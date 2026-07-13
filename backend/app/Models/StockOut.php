@@ -182,7 +182,7 @@ class StockOut extends Model
         'split_payments' => 'array',
     ];
 
-    protected $appends = ['payment_method_name', 'split_payments_data'];
+    protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score'];
 
     public function getPaymentMethodNameAttribute()
     {
@@ -217,6 +217,20 @@ class StockOut extends Model
             ];
         }
         return $result;
+    }
+
+    public function getAuditScoreAttribute()
+    {
+        if ($this->relationLoaded('auditAnswers')) {
+            $answers = $this->auditAnswers;
+            if ($answers->isEmpty()) {
+                return null;
+            }
+            $total = $answers->count();
+            $yes = $answers->where('answer', true)->count();
+            return $total > 0 ? round(($yes / $total) * 100) : 0;
+        }
+        return null;
     }
 
     // Relationships
