@@ -76,7 +76,15 @@ class RefundController extends Controller
                 // Resolve inventory_user_id and target location
                 $inventoryUserId = $request->inventory_user_id;
                 if (!$inventoryUserId && $request->sales_account) {
-                    $invUser = \App\Models\User::where('name', $request->sales_account)->first();
+                    $invUser = \App\Models\User::where('name', $request->sales_account)
+                        ->where(function($q) use ($user) {
+                            if ($user->branch_id) $q->where('branch_id', $user->branch_id);
+                            elseif ($user->warehouse_id) $q->where('warehouse_id', $user->warehouse_id);
+                            elseif ($user->online_shop_id) $q->where('online_shop_id', $user->online_shop_id);
+                        })->first();
+                    if (!$invUser) {
+                        $invUser = \App\Models\User::where('name', $request->sales_account)->first();
+                    }
                     if ($invUser) $inventoryUserId = $invUser->id;
                 }
                 $inventoryUserId = $inventoryUserId ?? $user->id;
