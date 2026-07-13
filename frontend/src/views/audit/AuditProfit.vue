@@ -65,8 +65,8 @@
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option v-if="isAlwaysGlobal" value="all">Semua Cabang/Toko</option>
                             <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`">
-                                {{ loc.name }}
+                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
                             </option>
                         </select>
                         <ChevronDown :size="16"
@@ -1208,6 +1208,7 @@ const fetchData = async (page = 1) => {
             const [type, id] = selectedLocationKey.value.split(':');
             params.branch_id = type === 'B' ? id : undefined;
             params.online_shop_id = type === 'S' ? id : undefined;
+            params.warehouse_id = type === 'W' ? id : undefined;
             params.distributor_id = type === 'D' ? id : undefined;
         }
 

@@ -706,14 +706,16 @@ class StockInController extends Controller
             });
         }
 
-        // AUDIT BRANCH FILTER
-        if ($request->branch_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
+        // AUDIT LOCATION FILTERS
+        $auditRoles = array_merge($unrestrictedRoles, ['audit', 'leader']);
+        if ($request->branch_id && $user->hasAnyRole($auditRoles)) {
             $query->where('branch_id', $request->branch_id);
-        }
-
-        // AUDIT ONLINE SHOP FILTER
-        if ($request->online_shop_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
+        } elseif ($request->online_shop_id && $user->hasAnyRole($auditRoles)) {
             $query->where('online_shop_id', $request->online_shop_id);
+        } elseif ($request->warehouse_id && $user->hasAnyRole($auditRoles)) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        } elseif ($request->distributor_id && $user->hasAnyRole($auditRoles)) {
+            $query->where('distributor_id', $request->distributor_id);
         }
 
         // DATE FILTER
@@ -872,14 +874,16 @@ class StockInController extends Controller
             });
         }
 
-        // AUDIT BRANCH FILTER
-        if ($request->branch_id && $user->hasAnyRole(['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'])) {
+        // AUDIT LOCATION FILTERS
+        $auditRoles2 = ['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'];
+        if ($request->branch_id && $user->hasAnyRole($auditRoles2)) {
             $query->where('branch_id', $request->branch_id);
-        }
-
-        // AUDIT ONLINE SHOP FILTER
-        if ($request->online_shop_id && $user->hasAnyRole(['audit', 'leader', 'super_admin', 'admin_produk', 'analist', 'owner'])) {
+        } elseif ($request->online_shop_id && $user->hasAnyRole($auditRoles2)) {
             $query->where('online_shop_id', $request->online_shop_id);
+        } elseif ($request->warehouse_id && $user->hasAnyRole($auditRoles2)) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        } elseif ($request->distributor_id && $user->hasAnyRole($auditRoles2)) {
+            $query->where('distributor_id', $request->distributor_id);
         }
 
         // Analist Exclusion for Stock Out History

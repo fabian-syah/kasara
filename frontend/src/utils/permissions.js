@@ -28,7 +28,6 @@ export const ROLE_LABELS = {
     [ROLES.DISTRIBUTION]: 'Distribution',
     [ROLES.SALES]: 'Toko Offline',
     [ROLES.GUDANG]: 'Gudang',
-    [ROLES.INVENTORY_KASIR]: 'Inventory & Kasir',
     [ROLES.TOKO_ONLINE]: 'Toko Online'
 }
 

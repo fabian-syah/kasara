@@ -7,7 +7,6 @@ import {
 import api, { inventory } from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { formatDate, formatCurrency, getLogicalDate, getTodayLocal } from '../../utils/formatters';
-
 import { useAuthStore } from '../../store/auth';
 
 const authStore = useAuthStore();
@@ -15,18 +14,9 @@ const router = useRouter();
 const toast = useToast();
 
 const props = defineProps({
-    isEmbedded: {
-        type: Boolean,
-        default: false
-    },
-    branchId: {
-        type: [Number, String],
-        default: null
-    },
-    onlineShopId: {
-        type: [Number, String],
-        default: null
-    }
+    isEmbedded: { type: Boolean, default: false },
+    branchId: { type: [Number, String], default: null },
+    onlineShopId: { type: [Number, String], default: null }
 });
 
 const loading = ref(false);
@@ -34,18 +24,12 @@ const exporting = ref(false);
 const items = ref([]);
 const activeTab = ref('hp');
 const searchQuery = ref('');
-const pagination = ref({
-    current_page: 1,
-    last_page: 1,
-    total: 0
-});
+const pagination = ref({ current_page: 1, last_page: 1, total: 0 });
 
-// Date Filter
-const filterMode = ref('month'); // 'today', 'yesterday', 'date', 'month'
+const filterMode = ref('month');
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'analist', 'admin_produk'];
-    return !privilegedRoles.some(r => role.includes(r));
+    return !['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r));
 });
 
 const canChangeLocation = computed(() => {
@@ -56,7 +40,9 @@ const canChangeLocation = computed(() => {
 const locationType = ref('branch');
 const filters = ref({
     branch_id: props.branchId || null,
-    online_shop_id: props.onlineShopId || null
+    online_shop_id: props.onlineShopId || null,
+    warehouse_id: null,
+    distributor_id: null,
 });
 
 const branches = ref([]);
@@ -84,10 +70,9 @@ const filteredOnlineShops = computed(() => {
     return result;
 });
 
-
 const filteredWarehouses = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    let result = warehouses.value || [];
+    let result = warehouses.value;
     if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.warehouse_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'warehouse').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(w => allowed.includes(Number(w.id)));
@@ -97,7 +82,7 @@ const filteredWarehouses = computed(() => {
 
 const filteredDistributors = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    let result = distributors.value || [];
+    let result = distributors.value;
     if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.distributor_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'distributor').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(d => allowed.includes(Number(d.id)));
@@ -128,7 +113,7 @@ const handleLocationTypeChange = () => {
 const getMinDate = computed(() => {
     if (!isRestricted.value) return null;
     const d = getLogicalDate();
-    d.setDate(d.getDate() - 7); // Allow past 7 days
+    d.setDate(d.getDate() - 7);
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -144,19 +129,12 @@ const prevMonth = prevDate.getMonth() + 1;
 const prevYear = prevDate.getFullYear();
 
 const monthOptions = [
-    {
-        label: currentDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }),
-        value: { month: currentMonth, year: currentYear }
-    },
-    {
-        label: prevDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }),
-        value: { month: prevMonth, year: prevYear }
-    }
+    { label: currentDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }), value: { month: currentMonth, year: currentYear } },
+    { label: prevDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' }), value: { month: prevMonth, year: prevYear } }
 ];
 
 const selectedMonth = ref(monthOptions[0].value);
-const selectedDate = ref(getTodayLocal()); // YYYY-MM-DD
-
+const selectedDate = ref(getTodayLocal());
 
 const filterPresets = [
     { label: 'Hari Ini', value: 'today' },
@@ -166,20 +144,13 @@ const filterPresets = [
 ];
 
 const getDateParam = () => {
-    const logicalNow = getLogicalDate();
     if (filterMode.value === 'today') {
         const d = getLogicalDate();
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     } else if (filterMode.value === 'yesterday') {
         const d = getLogicalDate();
         d.setDate(d.getDate() - 1);
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     } else if (filterMode.value === 'date') {
         return selectedDate.value;
     }
@@ -194,9 +165,10 @@ const fetchData = async (page = 1) => {
             type: activeTab.value,
             search: searchQuery.value,
             branch_id: props.isEmbedded ? props.branchId : filters.value.branch_id,
-            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id
+            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id,
+            warehouse_id: props.isEmbedded ? null : filters.value.warehouse_id,
+            distributor_id: props.isEmbedded ? null : filters.value.distributor_id,
         };
-
         const dateParam = getDateParam();
         if (dateParam) {
             params.date = dateParam;
@@ -204,7 +176,6 @@ const fetchData = async (page = 1) => {
             params.month = selectedMonth.value.month;
             params.year = selectedMonth.value.year;
         }
-
         const response = await inventory.historyIn(params);
         items.value = response.data.data;
         pagination.value = {
@@ -223,11 +194,13 @@ const fetchData = async (page = 1) => {
 const exportExcel = async () => {
     exporting.value = true;
     try {
-        const params = { 
-            type: activeTab.value, 
+        const params = {
+            type: activeTab.value,
             search: searchQuery.value,
             branch_id: props.isEmbedded ? props.branchId : filters.value.branch_id,
-            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id
+            online_shop_id: props.isEmbedded ? props.onlineShopId : filters.value.online_shop_id,
+            warehouse_id: props.isEmbedded ? null : filters.value.warehouse_id,
+            distributor_id: props.isEmbedded ? null : filters.value.distributor_id,
         };
         const dateParam = getDateParam();
         if (dateParam) {
@@ -236,19 +209,16 @@ const exportExcel = async () => {
             params.month = selectedMonth.value.month;
             params.year = selectedMonth.value.year;
         }
-
         const response = await inventory.exportHistoryIn(params);
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        
         let filename = `stok-masuk-${activeTab.value}`;
         if (filterMode.value === 'month') {
             filename += `-${selectedMonth.value.month}-${selectedMonth.value.year}`;
         } else {
             filename += `-${dateParam || getTodayLocal()}`;
         }
-        
         link.setAttribute('download', `${filename}.xlsx`);
         document.body.appendChild(link);
         link.click();
@@ -263,59 +233,39 @@ const exportExcel = async () => {
     }
 };
 
-watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => {
-    fetchData(1);
-});
-
-watch(() => props.branchId, () => {
-    fetchData(1);
-});
-
-watch(() => props.onlineShopId, () => {
-    fetchData(1);
-});
+watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => { fetchData(1); });
+watch(() => props.branchId, () => { fetchData(1); });
+watch(() => props.onlineShopId, () => { fetchData(1); });
 
 onMounted(() => {
-    if (canChangeLocation.value && !props.isEmbedded) {
-        fetchLocations();
-    }
+    if (canChangeLocation.value && !props.isEmbedded) fetchLocations();
     fetchData();
-
     if (window.Echo) {
-        window.Echo.channel('inventory-log')
-            .listen('.InventoryLogEvent', (e) => {
-                const log = e.log;
-                const isHp = log.product && log.product.type === 'hp';
-                const isNonHp = log.product && log.product.type === 'non-hp';
-
-                if (activeTab.value === 'hp' && isHp) {
-                    items.value.unshift(log);
-                    // Optional: maintain limit
-                    if (items.value.length > 20) items.value.pop();
-                    toast.success(`History Masuk: ${log.product.name}`);
-                } else if (activeTab.value === 'non-hp' && isNonHp) {
-                    items.value.unshift(log);
-                    if (items.value.length > 20) items.value.pop();
-                    toast.success(`History Masuk: ${log.product.name}`);
-                }
-            });
+        window.Echo.channel('inventory-log').listen('.InventoryLogEvent', (e) => {
+            const log = e.log;
+            const isHp = log.product && log.product.type === 'hp';
+            const isNonHp = log.product && log.product.type === 'non-hp';
+            if (activeTab.value === 'hp' && isHp) {
+                items.value.unshift(log);
+                if (items.value.length > 20) items.value.pop();
+                toast.success(`History Masuk: ${log.product.name}`);
+            } else if (activeTab.value === 'non-hp' && isNonHp) {
+                items.value.unshift(log);
+                if (items.value.length > 20) items.value.pop();
+                toast.success(`History Masuk: ${log.product.name}`);
+            }
+        });
     }
 });
 
 onUnmounted(() => {
-    if (window.Echo) {
-        window.Echo.leave('inventory-log');
-    }
+    if (window.Echo) window.Echo.leave('inventory-log');
 });
 
 const handleVoid = async (item) => {
     const itemName = item.product ? item.product.name : 'Unknown Item';
     const detail = activeTab.value === 'hp' ? `IMEI: ${item.imei}` : `Qty: ${item.quantity} unit`;
-    
-    if (!confirm(`Hapus/Void data stok masuk ini?\n${itemName}\n${detail}\n\nTindakan ini akan menghapus barang dari inventory.`)) {
-        return;
-    }
-
+    if (!confirm(`Hapus/Void data stok masuk ini?\n${itemName}\n${detail}\n\nTindakan ini akan menghapus barang dari inventory.`)) return;
     try {
         await inventory.voidStockIn(item.id, activeTab.value);
         toast.success('Berhasil membatalkan stok masuk.');
@@ -332,8 +282,7 @@ const handleVoid = async (item) => {
         <!-- Header -->
         <div v-if="!isEmbedded" class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div class="flex items-center gap-3">
-                <button @click="router.push({ name: 'Inventory' })"
-                    class="p-2 hover:bg-surface-800 rounded-xl transition-colors">
+                <button @click="router.push({ name: 'Inventory' })" class="p-2 hover:bg-surface-800 rounded-xl transition-colors">
                     <ArrowLeft :size="20" class="text-text-secondary" />
                 </button>
                 <div>
@@ -341,7 +290,6 @@ const handleVoid = async (item) => {
                     <p class="text-text-secondary mt-1">Riwayat barang masuk ke inventory</p>
                 </div>
             </div>
-
             <div class="flex items-center gap-3">
                 <button @click="exportExcel" :disabled="exporting"
                     class="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl text-sm font-medium transition-all">
@@ -361,13 +309,11 @@ const handleVoid = async (item) => {
                 <!-- Tab Switcher -->
                 <div class="flex space-x-1 rounded-xl bg-surface-900 p-1 w-fit">
                     <button v-for="tab in ['hp', 'non-hp']" :key="tab" @click="activeTab = tab"
-                        class="px-4 py-2 rounded-lg text-sm font-medium leading-5 transition-all duration-200" :class="activeTab === tab
-                            ? 'bg-surface-700 text-white shadow'
-                            : 'text-text-secondary hover:text-white'">
+                        class="px-4 py-2 rounded-lg text-sm font-medium leading-5 transition-all duration-200"
+                        :class="activeTab === tab ? 'bg-surface-700 text-white shadow' : 'text-text-secondary hover:text-white'">
                         {{ tab === 'hp' ? 'Unit / HP' : 'NON HP / NON IMEI' }}
                     </button>
                 </div>
-
                 <!-- Search -->
                 <div class="relative w-full sm:w-72">
                     <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
@@ -376,22 +322,20 @@ const handleVoid = async (item) => {
                 </div>
             </div>
 
-            <!-- Location Filter (Branch/OS) - Only for non-restricted users and audit -->
+            <!-- Location Filter -->
             <div v-if="canChangeLocation && !isEmbedded"
                 class="flex items-center gap-2 bg-surface-900 border border-surface-700 rounded-xl p-1 shadow-sm w-fit">
                 <div class="flex items-center gap-1 group">
-                    <div
-                        class="p-1.5 bg-surface-800 rounded-lg group-hover:bg-primary-500/10 transition-colors">
-                        <MapPin v-if="locationType === 'branch'" :size="14"
-                            class="text-text-secondary group-hover:text-primary-500" />
+                    <div class="p-1.5 bg-surface-800 rounded-lg group-hover:bg-primary-500/10 transition-colors">
+                        <MapPin v-if="locationType === 'branch'" :size="14" class="text-text-secondary group-hover:text-primary-500" />
                         <Globe v-else :size="14" class="text-text-secondary group-hover:text-primary-500" />
                     </div>
                     <select v-model="locationType" @change="handleLocationTypeChange"
                         class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
                         <option value="branch">Cabang</option>
-                                    <option value="online">Online</option>
-                                    <option value="warehouse">Gudang</option>
-                                    <option value="distributor">Distributor</option>
+                        <option value="online_shop">Toko Online</option>
+                        <option value="warehouse">Gudang</option>
+                        <option value="distributor">Distributor</option>
                     </select>
                 </div>
                 <div class="w-px h-4 bg-surface-700 mr-1"></div>
@@ -400,45 +344,39 @@ const handleVoid = async (item) => {
                     <option :value="null">Semua Cabang</option>
                     <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
                 </select>
-                
-                            <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
-                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                                <option :value="null">Semua Gudang</option>
-                                <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-                            </select>
-                            <select v-else-if="locationType === 'distributor'" v-model="filters.distributor_id" @change="fetchData(1)"
-                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                                <option :value="null">Semua Distributor</option>
-                                <option v-for="d in filteredDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                            </select>
+                <select v-else-if="locationType === 'online_shop'" v-model="filters.online_shop_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Toko Online</option>
+                    <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </select>
+                <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Gudang</option>
+                    <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                </select>
+                <select v-else-if="locationType === 'distributor'" v-model="filters.distributor_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Distributor</option>
+                    <option v-for="d in filteredDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                </select>
             </div>
 
             <!-- Date Filter -->
             <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                 <div class="flex flex-wrap gap-2">
                     <button v-for="preset in filterPresets" :key="preset.value" @click="filterMode = preset.value"
-                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border" :class="filterMode === preset.value
-                            ? 'bg-primary-500/20 text-primary-400 border-primary-500/30'
-                            : 'bg-surface-900 text-text-secondary border-surface-700 hover:text-white'">
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all border"
+                        :class="filterMode === preset.value ? 'bg-primary-500/20 text-primary-400 border-primary-500/30' : 'bg-surface-900 text-text-secondary border-surface-700 hover:text-white'">
                         {{ preset.label }}
                     </button>
                 </div>
-
-                <input v-if="filterMode === 'date'" v-model="selectedDate" type="date"
-                    :min="getMinDate" :max="getTodayLocal()"
+                <input v-if="filterMode === 'date'" v-model="selectedDate" type="date" :min="getMinDate" :max="getTodayLocal()"
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50" />
-
-
                 <select v-if="filterMode === 'month'" v-model="selectedMonth"
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
-                    <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">
-                        {{ option.label }}
-                    </option>
+                    <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">{{ option.label }}</option>
                 </select>
-
-                <span class="text-xs text-text-secondary ml-2">
-                    Total: {{ pagination.total }} item
-                </span>
+                <span class="text-xs text-text-secondary ml-2">Total: {{ pagination.total }} item</span>
             </div>
         </div>
 
@@ -448,12 +386,10 @@ const handleVoid = async (item) => {
                 <RefreshCw class="animate-spin text-primary-500" :size="32" />
                 <span class="ml-3 text-text-secondary">Memuat data...</span>
             </div>
-
             <div v-else-if="items.length === 0" class="p-12 text-center text-text-secondary">
                 <Box :size="48" class="mx-auto mb-3 opacity-50" />
                 <p>Belum ada riwayat stok masuk</p>
             </div>
-
             <div v-else class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-text-primary">
                     <thead class="bg-surface-900/50 text-text-secondary uppercase text-xs font-semibold">
@@ -477,61 +413,38 @@ const handleVoid = async (item) => {
                             </td>
                             <td class="px-6 py-4">
                                 <div>
-                                    <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown'
-                                        }}</div>
-                                    <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}
-                                    </div>
+                                    <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown' }}</div>
+                                    <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}</div>
                                 </div>
                             </td>
-                            <!-- HP Specific -->
                             <td class="px-6 py-4" v-if="activeTab === 'hp'">
-                                <div class="font-mono text-xs bg-surface-900 px-2 py-1 rounded inline-block mb-1">
-                                    {{ item.imei }}
-                                </div>
+                                <div class="font-mono text-xs bg-surface-900 px-2 py-1 rounded inline-block mb-1">{{ item.imei }}</div>
                                 <div class="text-xs text-text-secondary flex gap-2">
                                     <span v-if="item.ram || item.storage">{{ [item.ram, item.storage].filter(Boolean).join('/') }}</span>
-                                    <span class="capitalize"
-                                        :class="item.condition === 'new' ? 'text-green-400' : 'text-amber-400'">
-                                        {{ item.condition }}
-                                    </span>
+                                    <span class="capitalize" :class="item.condition === 'new' ? 'text-green-400' : 'text-amber-400'">{{ item.condition }}</span>
                                 </div>
                             </td>
-                            <!-- Non-HP Specific -->
                             <td class="px-6 py-4" v-else>
                                 <div class="flex items-center gap-2">
                                     <span class="text-lg font-bold text-green-400">+{{ item.quantity }}</span>
                                     <span class="text-xs text-text-secondary">Unit</span>
                                 </div>
-                                <div class="text-xs text-text-secondary mt-1 max-w-xs truncate">
-                                    {{ item.description || '-' }}
-                                </div>
+                                <div class="text-xs text-text-secondary mt-1 max-w-xs truncate">{{ item.description || '-' }}</div>
                             </td>
-
                             <td class="px-6 py-4 hidden md:table-cell">
                                 <div v-if="activeTab === 'hp'">
                                     {{ item.distributor ? item.distributor.name : (item.supplier_name || '-') }}
-                                    <div class="text-xs text-text-secondary">
-                                        {{ item.placement_name || '-' }}
-                                    </div>
+                                    <div class="text-xs text-text-secondary">{{ item.placement_name || '-' }}</div>
                                 </div>
                                 <div v-else>
                                     {{ item.distributor ? item.distributor.name : (item.supplier_name || '-') }}
-                                    <div class="text-xs text-text-secondary"
-                                        v-if="!item.distributor && item.description">
-                                        {{ item.description }}
-                                    </div>
+                                    <div class="text-xs text-text-secondary" v-if="!item.distributor && item.description">{{ item.description }}</div>
                                 </div>
                             </td>
-
                             <td class="px-6 py-4 hidden lg:table-cell">
-                                <span v-if="item.notes"
-                                    class="text-xs text-text-secondary italic max-w-[200px] block truncate"
-                                    :title="item.notes">
-                                    {{ item.notes }}
-                                </span>
+                                <span v-if="item.notes" class="text-xs text-text-secondary italic max-w-[200px] block truncate" :title="item.notes">{{ item.notes }}</span>
                                 <span v-else class="text-text-secondary/30">-</span>
                             </td>
-
                             <td class="px-6 py-4 hidden lg:table-cell">
                                 <div class="flex items-center gap-2">
                                     <User :size="14" class="text-text-secondary" />
@@ -542,41 +455,22 @@ const handleVoid = async (item) => {
                     </tbody>
                 </table>
             </div>
-
             <!-- Pagination -->
             <div v-if="pagination.last_page > 1" class="border-t border-surface-700/50 p-4 flex justify-center gap-2">
                 <button @click="fetchData(pagination.current_page - 1)" :disabled="pagination.current_page === 1"
-                    class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
-                    Previous
-                </button>
-                <span class="px-4 py-2 text-sm text-text-secondary">
-                    Page {{ pagination.current_page }} of {{ pagination.last_page }}
-                </span>
-                <button @click="fetchData(pagination.current_page + 1)"
-                    :disabled="pagination.current_page === pagination.last_page"
-                    class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">
-                    Next
-                </button>
+                    class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">Previous</button>
+                <span class="px-4 py-2 text-sm text-text-secondary">Page {{ pagination.current_page }} of {{ pagination.last_page }}</span>
+                <button @click="fetchData(pagination.current_page + 1)" :disabled="pagination.current_page === pagination.last_page"
+                    class="px-4 py-2 rounded-lg bg-surface-700 hover:bg-surface-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm">Next</button>
             </div>
         </div>
     </div>
 </template>
 
 <style scoped>
-.animate-in {
-    animation: fadeIn 0.3s ease-out;
-}
-
+.animate-in { animation: fadeIn 0.3s ease-out; }
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 </style>
-
