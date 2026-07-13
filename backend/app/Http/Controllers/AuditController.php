@@ -2212,6 +2212,7 @@ class AuditController extends Controller
                     'split_payments_data' => $detailedSplitPayments,
                     'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
+                    'audit_score' => $trx->audit_score,
                     'proof_images' => collect([
                         $trx->proof_image,
                         $exchangeInfo->photo_unit ?? null,
