@@ -596,7 +596,9 @@ import { debounce } from '../../utils/debounce'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
 import SaleScreenshot from '../../components/sales/SaleScreenshot.vue'
+import { useToast } from '../../composables/useToast'
 
+const toast = useToast()
 const showScreenshotModal = ref(false)
 const selectedSaleForScreenshot = ref(null)
 
@@ -802,10 +804,11 @@ const saveChecklist = async () => {
         checklistData.value.answered = res.data.answered
         checklistData.value.total = res.data.total
 
-        alert('Checklist berhasil disimpan!')
+        toast.success('Checklist berhasil disimpan!')
+        showChecklistModal.value = false
     } catch (e) {
         console.error('Failed to save checklist', e)
-        alert('Gagal menyimpan: ' + (e.response?.data?.message || e.message))
+        toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message))
     } finally {
         checklistSaving.value = false
     }
