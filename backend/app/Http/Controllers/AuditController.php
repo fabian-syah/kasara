@@ -2803,10 +2803,13 @@ class AuditController extends Controller
         $totalQuestions = $checklist->count();
         $latestAnswer = $existingAnswers->max('updated_at');
 
+        // Sort by question_id so the order stays consistent before and after answering
+        $checklist = $checklist->sortBy('question_id')->values();
+
         return response()->json([
             'stock_out_id' => (int) $stockOutId,
             'category' => $category,
-            'questions' => $checklist->values(),
+            'questions' => $checklist,
             'total' => $totalQuestions,
             'answered' => $answeredCount,
             'yes_count' => $yesCount,
