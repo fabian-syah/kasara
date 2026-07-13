@@ -1614,13 +1614,46 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function pendingPhotos()
+    public function pendingPhotos(\Illuminate\Http\Request $request)
     {
+        $user = $request->user();
+
         // Only return users who have pending_photo_inventory to avoid duplication with standard user photos
-        $users = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
+        $query = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
             ->whereNotNull('pending_photo_inventory')
-            ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
-            ->get();
+            ->select('id', 'name', 'full_name', 'username', 'photo_inventory', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id');
+
+        if (!$user->hasRole('super_admin')) {
+            if ($user->hasAnyRole(['audit', 'leader'])) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
+
+                $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                    if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
+                    if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
+                    if (!empty($distributorIds)) $q->orWhereIn('distributor_id', $distributorIds);
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhere(function ($sub) use ($onlineShopIds) {
+                            $sub->whereIn('online_shop_id', $onlineShopIds)
+                                ->whereNull('branch_id');
+                        });
+                    }
+                    if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
+                        $q->whereRaw('0=1');
+                });
+            } else {
+                $query->where(function ($q) use ($user) {
+                    if ($user->branch_id) $q->where('branch_id', $user->branch_id);
+                    if ($user->warehouse_id) $q->where('warehouse_id', $user->warehouse_id);
+                    if ($user->online_shop_id) $q->where('online_shop_id', $user->online_shop_id);
+                    if ($user->distributor_id) $q->where('distributor_id', $user->distributor_id);
+                });
+            }
+        }
+
+        $users = $query->get();
 
         return response()->json([
             'success' => true,
