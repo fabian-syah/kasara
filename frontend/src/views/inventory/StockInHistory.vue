@@ -236,6 +236,7 @@ const exportExcel = async () => {
 watch([activeTab, searchQuery, filterMode, selectedMonth, selectedDate], () => { fetchData(1); });
 watch(() => props.branchId, () => { fetchData(1); });
 watch(() => props.onlineShopId, () => { fetchData(1); });
+watch(filters, () => { fetchData(1); }, { deep: true });
 
 onMounted(() => {
     if (canChangeLocation.value && !props.isEmbedded) fetchLocations();

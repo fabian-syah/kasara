@@ -177,6 +177,7 @@ function selectLocation(key) {
   selectedLocationKey.value = key;
   isLocationDropdownOpen.value = false;
   locationSearchQuery.value = "";
+  loadInventory(1);
 }
 
 const selectedLocationValue = computed(() => {
@@ -227,7 +228,6 @@ function closeFilterDropdown() {
   activeFilterDropdown.value = null;
 }
 
-// Toggle filter values
 function toggleFilter(filterSet, value) {
   const index = filterSet.indexOf(value);
   if (index === -1) {
@@ -237,6 +237,10 @@ function toggleFilter(filterSet, value) {
   }
   loadInventory(1); // Trigger reload
 }
+
+watch(selectedLocationKey, () => {
+  loadInventory(1);
+});
 
 function selectAllFilter(filterName) {
   if (filterName === 'brand') {
