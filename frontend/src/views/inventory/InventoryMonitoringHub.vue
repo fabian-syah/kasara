@@ -4,7 +4,7 @@ import api from "../../api/axios";
 import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "../../stores/auth";
+import { useAuthStore } from "../../store/auth";
 import PinModal from "../../components/modals/PinModal.vue";
 import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
