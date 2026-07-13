@@ -20,6 +20,7 @@ class FailedTransferController extends Controller
      */
     public function indexFailed()
     {
+        /** @var \App\Models\User|null $user */
         $user = Auth::user();
         if (!$user) return response()->json(['data' => []]);
 
@@ -41,29 +42,28 @@ class FailedTransferController extends Controller
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 $distributorIds = $user->getAccessibleDistributorIds();
 
-                $q->whereHas('user', function($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, $user) {
+                $q->where(function($sub) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, $user) {
                     $hasFilter = false;
-                    $sub->where(function($nested) use ($branchIds, $warehouseIds, $onlineShopIds, $distributorIds, &$hasFilter) {
-                        if (!empty($branchIds)) {
-                            $nested->orWhereIn('branch_id', $branchIds);
-                            $hasFilter = true;
-                        }
-                        if (!empty($warehouseIds)) {
-                            $nested->orWhereIn('warehouse_id', $warehouseIds);
-                            $hasFilter = true;
-                        }
-                        if (!empty($onlineShopIds)) {
-                            $nested->orWhereIn('online_shop_id', $onlineShopIds);
-                            $hasFilter = true;
-                        }
-                        if (!empty($distributorIds)) {
-                            $nested->orWhereIn('distributor_id', $distributorIds);
-                            $hasFilter = true;
-                        }
-                    });
+                    
+                    if (!empty($branchIds)) {
+                        $sub->orWhereIn('branch_id', $branchIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $sub->orWhereIn('warehouse_id', $warehouseIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $sub->orWhereIn('online_shop_id', $onlineShopIds);
+                        $hasFilter = true;
+                    }
+                    if (!empty($distributorIds)) {
+                        $sub->orWhereIn('distributor_id', $distributorIds);
+                        $hasFilter = true;
+                    }
 
                     if (!$hasFilter) {
-                        $sub->where('id', $user->id);
+                        $sub->where('user_id', $user->id);
                     }
                 });
             })
