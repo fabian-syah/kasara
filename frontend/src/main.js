@@ -114,6 +114,9 @@ app.directive('money', {
         const input = el.tagName === 'INPUT' ? el : el.querySelector('input');
         if (!input) return;
 
+        // Skip sync for callback-pattern bindings (v-money="val => ...")
+        if (typeof binding.value === 'function') return;
+
         let newVal = undefined;
         if (binding.arg && binding.value && typeof binding.value === 'object') {
             newVal = binding.value[binding.arg];

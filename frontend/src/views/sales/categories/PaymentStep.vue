@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useCartStore } from "../../../store/cart";
 import { useAuthStore } from "../../../store/auth";
 import api from "../../../api/axios";
@@ -103,28 +103,12 @@ const submitButtonText = computed(() => {
     return "Selesaikan Transaksi";
 });
 
-const displayDiscount = ref("0");
-const discountValue = computed({
-    get: () => cartStore.discount,
-    set: (val) => {
-        cartStore.setDiscount(val, 'fixed');
-    }
-});
-
 // Initialize split payment
 onMounted(() => {
     if (splitPayments.value.length === 0) {
         addSplitPayment();
     }
 });
-
-watch(() => cartStore.discount, (newVal) => {
-    if (cartStore.discountType === 'fixed') {
-        displayDiscount.value = formatNumber(newVal);
-    } else {
-        displayDiscount.value = newVal?.toString() || "0";
-    }
-}, { immediate: true });
 
 // Helpers
 function formatNumber(n) {
@@ -679,7 +663,7 @@ async function processPayment(pin = null) {
                         <div class="relative">
                             <span v-if="cartStore.discountType === 'fixed'"
                                 class="absolute left-5 top-1/2 -translate-y-1/2 text-text-secondary text-lg font-bold">Rp</span>
-                            <input v-if="cartStore.discountType === 'fixed'" v-money="val => discountValue = val"
+                            <input v-if="cartStore.discountType === 'fixed'" v-money="val => cartStore.setDiscount(val, 'fixed')"
                                 type="text"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-2xl px-5 py-4 bg-surface-50 dark:bg-surface-900 text-text-primary text-xl font-black focus:outline-none focus:border-primary-500 focus:bg-white dark:focus:bg-surface-800 transition-all pl-14"
                                 placeholder="0" />
