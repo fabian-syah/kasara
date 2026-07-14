@@ -650,7 +650,7 @@ const exportExcel = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        const filename = `Laporan-Penjualan-${filters.start_date}-to-${filters.end_date}.xlsx`;
+        const filename = `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.xlsx`;
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();

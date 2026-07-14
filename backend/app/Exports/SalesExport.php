@@ -193,12 +193,12 @@ class SalesExport
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
 
             if ($isBaseSale) {
-                $finalTotalPenjualan = max(0, $currentSumPrice - $discount);
+                $finalTotalPenjualan = abs((float)$so->selling_price);
             } elseif ($isTradeIn && $exchangeInfo) {
-                $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? $currentSumPrice : 0)));
+                $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? abs((float)$so->selling_price) : 0)));
                 $inVal = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
                 if ($cat === 'tukar_tambah') {
-                    $finalTotalPenjualan = max(0, $outVal - $discount);
+                    $finalTotalPenjualan = $outVal;
                     $finalTotalPengeluaran = $inVal;
                 } elseif ($cat === 'downgrade') {
                     $finalTotalPenjualan = 0; // Downgrade outgoing is excluded from Total Omset as requested
