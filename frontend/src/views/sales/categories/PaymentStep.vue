@@ -54,6 +54,30 @@ const paymentProofImagePreview = ref(null);
 const cartItems = computed(() => cartStore.items);
 const cartTotal = computed(() => cartStore.total);
 
+const switchToPercentage = () => {
+    if (cartStore.discountType === 'percentage') return;
+    const total = cartStore.totalAfterItemDiscounts;
+    if (total <= 0) {
+        cartStore.setDiscount(0, 'percentage');
+        return;
+    }
+    // Cap percentage at 100% and ensure it's a valid number
+    const percentage = Math.min(100, Math.max(0, (cartStore.discount / total) * 100));
+    cartStore.setDiscount(percentage, 'percentage');
+};
+
+const switchToFixed = () => {
+    if (cartStore.discountType === 'fixed') return;
+    const total = cartStore.totalAfterItemDiscounts;
+    if (total <= 0) {
+        cartStore.setDiscount(0, 'fixed');
+        return;
+    }
+    // Cap fixed amount at total and ensure it's non-negative
+    const fixedAmount = Math.min(total, Math.max(0, (cartStore.discount / 100) * total));
+    cartStore.setDiscount(fixedAmount, 'fixed');
+};
+
 const missingFields = computed(() => {
     const fields = [];
     if (!customerForm.value.customer_name) fields.push("Nama Pelanggan");
@@ -652,10 +676,10 @@ async function processPayment(pin = null) {
                             <p class="text-sm font-black text-text-secondary uppercase tracking-widest">
                                 Diskon Tambahan</p>
                             <div class="flex gap-1.5 bg-surface-100 dark:bg-surface-800 p-1 rounded-xl">
-                                <button @click="cartStore.discountType = 'percentage'"
-                                    class="px-4 py-2 text-xs rounded-lg font-black transition-all"
-                                    :class="cartStore.discountType === 'percentage' ? 'bg-primary-500 text-white shadow-md' : 'text-text-secondary hover:text-text-primary'">%</button>
-                                <button @click="cartStore.discountType = 'fixed'"
+                            <button @click="switchToPercentage"
+                                class="px-4 py-2 text-xs rounded-lg font-black transition-all"
+                                :class="cartStore.discountType === 'percentage' ? 'bg-primary-500 text-white shadow-md' : 'text-text-secondary hover:text-text-primary'">%</button>
+                            <button @click="switchToFixed"
                                     class="px-4 py-2 text-xs rounded-lg font-black transition-all"
                                     :class="cartStore.discountType === 'fixed' ? 'bg-primary-500 text-white shadow-md' : 'text-text-secondary hover:text-text-primary'">Rp</button>
                             </div>
