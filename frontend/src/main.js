@@ -114,9 +114,6 @@ app.directive('money', {
         const input = el.tagName === 'INPUT' ? el : el.querySelector('input');
         if (!input) return;
 
-        // Skip sync for callback-pattern bindings (v-money="val => ...")
-        if (typeof binding.value === 'function') return;
-
         let newVal = undefined;
         if (binding.arg && binding.value && typeof binding.value === 'object') {
             newVal = binding.value[binding.arg];
@@ -127,6 +124,18 @@ app.directive('money', {
         }
 
         if (newVal === undefined) return;
+
+        // Handle callback-pattern bindings (v-money="val => ...")
+        if (typeof binding.value === 'function') {
+            const format = el.__moneyFormat || ((val) => {
+                if (val === null || val === undefined || val === '') return '';
+                const numericValue = typeof val === 'number' ? val : parseFloat(val.toString().replace(/[^0-9.-]/g, ''));
+                if (isNaN(numericValue)) return '';
+                return Math.round(numericValue).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            });
+            input.value = format(newVal);
+            return;
+        }
 
         // Use the format function stored on the element
         const format = el.__moneyFormat || ((val) => {

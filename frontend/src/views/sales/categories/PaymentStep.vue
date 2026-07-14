@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useCartStore } from "../../../store/cart";
 import { useAuthStore } from "../../../store/auth";
 import api from "../../../api/axios";
@@ -61,9 +61,14 @@ const switchToPercentage = () => {
         cartStore.setDiscount(0, 'percentage');
         return;
     }
-    // Cap percentage at 100% and ensure it's a valid number
-    const percentage = Math.min(100, Math.max(0, (cartStore.discount / total) * 100));
+    // Convert fixed amount to percentage (with proper rounding)
+    const percentage = Math.min(100, Math.max(0, parseFloat((cartStore.discount / total * 100).toFixed(2))));
     cartStore.setDiscount(percentage, 'percentage');
+    nextTick(() => {
+        // Force input re-render
+        const input = document.querySelector('input[placeholder="0"][class*="pl-14"]');
+        if (input) input.dispatchEvent(new Event('input'));
+    });
 };
 
 const switchToFixed = () => {
@@ -73,9 +78,14 @@ const switchToFixed = () => {
         cartStore.setDiscount(0, 'fixed');
         return;
     }
-    // Cap fixed amount at total and ensure it's non-negative
-    const fixedAmount = Math.min(total, Math.max(0, (cartStore.discount / 100) * total));
+    // Convert percentage to fixed amount (with proper rounding)
+    const fixedAmount = Math.min(total, Math.max(0, parseFloat((cartStore.discount * total / 100).toFixed(0))));
     cartStore.setDiscount(fixedAmount, 'fixed');
+    nextTick(() => {
+        // Force input re-render
+        const input = document.querySelector('input[placeholder="0"][class*="pl-14"]');
+        if (input) input.dispatchEvent(new Event('input'));
+    });
 };
 
 const missingFields = computed(() => {
