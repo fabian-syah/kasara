@@ -1000,7 +1000,6 @@ const summaryStats = computed(() => {
         const origCat = item.category?.toLowerCase();
         const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
 
-        // EXPLICIT FIX: Sum individual visible item totals exactly, and subtract manual transaction-level discounts to match net revenue requirements
         let total = 0;
         const discount = parseFloat(item.total_discount) || 0;
         if (item.items && item.items.length > 0) {
@@ -1008,9 +1007,9 @@ const summaryStats = computed(() => {
         } else {
             total = Math.abs(parseFloat(item.original_price || item.total_amount || item.grand_total) || 0);
         }
-        // Subtract manual discount from absolute sum
-        total = Math.max(0, total - discount);
-
+        // Discount is already applied to detail.price (selling_price) or grand_total by the backend.
+        // We do not subtract it again to prevent double discounting.
+        
         // Standard Sales categories
         const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);
         const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
