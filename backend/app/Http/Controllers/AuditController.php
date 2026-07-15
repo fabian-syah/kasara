@@ -76,7 +76,13 @@ class AuditController extends Controller
 
             if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
                 return response()->json([
-                    'daily_sales' => ['data' => []],
+                'audit_stats' => [
+                    'sudah_diaudit' => 0,
+                    'belum_diaudit' => 0,
+                    'total_cancel' => 0,
+                    'total_transaksi' => 0
+                ],
+                'data' => ['data' => []],
                     'brand_sales' => [],
                     'cs_sales' => [],
                     'report_summary' => null
@@ -1370,6 +1376,7 @@ class AuditController extends Controller
                                 'split_payments',
                                 'notes',
                                 'sales_account',
+                                'audit_score',
                                 DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
                                 DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
                                 DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
@@ -1382,6 +1389,9 @@ class AuditController extends Controller
                         $deductions = 0;
                         $totalTradeOutgoing = 0;
                         $totalTradeIncoming = 0;
+                        $totalSudahDiaudit = 0;
+                        $totalBelumDiaudit = 0;
+                        $totalCancelGlobal = 0;
 
                         foreach ($rawStats as $ps) {
                             $notes = strtolower($ps->notes ?? '');
@@ -1400,6 +1410,14 @@ class AuditController extends Controller
                                 $saleType = 'refund';
                             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                                 $saleType = 'downgrade';
+                            }
+
+                            if ($cat === 'cancel_penjualan') {
+                                $totalCancelGlobal++;
+                            } elseif ($ps->audit_score !== null) {
+                                $totalSudahDiaudit++;
+                            } else {
+                                $totalBelumDiaudit++;
                             }
 
                             if ($ps->split_payments) {
@@ -1816,6 +1834,12 @@ class AuditController extends Controller
                         $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
 
                         return [
+                            'audit_stats' => [
+                                'sudah_diaudit' => $totalSudahDiaudit,
+                                'belum_diaudit' => $totalBelumDiaudit,
+                                'total_cancel' => $totalCancelGlobal,
+                                'total_transaksi' => count($rawStats)
+                            ],
                             'payments' => $pSums,
                             'payment_total' => $paymentTotal,
                             'omset_bersih' => $omsetBersih,
@@ -3010,7 +3034,12 @@ class AuditController extends Controller
         $onlineShops = OnlineShop::all()->keyBy('id');
         $questions = Question::where('category', 'profit')->get();
         $paymentMethods = PaymentMethod::all()->keyBy('id');
+        $paymentMethods = PaymentMethod::all()->keyBy('id');
 
+        $totalSudahDiaudit = (clone $dailySalesQuery)->whereHas('auditProfit')->count();
+        $totalBelumDiaudit = (clone $dailySalesQuery)->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan')->count();
+        $totalCancelGlobal = (clone $dailySalesQuery)->where('category', 'cancel_penjualan')->count();
+        $totalTransactions = (clone $dailySalesQuery)->count();
         $paginatedProfit = $dailySalesQuery->latest()->paginate(50);
 
         $dailySales = collect($paginatedProfit->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
@@ -3169,6 +3198,12 @@ class AuditController extends Controller
         });
 
         return response()->json([
+            'audit_stats' => [
+                'sudah_diaudit' => $totalSudahDiaudit,
+                'belum_diaudit' => $totalBelumDiaudit,
+                'total_cancel' => $totalCancelGlobal,
+                'total_transaksi' => $totalTransactions
+            ],
             'daily_sales' => [
                 'data' => $dailySales,
                 'current_page' => $paginatedProfit->currentPage(),
@@ -3818,6 +3853,10 @@ class AuditController extends Controller
             });
         });
 
+        $totalSudahDiaudit = (clone $query)->whereHas('auditAnswers')->count();
+        $totalBelumDiaudit = (clone $query)->whereDoesntHave('auditAnswers')->count();
+        $totalTransactions = (clone $query)->count();
+
         $paginatedIn = $query->latest()->paginate(50);
 
         $records = collect($paginatedIn->items())->map(function ($trx) {
@@ -3903,6 +3942,11 @@ class AuditController extends Controller
         });
 
         return response()->json([
+            'audit_stats' => [
+                'sudah_diaudit' => $totalSudahDiaudit,
+                'belum_diaudit' => $totalBelumDiaudit,
+                'total_transaksi' => $totalTransactions
+            ],
             'data' => $records,
             'current_page' => $paginatedIn->currentPage(),
             'last_page' => $paginatedIn->lastPage(),
@@ -4032,6 +4076,11 @@ class AuditController extends Controller
             });
         });
 
+        $totalSudahDiaudit = (clone $query)->whereHas('auditAnswers')->count();
+        $totalBelumDiaudit = (clone $query)->whereDoesntHave('auditAnswers')->where('category', '!=', 'cancel_penjualan')->count();
+        $totalCancelGlobal = (clone $query)->where('category', 'cancel_penjualan')->count();
+        $totalTransactions = (clone $query)->count();
+
         $paginatedOut = $query->latest()->paginate(50);
 
         // Pre-fetch meta data to avoid N+1 in map loop
@@ -4104,6 +4153,12 @@ class AuditController extends Controller
         });
 
         return response()->json([
+            'audit_stats' => [
+                'sudah_diaudit' => $totalSudahDiaudit,
+                'belum_diaudit' => $totalBelumDiaudit,
+                'total_cancel' => $totalCancelGlobal,
+                'total_transaksi' => $totalTransactions
+            ],
             'data' => $records,
             'current_page' => $paginatedOut->currentPage(),
             'last_page' => $paginatedOut->lastPage(),

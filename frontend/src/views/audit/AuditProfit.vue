@@ -116,11 +116,11 @@
                     <p class="text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Belum Diaudit (Hal ini)</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Belum Diaudit (Global)</p>
                     <p class="text-lg font-bold text-amber-500">{{ summaryStats.belumDiaudit }}</p>
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Sudah Diaudit (Hal ini)</p>
+                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Sudah Diaudit (Global)</p>
                     <p class="text-lg font-bold text-emerald-500">{{ summaryStats.sudahDiaudit }}</p>
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
@@ -1018,10 +1018,10 @@ const summaryStats = computed(() => {
     }
 
     return {
-        totalTransaksi: globalTransaksi - totalCancelGlobal,
-        totalCancel: totalCancelGlobal,
-        belumDiaudit: activeRecords.filter(r => r.audit_score == null).length,
-        sudahDiaudit: activeRecords.filter(r => r.audit_score != null).length,
+        totalTransaksi: globalTransaksi - (profitRecords.value?.audit_stats?.total_cancel || totalCancelGlobal),
+        totalCancel: profitRecords.value?.audit_stats?.total_cancel || totalCancelGlobal,
+        belumDiaudit: profitRecords.value?.audit_stats?.belum_diaudit || 0,
+        sudahDiaudit: profitRecords.value?.audit_stats?.sudah_diaudit || 0,
     }
 })
 

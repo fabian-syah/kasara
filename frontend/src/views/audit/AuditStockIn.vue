@@ -111,25 +111,25 @@
                         Total Transaksi
                     </p>
                     <p class="text-lg font-bold text-text-primary">
-                        {{ stockInRecords.total || 0 }}
+                        {{ stockInRecords.audit_stats?.total_transaksi || stockInRecords.total || 0 }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Belum Diaudit (Hal ini)
+                        Belum Diaudit (Global)
                     </p>
                     <p class="text-lg font-bold text-amber-500">
-                        {{ (stockInRecords.data || []).filter((r) => r.audit_score === null).length }}
+                        {{ stockInRecords.audit_stats?.belum_diaudit || 0 }}
                     </p>
                 </div>
                 <div
                     class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">
-                        Sudah Diaudit (Hal ini)
+                        Sudah Diaudit (Global)
                     </p>
                     <p class="text-lg font-bold text-emerald-500">
-                        {{ (stockInRecords.data || []).filter((r) => r.audit_score !== null).length }}
+                        {{ stockInRecords.audit_stats?.sudah_diaudit || 0 }}
                     </p>
                 </div>
             </div>
