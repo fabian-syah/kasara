@@ -240,6 +240,9 @@ class StockInController extends Controller
                         'category' => $request->category ?? 'barang_masuk',
                         'user_id' => Auth::id(),
                         'inventory_user_id' => $ownerUserId,
+                        'branch_id' => $request->placement_type === 'branch' ? $request->placement_id : null,
+                        'warehouse_id' => $request->placement_type === 'warehouse' ? $request->placement_id : null,
+                        'online_shop_id' => $request->placement_type === 'online_shop' ? $request->placement_id : null,
                         'status' => 'received',
                         'notes' => $itemNote,
                     ]);

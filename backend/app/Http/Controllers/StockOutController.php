@@ -494,16 +494,22 @@ class StockOutController extends Controller
                     // Identify Inventory Source based on User
                     $invQuery = Inventory::where('product_id', $item['product_id']);
 
-                    $sourceBranch = $request->origin_branch_id ?? $user->branch_id;
-                    $sourceWarehouse = $request->origin_warehouse_id ?? $user->warehouse_id;
-                    $sourceOnlineShop = $request->origin_online_shop_id ?? $user->online_shop_id;
+                    $reqBranch = $request->origin_branch_id;
+                    $reqWarehouse = $request->origin_warehouse_id;
+                    $reqOnlineShop = $request->origin_online_shop_id;
 
-                    if ($sourceBranch) {
-                        $invQuery->where('placement_type', 'branch')->where('placement_id', $sourceBranch);
-                    } elseif ($sourceWarehouse) {
-                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $sourceWarehouse);
-                    } elseif ($sourceOnlineShop) {
-                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $sourceOnlineShop);
+                    if ($reqBranch) {
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $reqBranch);
+                    } elseif ($reqWarehouse) {
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $reqWarehouse);
+                    } elseif ($reqOnlineShop) {
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $reqOnlineShop);
+                    } elseif ($user->branch_id) {
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                    } elseif ($user->warehouse_id) {
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
+                    } elseif ($user->online_shop_id) {
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
                     } else if (!$user->hasRole('super_admin')) {
                         throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
                     }
@@ -1556,19 +1562,20 @@ class StockOutController extends Controller
                         'sub_type' => 'registration',
                         'id' => $out->receipt_id,
                         'imei' => $query,
-                        'product_name' => $out->items->first()?->product?->name ?? 'Mixed Items',
+                        'product_name' => $out->items->first()?->product?->name ?? ($out->nonHpDetails->first()?->product?->name ?? 'Mixed Items'),
                         'status' => 'available',
                         'placement_type' => $out->branch_id ? 'branch' : ($out->warehouse_id ? 'warehouse' : 'online_shop'),
                         'placement_id' => $out->branch_id ?? $out->warehouse_id ?? $out->online_shop_id,
                         'placement_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
                         'created_at' => $out->created_at->toDateTimeString(),
                         'timestamp' => $out->created_at->timestamp,
-                        'distributor' => $out->items->first()?->distributor?->name,
+                        'distributor' => $out->items->first()?->distributor?->name ?? ($out->nonHpDetails->first()?->distributor?->name ?? null),
                         'supplier_name' => $out->items->first()?->supplier_name,
                         'input_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
                         'condition' => $out->items->first()?->condition ?? '-',
-                        'selling_price' => $out->items->first()?->selling_price ?? 0,
+                        'selling_price' => $out->items->first()?->selling_price ?? ($out->nonHpDetails->first()?->selling_price ?? 0),
                         'storage' => $out->items->first()?->storage ?? '-',
+                        'notes' => $out->notes ?? ($out->nonHpDetails->first()?->notes ?? null),
                     ];
                     continue;
                 }
@@ -2322,10 +2329,18 @@ class StockOutController extends Controller
                                     'product_id' => $record->product_id,
                                     'placement_type' => $placementType,
                                     'placement_id' => $locationId,
-                                    'user_id' => $confirmingUserId,
                                 ],
-                                ['quantity' => 0]
+                                [
+                                    'quantity' => 0,
+                                    'user_id' => $confirmingUserId,
+                                    'selling_price' => $record->selling_price
+                                ]
                             );
+                            
+                            // Always ensure selling_price is updated to the transferred price if it was 0 or newly created
+                            if ($inventory->selling_price <= 0 && $record->selling_price > 0) {
+                                $inventory->selling_price = $record->selling_price;
+                            }
                             $inventory->increment('quantity', $acceptedQty);
 
                             // Log In

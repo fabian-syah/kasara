@@ -131,7 +131,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['branch', 'App\Models\Branch'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Branch::where(function ($q) use ($excluded) {
@@ -141,10 +141,8 @@ class User extends Authenticatable
             })->pluck('id')->toArray();
         }
 
-        if ($this->hasRole(['audit'])) {
-            return $assignedIds;
-        }
-
+        // Audit role is handled above to return all branches if unrestricted.
+        // But if we want to support specific assignments for audit later, they would just not get the global role logic above if we remove them.
         return $assignedIds;
     }
 
@@ -158,7 +156,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['online_shop', 'App\Models\OnlineShop'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
@@ -166,10 +164,6 @@ class User extends Authenticatable
                     $q->where('name', 'not ilike', '%' . $term . '%');
                 }
             })->pluck('id')->toArray();
-        }
-
-        if ($this->hasRole(['audit'])) {
-            return $assignedIds;
         }
 
         return $assignedIds;
@@ -185,7 +179,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['warehouse', 'App\Models\Warehouse'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Warehouse::where(function ($q) use ($excluded) {
@@ -193,10 +187,6 @@ class User extends Authenticatable
                     $q->where('name', 'not ilike', '%' . $term . '%');
                 }
             })->pluck('id')->toArray();
-        }
-
-        if ($this->hasRole(['audit'])) {
-            return $assignedIds;
         }
 
         return $assignedIds;
@@ -212,7 +202,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['distributor', 'App\Models\Distributor'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Distributor::where(function ($q) use ($excluded) {
@@ -220,10 +210,6 @@ class User extends Authenticatable
                     $q->where('name', 'not ilike', '%' . $term . '%');
                 }
             })->pluck('id')->toArray();
-        }
-
-        if ($this->hasRole(['audit'])) {
-            return $assignedIds;
         }
 
         return $assignedIds;

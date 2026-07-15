@@ -1041,6 +1041,7 @@ async function submitStockIn(verifiedPin = null) {
                     newlyInserted.forEach((item, index) => {
                         formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id);
                         formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || item.quantity || 1);
+                        formData.append(`non_hp_items[${index}][selling_price]`, item.selling_price || 0);
                     });
 
                     const outRes = await api.post('/stock-outs', formData, {

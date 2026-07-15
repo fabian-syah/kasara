@@ -195,9 +195,9 @@ function getCategoryColor(category) {
                                         <p class="text-[10px] text-text-secondary">No. Transaksi</p>
                                         <p class="text-xs text-text-primary font-mono">{{ result.id }}</p>
                                     </div>
-                                    <div>
+                                    <div v-if="result.condition && result.condition !== '-'">
                                         <p class="text-[10px] text-text-secondary">Kondisi</p>
-                                        <p class="text-xs text-text-primary capitalize">{{ result.condition || '-' }}</p>
+                                        <p class="text-xs text-text-primary capitalize">{{ result.condition }}</p>
                                     </div>
                                     <div>
                                         <p class="text-[10px] text-text-secondary">Status</p>
@@ -224,9 +224,13 @@ function getCategoryColor(category) {
                                         <p class="text-[10px] text-text-secondary">{{ result.is_arrival ? 'Diterima oleh' : 'Diinput oleh' }}</p>
                                         <p class="text-xs text-text-primary">{{ result.input_by || '-' }}</p>
                                     </div>
-                                    <div v-if="result.storage && (!result.is_arrival || result.is_return_transfer)">
+                                    <div v-if="result.storage && result.storage !== '-' && (!result.is_arrival || result.is_return_transfer)">
                                         <p class="text-[10px] text-text-secondary">Storage</p>
                                         <p class="text-xs text-text-primary">{{ result.storage }}</p>
+                                    </div>
+                                    <div v-if="result.notes" class="col-span-full">
+                                        <p class="text-[10px] text-text-secondary">Keterangan</p>
+                                        <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
                                     </div>
                                 </div>
                             </div>

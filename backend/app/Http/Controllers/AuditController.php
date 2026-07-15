@@ -36,8 +36,8 @@ class AuditController extends Controller
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $distributorIds = $user->getAccessibleDistributorIds();
 
-            // Global exclusion for super_admin and analist roles
-            if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+            // Global exclusion for super_admin, analist, and audit roles
+            if ($user->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
                 $excludedTerms = config('kasara.excluded_keywords') ?: [];
 
                 if (!empty($branchIds)) {
@@ -105,9 +105,9 @@ class AuditController extends Controller
             $stockStartDate = '2000-01-01';
             $stockEndDate = now()->toDateString();
 
-            $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'analis', 'leader', 'developer', 'pimpinan_pusat']);
-            $isAnalist = $user->hasAnyRole(['analist', 'analis']);
-            $isSuperAdmin = $user->hasRole('super_admin');
+            $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'pimpinan', 'management', 'admin', 'analist', 'analis', 'leader', 'developer', 'pimpinan_pusat', 'audit']);
+            $isAnalist = $user->hasAnyRole(['analist', 'analis', 'audit']);
+            $isSuperAdmin = $user->hasAnyRole(['super_admin', 'audit']);
             $currentRoles = $user->roles()->pluck('name')->toArray();
 
             // Fallback: If ID is not numeric, it might be a name
@@ -1196,7 +1196,7 @@ class AuditController extends Controller
                 // 10. Unified Report Summary
                 function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles) {
                     try {
-                        $allowedGlobalRoles = ['super_admin', 'analist', 'analis', 'owner', 'Owner', 'pimpinan', 'management', 'developer', 'pimpinan_pusat'];
+                        $allowedGlobalRoles = ['super_admin', 'analist', 'analis', 'owner', 'Owner', 'pimpinan', 'management', 'developer', 'pimpinan_pusat', 'audit'];
                         $isGlobalUnrestricted = !empty(array_intersect($allowedGlobalRoles, $currentRoles));
 
                         $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
