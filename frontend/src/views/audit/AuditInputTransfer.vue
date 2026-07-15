@@ -519,9 +519,8 @@ function resolveSpecsForType(brandId, typeName) {
 
 
 const canNext = computed(() => {
-    if (currentStep.value === 1) return !!itemType.value;
-    if (currentStep.value === 2) return isManualDistributor.value ? newDistributorName.value.length >= 2 : !!selectedDistributor.value;
-    if (currentStep.value === 3) return true; // Items filled check is done on submit
+    if (currentStep.value === 1) return !!itemType.value && (isManualDistributor.value ? newDistributorName.value.length >= 2 : !!selectedDistributor.value);
+    if (currentStep.value === 2) return true; // Items filled check is done on submit
     return false;
 });
 
@@ -543,13 +542,8 @@ const canSubmitFinal = computed(() => {
 
 function nextStep() {
     if (canNext.value) {
-        if (currentStep.value === 1 && isDistributorRole.value) {
-            selectedDistributor.value = authStore.user?.distributor_id || "";
-            currentStep.value = 3;
-            return;
-        }
-        // When moving to step 4, fetch branches
-        if (currentStep.value === 3) {
+        // When moving to step 3, fetch branches
+        if (currentStep.value === 2) {
             fetchTransferDestinations();
         }
         currentStep.value++;
@@ -558,10 +552,6 @@ function nextStep() {
 
 function prevStep() {
     if (currentStep.value > 1) {
-        if (currentStep.value === 3 && isDistributorRole.value) {
-            currentStep.value = 1;
-            return;
-        }
         currentStep.value--;
     }
 }
@@ -1096,11 +1086,11 @@ onMounted(() => {
         </h1>
 
         <div class="flex items-center justify-between mb-8 px-4">
-            <div v-for="step in [1, 2, 3, 4]" :key="step" class="flex items-center">
+            <div v-for="step in [1, 2, 3]" :key="step" class="flex items-center">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
                     :class="currentStep >= step ? 'bg-primary-500 text-white' : 'bg-surface-800 text-text-secondary'">{{
                         step }}</div>
-                <div v-if="step < 4" class="w-16 h-1 mx-2 rounded-full"
+                <div v-if="step < 3" class="w-16 h-1 mx-2 rounded-full"
                     :class="currentStep > step ? 'bg-primary-500' : 'bg-surface-800'"></div>
             </div>
         </div>
@@ -1351,8 +1341,8 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- STEP 4: Transfer Destination -->
-            <div v-if="currentStep === 4" class="space-y-6 animate-in slide-in-from-right">
+            <!-- STEP 3: Transfer Destination -->
+            <div v-if="currentStep === 3" class="space-y-6 animate-in slide-in-from-right">
                 <div class="flex items-center gap-3 mb-4">
                     <ArrowRightLeft :size="24" class="text-blue-500" />
                     <h3 class="text-lg font-bold text-text-primary">Tujuan Pengiriman</h3>
@@ -1414,11 +1404,11 @@ onMounted(() => {
                     <ChevronLeft :size="18" /> Kembali
                 </button>
                 <div v-else></div>
-                <button v-if="currentStep < 4" @click="nextStep" :disabled="!canNext"
+                <button v-if="currentStep < 3" @click="nextStep" :disabled="!canNext"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black">Lanjut
                     <ChevronRight :size="18" />
                 </button>
-                <button v-if="currentStep === 4" @click="submitStockIn()" :disabled="!canSubmitFinal || isSubmitting"
+                <button v-if="currentStep === 3" @click="submitStockIn()" :disabled="!canSubmitFinal || isSubmitting"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black shadow-xl shadow-emerald-600/20">
                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                     <Send v-else :size="18" class="mr-2" />
