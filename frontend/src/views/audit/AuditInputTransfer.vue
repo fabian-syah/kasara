@@ -48,7 +48,7 @@ const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 const isLoading = ref(false);
 const isSubmitting = ref(false);
 const distributors = ref([]);
-const currentStep = ref(2); // Skip step 1
+const currentStep = ref(1);
 const isManualDistributor = ref(false);
 const newDistributorName = ref("");
 const isRestoring = ref(true);
@@ -996,166 +996,19 @@ onMounted(() => {
         </h1>
 
         <div class="flex items-center justify-between mb-8 px-4">
-            <div v-for="step in [1, 2, 3, 4]" :key="step" class="flex items-center">
+            <div v-for="step in [1, 2, 3]" :key="step" class="flex items-center">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
                     :class="currentStep >= step ? 'bg-primary-500 text-white' : 'bg-surface-800 text-text-secondary'">{{
                         step }}</div>
-                <div v-if="step < 4" class="w-16 h-1 mx-2 rounded-full"
+                <div v-if="step < 3" class="w-16 h-1 mx-2 rounded-full"
                     :class="currentStep > step ? 'bg-primary-500' : 'bg-surface-800'"></div>
             </div>
         </div>
 
         <div class="card p-8 border-t-4 border-t-primary-500 bg-surface-800 rounded-2xl shadow-2xl">
-            <div v-if="false" class="animate-in slide-in-from-right">
-                <!-- Loading State -->
-                <div v-if="isLoading" class="flex flex-col items-center justify-center py-20">
-                    <div class="relative">
-                        <div
-                            class="w-16 h-16 border-4 border-primary-500/20 border-t-primary-500 rounded-full animate-spin">
-                        </div>
-                        <Loader2 class="absolute inset-0 m-auto w-6 h-6 text-primary-500 animate-pulse" />
-                    </div>
-                    <p class="mt-6 text-text-secondary font-medium animate-pulse tracking-wide uppercase text-[10px]">
-                        Sedang Menyiapkan Sesi Stok In...</p>
-                </div>
+            
 
-                <div v-else-if="targetUsers.length === 0" class="text-center py-10">
-                    <div
-                        class="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl max-w-lg mx-auto">
-                        <h3 class="font-bold text-lg mb-2">Belum Ada Akun Inventory</h3>
-                        <p class="text-sm opacity-80">Anda belum memiliki akun khusus inventory untuk cabang/lokasi ini.
-                            Silakan buat terlebih dahulu melalui menu **Pengaturan Profil** Anda.</p>
-                    </div>
-                </div>
-
-                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div v-for="user in targetUsers" :key="user.id" @click="selectUserPlacement(user)"
-                        class="p-5 rounded-2xl border border-surface-700 bg-surface-900 cursor-pointer hover:border-primary-500 transition-all relative">
-                        <div v-if="placementLabel === (user.full_name || user.name)"
-                            class="absolute top-3 right-20 text-primary-500">
-                            <CheckCircle2 :size="24" />
-                        </div>
-
-                        <!-- EDIT BUTTON: Visible to creator OR high roles (super_admin, owner, audit, admin_produk) -->
-                        <div v-if="authStore.user?.id === user.created_by?.id ||
-                            authStore.user?.id === user.created_by ||
-                            ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
-                            @click="openEditModal(user, $event)"
-                            class="absolute top-3 right-10 p-1.5 hover:bg-surface-800 rounded-lg text-text-secondary hover:text-primary-500 transition-all z-10 group/edit">
-                            <Edit2 :size="16" class="group-hover/edit:scale-110 transition-transform" />
-                        </div>
-
-                        <div class="flex items-center gap-4">
-                            <div
-                                class="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center text-white font-bold overflow-hidden border border-surface-700 relative group/pic">
-
-                                <!-- Pending Approval Badge -->
-                                <div v-if="user.pending_photo_inventory"
-                                    class="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex items-center justify-center z-[5]">
-                                    <Clock class="text-amber-500" :size="16" />
-                                </div>
-
-                                <img v-if="user.pending_photo_inventory || user.photo_inventory"
-                                    :src="`${storageUrl}/storage/${user.pending_photo_inventory || user.photo_inventory}`"
-                                    class="w-full h-full object-cover"
-                                    :class="{ 'opacity-50 grayscale-[0.5]': user.pending_photo_inventory }" />
-                                <span v-else class="text-primary-500">{{ user.name[0] }}</span>
-
-                                <!-- Corner Icon for Pending -->
-                                <div v-if="user.pending_photo_inventory"
-                                    class="absolute top-0 right-0 p-0.5 bg-amber-500 rounded-bl-lg z-10">
-                                    <Clock class="text-white" :size="8" />
-                                </div>
-                            </div>
-                            <div>
-                                <h3 class="font-bold text-text-primary">{{ user.full_name || user.name }}</h3>
-                                <div class="flex flex-col">
-                                    <span class="text-xs text-text-secondary uppercase">{{ user.roles?.[0]?.name
-                                    }}</span>
-                                    <span v-if="user.created_by" class="text-[10px] text-text-secondary/70">
-                                        by: {{ user.created_by.username }}
-                                    </span>
-                                    <span v-if="user.phone" class="text-[10px] text-emerald-500 font-mono">
-                                        {{ user.phone }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <!-- Modal Edit Account -->
-            <div v-if="showEditAccountModal"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div
-                    class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
-                    <h3 class="text-lg md:text-xl font-bold text-white mb-4">Edit Akun Inventory</h3>
-
-                    <div class="space-y-6">
-                        <!-- Photo Upload -->
-                        <div class="flex justify-center">
-                            <div class="relative group cursor-pointer" @click="photoInput.click()">
-                                <div
-                                    class="w-24 h-24 rounded-full bg-surface-800 border-2 border-surface-700 overflow-hidden flex items-center justify-center relative">
-                                    <img v-if="editForm.photo_preview" :src="editForm.photo_preview"
-                                        class="w-full h-full object-cover" />
-                                    <div v-else class="text-text-secondary">
-                                        <Camera :size="32" />
-                                    </div>
-
-                                    <!-- Pending Approval Ribbon for Edit Modal -->
-                                    <div v-if="targetUsers.find(u => u.id === editForm.id)?.pending_photo_inventory && !editForm.photo_inventory"
-                                        class="absolute bottom-0 inset-x-0 bg-amber-500 py-0.5 text-center z-10">
-                                        <p class="text-[8px] font-black text-white uppercase tracking-tighter">Pending
-                                            Audit</p>
-                                    </div>
-                                </div>
-                                <div
-                                    class="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Edit2 :size="20" class="text-white" />
-                                </div>
-                                <input type="file" ref="photoInput" class="hidden" accept="image/*"
-                                    @change="handlePhotoChange" />
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">Nama Akun / Bagian
-                                    (Terkunci)</label>
-                                <input v-model="editForm.name" type="text"
-                                    class="input w-full bg-surface-800/50 text-text-secondary cursor-not-allowed border-surface-800"
-                                    readonly />
-                                <div class="flex items-center gap-1.5 mt-2 px-1 text-text-secondary/40">
-                                    <Shield :size="10" />
-                                    <span class="text-[9px] uppercase font-black tracking-tighter">Identitas
-                                        Permanen</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-text-secondary mb-2">No.
-                                    WhatsApp</label>
-                                <input v-model="editForm.phone" type="text" class="input w-full"
-                                    placeholder="08xxxxx" />
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end gap-3 mt-6">
-                            <button @click="showEditAccountModal = false"
-                                class="btn btn-secondary px-6 rounded-xl">Batal</button>
-                            <button @click="updateInventoryAccount" :disabled="isUpdatingAccount"
-                                class="btn btn-primary px-6 rounded-xl">
-                                <Loader2 v-if="isUpdatingAccount" class="animate-spin mr-2" :size="16" />
-                                {{ isUpdatingAccount ? 'Menyimpan...' : 'Simpan Perubahan' }}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div v-if="currentStep === 2" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right">
+            <div v-if="currentStep === 1" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-right">
                 <button @click="itemType = 'hp'"
                     class="p-8 rounded-3xl border-2 transition-all flex flex-col items-center gap-4"
                     :class="itemType === 'hp' ? 'border-primary-500 bg-primary-500/10' : 'border-surface-700 bg-surface-900'">
@@ -1168,7 +1021,7 @@ onMounted(() => {
                 </button>
             </div>
 
-            <div v-if="currentStep === 3"
+            <div v-if="currentStep === 2"
                 class="bg-surface-900 p-8 rounded-3xl border border-surface-700 animate-in slide-in-from-right">
                 <label class="label text-xs uppercase font-black text-text-secondary mb-4">Pemasok <span
                         class="text-red-500">*</span></label>
@@ -1188,10 +1041,10 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div v-if="currentStep === 4" class="space-y-6 animate-in slide-in-from-right">
+            <div v-if="currentStep === 3" class="space-y-6 animate-in slide-in-from-right">
                 <div
-                    class="grid grid-cols-3 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
-                    <div class="px-2">Akun: <span class="text-text-primary">{{ placementName }}</span></div>
+                    class="grid grid-cols-2 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
+                    
                     <div class="px-2 border-l border-surface-700">Tipe: <span class="text-text-primary">{{ itemType
                             }}</span></div>
                     <div class="px-2 border-l border-surface-700">Dist: <span class="text-text-primary">{{
@@ -1404,11 +1257,11 @@ onMounted(() => {
                     <ChevronLeft :size="18" /> Kembali
                 </button>
                 <div v-else></div>
-                <button v-if="currentStep < 4" @click="nextStep" :disabled="!canNext"
+                <button v-if="currentStep < 3" @click="nextStep" :disabled="!canNext"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black">Lanjut
                     <ChevronRight :size="18" />
                 </button>
-                <button v-if="currentStep === 4" @click="submitStockIn()" :disabled="!canSubmit || isSubmitting"
+                <button v-if="currentStep === 3" @click="submitStockIn()" :disabled="!canSubmit || isSubmitting"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black shadow-xl shadow-emerald-600/20">
                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
                     {{ isSubmitting ? 'Proses...' : 'Selesai & Simpan' }}
