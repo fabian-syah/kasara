@@ -511,9 +511,8 @@ function resolveSpecsForType(brandId, typeName) {
 
 
 const canNext = computed(() => {
-    if (currentStep.value === 1) return !!placementId.value;
-    if (currentStep.value === 2) return !!itemType.value;
-    if (currentStep.value === 3) return isManualDistributor.value ? newDistributorName.value.length >= 2 : !!selectedDistributor.value;
+    if (currentStep.value === 1) return !!itemType.value;
+    if (currentStep.value === 2) return isManualDistributor.value ? newDistributorName.value.length >= 2 : !!selectedDistributor.value;
     return false;
 });
 
@@ -531,9 +530,9 @@ const canSubmit = computed(() => {
 
 function nextStep() {
     if (canNext.value) {
-        if (currentStep.value === 2 && isDistributorRole.value) {
+        if (currentStep.value === 1 && isDistributorRole.value) {
             selectedDistributor.value = authStore.user?.distributor_id || "";
-            currentStep.value = 4;
+            currentStep.value = 3;
             return;
         }
         currentStep.value++;
@@ -542,8 +541,8 @@ function nextStep() {
 
 function prevStep() {
     if (currentStep.value > 1) {
-        if (currentStep.value === 4 && isDistributorRole.value) {
-            currentStep.value = 2;
+        if (currentStep.value === 3 && isDistributorRole.value) {
+            currentStep.value = 1;
             return;
         }
         currentStep.value--;
@@ -1021,7 +1020,7 @@ onMounted(() => {
                 </button>
             </div>
 
-            <div v-if="currentStep === 2"
+            <div v-if="currentStep === 1"
                 class="bg-surface-900 p-8 rounded-3xl border border-surface-700 animate-in slide-in-from-right">
                 <label class="label text-xs uppercase font-black text-text-secondary mb-4">Pemasok <span
                         class="text-red-500">*</span></label>
@@ -1041,7 +1040,7 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div v-if="currentStep === 3" class="space-y-6 animate-in slide-in-from-right">
+            <div v-if="currentStep === 2" class="space-y-6 animate-in slide-in-from-right">
                 <div
                     class="grid grid-cols-2 gap-3 bg-surface-900 rounded-2xl p-4 border border-surface-700 text-[10px] font-bold uppercase tracking-widest text-text-secondary">
                     
