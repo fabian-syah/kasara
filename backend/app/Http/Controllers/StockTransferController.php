@@ -19,6 +19,7 @@ class StockTransferController extends Controller
     // List Incoming Transfers
     public function indexIncoming(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
@@ -61,6 +62,7 @@ class StockTransferController extends Controller
     // Confirm Transfer (Receive)
     public function confirm(Request $request, $id)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
         $stockOut = StockOut::with(['items', 'nonHpItems', 'user'])->findOrFail($id);
 
@@ -187,7 +189,16 @@ class StockTransferController extends Controller
                         'placement_type' => $stockOut->destination_type,
                         'placement_id' => $stockOut->destination_id,
                         'user_id' => $user->id, // Assign to receiver
-                    ], ['quantity' => 0]);
+                        'distributor_id' => $nonHpItem->distributor_id,
+                    ], [
+                        'quantity' => 0,
+                        'selling_price' => $nonHpItem->selling_price,
+                    ]);
+                    
+                    if ($inv->selling_price == 0 && $nonHpItem->selling_price > 0) {
+                        $inv->selling_price = $nonHpItem->selling_price;
+                        $inv->save();
+                    }
 
                     $inv->increment('quantity', $receivedQty);
 
@@ -195,6 +206,7 @@ class StockTransferController extends Controller
                         'product_id' => $nonHpItem->product_id,
                         'brand_id' => null, // Optional
                         'user_id' => $user->id,
+                        'distributor_id' => $nonHpItem->distributor_id,
                         'placement_type' => $stockOut->destination_type, // polymorphic support in log?
                         // If logs don't support polymorphic, map manually.
                         // Assuming logs use specific columns branch_id, etc.

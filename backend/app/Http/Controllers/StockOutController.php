@@ -643,7 +643,10 @@ class StockOutController extends Controller
                         foreach ($request->non_hp_items as $item) {
                             $prod = \App\Models\Product::find($item['product_id']);
                             if ($prod) {
-                                $totalSellingPrice += (floatval($prod->price) * intval($item['quantity']));
+                                $itemPrice = (isset($item['selling_price']) && floatval($item['selling_price']) > 0) 
+                                    ? floatval($item['selling_price']) 
+                                    : floatval($prod->price);
+                                $totalSellingPrice += ($itemPrice * intval($item['quantity']));
                             }
                         }
                     }
@@ -770,7 +773,7 @@ class StockOutController extends Controller
                             'stock_out_id' => $stockOut->id,
                             'product_id' => $item['product_id'],
                             'quantity' => $item['quantity'],
-                            'selling_price' => $item['selling_price'] ?? 0,
+                            'selling_price' => (isset($item['selling_price']) && floatval($item['selling_price']) > 0) ? floatval($item['selling_price']) : (isset($prod) ? floatval($prod->price) : 0),
                             'item_discount' => $item['item_discount'] ?? 0,
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
