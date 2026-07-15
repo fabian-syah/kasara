@@ -1376,7 +1376,7 @@ class AuditController extends Controller
                                 'split_payments',
                                 'notes',
                                 'sales_account',
-                                'audit_score',
+                                DB::raw('(SELECT COUNT(id) FROM audit_answers WHERE audit_answers.stock_out_id = stock_outs.id LIMIT 1) as audit_answered'),
                                 DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
                                 DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
                                 DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
@@ -1414,17 +1414,19 @@ class AuditController extends Controller
 
                             if ($cat === 'cancel_penjualan') {
                                 $totalCancelGlobal++;
-                            } elseif ($ps->audit_score !== null) {
+                            } elseif (($ps->audit_answered ?? 0) > 0) {
                                 $totalSudahDiaudit++;
                             } else {
                                 $totalBelumDiaudit++;
                             }
 
+                            $spTotal = 0;
                             if ($ps->split_payments) {
                                 $sData = is_string($ps->split_payments) ? json_decode($ps->split_payments, true) : $ps->split_payments;
                                 if (is_array($sData)) {
                                     foreach ($sData as $sp) {
                                         $amt = abs((float) ($sp['amount'] ?? 0));
+                                        $spTotal += $amt;
                                         if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                             $mName = $pm?->name ?? 'Lainnya';
@@ -1439,18 +1441,20 @@ class AuditController extends Controller
                                 }
                             }
 
+                            $effectivePrice = ($price == 0 && $spTotal > 0) ? $spTotal : $price;
+
                             if ($saleType === 'base_sale') {
-                                $baseSalesOnly += $price;
+                                $baseSalesOnly += $effectivePrice;
                             } elseif ($saleType === 'tukar_tambah') {
                                 $outPrice = floatval($ps->tt_outgoing_price ?? 0);
                                 if ($outPrice <= 0) {
-                                    $outPrice = $price;
+                                    $outPrice = $effectivePrice;
                                 }
                                 $inPrice = floatval($ps->tt_incoming_cost_price ?? 0);
 
                                 $totalTradeOutgoing += $outPrice;
                                 $totalTradeIncoming += $inPrice;
-                                $tradeSelisih += $price;
+                                $tradeSelisih += $effectivePrice;
                             } elseif ($saleType === 'downgrade') {
                                 $outDg = floatval($ps->dg_outgoing_price ?? 0);
                                 $inDg = floatval($ps->dg_incoming_cost_price ?? 0);
@@ -1458,10 +1462,10 @@ class AuditController extends Controller
                                 if ($dgDiff != 0) {
                                     $deductions += $dgDiff;
                                 } else {
-                                    $deductions += $price;
+                                    $deductions += $effectivePrice;
                                 }
                             } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
-                                $deductions += $price;
+                                $deductions += $effectivePrice;
                             }
                         }
 
