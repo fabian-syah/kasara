@@ -965,6 +965,7 @@ async function submitStockIn(verifiedPin = null) {
                         formData.append('destination_type', transferDestinationType.value);
                         formData.append('destination_id', transferDestinationId.value);
                         formData.append('receiver_name', transferReceiverName.value);
+                        formData.append('origin_warehouse_id', auditWarehouseId.value);
                         if (transferNotes.value) formData.append('notes', transferNotes.value);
 
                         newlyInserted.forEach(item => {
@@ -1034,6 +1035,7 @@ async function submitStockIn(verifiedPin = null) {
                     formData.append('destination_type', transferDestinationType.value);
                     formData.append('destination_id', transferDestinationId.value);
                     formData.append('receiver_name', transferReceiverName.value);
+                    formData.append('origin_warehouse_id', auditWarehouseId.value);
                     if (transferNotes.value) formData.append('notes', transferNotes.value);
 
                     newlyInserted.forEach((item, index) => {

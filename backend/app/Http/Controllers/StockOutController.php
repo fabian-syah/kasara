@@ -547,9 +547,9 @@ class StockOutController extends Controller
                             'reference_id' => 'OUT-' . time() . '-' . $inventory->id,
                             'user_id' => $user->id,
                             'distributor_id' => $distId ?? $inventory->distributor_id,
-                            'branch_id' => $user->branch_id ?? null,
-                            'warehouse_id' => $user->warehouse_id ?? null,
-                            'online_shop_id' => $user->online_shop_id ?? null,
+                            'branch_id' => $request->origin_branch_id ?? $user->branch_id ?? null,
+                            'warehouse_id' => $request->origin_warehouse_id ?? $user->warehouse_id ?? null,
+                            'online_shop_id' => $request->origin_online_shop_id ?? $user->online_shop_id ?? null,
                             'reporting_date' => $reportingDate,
                         ]);
                     }
@@ -659,6 +659,9 @@ class StockOutController extends Controller
                 'sub_category' => $request->sub_category, 
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
+                'warehouse_id' => $request->origin_warehouse_id,
+                'branch_id' => $request->origin_branch_id,
+                'online_shop_id' => $request->origin_online_shop_id,
                 'selling_price' => $totalSellingPrice,
 
                 // FIX: Mapping lokasi tujuan agar terbaca di History & Akun Gudang
