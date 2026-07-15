@@ -1029,12 +1029,9 @@ const summaryStats = computed(() => {
             }
         });
 
-        if (true) { // Always use backend global sum if available
-            finalOmset = baseSales + tradeOutgoingTotal;
-            finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
-        } else {
-            finalOmsetBersih = finalOmset - (summaryOutlay + summaryTradeIncoming);
-        }
+        // Always use backend global sum if available from report_summary
+        finalOmset = summary.payment_total ?? 0;
+        finalOmsetBersih = summary.omset_bersih ?? 0;
     } else if (!hasSummary) {
         finalOmset = baseSales + tradeOutgoingTotal;
         finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
