@@ -2,7 +2,8 @@
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRouter } from "vue-router";
 import { useToast } from "../../composables/useToast";
-import { distributors as distributorsApi, inventory as inventoryApi, users as usersApi, brands as brandsApi, productTypes as productTypesApi, products as productsApi } from "../../api/axios";
+import { distributors as distributorsApi, inventory as inventoryApi, users as usersApi, brands as brandsApi, productTypes as productTypesApi, products as productsApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi } from "../../api/axios";
+import api from "../../api/axios";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -12,6 +13,9 @@ import {
     Smartphone,
     Box,
     Truck,
+    ArrowRightLeft,
+    MapPin,
+    Send,
     Building,
     Loader2,
     ScanBarcode,
@@ -27,12 +31,16 @@ import {
     Shield,
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
-import { defineAsyncComponent } from "vue";
-const StockOutModal = defineAsyncComponent(() => import("../../components/inventory/StockOutModal.vue"));
-
-const showStockOutModal = ref(false);
-const newlyInsertedItems = ref([]);
 const auditWarehouseId = ref(null);
+
+// Transfer destination state
+const transferBranches = ref([]);
+const transferWarehouses = ref([]);
+const transferOnlineShops = ref([]);
+const transferDestinationType = ref('branch');
+const transferDestinationId = ref(null);
+const transferReceiverName = ref('');
+const transferNotes = ref('');
 import { debounce } from "../../utils/debounce";
 import { parseCurrency, formatNumber } from "../../utils/formatters";
 
@@ -513,6 +521,7 @@ function resolveSpecsForType(brandId, typeName) {
 const canNext = computed(() => {
     if (currentStep.value === 1) return !!itemType.value;
     if (currentStep.value === 2) return isManualDistributor.value ? newDistributorName.value.length >= 2 : !!selectedDistributor.value;
+    if (currentStep.value === 3) return true; // Items filled check is done on submit
     return false;
 });
 
@@ -525,6 +534,10 @@ const canSubmit = computed(() => {
     return true;
 });
 
+const canSubmitFinal = computed(() => {
+    return !!transferDestinationId.value && !!transferReceiverName.value;
+});
+
 // CARI DAN GANTI FUNGSI submitStockIn AGAR SELALU KIRIM ID MESKIPUN MAPPING
 
 
@@ -534,6 +547,10 @@ function nextStep() {
             selectedDistributor.value = authStore.user?.distributor_id || "";
             currentStep.value = 3;
             return;
+        }
+        // When moving to step 4, fetch branches
+        if (currentStep.value === 3) {
+            fetchTransferDestinations();
         }
         currentStep.value++;
     }
@@ -547,6 +564,20 @@ function prevStep() {
         }
         currentStep.value--;
     }
+}
+
+async function fetchTransferDestinations() {
+    try {
+        const [brRes, whRes, osRes] = await Promise.all([
+            branchesApi.list({ ignore_scope: 1, all: 1 }),
+            warehousesApi.list({ ignore_scope: 1, all: 1 }),
+            onlineShopsApi.list({ ignore_scope: 1, all: 1 })
+        ]);
+        const allBranches = brRes.data.data || brRes.data;
+        transferBranches.value = allBranches.filter(b => b.is_active);
+        transferWarehouses.value = whRes.data.data || whRes.data;
+        transferOnlineShops.value = osRes.data.data || osRes.data;
+    } catch(e) { console.error('Fetch destinations failed', e); }
 }
 
 const showCreateAccountModal = ref(false);
@@ -925,18 +956,45 @@ async function submitStockIn(verifiedPin = null) {
                 showDuplicateModal.value = true;
             } else if (totalInserted > 0) {
                 toast.success(`Berhasil input ${totalInserted} stok HP!`);
-                // Fetch newly inserted items from audit warehouse for transfer
+                
+                // --- START AUTO-TRANSFER ---
                 try {
+                    toast.info("Memproses pengiriman ke tujuan...");
                     const allImeis = [];
                     hpItems.value.forEach(item => { allImeis.push(...item.parsedImeis); });
                     const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'hp', per_page: 100 });
                     const items = res.data.data || res.data;
-                    newlyInsertedItems.value = items.filter(i => {
+                    const newlyInserted = items.filter(i => {
                         const imei = i.productDetail?.imei || i.imei || '';
                         return allImeis.includes(imei);
                     });
-                } catch(e) { console.error('Fetch inserted items failed', e); }
-                showStockOutModal.value = true;
+
+                    if (newlyInserted.length > 0) {
+                        const formData = new FormData();
+                        formData.append('category', 'pindah_cabang');
+                        formData.append('destination_type', transferDestinationType.value);
+                        formData.append('destination_id', transferDestinationId.value);
+                        formData.append('receiver_name', transferReceiverName.value);
+                        if (transferNotes.value) formData.append('notes', transferNotes.value);
+
+                        newlyInserted.forEach(item => {
+                            formData.append('product_detail_ids[]', item.id);
+                        });
+
+                        const outRes = await api.post('/stock-outs', formData, {
+                            headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        toast.success(`Berhasil dikirim ke tujuan! ID: ${outRes.data.receipt_id || ''}`);
+                    }
+                } catch(e) {
+                    console.error('Transfer failed', e);
+                    toast.error("Gagal mengirim ke tujuan: " + (e.response?.data?.message || e.message));
+                }
+                // --- END AUTO-TRANSFER ---
+                
+                setTimeout(() => {
+                    router.push('/inventory').catch(() => { window.location.href = '/inventory'; });
+                }, 1500);
             }
 
             isSubmitting.value = false;
@@ -971,14 +1029,42 @@ async function submitStockIn(verifiedPin = null) {
             // DO NOT redirect yet
         } else {
             toast.success("Stok berhasil ditambahkan!");
-            // Fetch newly inserted non-hp items from audit warehouse for transfer
+            
+            // --- START AUTO-TRANSFER ---
             try {
+                toast.info("Memproses pengiriman ke tujuan...");
                 const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'non-hp', per_page: 100 });
                 const items = res.data.data || res.data;
                 items.sort((a, b) => b.id - a.id);
-                newlyInsertedItems.value = items.slice(0, nonHpItems.value.reduce((sum, i) => sum + (i.quantity || 1), 0));
-            } catch(e) { console.error('Fetch inserted items failed', e); }
-            showStockOutModal.value = true;
+                const newlyInserted = items.slice(0, nonHpItems.value.reduce((sum, i) => sum + (i.quantity || 1), 0));
+
+                if (newlyInserted.length > 0) {
+                    const formData = new FormData();
+                    formData.append('category', 'pindah_cabang');
+                    formData.append('destination_type', transferDestinationType.value);
+                    formData.append('destination_id', transferDestinationId.value);
+                    formData.append('receiver_name', transferReceiverName.value);
+                    if (transferNotes.value) formData.append('notes', transferNotes.value);
+
+                    newlyInserted.forEach((item, index) => {
+                        formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id);
+                        formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || item.quantity || 1);
+                    });
+
+                    const outRes = await api.post('/stock-outs', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    toast.success(`Berhasil dikirim ke tujuan! ID: ${outRes.data.receipt_id || ''}`);
+                }
+            } catch(e) {
+                console.error('Transfer failed', e);
+                toast.error("Gagal mengirim ke tujuan: " + (e.response?.data?.message || e.message));
+            }
+            // --- END AUTO-TRANSFER ---
+
+            setTimeout(() => {
+                router.push('/inventory').catch(() => { window.location.href = '/inventory'; });
+            }, 1500);
         }
 
     } catch (error) {
@@ -1010,11 +1096,11 @@ onMounted(() => {
         </h1>
 
         <div class="flex items-center justify-between mb-8 px-4">
-            <div v-for="step in [1, 2, 3]" :key="step" class="flex items-center">
+            <div v-for="step in [1, 2, 3, 4]" :key="step" class="flex items-center">
                 <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
                     :class="currentStep >= step ? 'bg-primary-500 text-white' : 'bg-surface-800 text-text-secondary'">{{
                         step }}</div>
-                <div v-if="step < 3" class="w-16 h-1 mx-2 rounded-full"
+                <div v-if="step < 4" class="w-16 h-1 mx-2 rounded-full"
                     :class="currentStep > step ? 'bg-primary-500' : 'bg-surface-800'"></div>
             </div>
         </div>
@@ -1265,20 +1351,78 @@ onMounted(() => {
                 </div>
             </div>
 
+            <!-- STEP 4: Transfer Destination -->
+            <div v-if="currentStep === 4" class="space-y-6 animate-in slide-in-from-right">
+                <div class="flex items-center gap-3 mb-4">
+                    <ArrowRightLeft :size="24" class="text-blue-500" />
+                    <h3 class="text-lg font-bold text-text-primary">Tujuan Pengiriman</h3>
+                </div>
+
+                <div class="bg-surface-900 p-6 rounded-2xl border border-surface-700 space-y-5">
+                    <div>
+                        <label class="label text-xs uppercase font-black text-text-secondary mb-3">Jenis Tujuan</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button @click="transferDestinationType = 'branch'; transferDestinationId = null"
+                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                                :class="transferDestinationType === 'branch' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-surface-700 text-text-secondary'">
+                                <Building :size="20" class="mx-auto mb-1" /> Cabang
+                            </button>
+                            <button @click="transferDestinationType = 'warehouse'; transferDestinationId = null"
+                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                                :class="transferDestinationType === 'warehouse' ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-surface-700 text-text-secondary'">
+                                <Box :size="20" class="mx-auto mb-1" /> Gudang
+                            </button>
+                            <button @click="transferDestinationType = 'online_shop'; transferDestinationId = null"
+                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                                :class="transferDestinationType === 'online_shop' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-surface-700 text-text-secondary'">
+                                <Smartphone :size="20" class="mx-auto mb-1" /> Online Shop
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="label text-xs uppercase font-black text-text-secondary mb-2">Pilih Tujuan <span class="text-red-500">*</span></label>
+                        <select v-model="transferDestinationId" class="input bg-surface-800 h-14">
+                            <option :value="null" disabled>-- Pilih Tujuan --</option>
+                            <template v-if="transferDestinationType === 'branch'">
+                                <option v-for="b in transferBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            </template>
+                            <template v-else-if="transferDestinationType === 'warehouse'">
+                                <option v-for="w in transferWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                            </template>
+                            <template v-else-if="transferDestinationType === 'online_shop'">
+                                <option v-for="o in transferOnlineShops" :key="o.id" :value="o.id">{{ o.name }}</option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="label text-xs uppercase font-black text-text-secondary mb-2">Penerima <span class="text-red-500">*</span></label>
+                        <input v-model="transferReceiverName" placeholder="Nama penerima..." class="input bg-surface-800 h-12" />
+                    </div>
+
+                    <div>
+                        <label class="label text-xs uppercase font-black text-text-secondary mb-2">Catatan Transfer</label>
+                        <input v-model="transferNotes" placeholder="Catatan tambahan (opsional)" class="input bg-surface-800 h-12" />
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-auto pt-8 border-t border-surface-700 flex justify-between gap-4">
                 <button v-if="currentStep > 1" @click="prevStep"
                     class="btn btn-secondary px-8 h-14 rounded-2xl uppercase text-[10px] tracking-widest">
                     <ChevronLeft :size="18" /> Kembali
                 </button>
                 <div v-else></div>
-                <button v-if="currentStep < 3" @click="nextStep" :disabled="!canNext"
+                <button v-if="currentStep < 4" @click="nextStep" :disabled="!canNext"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black">Lanjut
                     <ChevronRight :size="18" />
                 </button>
-                <button v-if="currentStep === 3" @click="submitStockIn()" :disabled="!canSubmit || isSubmitting"
+                <button v-if="currentStep === 4" @click="submitStockIn()" :disabled="!canSubmitFinal || isSubmitting"
                     class="btn btn-primary px-10 h-14 rounded-2xl uppercase text-[10px] tracking-widest font-black shadow-xl shadow-emerald-600/20">
                     <Loader2 v-if="isSubmitting" class="animate-spin mr-2" />
-                    {{ isSubmitting ? 'Proses...' : 'Selesai & Simpan' }}
+                    <Send v-else :size="18" class="mr-2" />
+                    {{ isSubmitting ? 'Proses...' : 'Simpan & Kirim' }}
                 </button>
             </div>
         </div>
@@ -1333,14 +1477,7 @@ onMounted(() => {
         <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
             @success="handlePinSuccess" />
     </div>
-    <StockOutModal
-        v-if="showStockOutModal"
-        :show="showStockOutModal"
-        :selected-items="newlyInsertedItems"
-        :active-tab="itemType"
-        @close="showStockOutModal = false; router.push('/inventory')"
-        @success="showStockOutModal = false; router.push('/inventory')"
-    />
+
 </template>
 
 <style scoped>
