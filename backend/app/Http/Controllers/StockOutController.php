@@ -1745,10 +1745,11 @@ class StockOutController extends Controller
                 return $b['timestamp'] - $a['timestamp'];
             });
 
-            // Deduplicate events with same id + type + sub_type
+            // Deduplicate events with same id + type + sub_type + date
             $seen = [];
             $allEvents = array_filter($allEvents, function ($evt) use (&$seen) {
-                $key = ($evt['type'] ?? '') . '|' . ($evt['sub_type'] ?? '') . '|' . ($evt['id'] ?? '');
+                $date = substr($evt['created_at'], 0, 10);
+                $key = $evt['id'] . '|' . $evt['type'] . '|' . ($evt['sub_type'] ?? '') . '|' . $date;
                 if (isset($seen[$key])) return false;
                 $seen[$key] = true;
                 return true;
