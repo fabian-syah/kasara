@@ -463,12 +463,16 @@ class StockOutController extends Controller
                         $hpQuery = ProductDetail::where('product_id', $product->id)
                             ->where('status', 'available');
 
-                        if ($user->branch_id) {
-                            $hpQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
-                        } elseif ($user->warehouse_id) {
-                            $hpQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
-                        } elseif ($user->online_shop_id) {
-                            $hpQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                        $sourceBranch = $request->origin_branch_id ?? $user->branch_id;
+                        $sourceWarehouse = $request->origin_warehouse_id ?? $user->warehouse_id;
+                        $sourceOnlineShop = $request->origin_online_shop_id ?? $user->online_shop_id;
+
+                        if ($sourceBranch) {
+                            $hpQuery->where('placement_type', 'branch')->where('placement_id', $sourceBranch);
+                        } elseif ($sourceWarehouse) {
+                            $hpQuery->where('placement_type', 'warehouse')->where('placement_id', $sourceWarehouse);
+                        } elseif ($sourceOnlineShop) {
+                            $hpQuery->where('placement_type', 'online_shop')->where('placement_id', $sourceOnlineShop);
                         }
 
                         $availableCount = $hpQuery->count();
@@ -490,12 +494,16 @@ class StockOutController extends Controller
                     // Identify Inventory Source based on User
                     $invQuery = Inventory::where('product_id', $item['product_id']);
 
-                    if ($user->branch_id) {
-                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
-                    } elseif ($user->warehouse_id) {
-                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
-                    } elseif ($user->online_shop_id) {
-                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                    $sourceBranch = $request->origin_branch_id ?? $user->branch_id;
+                    $sourceWarehouse = $request->origin_warehouse_id ?? $user->warehouse_id;
+                    $sourceOnlineShop = $request->origin_online_shop_id ?? $user->online_shop_id;
+
+                    if ($sourceBranch) {
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $sourceBranch);
+                    } elseif ($sourceWarehouse) {
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $sourceWarehouse);
+                    } elseif ($sourceOnlineShop) {
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $sourceOnlineShop);
                     } else if (!$user->hasRole('super_admin')) {
                         throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
                     }
