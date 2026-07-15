@@ -925,7 +925,18 @@ async function submitStockIn(verifiedPin = null) {
                 showDuplicateModal.value = true;
             } else if (totalInserted > 0) {
                 toast.success(`Berhasil input ${totalInserted} stok HP!`);
-                router.push('/inventory').catch(() => { window.location.href = '/inventory'; });
+                // Fetch newly inserted items from audit warehouse for transfer
+                try {
+                    const allImeis = [];
+                    hpItems.value.forEach(item => { allImeis.push(...item.parsedImeis); });
+                    const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'hp', per_page: 100 });
+                    const items = res.data.data || res.data;
+                    newlyInsertedItems.value = items.filter(i => {
+                        const imei = i.productDetail?.imei || i.imei || '';
+                        return allImeis.includes(imei);
+                    });
+                } catch(e) { console.error('Fetch inserted items failed', e); }
+                showStockOutModal.value = true;
             }
 
             isSubmitting.value = false;
@@ -960,10 +971,14 @@ async function submitStockIn(verifiedPin = null) {
             // DO NOT redirect yet
         } else {
             toast.success("Stok berhasil ditambahkan!");
-            // Instant redirect to inventory page
-            router.push('/inventory').catch(() => {
-                window.location.href = '/inventory';
-            });
+            // Fetch newly inserted non-hp items from audit warehouse for transfer
+            try {
+                const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'non-hp', per_page: 100 });
+                const items = res.data.data || res.data;
+                items.sort((a, b) => b.id - a.id);
+                newlyInsertedItems.value = items.slice(0, nonHpItems.value.reduce((sum, i) => sum + (i.quantity || 1), 0));
+            } catch(e) { console.error('Fetch inserted items failed', e); }
+            showStockOutModal.value = true;
         }
 
     } catch (error) {
