@@ -1239,6 +1239,60 @@ class StockOutController extends Controller
                 ->get()
                 ->unique('id');
 
+            // Auto-detect and include MASUK event for non-HP Auto-Transfers
+            $additionalStockOuts = collect();
+            foreach ($stockOuts as $so) {
+                if (in_array($so->category, ['pindah_cabang', 'keluar'])) {
+                    $nonHpProductIds = $so->nonHpDetails->pluck('product_id')->toArray();
+                    $nhData = $so->non_hp_items;
+                    $nonHpItems = is_string($nhData) ? json_decode($nhData, true) : (is_array($nhData) ? $nhData : []);
+                    foreach ($nonHpItems as $nhp) {
+                        if (isset($nhp['product_id']) && !in_array($nhp['product_id'], $nonHpProductIds)) {
+                            $nonHpProductIds[] = $nhp['product_id'];
+                        }
+                    }
+
+                    if (count($nonHpProductIds) > 0) {
+                        $fiveMinsBefore = $so->created_at->subMinutes(5);
+                        $masukOuts = StockOut::withTrashed()->with([
+                            'items.product',
+                            'items.distributor',
+                            'nonHpDetails.product',
+                            'user.branch',
+                            'inventoryUser.branch',
+                            'destinationBranch',
+                            'destination',
+                            'confirmedBy',
+                            'branch',
+                            'onlineShop',
+                            'warehouse',
+                            'paymentMethod'
+                        ])
+                            ->where('category', 'barang_masuk')
+                            ->where('user_id', $so->user_id)
+                            ->whereBetween('created_at', [$fiveMinsBefore, $so->created_at->addMinute()])
+                            ->get();
+                            
+                        foreach ($masukOuts as $mo) {
+                            $moProdIds = $mo->nonHpDetails->pluck('product_id')->toArray();
+                            $moNhData = $mo->non_hp_items;
+                            $moNonHpItems = is_string($moNhData) ? json_decode($moNhData, true) : (is_array($moNhData) ? $moNhData : []);
+                            foreach ($moNonHpItems as $nhp) {
+                                if (isset($nhp['product_id']) && !in_array($nhp['product_id'], $moProdIds)) {
+                                    $moProdIds[] = $nhp['product_id'];
+                                }
+                            }
+                            
+                            if (count(array_intersect($nonHpProductIds, $moProdIds)) > 0) {
+                                $additionalStockOuts->push($mo);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            $stockOuts = $stockOuts->merge($additionalStockOuts)->unique('id');
+
             foreach ($stockOuts as $out) {
                 // Determine shopee info
                 $sData = $out->shopee_items_data;
