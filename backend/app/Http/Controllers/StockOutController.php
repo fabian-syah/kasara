@@ -1345,6 +1345,8 @@ class StockOutController extends Controller
                         'tracking_no' => null,
                         'notes' => $detail->notes,
                         'brand' => $detail->product?->brandRelation?->name ?? ($detail->product?->brand ?? '-'),
+                        'selling_price' => $detail->selling_price,
+                        'distributor_name' => $detail->distributor?->name,
                     ];
                 }
 
@@ -1356,6 +1358,14 @@ class StockOutController extends Controller
                     $products = \App\Models\Product::with('brandRelation')->whereIn('id', $productIds)->get()->keyBy('id');
                     foreach ($nonHpItems as $nhp) {
                         $prod = $products->get($nhp['product_id']);
+                        
+                        // Coba cari distributor name dari ID di JSON jika ada
+                        $distName = null;
+                        if (!empty($nhp['distributor_id'])) {
+                            $dist = \App\Models\Distributor::find($nhp['distributor_id']);
+                            $distName = $dist ? $dist->name : null;
+                        }
+
                         $mergedItems[] = [
                             'type' => 'non-hp',
                             'product_name' => $prod?->name ?? 'Unknown Product',
@@ -1363,6 +1373,8 @@ class StockOutController extends Controller
                             'tracking_no' => $nhp['tracking_no'] ?? null,
                             'notes' => $nhp['notes'] ?? null,
                             'brand' => $prod?->brandRelation?->name ?? ($prod?->brand ?? '-'),
+                            'selling_price' => $nhp['selling_price'] ?? 0,
+                            'distributor_name' => $distName,
                         ];
                     }
                 }
@@ -1447,29 +1459,26 @@ class StockOutController extends Controller
                     ];
                 }
 
-                // Add Non-HP items to rawItems
-                if (!empty($nonHpItems)) {
-                    $productIds = array_column($nonHpItems, 'product_id');
-                    $products = \App\Models\Product::with('brandRelation')->whereIn('id', $productIds)->get()->keyBy('id');
-                    foreach ($nonHpItems as $nhp) {
-                        $pId = $nhp['product_id'] ?? null;
-                        $prod = $pId ? $products->get($pId) : null;
+                // Add Non-HP items to rawItems from mergedItems
+                foreach ($mergedItems as $mItem) {
+                    if ($mItem['type'] === 'non-hp') {
                         $rawItems[] = [
                             'type' => 'non-hp',
                             'is_hp' => false,
-                            'name' => $prod?->name ?? 'Unknown Product',
-                            'product_name' => $prod?->name ?? 'Unknown Product',
-                            'qty' => (int)($nhp['quantity'] ?? 1),
-                            'quantity' => (int)($nhp['quantity'] ?? 1),
-                            'price' => (float)($nhp['selling_price'] ?? 0),
-                            'selling_price' => (float)($nhp['selling_price'] ?? 0),
+                            'name' => $mItem['product_name'],
+                            'product_name' => $mItem['product_name'],
+                            'qty' => (int)($mItem['quantity'] ?? 1),
+                            'quantity' => (int)($mItem['quantity'] ?? 1),
+                            'price' => (float)($mItem['selling_price'] ?? 0),
+                            'selling_price' => (float)($mItem['selling_price'] ?? 0),
                             'discount' => 0,
                             'item_discount' => 0,
-                            'brand' => $prod?->brandRelation?->name ?? ($prod?->brand ?? '-'),
+                            'brand' => $mItem['brand'],
                             'condition' => '-',
                             'storage' => '-',
-                            'tracking_no' => $nhp['tracking_no'] ?? null,
-                            'notes' => $nhp['notes'] ?? null
+                            'tracking_no' => $mItem['tracking_no'] ?? null,
+                            'notes' => $mItem['notes'] ?? null,
+                            'distributor_name' => $mItem['distributor_name'] ?? null
                         ];
                     }
                 }

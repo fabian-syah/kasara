@@ -563,10 +563,61 @@ async function fetchTransferDestinations() {
             warehousesApi.list({ ignore_scope: 1, all: 1 }),
             onlineShopsApi.list({ ignore_scope: 1, all: 1 })
         ]);
-        const allBranches = brRes.data.data || brRes.data;
+        let allBranches = brRes.data.data || brRes.data;
+        let allWarehouses = whRes.data.data || whRes.data;
+        let allOnlineShops = osRes.data.data || osRes.data;
+
+        // Filter based on user placements if not unrestricted
+        const user = authStore.user;
+        const role = (authStore.userRole || '').toLowerCase();
+        const isUnrestricted = ['super_admin', 'owner', 'analist'].includes(role);
+        
+        if (!isUnrestricted && user) {
+            const allowedBranchIds = new Set();
+            if (user.branch_id) allowedBranchIds.add(user.branch_id);
+            const allowedWarehouseIds = new Set();
+            if (user.warehouse_id) allowedWarehouseIds.add(user.warehouse_id);
+            const allowedOsIds = new Set();
+            if (user.online_shop_id) allowedOsIds.add(user.online_shop_id);
+            
+            if (Array.isArray(user.placements)) {
+                user.placements.forEach(p => {
+                    if (p.model_type === 'branch' || p.model_type.includes('Branch')) allowedBranchIds.add(p.model_id);
+                    if (p.model_type === 'warehouse' || p.model_type.includes('Warehouse')) allowedWarehouseIds.add(p.model_id);
+                    if (p.model_type === 'online_shop' || p.model_type.includes('OnlineShop')) allowedOsIds.add(p.model_id);
+                });
+            }
+            
+            const hasAnyRestriction = allowedBranchIds.size > 0 || allowedWarehouseIds.size > 0 || allowedOsIds.size > 0;
+            
+            if (hasAnyRestriction) {
+                allBranches = allBranches.filter(b => allowedBranchIds.has(b.id));
+                allWarehouses = allWarehouses.filter(w => allowedWarehouseIds.has(w.id));
+                allOnlineShops = allOnlineShops.filter(o => allowedOsIds.has(o.id));
+            }
+        }
+
         transferBranches.value = allBranches.filter(b => b.is_active);
-        transferWarehouses.value = whRes.data.data || whRes.data;
-        transferOnlineShops.value = osRes.data.data || osRes.data;
+        transferWarehouses.value = allWarehouses;
+        transferOnlineShops.value = allOnlineShops;
+
+        // Auto-select type
+        if (transferBranches.value.length > 0) {
+            transferDestinationType.value = 'branch';
+        } else if (transferWarehouses.value.length > 0) {
+            transferDestinationType.value = 'warehouse';
+        } else if (transferOnlineShops.value.length > 0) {
+            transferDestinationType.value = 'online_shop';
+        }
+        
+        // Auto-select ID if only 1 exists
+        if (transferDestinationType.value === 'branch' && transferBranches.value.length === 1) {
+            transferDestinationId.value = transferBranches.value[0].id;
+        } else if (transferDestinationType.value === 'warehouse' && transferWarehouses.value.length === 1) {
+            transferDestinationId.value = transferWarehouses.value[0].id;
+        } else if (transferDestinationType.value === 'online_shop' && transferOnlineShops.value.length === 1) {
+            transferDestinationId.value = transferOnlineShops.value[0].id;
+        }
     } catch(e) { console.error('Fetch destinations failed', e); }
 }
 
@@ -1354,19 +1405,19 @@ onMounted(() => {
                 <div class="bg-surface-900 p-6 rounded-2xl border border-surface-700 space-y-5">
                     <div>
                         <label class="label text-xs uppercase font-black text-text-secondary mb-3">Jenis Tujuan</label>
-                        <div class="grid grid-cols-3 gap-3">
-                            <button @click="transferDestinationType = 'branch'; transferDestinationId = null"
-                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                        <div class="flex flex-wrap gap-3">
+                            <button v-if="transferBranches.length > 0" @click="transferDestinationType = 'branch'; transferDestinationId = null"
+                                class="flex-1 p-3 rounded-xl border-2 text-center text-xs font-bold transition-all min-w-[100px]"
                                 :class="transferDestinationType === 'branch' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-surface-700 text-text-secondary'">
                                 <Building :size="20" class="mx-auto mb-1" /> Cabang
                             </button>
-                            <button @click="transferDestinationType = 'warehouse'; transferDestinationId = null"
-                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                            <button v-if="transferWarehouses.length > 0" @click="transferDestinationType = 'warehouse'; transferDestinationId = null"
+                                class="flex-1 p-3 rounded-xl border-2 text-center text-xs font-bold transition-all min-w-[100px]"
                                 :class="transferDestinationType === 'warehouse' ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-surface-700 text-text-secondary'">
                                 <Box :size="20" class="mx-auto mb-1" /> Gudang
                             </button>
-                            <button @click="transferDestinationType = 'online_shop'; transferDestinationId = null"
-                                class="p-3 rounded-xl border-2 text-center text-xs font-bold transition-all"
+                            <button v-if="transferOnlineShops.length > 0" @click="transferDestinationType = 'online_shop'; transferDestinationId = null"
+                                class="flex-1 p-3 rounded-xl border-2 text-center text-xs font-bold transition-all min-w-[100px]"
                                 :class="transferDestinationType === 'online_shop' ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-surface-700 text-text-secondary'">
                                 <Smartphone :size="20" class="mx-auto mb-1" /> Online Shop
                             </button>
