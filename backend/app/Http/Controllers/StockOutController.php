@@ -1202,7 +1202,7 @@ class StockOutController extends Controller
             }
 
             // 2. Search STOCK OUT (Execution & Arrival Events)
-            $stockOuts = StockOut::with([
+            $stockOuts = StockOut::withTrashed()->with([
                 'items' => function ($q) {
                     $q->withTrashed();
                 },
