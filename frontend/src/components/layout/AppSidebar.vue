@@ -124,6 +124,7 @@ const menuItems = [
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
+            { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Input & Transfer Audit" },
             { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
         ]
     },

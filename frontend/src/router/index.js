@@ -412,6 +412,12 @@ const routes = [
                 meta: { title: 'Audit Penjualan', menu: 'audit_sales_report', permissions: ['audit.view'] }
             },
             {
+                path: 'audit/input-transfer',
+                name: 'AuditInputTransfer',
+                component: () => import('../views/audit/AuditInputTransfer.vue'),
+                meta: { title: 'Input & Transfer Audit', menu: 'audit_input_transfer', permissions: ['audit.view'] }
+            },
+            {
                 path: 'audit/sales',
                 name: 'AuditSalesTab',
                 component: () => import('../views/audit/Sales.vue'),
