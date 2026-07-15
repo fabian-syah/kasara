@@ -570,12 +570,12 @@ async function fetchInitialData() {
     isLoading.value = true;
     try {
         const [dist, user, brd, typ, prd, wh] = await Promise.all([
-            import("../../api/axios").then(m => m.warehouses.list({ all: 1 })),
             distributorsApi.list(),
             usersApi.list({ role: 'inventory', is_active: true }), // FILTER BY ROLE
             brandsApi.list(),
             productTypesApi.list(),
-            inventoryApi.getProductsLookup({ type: 'hp' })
+            inventoryApi.getProductsLookup({ type: 'hp' }),
+            import("../../api/axios").then(m => m.warehouses.list({ all: 1 }))
         ]);
         distributors.value = dist.data.data;
         brands.value = brd.data.data || brd.data;
