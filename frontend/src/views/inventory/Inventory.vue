@@ -58,6 +58,8 @@ const props = defineProps({
     default: false
   }
 });
+
+const authStore = useAuthStore();
 const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 import {
@@ -1070,7 +1072,7 @@ async function exportInventory() {
         </button>
 
         <!-- Keluar Stok Button -->
-        <button class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
+        <button v-if="authStore.userRole !== 'audit'" class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
           @click="openStockOutModal" :disabled="selectedItems.length === 0" aria-label="Keluarkan stok item terpilih">
           <ArrowDownUp :size="16" />
           Keluar Stok
@@ -1078,7 +1080,7 @@ async function exportInventory() {
             {{ selectedItems.length }}
           </span>
         </button>
-        <button class="btn btn-primary" @click="router.push({ name: 'StockIn' })">
+        <button v-if="authStore.userRole !== 'audit'" class="btn btn-primary" @click="router.push({ name: 'StockIn' })">
           <Plus :size="16" />
           Tambah Stok Masuk
         </button>
