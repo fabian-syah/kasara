@@ -401,6 +401,33 @@ class StockOutController extends Controller
 
         $request->validate($rules, $messages);
 
+        // Validasi khusus: Metode Pembayaran wajib dipilih untuk kategori penjualan
+        if (in_array($request->category, ['penjualan_store', 'penjualan_offline', 'bundling'])) {
+            $hasPayment = false;
+            if ($request->payment_method_id) {
+                $hasPayment = true;
+            }
+            
+            // Cek juga apabila menggunakan sistem split payment
+            if ($request->split_payments) {
+                $splits = is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments;
+                if (is_array($splits)) {
+                    foreach($splits as $sp) {
+                        if (isset($sp['payment_method_id']) && $sp['payment_method_id']) {
+                            $hasPayment = true;
+                        }
+                    }
+                }
+            }
+            
+            if (!$hasPayment) {
+                return response()->json([
+                    'message' => 'Metode Pembayaran wajib dipilih.',
+                    'errors' => ['payment_method_id' => ['Pilih Metode Pembayaran sebelum menyimpan transaksi.']]
+                ], 422);
+            }
+        }
+
         // PIN Verification using Trait
         $pinError = $this->verifyPin($request);
         if ($pinError) return $pinError;
