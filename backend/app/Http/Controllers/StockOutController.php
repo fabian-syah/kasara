@@ -40,9 +40,9 @@ class StockOutController extends Controller
         if ($request->type === 'hp') {
             $query->whereHas('items');
         } elseif ($request->type === 'non-hp') {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->whereHas('nonHpDetails')
-                  ->orWhereNotNull('non_hp_items');
+                    ->orWhereNotNull('non_hp_items');
             });
         }
 
@@ -54,8 +54,8 @@ class StockOutController extends Controller
                 $bIds = $user->getAccessibleBranchIds();
                 $wIds = $user->getAccessibleWarehouseIds();
                 $osIds = $user->getAccessibleOnlineShopIds();
-                
-                $q->where(function($sq) use ($bIds, $wIds, $osIds) {
+
+                $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
                     if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
                     if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
                     if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
@@ -98,14 +98,14 @@ class StockOutController extends Controller
         if ($request->type === 'hp') {
             $query->whereHas('items');
         } elseif ($request->type === 'non-hp') {
-            $query->where(function($q) {
+            $query->where(function ($q) {
                 $q->whereHas('nonHpDetails')
-                  ->orWhere(function($sub) {
-                      $sub->whereNotNull('non_hp_items')
-                          ->where('non_hp_items', 'not like', '[]')
-                          ->where('non_hp_items', 'not like', '{}')
-                          ->where('non_hp_items', 'not like', '""');
-                  });
+                    ->orWhere(function ($sub) {
+                        $sub->whereNotNull('non_hp_items')
+                            ->where('non_hp_items', 'not like', '[]')
+                            ->where('non_hp_items', 'not like', '{}')
+                            ->where('non_hp_items', 'not like', '""');
+                    });
             });
         }
 
@@ -168,7 +168,7 @@ class StockOutController extends Controller
                 $grouped = [];
                 $bundles = [];
                 $fallbackBundleName = $stockOut->bundle_description ?: 'Paket Bundling';
-                
+
                 // Historical component-aware matching logic
                 $bundleComponents = [];
                 if ($fallbackBundleName) {
@@ -179,7 +179,7 @@ class StockOutController extends Controller
                 foreach ($details as $d) {
                     $bundleTag = $d['notes'] ?? null;
                     $cleanName = str_replace('📦 ', '', $d['name']);
-                    
+
                     $isPartOfBundle = false;
                     $groupKey = $bundleTag;
 
@@ -232,11 +232,11 @@ class StockOutController extends Controller
 
             // Update the object with consolidated items
             $stockOut->consolidated_items = $details;
-            
+
             // For backward compatibility with views that use product_names/imeis strings
             $stockOut->product_names = collect($details)->pluck('name')->implode(', ');
             $stockOut->imeis = collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->implode(', ');
-            
+
             // Unified Recipient Label
             $stockOut->recipient_label = $stockOut->customer_name ?: ($stockOut->receiver_name ?: ($stockOut->ba_name ?: ($stockOut->event_receiver ?: ($stockOut->shopee_receiver ?: ($stockOut->giveaway_receiver ?: ($stockOut->notes ?: ($stockOut->sub_category ?: '-')))))));
 
@@ -407,19 +407,19 @@ class StockOutController extends Controller
             if ($request->payment_method_id) {
                 $hasPayment = true;
             }
-            
+
             // Cek juga apabila menggunakan sistem split payment
             if ($request->split_payments) {
                 $splits = is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments;
                 if (is_array($splits)) {
-                    foreach($splits as $sp) {
+                    foreach ($splits as $sp) {
                         if (isset($sp['payment_method_id']) && $sp['payment_method_id']) {
                             $hasPayment = true;
                         }
                     }
                 }
             }
-            
+
             if (!$hasPayment) {
                 return response()->json([
                     'message' => 'Metode Pembayaran wajib dipilih.',
@@ -558,11 +558,11 @@ class StockOutController extends Controller
                         $deductAmount = min($inventory->quantity, $remainingToDeduct);
                         $inventory->decrement('quantity', $deductAmount);
                         $remainingToDeduct -= $deductAmount;
-                        
+
                         // Capture the distributor from the first deducted batch for this product
                         if (!isset($nonHpDistMap[$item['product_id']])) {
                             $distId = $inventory->distributor_id;
-                            
+
                             // If ID is missing, try to find a distributor with a matching name from the latest log
                             if (!$distId) {
                                 $lastLog = InventoryLog::where('product_id', $item['product_id'])
@@ -572,7 +572,7 @@ class StockOutController extends Controller
                                     ->first();
                                 $distId = $lastLog ? $lastLog->distributor_id : null;
                             }
-                            
+
                             if ($distId) {
                                 $nonHpDistMap[$item['product_id']] = $distId;
                             }
@@ -597,7 +597,7 @@ class StockOutController extends Controller
 
                     // Log general transaction for the StockOut record will be handled by the loop above
                     // Skip the original single-log/single-deduct logic
-                    continue; 
+                    continue;
                 }
             }
 
@@ -670,8 +670,8 @@ class StockOutController extends Controller
                         foreach ($request->non_hp_items as $item) {
                             $prod = \App\Models\Product::find($item['product_id']);
                             if ($prod) {
-                                $itemPrice = (isset($item['selling_price']) && floatval($item['selling_price']) > 0) 
-                                    ? floatval($item['selling_price']) 
+                                $itemPrice = (isset($item['selling_price']) && floatval($item['selling_price']) > 0)
+                                    ? floatval($item['selling_price'])
                                     : floatval($prod->price);
                                 $totalSellingPrice += ($itemPrice * intval($item['quantity']));
                             }
@@ -700,7 +700,7 @@ class StockOutController extends Controller
                 'receipt_id' => StockOut::generateReceiptId(),
                 'category' => $request->category,
                 'reporting_date' => $reportingDate, // Save the calculated business date
-                'sub_category' => $request->sub_category, 
+                'sub_category' => $request->sub_category,
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
                 'warehouse_id' => $request->origin_warehouse_id,
@@ -757,7 +757,7 @@ class StockOutController extends Controller
                 'giveaway_village' => $request->giveaway_village,
                 'giveaway_postal_code' => $request->giveaway_postal_code,
                 'giveaway_notes' => $request->giveaway_notes,
-                
+
                 // Event
                 'event_receiver' => $request->event_receiver,
                 'event_phone' => $request->event_phone,
@@ -820,7 +820,7 @@ class StockOutController extends Controller
             foreach ($productDetails as $detail) {
                 /** @var \App\Models\ProductDetail $detail */
                 $hpMeta = $request->hp_items_meta[$detail->id] ?? null;
-                
+
                 // Priority: hp_items_meta (explicit) > $detail->selling_price
                 $finalSellingPrice = $hpMeta['selling_price'] ?? $detail->selling_price;
 
@@ -962,7 +962,6 @@ class StockOutController extends Controller
                 'id' => $stockOut->id,
                 'receipt_id' => $stockOut->receipt_id,
             ], 201);
-
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error("DEBUG STOCK-OUT CRASH: " . $e->getMessage(), [
@@ -1003,15 +1002,15 @@ class StockOutController extends Controller
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
         if ($user && !$user->hasRole($unrestrictedRoles)) {
             $query->whereHas('user', function ($q) use ($user) {
-                 $bIds = $user->getAccessibleBranchIds();
-                 $wIds = $user->getAccessibleWarehouseIds();
-                 $osIds = $user->getAccessibleOnlineShopIds();
-                 
-                 $q->where(function($sq) use ($bIds, $wIds, $osIds) {
-                     if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
-                     if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
-                     if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
-                 });
+                $bIds = $user->getAccessibleBranchIds();
+                $wIds = $user->getAccessibleWarehouseIds();
+                $osIds = $user->getAccessibleOnlineShopIds();
+
+                $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
+                    if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
+                    if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
+                    if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
+                });
             });
         }
 
@@ -1045,7 +1044,7 @@ class StockOutController extends Controller
             if ($user && !$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner'])) {
                 $currentMonth = (int) $logicalNow->format('m');
                 $currentYear = (int) $logicalNow->format('Y');
-                
+
                 $lastMonthTemp = $logicalNow->copy()->subMonth();
                 $lastMonth = (int) $lastMonthTemp->format('m');
                 $lastMonthYear = (int) $lastMonthTemp->format('Y');
@@ -1055,17 +1054,17 @@ class StockOutController extends Controller
                     $y = $currentYear;
                 } elseif ($y == $currentYear) {
                     if ($m < $lastMonth) {
-                         $m = $currentMonth;
+                        $m = $currentMonth;
                     }
                 }
             }
             $query->whereMonth('reporting_date', $m);
             $query->whereYear('reporting_date', $y);
         } elseif ($request->has('month') && !empty($request->month)) {
-             // Fallback if only month is provided
-             $m = (int) $request->month;
-             $y = (int) $logicalNow->format('Y');
-             $query->whereMonth('reporting_date', $m)->whereYear('reporting_date', $y);
+            // Fallback if only month is provided
+            $m = (int) $request->month;
+            $y = (int) $logicalNow->format('Y');
+            $query->whereMonth('reporting_date', $m)->whereYear('reporting_date', $y);
         }
 
         $history = $query->latest()->paginate(20);
@@ -1128,10 +1127,10 @@ class StockOutController extends Controller
             try {
                 $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
                 $html = $response->body();
-                
+
                 // Clean HTML
                 $html = str_replace('<head>', '<head><base href="https://cekresi.com/"><style>header,footer,nav,.navbar,.ad-section,.sidebar{display:none!important;}body{background:white!important;}</style>', $html);
-                
+
                 return response()->json(['tracking_html' => $html]);
             } catch (\Exception $e) {
                 return response()->json(['message' => 'Gagal melacak: ' . $e->getMessage()], 500);
@@ -1148,7 +1147,7 @@ class StockOutController extends Controller
 
             // 1. Search STOCK IN (Registration Events) — Use InventoryLog for accurate history
             // InventoryLog type=in records are permanent and never recreated, unlike ProductDetail
-            
+
             // First get the current ProductDetail for status/placement info
             $currentDetail = ProductDetail::withTrashed()
                 ->with(['product', 'distributor', 'user', 'stockOuts'])
@@ -1167,7 +1166,7 @@ class StockOutController extends Controller
                 ->where('description', 'not like', 'Pindah Cabang Masuk%')
                 ->where('description', 'not like', 'Transfer Masuk%')
                 ->orderBy('created_at');
-            
+
             $stockInLogs = $stockInLogQuery->get();
 
             // Do not deduplicate stock_in logs so the full history of when an item entered is visible.
@@ -1308,7 +1307,7 @@ class StockOutController extends Controller
                             ->where('user_id', $so->user_id)
                             ->whereBetween('created_at', [$fiveMinsBefore, $so->created_at->addMinute()])
                             ->get();
-                            
+
                         foreach ($masukOuts as $mo) {
                             $moProdIds = $mo->nonHpDetails->pluck('product_id')->toArray();
                             $moNhData = $mo->non_hp_items;
@@ -1318,7 +1317,7 @@ class StockOutController extends Controller
                                     $moProdIds[] = $nhp['product_id'];
                                 }
                             }
-                            
+
                             if (count(array_intersect($nonHpProductIds, $moProdIds)) > 0) {
                                 $additionalStockOuts->push($mo);
                             }
@@ -1326,7 +1325,7 @@ class StockOutController extends Controller
                     }
                 }
             }
-            
+
             $stockOuts = $stockOuts->merge($additionalStockOuts)->unique('id');
 
             foreach ($stockOuts as $out) {
@@ -1385,7 +1384,7 @@ class StockOutController extends Controller
                     $products = \App\Models\Product::with('brandRelation')->whereIn('id', $productIds)->get()->keyBy('id');
                     foreach ($nonHpItems as $nhp) {
                         $prod = $products->get($nhp['product_id']);
-                        
+
                         // Coba cari distributor name dari ID di JSON jika ada
                         $distName = null;
                         if (!empty($nhp['distributor_id'])) {
@@ -1464,7 +1463,7 @@ class StockOutController extends Controller
                     if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
                         $pName = "OUT: " . ($i->product?->name ?? 'Unknown HP');
                     }
-                    
+
                     $rawItems[] = [
                         'type' => 'hp',
                         'is_hp' => true,
@@ -1515,7 +1514,7 @@ class StockOutController extends Controller
                     $grouped = [];
                     $bundles = [];
                     $fallbackBundleName = $out->bundle_description ?: 'Paket Bundling';
-                    
+
                     // Historical component-aware matching logic
                     $bundleComponents = [];
                     if ($fallbackBundleName) {
@@ -1526,7 +1525,7 @@ class StockOutController extends Controller
                     foreach ($mergedItems as $item) {
                         $bundleTag = $item['notes'] ?? null;
                         $cleanName = $item['product_name'] ?? '';
-                        
+
                         $isPartOfBundle = false;
                         $groupKey = $bundleTag;
 
@@ -1589,7 +1588,7 @@ class StockOutController extends Controller
                 // Event 1: Skip barang_masuk if we already have a stock_in event from InventoryLog around the same time
                 if ($out->category === 'barang_masuk') {
                     $bmTs = $out->created_at->timestamp;
-                    $alreadyHasStockIn = collect($allEvents)->contains(function($evt) use ($bmTs) {
+                    $alreadyHasStockIn = collect($allEvents)->contains(function ($evt) use ($bmTs) {
                         return $evt['type'] === 'stock_in' && abs($evt['timestamp'] - $bmTs) <= 60;
                     });
                     if ($alreadyHasStockIn) {
@@ -1620,57 +1619,57 @@ class StockOutController extends Controller
                 }
 
                 $allEvents[] = [
-                        'type' => 'stock_out',
-                        'sub_type' => 'departure',
-                        'id' => $out->receipt_id,
-                        'category' => $out->category,
-                        'sub_category' => $out->sub_category,
-                        'ba_name' => $out->ba_name,
-                        'ba_phone' => $out->ba_phone,
-                        'ba_social_media' => $out->ba_social_media,
-                        'ba_notes' => $out->ba_notes,
-                        'event_name' => $out->event_name,
-                        'event_receiver' => $out->event_receiver,
-                        'event_phone' => $out->event_phone,
-                        'event_doc' => $out->event_doc,
-                        'giveaway_receiver' => $out->giveaway_receiver,
-                        'giveaway_phone' => $out->giveaway_phone,
-                        'giveaway_address' => $out->giveaway_address,
-                        'giveaway_notes' => $out->giveaway_notes,
-                        'person_in_charge' => $out->person_in_charge,
-                        'loss_chronology' => $out->loss_chronology,
-                        'items' => $mergedItems,
-                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
-                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
-                        'receiver_name' => $out->receiver_name,
-                        'customer_name' => $out->customer_name,
-                        'customer_wa' => $out->customer_wa,
-                        'notes' => $out->notes,
-                        'cancel_reason' => $out->cancel_reason,
-                        'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                        'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
-                        'created_at' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->toDateTimeString() : $out->created_at->toDateTimeString(),
-                        'timestamp' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->timestamp : $out->created_at->timestamp,
-                        
-                        // Extra properties for multiple proof images and receipt display
-                        'proof_images' => $proofImages,
-                        'proof_image' => $out->proof_image ? asset('storage/' . $out->proof_image) : ($exchangeInfo && $exchangeInfo->photo_unit ? asset('storage/' . $exchangeInfo->photo_unit) : null),
-                        'order_no' => $out->receipt_id,
-                        'branch' => $out->branch,
-                        'online_shop' => $out->onlineShop,
-                        'warehouse' => $out->warehouse,
-                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
-                        'original_price' => (float)$out->selling_price,
-                        'selling_price' => (float)$out->selling_price,
-                        'total_discount' => (float)$out->total_discount,
-                        'grand_total' => (float)($out->selling_price - $out->total_discount),
-                        'payment_method_name' => $out->paymentMethod?->name ?? '-',
-                        'split_payments_data' => $out->split_payments_data ?? [],
-                        'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                        'sales_account' => $out->sales_account,
-                        'raw_items' => $rawItems,
-                    ];
+                    'type' => 'stock_out',
+                    'sub_type' => 'departure',
+                    'id' => $out->receipt_id,
+                    'category' => $out->category,
+                    'sub_category' => $out->sub_category,
+                    'ba_name' => $out->ba_name,
+                    'ba_phone' => $out->ba_phone,
+                    'ba_social_media' => $out->ba_social_media,
+                    'ba_notes' => $out->ba_notes,
+                    'event_name' => $out->event_name,
+                    'event_receiver' => $out->event_receiver,
+                    'event_phone' => $out->event_phone,
+                    'event_doc' => $out->event_doc,
+                    'giveaway_receiver' => $out->giveaway_receiver,
+                    'giveaway_phone' => $out->giveaway_phone,
+                    'giveaway_address' => $out->giveaway_address,
+                    'giveaway_notes' => $out->giveaway_notes,
+                    'person_in_charge' => $out->person_in_charge,
+                    'loss_chronology' => $out->loss_chronology,
+                    'items' => $mergedItems,
+                    'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                    'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                    'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
+                    'receiver_name' => $out->receiver_name,
+                    'customer_name' => $out->customer_name,
+                    'customer_wa' => $out->customer_wa,
+                    'notes' => $out->notes,
+                    'cancel_reason' => $out->cancel_reason,
+                    'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                    'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
+                    'created_at' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->toDateTimeString() : $out->created_at->toDateTimeString(),
+                    'timestamp' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->timestamp : $out->created_at->timestamp,
+
+                    // Extra properties for multiple proof images and receipt display
+                    'proof_images' => $proofImages,
+                    'proof_image' => $out->proof_image ? asset('storage/' . $out->proof_image) : ($exchangeInfo && $exchangeInfo->photo_unit ? asset('storage/' . $exchangeInfo->photo_unit) : null),
+                    'order_no' => $out->receipt_id,
+                    'branch' => $out->branch,
+                    'online_shop' => $out->onlineShop,
+                    'warehouse' => $out->warehouse,
+                    'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
+                    'original_price' => (float)$out->selling_price,
+                    'selling_price' => (float)$out->selling_price,
+                    'total_discount' => (float)$out->total_discount,
+                    'grand_total' => (float)($out->selling_price - $out->total_discount),
+                    'payment_method_name' => $out->paymentMethod?->name ?? '-',
+                    'split_payments_data' => $out->split_payments_data ?? [],
+                    'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                    'sales_account' => $out->sales_account,
+                    'raw_items' => $rawItems,
+                ];
 
                 // Event 2: The ARRIVAL (if confirmed transfer)
                 if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
@@ -1809,7 +1808,7 @@ class StockOutController extends Controller
                             ->where('reference_id', (string)$item->id)
                             ->where(function ($q) use ($out) {
                                 $q->where('description', 'like', "Terima Balik Transfer (Resi: {$out->receipt_id})%")
-                                  ->orWhere('description', 'like', "Transfer Ditolak/Retur dari #{$out->receipt_id}%");
+                                    ->orWhere('description', 'like', "Transfer Ditolak/Retur dari #{$out->receipt_id}%");
                             })
                             ->first();
 
@@ -1871,7 +1870,6 @@ class StockOutController extends Controller
                 'count' => count($allEvents),
                 'data' => array_values($allEvents)
             ]);
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
         }
@@ -2003,7 +2001,7 @@ class StockOutController extends Controller
         // Filter by Source (Created by user in the same location)
         $query->where(function ($q) use ($user, $request) {
             $isUnrestricted = $user->hasRole(['super_admin', 'admin_produk', 'owner']);
-            
+
             $branchIds = $user->getAccessibleBranchIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -2057,7 +2055,7 @@ class StockOutController extends Controller
                 $q->orWhereIn('distributor_id', $distributorIds);
                 $hasFilter = true;
             }
-            
+
             if (!$hasFilter) {
                 $q->where('user_id', $user->id);
             }
@@ -2172,7 +2170,7 @@ class StockOutController extends Controller
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
                 $distributorIds = $user->getAccessibleDistributorIds();
-                
+
                 $hasFilter = false;
                 if (!empty($branchIds)) {
                     $q->orWhereIn('branch_id', $branchIds);
@@ -2190,7 +2188,7 @@ class StockOutController extends Controller
                     $q->orWhereIn('distributor_id', $distributorIds);
                     $hasFilter = true;
                 }
-                
+
                 if (!$hasFilter) {
                     $q->where('user_id', $user->id);
                 }
@@ -2324,21 +2322,21 @@ class StockOutController extends Controller
                         'description' => "Pindah Cabang Masuk (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
                         'reference_id' => (string)$item->id,
                     ]);
-                    
+
                     Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 } else {
                     // Rejected: Set to 'returning' (not active stock yet)
                     $sender = $stockOut->user;
                     $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id ?? $sender->distributor_id;
                     $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : ($sender->online_shop_id ? 'online_shop' : 'distributor'));
-                    
+
                     $item->update([
                         'status' => 'returning',
                         'placement_type' => $senderType,
                         'placement_id' => $senderLocationId,
                         'user_id' => $sender->id
                     ]);
-                    
+
                     Log::info("DEBUG: HP #{$item->id} marked as returning in Resi {$stockOut->receipt_id}");
                 }
             }
@@ -2375,7 +2373,7 @@ class StockOutController extends Controller
                                     'selling_price' => $record->selling_price
                                 ]
                             );
-                            
+
                             // Always ensure selling_price is updated to the transferred price if it was 0 or newly created
                             if ($inventory->selling_price <= 0 && $record->selling_price > 0) {
                                 $inventory->selling_price = $record->selling_price;
@@ -2398,7 +2396,7 @@ class StockOutController extends Controller
                         $rejectedQty = $record->quantity - $acceptedQty;
                         if ($rejectedQty > 0) {
                             $record->update(['returned_quantity' => $rejectedQty]);
-                            
+
                             $sender = $stockOut->user;
                             $senderUserId = $sender->id;
                             $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id;
@@ -2442,7 +2440,7 @@ class StockOutController extends Controller
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }
-    
+
     // Update Expedition Info for a Transfer
     public function updateExpedition(Request $request, $id)
     {
@@ -2454,7 +2452,7 @@ class StockOutController extends Controller
 
         try {
             $stockOut = StockOut::findOrFail($id);
-            
+
             // Only allow updates for transfers (pindah_cabang)
             if ($stockOut->category !== 'pindah_cabang') {
                 return response()->json(['message' => 'Hanya transfer antar cabang yang dapat ditambahkan ekspedisi.'], 422);
@@ -2486,18 +2484,19 @@ class StockOutController extends Controller
         $originalCourier = $request->courier;
         $courier = strtolower($request->courier);
         $awb = $request->awb;
-        
+
         // --- 1. GET PROVIDER KEYS ---
         $binderKeys = env('BINDERBYTE_API_KEY');
         $biteshipKey = env('BITESHIP_API_KEY');
-        
+
         // Manual Fallback for Cached Environment
         if (!$binderKeys) {
             try {
                 $envContent = file_get_contents(base_path('.env'));
                 if (preg_match('/BINDERBYTE_API_KEY=(.*)/', $envContent, $matches)) $binderKeys = trim($matches[1], "\"' \n\r\t");
                 if (preg_match('/BITESHIP_API_KEY=(.*)/', $envContent, $matches)) $biteshipKey = trim($matches[1], "\"' \n\r\t");
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
         }
 
         // --- 1. TRY BINDERBYTE FIRST (PRIMARY - COST FREE) ---
@@ -2505,32 +2504,43 @@ class StockOutController extends Controller
         if ($binderKeys) {
             $courierMap = [
                 'jne' => 'jne',
-                'pos indonesia' => 'pos', 'pos' => 'pos',
-                'j&t' => 'jnt', 'jnt' => 'jnt',
-                'j&t cargo' => 'jnt_cargo', 'jnt cargo' => 'jnt_cargo',
+                'pos indonesia' => 'pos',
+                'pos' => 'pos',
+                'j&t' => 'jnt',
+                'jnt' => 'jnt',
+                'j&t cargo' => 'jnt_cargo',
+                'jnt cargo' => 'jnt_cargo',
                 'sicepat' => 'sicepat',
                 'tiki' => 'tiki',
                 'anteraja' => 'anteraja',
                 'wahana' => 'wahana',
-                'ninja' => 'ninja', 'ninja xpress' => 'ninja',
-                'lion' => 'lion', 'lion parcel' => 'lion',
-                'shopee' => 'spx', 'shopee express' => 'spx', 'spx' => 'spx',
-                'id express' => 'ide', 'ide' => 'ide',
-                'indah' => 'indah_cargo', 'indah cargo' => 'indah_cargo',
+                'ninja' => 'ninja',
+                'ninja xpress' => 'ninja',
+                'lion' => 'lion',
+                'lion parcel' => 'lion',
+                'shopee' => 'spx',
+                'shopee express' => 'spx',
+                'spx' => 'spx',
+                'id express' => 'ide',
+                'ide' => 'ide',
+                'indah' => 'indah_cargo',
+                'indah cargo' => 'indah_cargo',
                 'sap' => 'sap'
             ];
             $courierSlug = $courierMap[trim(strtolower($courier))] ?? $courier;
-            
+
             // Combine ENV keys and the new key provided
             $keys = array_unique(array_filter(explode(',', $binderKeys . ',f8000a7fa7be89bb3796d9a753d248c2d1c0ac04ac994b7cb860b31240a730d1')));
-            
+
             foreach ($keys as $key) {
                 $key = trim($key);
                 if (empty($key)) continue;
 
                 try {
                     $response = \Illuminate\Support\Facades\Http::timeout(15)->get("https://api.binderbyte.com/v1/track", [
-                        'api_key' => $key, 'courier' => $courierSlug, 'awb' => $awb
+                        'api_key' => $key,
+                        'courier' => $courierSlug,
+                        'awb' => $awb
                     ]);
 
                     $data = $response->json();
@@ -2549,10 +2559,24 @@ class StockOutController extends Controller
         if ($biteshipKey) {
             try {
                 $biteshipMap = [
-                    'jne' => 'jne', 'j&t' => 'jnt', 'jnt' => 'jnt', 'sicepat' => 'sicepat', 'tiki' => 'tiki',
-                    'anteraja' => 'anteraja', 'wahana' => 'wahana', 'ninja' => 'ninja', 'shopee' => 'shopee',
-                    'shopee express' => 'shopee', 'spx' => 'shopee', 'lion' => 'lion', 'id express' => 'ide',
-                    'pos' => 'pos', 'pos indonesia' => 'pos', 'pcp' => 'pcp', 'jet' => 'jet', 'sap' => 'sap'
+                    'jne' => 'jne',
+                    'j&t' => 'jnt',
+                    'jnt' => 'jnt',
+                    'sicepat' => 'sicepat',
+                    'tiki' => 'tiki',
+                    'anteraja' => 'anteraja',
+                    'wahana' => 'wahana',
+                    'ninja' => 'ninja',
+                    'shopee' => 'shopee',
+                    'shopee express' => 'shopee',
+                    'spx' => 'shopee',
+                    'lion' => 'lion',
+                    'id express' => 'ide',
+                    'pos' => 'pos',
+                    'pos indonesia' => 'pos',
+                    'pcp' => 'pcp',
+                    'jet' => 'jet',
+                    'sap' => 'sap'
                 ];
                 $bsSlug = $biteshipMap[trim(strtolower($courier))] ?? $courier;
 
@@ -2574,10 +2598,10 @@ class StockOutController extends Controller
                         'returned' => 'Dikembalikan',
                     ];
 
-                    $history = array_map(function($h) use ($statusIndo) {
+                    $history = array_map(function ($h) use ($statusIndo) {
                         $hTime = $h['updated_at'] ?? $h['time'] ?? date('Y-m-d H:i:s');
                         $statusRaw = strtolower($h['status'] ?? '');
-                        
+
                         $note = $h['note'] ?? 'Status Update';
                         // Terjemahkan note umum ke Indonesia agar UI tetap premium
                         $replacements = [
@@ -2617,7 +2641,8 @@ class StockOutController extends Controller
                         ]
                     ]);
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+            }
         }
 
         return response()->json([
@@ -2646,9 +2671,9 @@ class StockOutController extends Controller
                 $sub->whereHas('items', function ($q) {
                     $q->whereIn('stock_out_items.status', ['rejected', 'returned']);
                 })
-                ->orWhereHas('nonHpItems', function ($q) {
-                    $q->where('received_quantity', '<', \Illuminate\Support\Facades\DB::raw('quantity'));
-                });
+                    ->orWhereHas('nonHpItems', function ($q) {
+                        $q->where('received_quantity', '<', \Illuminate\Support\Facades\DB::raw('quantity'));
+                    });
             });
         } else {
             $query->whereIn('status', ['received', 'rejected']);
@@ -2846,7 +2871,7 @@ class StockOutController extends Controller
             $user = $stockOut->user; // Source user/location record
 
             // --- A. Handle HP Items (ProductDetail) ---
-            
+
             // 1. Restore OUTGOING Items or Remove INCOMING Items attached to StockOut
             foreach ($stockOut->items as $item) {
                 if ($stockOut->category === 'angkat_barang') {
@@ -2876,13 +2901,23 @@ class StockOutController extends Controller
 
             $outgoingIds = array_unique(array_filter($outgoingIds));
 
-            $incomingHPQuery = \App\Models\ProductDetail::where(function($q) use ($receiptId) {
+            $incomingHPQuery = \App\Models\ProductDetail::where(function ($q) use ($receiptId) {
                 $q->where('notes', 'like', "%Masuk dari %: $receiptId%")
-                  ->orWhereHas('unitExchange', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
-                  ->orWhereHas('tukarTambah', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
-                  ->orWhereHas('downgrade', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
-                  ->orWhereHas('tradeIn', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); })
-                  ->orWhereHas('refund', function($sq) use ($receiptId) { $sq->where('receipt_id', $receiptId); });
+                    ->orWhereHas('unitExchange', function ($sq) use ($receiptId) {
+                        $sq->where('receipt_id', $receiptId);
+                    })
+                    ->orWhereHas('tukarTambah', function ($sq) use ($receiptId) {
+                        $sq->where('receipt_id', $receiptId);
+                    })
+                    ->orWhereHas('downgrade', function ($sq) use ($receiptId) {
+                        $sq->where('receipt_id', $receiptId);
+                    })
+                    ->orWhereHas('tradeIn', function ($sq) use ($receiptId) {
+                        $sq->where('receipt_id', $receiptId);
+                    })
+                    ->orWhereHas('refund', function ($sq) use ($receiptId) {
+                        $sq->where('receipt_id', $receiptId);
+                    });
             });
 
             if (!empty($outgoingIds)) {
@@ -2950,12 +2985,12 @@ class StockOutController extends Controller
                 }
 
                 $inventory = $invQuery->first();
-                
+
                 if ($inventory) {
                     if ($stockOut->category === 'angkat_barang' || $stockOut->category === 'refund') {
                         // We received this, now we remove it
                         $inventory->decrement('quantity', $detail->quantity);
-                        
+
                         // Log the removal
                         $logLabel = $stockOut->category === 'refund' ? 'Refund' : 'Angkat Barang';
                         InventoryLog::create([
@@ -2973,7 +3008,7 @@ class StockOutController extends Controller
                     } else {
                         // Normal sale, restore stock
                         $inventory->increment('quantity', $detail->quantity);
-                        
+
                         InventoryLog::create([
                             'product_id' => $detail->product_id,
                             'type' => 'in',
@@ -3004,7 +3039,6 @@ class StockOutController extends Controller
                 'message' => 'Penjualan berhasil dibatalkan dan stok dikembalikan.',
                 'data' => $stockOut
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => $e->getMessage()], 422);
@@ -3026,11 +3060,11 @@ class StockOutController extends Controller
     {
         $resi = $request->resi;
         if (!$resi) return response()->json(['exists' => false]);
-        
+
         $exists = StockOut::where('shopee_tracking_no', $resi)
             ->whereNull('deleted_at')
             ->exists();
-            
+
         return response()->json(['exists' => $exists]);
     }
 
@@ -3045,7 +3079,7 @@ class StockOutController extends Controller
         try {
             // Using Http with timeout and no follow redirects to avoid loops
             $response = \Illuminate\Support\Facades\Http::timeout(10)->get("https://cekresi.com/?noresi=" . $noResi);
-            
+
             if (!$response->successful()) {
                 return response('Gagal mengambil data dari CekResi', 502);
             }
@@ -3054,14 +3088,14 @@ class StockOutController extends Controller
 
             // Force BASE HREF for all relative assets
             $html = str_replace('<head>', '<head><base href="https://cekresi.com/">', $html);
-            
+
             // Inject CSS to clean up the UI
             $cleanCss = '<style>
                 header, footer, nav, .navbar, .ad-section, .sidebar, .breadcrumb, .footer-section { display: none !important; }
                 body { padding: 0 !important; margin: 0 !important; background: transparent !important; }
                 .container { width: 100% !important; max-width: 100% !important; padding: 10px !important; }
             </style>';
-            
+
             $html = str_replace('</head>', $cleanCss . '</head>', $html);
 
             return response($html)->header('Content-Type', 'text/html');
@@ -3070,4 +3104,3 @@ class StockOutController extends Controller
         }
     }
 }
-

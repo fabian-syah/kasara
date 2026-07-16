@@ -1023,12 +1023,9 @@ const summaryStats = computed(() => {
             const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
 
             // Segregation rules satisfying user's distinct accounting logic for TT vs DG
-            if (cat === 'tukar_tambah') {
-                tradeOutgoingTotal += outVal; // Only TT Out counts towards Omset
+            if (cat === 'tukar_tambah' || cat === 'downgrade') {
+                tradeOutgoingTotal += outVal; 
                 tradeIncomingTotal += inVal;
-            } else if (cat === 'downgrade') {
-                // Downgrade Out is excluded from Omset as requested by user
-                tradeIncomingTotal += Math.max(0, inVal - outVal);
             }
         }
 

@@ -153,9 +153,11 @@ $code = <<<'PHP'
                 $statsByLocation[$locKey]['refund_amt'] += abs($sellingPrice);
             } elseif ($isDowngrade) {
                 $dg = $downgrades->get($tx->receipt_id);
+                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
+                $txOmset = max(0, abs($dgOutgoing));
                 $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->outgoing_price - $d->incoming_cost_price) : -abs($sellingPrice);
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
-                $statsByLocation[$locKey]['downgrade_amt'] += abs($sellingPrice);
+                $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;
             } elseif ($isTukarUnit) {
                 $statsByLocation[$locKey]['tukar_unit_qty'] += 1;
                 $statsByLocation[$locKey]['tukar_unit_amt'] += abs($sellingPrice);

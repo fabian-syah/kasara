@@ -659,10 +659,10 @@ class AuditController extends Controller
                         } elseif ($saleType === 'downgrade') {
                             $outDg = floatval($tx->dg_outgoing_price ?? 0);
                             $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
-                            $dgDiff = $outDg - $inDg;
-                            if ($dgDiff != 0) {
-                                $ownerGroups[$ownerId]['grand_total'] -= $dgDiff;
-                                $ownerGroups[$ownerId]['total_activity_rp'] += $dgDiff;
+                            if ($outDg > 0 || $inDg > 0) {
+                                $ownerGroups[$ownerId]['total_omset'] += $outDg;
+                                $ownerGroups[$ownerId]['grand_total'] += ($outDg - $inDg);
+                                $ownerGroups[$ownerId]['total_activity_rp'] += ($outDg - $inDg);
                             } else {
                                 $ownerGroups[$ownerId]['grand_total'] -= $price;
                                 $ownerGroups[$ownerId]['total_activity_rp'] += $price;
@@ -877,9 +877,10 @@ class AuditController extends Controller
                         } elseif ($saleType === 'downgrade') {
                             $outDg = floatval($tx->dg_outgoing_price ?? 0);
                             $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
-                            $dgDiff = $outDg - $inDg;
-                            if ($dgDiff != 0) {
-                                $dailyStats[$date]['omset_bersih'] -= $dgDiff;
+                            
+                            if ($outDg > 0 || $inDg > 0) {
+                                $dailyStats[$date]['total_omset'] += $outDg;
+                                $dailyStats[$date]['omset_bersih'] += ($outDg - $inDg);
                             } else {
                                 $dailyStats[$date]['omset_bersih'] -= $price;
                             }
@@ -1389,6 +1390,8 @@ class AuditController extends Controller
                         $deductions = 0;
                         $totalTradeOutgoing = 0;
                         $totalTradeIncoming = 0;
+                        $totalDowngradeOutgoing = 0;
+                        $totalDowngradeIncoming = 0;
                         $totalSudahDiaudit = 0;
                         $totalBelumDiaudit = 0;
                         $totalCancelGlobal = 0;
@@ -1458,9 +1461,9 @@ class AuditController extends Controller
                             } elseif ($saleType === 'downgrade') {
                                 $outDg = floatval($ps->dg_outgoing_price ?? 0);
                                 $inDg = floatval($ps->dg_incoming_cost_price ?? 0);
-                                $dgDiff = $outDg - $inDg;
-                                if ($dgDiff != 0) {
-                                    $deductions += $dgDiff;
+                                if ($outDg > 0 || $inDg > 0) {
+                                    $totalDowngradeOutgoing += $outDg;
+                                    $totalDowngradeIncoming += $inDg;
                                 } else {
                                     $deductions += $effectivePrice;
                                 }
@@ -1469,10 +1472,10 @@ class AuditController extends Controller
                             }
                         }
 
-                        $paymentTotal = $baseSalesOnly + $totalTradeOutgoing;
+                        $paymentTotal = $baseSalesOnly + $totalTradeOutgoing + $totalDowngradeOutgoing;
                         // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
-                        // This is equivalent to: Base Sales + TT Out - Deductions - TT In.
-                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
+                        // This is equivalent to: Base Sales + TT Out + Downgrade Out - Deductions - TT In - Downgrade In.
+                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming - $totalDowngradeIncoming;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
@@ -1832,10 +1835,10 @@ class AuditController extends Controller
                         $selisihTT = $tradeSelisih > 0 ? $tradeSelisih : $productTradeSelisih;
 
                         $tradeOutVal = isset($totalTradeOutgoing) && $totalTradeOutgoing > 0 ? $totalTradeOutgoing : $selisihTT;
-                        $paymentTotal = $baseSalesOnly + $tradeOutVal;
+                        $paymentTotal = $baseSalesOnly + $tradeOutVal + (isset($totalDowngradeOutgoing) ? $totalDowngradeOutgoing : 0);
 
-                        // Sync with Dashboard: Omset Bersih = Total Omset (Base Sales + TT Out) - All Deductions
-                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming;
+                        // Sync with Dashboard: Omset Bersih = Total Omset - All Deductions
+                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming - (isset($totalDowngradeIncoming) ? $totalDowngradeIncoming : 0);
 
                         return [
                             'audit_stats' => [

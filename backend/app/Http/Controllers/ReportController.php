@@ -390,6 +390,7 @@ class ReportController extends Controller
                 'users.name',
                 DB::raw("SUM(CASE 
                     WHEN stock_outs.category = 'tukar_tambah' THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
+                    WHEN stock_outs.category = 'downgrade' THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                     WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN ABS(COALESCE(stock_outs.selling_price, 0)) 
                     ELSE 0 
                 END) as omset")
@@ -746,6 +747,14 @@ class ReportController extends Controller
                 $txProfit = max(0, abs($ttOutgoing)) - $txModal;
                 $statsByLocation[$locKey]['tukar_tambah_qty'] += 1;
                 $statsByLocation[$locKey]['tukar_tambah_amt'] += $txOmset;
+            } elseif ($isDowngrade) {
+                $dg = $downgrades->get($tx->receipt_id);
+                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
+                $txOmset = max(0, abs($dgOutgoing));
+                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->outgoing_price - $d->incoming_cost_price) : -abs($sellingPrice);
+                $txProfit = $dgOutgoing - $txModal;
+                $statsByLocation[$locKey]['downgrade_qty'] += 1;
+                $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;
             } elseif ($isNormalSales) {
                 $txOmset = max(0, abs($sellingPrice));
                 $txOmsetBersih = $txOmset;
@@ -760,13 +769,6 @@ class ReportController extends Controller
                 $txProfit = $txModal - abs($sellingPrice);
                 $statsByLocation[$locKey]['refund_qty'] += 1;
                 $statsByLocation[$locKey]['refund_amt'] += abs($sellingPrice);
-            } elseif ($isDowngrade) {
-                $dg = $downgrades->get($tx->receipt_id);
-                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
-                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->outgoing_price - $d->incoming_cost_price) : -abs($sellingPrice);
-                $txProfit = $dgOutgoing - $txModal;
-                $statsByLocation[$locKey]['downgrade_qty'] += 1;
-                $statsByLocation[$locKey]['downgrade_amt'] += abs($sellingPrice);
             } elseif ($isTukarUnit) {
                 $txProfit = abs($sellingPrice) - $txModal;
                 $statsByLocation[$locKey]['tukar_unit_qty'] += 1;
@@ -1013,6 +1015,8 @@ class ReportController extends Controller
             DB::raw("SUM(CASE 
                 WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                 THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
+                WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
+                THEN GREATEST(0, COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                 WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                 THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
                 ELSE 0

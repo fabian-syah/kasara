@@ -201,8 +201,8 @@ class SalesExport
                     $finalTotalPenjualan = $outVal;
                     $finalTotalPengeluaran = $inVal;
                 } elseif ($cat === 'downgrade') {
-                    $finalTotalPenjualan = 0; // Downgrade outgoing is excluded from Total Omset as requested
-                    $finalTotalPengeluaran = max(0, $inVal - $outVal); // Formula confirmed by calculator
+                    $finalTotalPenjualan = $outVal; // Downgrade outgoing is INCLUDED in Total Omset as requested
+                    $finalTotalPengeluaran = $inVal;
                 }
             }
 
