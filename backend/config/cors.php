@@ -22,6 +22,8 @@ return [
         'https://stokps.com',
         'https://www.stokps.com',
         'http://stokps.com',
+        'https://dev.stokps.com',
+        'http://dev.stokps.com',
         env('APP_URL', 'https://api.stokps.com'),
         'http://localhost:5173',
     ],

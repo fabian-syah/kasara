@@ -1,0 +1,63 @@
+services:
+  apex-db-dev:
+    image: postgres:16-alpine
+    container_name: apex-db-dev
+    restart: always
+    environment:
+      POSTGRES_DB: apex_pos_dev
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5433:5432"
+    volumes:
+      - apex_pgdata_dev:/var/lib/postgresql/data
+    networks:
+      - apex-network
+
+  apex-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: apex-api-dev
+    restart: always
+    working_dir: /app
+    ports:
+      - "8081:8000"
+    volumes:
+      - .:/app
+      - backend_storage_dev:/app/storage
+    env_file:
+      - .env
+    environment:
+      - OCTANE_SERVER=frankenphp
+      - FRANKENPHP_CONFIG="worker_count=4"
+    entrypoint: >
+      sh -c "php artisan config:cache && 
+             php artisan route:cache &&
+             php artisan reverb:start --host=0.0.0.0 --port=8080 --no-interaction & 
+             php artisan queue:work --sleep=3 --tries=3 --max-time=3600 &
+             php artisan serve --host=0.0.0.0 --port=8000"
+    depends_on:
+      apex-db-dev:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/up"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    networks:
+      - apex-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  apex_pgdata_dev:
+  backend_storage_dev:
+
+networks:
+  apex-network:
+    external: true
