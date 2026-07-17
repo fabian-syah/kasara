@@ -1417,6 +1417,7 @@ class AuditController extends Controller
 
                             if ($cat === 'cancel_penjualan') {
                                 $totalCancelGlobal++;
+                                continue;
                             } elseif (($ps->audit_answered ?? 0) > 0) {
                                 $totalSudahDiaudit++;
                             } else {
