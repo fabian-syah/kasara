@@ -109,7 +109,7 @@
                     </p>
                     <p class="text-2xl font-black text-text-primary mt-2">{{ formatCurrency(summaryStats.totalOmset) }}
                     </p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + TT Out</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan + TT Out + Out DG</p>
                 </div>
             </div>
 
@@ -130,7 +130,7 @@
                         {{ formatCurrency(summaryStats.omsetBersih) }}
                     </p>
                     <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat +
-                        Refund + In TT + Selisih DG)</p>
+                        Refund + In TT + In DG)</p>
                 </div>
             </div>
 

@@ -124,7 +124,7 @@ const menuItems = [
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
-            { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Input & Transfer Audit" },
+            { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Kirim Cabang" },
             { id: "retur_items", path: "/retur-items", label: "Retur Masuk (Gudang)" },
         ]
     },
@@ -417,8 +417,8 @@ watch(() => route.path, () => {
                     <p v-if="authStore.user?.branch?.name" class="text-[10px] text-text-secondary truncate mt-0.5">
                         {{ authStore.user.branch.name }}
                     </p>
-                    <div v-if="authStore.user?.league" class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold"
-                        :class="{
+                    <div v-if="authStore.user?.league"
+                        class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold" :class="{
                             'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400': authStore.user.league.key === 'liga_1',
                             'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400': authStore.user.league.key === 'liga_2',
                             'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400': authStore.user.league.key === 'zona_merah',

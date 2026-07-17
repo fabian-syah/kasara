@@ -415,7 +415,7 @@ const routes = [
                 path: 'audit/input-transfer',
                 name: 'AuditInputTransfer',
                 component: () => import('../views/audit/AuditInputTransfer.vue'),
-                meta: { title: 'Input & Transfer Audit', menu: 'audit_input_transfer', permissions: ['audit.view'] }
+                meta: { title: 'Kirim Cabang', menu: 'audit_input_transfer', permissions: ['audit.view'] }
             },
             {
                 path: 'audit/sales',
