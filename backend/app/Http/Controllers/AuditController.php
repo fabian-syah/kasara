@@ -1641,6 +1641,12 @@ class AuditController extends Controller
                                 // Use absolute net difference for Downgrade deduction to keep omset_bersih synced
                                 'price' => abs((float) $idg->selling_price)
                             ];
+                            $activityDetails['in_dg'][] = [
+                                'name' => 'IN: ' . ($idg->incoming_name ?? 'Unit Downgrade'),
+                                'imei' => $idg->incoming_imei ?? '-',
+                                'storage' => $idg->incoming_storage ?? '-',
+                                'price' => (float) $idg->incoming_cost_price
+                            ];
                         }
 
                         // 2. Non-IMEI transactions
@@ -1864,6 +1870,7 @@ class AuditController extends Controller
                                 'retur' => count($activityDetails['retur'] ?? []),
                                 'angkat_barang' => count($activityDetails['angkat_barang'] ?? []),
                                 'in_tt' => count($activityDetails['in_tt'] ?? []),
+                                'in_dg' => count($activityDetails['in_dg'] ?? []),
                                 'details' => $activityDetails
                             ],
                             'debug' => [
