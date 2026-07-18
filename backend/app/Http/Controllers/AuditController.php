@@ -1521,7 +1521,7 @@ class AuditController extends Controller
                             $trxCategory = strtolower($trxCategory ?? '');
 
                             // Only count towards HP totals if it's a standard sale, not a return/retrieval or special activity
-                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
+                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan']);
 
                             if ($isStandardSale) {
                                 if ($itemCategory === 'apple_lux') {
@@ -1568,17 +1568,15 @@ class AuditController extends Controller
                                 ];
                             }
 
-                            // Standard sales criteria: Exclude refunds, and downgrades from standard unit/revenue maps
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
+                            // Standard sales criteria: Exclude refunds from standard unit/revenue maps
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
 
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
                             $addUnitToMap($map, $hp->brand, $itemCat, $catLower);
 
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
-                                // For Tukar Tambah, use absolute price difference from the record itself, not the item price
-                                $price = ($catLower === 'tukar_tambah')
-                                    ? abs((float) $hp->total_diff)
-                                    : (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
+                                // Omset is based on the outgoing item price for ALL sales (Base, TT Out, Downgrade Out)
+                                $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
 
                                 if ($catLower === 'tukar_tambah') {
                                     $productTradeSelisih += abs((float) $hp->total_diff);
