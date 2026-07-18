@@ -209,9 +209,7 @@ class DashboardController extends Controller
                     $outVal = $price;
                 }
                 $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
-                if ($inVal <= 0) {
-                    $inVal = max(0, $outVal - $price);
-                }
+                
                 $omsetContribution = $outVal;
                 $netContribution = $outVal - $inVal;
             } elseif ($saleType === 'base_sale') {
@@ -325,7 +323,19 @@ class DashboardController extends Controller
         // Count units based on user_id (who made the sale) as well for sales leaderboard
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
 
-        $rankReceiptIds = DB::table('stock_outs')->where('reporting_date', $currentReportingDate)->whereNull('deleted_at')->pluck('receipt_id')->filter()->toArray();
+        $now = Carbon::now();
+        $isBeforeCutoff = $now->format('H:i') < '05:00';
+        $startTS = ($isBeforeCutoff ? Carbon::yesterday() : Carbon::today())->format('Y-m-d') . ' 05:00:00';
+        $endTS = ($isBeforeCutoff ? Carbon::today() : Carbon::tomorrow())->format('Y-m-d') . ' 04:59:59';
+
+        $rankReceiptIds = DB::table('stock_outs')
+            ->whereNull('deleted_at')
+            ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
+                $q->where('reporting_date', $currentReportingDate)
+                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+            })
+            ->pluck('receipt_id')->filter()->toArray();
+            
         $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
             ->groupBy('receipt_id')
@@ -333,8 +343,11 @@ class DashboardController extends Controller
             ->keyBy('receipt_id');
 
         $todayRankingQuery = DB::table('stock_outs')
-            ->where('reporting_date', $currentReportingDate)
             ->whereNull('deleted_at')
+            ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
+                $q->where('reporting_date', $currentReportingDate)
+                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+            })
             ->select('user_id', DB::raw("SUM(
                 CASE 
                     WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
@@ -396,12 +409,14 @@ class DashboardController extends Controller
             }
         }
 
-        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap) {
+        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap, $currentReportingDate, $startTS, $endTS) {
             // Count units sold by this user
-            $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
             $units = StockOut::where('user_id', $u->id)
-                ->where('reporting_date', $currentReportingDate)
                 ->whereNull('deleted_at')
+                ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
+                    $q->where('reporting_date', $currentReportingDate)
+                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                })
                  ->select(DB::raw("SUM(
                     CASE 
                         WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship')
@@ -421,8 +436,11 @@ class DashboardController extends Controller
                 ->first()->net_units ?? 0;
             // Calculate omset and omset_bersih for each user
             $sales = StockOut::where('user_id', $u->id)
-                ->where('reporting_date', $currentReportingDate)
                 ->whereNull('deleted_at')
+                ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
+                    $q->where('reporting_date', $currentReportingDate)
+                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                })
                 ->get();
 
             $omset = 0;
@@ -466,9 +484,7 @@ class DashboardController extends Controller
                         $outVal = $price;
                     }
                     $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : 0;
-                    if ($inVal <= 0) {
-                        $inVal = max(0, $outVal - $price);
-                    }
+                    
                     $omset += $outVal;
                     $omsetBersih += ($outVal - $inVal);
                 } elseif ($isDeduction) {
@@ -584,7 +600,7 @@ class DashboardController extends Controller
                         CASE 
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE(
-                                (SELECT SUM(tt.outgoing_price - CASE WHEN tt.incoming_cost_price <= 0 THEN GREATEST(0, tt.outgoing_price - ABS(COALESCE(stock_outs.selling_price, 0))) ELSE tt.incoming_cost_price END) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), 
+                                (SELECT SUM(tt.outgoing_price - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), 
                                 GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
                             )
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
@@ -594,7 +610,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price - dg.incoming_cost_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             ELSE 0
                         END
                     ) as omset_bersih")
@@ -676,7 +692,7 @@ class DashboardController extends Controller
                     DB::raw("SUM(
                         CASE 
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN COALESCE((SELECT SUM(tt.outgoing_price - tt.incoming_cost_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0))))
+                            THEN COALESCE((SELECT SUM(tt.outgoing_price - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
                             THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
@@ -684,7 +700,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price - dg.incoming_cost_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             ELSE 0
                         END
                     ) as omset_bersih")
