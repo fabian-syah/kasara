@@ -1539,7 +1539,63 @@ class StockInController extends Controller
 
         $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner', 'analist'];
         if (!$user->hasRole($unrestrictedRoles)) {
-            // Add access scoping if needed
+            $isInventoryLog = $query->getModel() instanceof InventoryLog;
+            
+            if ($isInventoryLog) {
+                $query->where(function ($q) use ($user) {
+                    $branchIds = $user->getAccessibleBranchIds();
+                    $warehouseIds = $user->getAccessibleWarehouseIds();
+                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                    $distributorIds = $user->getAccessibleDistributorIds();
+
+                    $hasConstraint = false;
+                    if (!empty($branchIds)) {
+                        $q->orWhereIn('branch_id', $branchIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($warehouseIds)) {
+                        $q->orWhereIn('warehouse_id', $warehouseIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($onlineShopIds)) {
+                        $q->orWhereIn('online_shop_id', $onlineShopIds);
+                        $hasConstraint = true;
+                    }
+                    if (!empty($distributorIds)) {
+                        $q->orWhereIn('distributor_id', $distributorIds);
+                        $hasConstraint = true;
+                    }
+                    if ($user->distributor_id) {
+                        $q->orWhere('user_id', $user->id);
+                        $hasConstraint = true;
+                    }
+                    if (!$hasConstraint) {
+                        $q->whereRaw('0 = 1');
+                    }
+                });
+            } else {
+                // ProductDetail model
+                $placements = $user->placements ?? collect();
+                $query->where(function ($q) use ($user, $placements) {
+                    $hasConstraint = false;
+                    foreach ($placements as $p) {
+                        $q->orWhere(function ($sq) use ($p) {
+                            $sq->where('placement_type', $p->model_type)
+                               ->where('placement_id', $p->model_id);
+                        });
+                        $hasConstraint = true;
+                    }
+                    if ($user->branch_id) {
+                        $q->orWhere(function ($sq) use ($user) {
+                            $sq->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
+                        });
+                        $hasConstraint = true;
+                    }
+                    if (!$hasConstraint) {
+                        $q->whereRaw('0 = 1');
+                    }
+                });
+            }
         }
     }
 }
