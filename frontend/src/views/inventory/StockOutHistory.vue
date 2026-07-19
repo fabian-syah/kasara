@@ -53,7 +53,7 @@ const distributors = ref([]);
 const filteredBranches = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = branches.value || [];
-    if (!['super_admin', 'analist', 'admin_produk', 'owner', 'audit', 'leader'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(b => allowed.includes(Number(b.id)));
     }
@@ -63,7 +63,7 @@ const filteredBranches = computed(() => {
 const filteredOnlineShops = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = onlineShops.value || [];
-    if (!['super_admin', 'analist', 'admin_produk', 'owner', 'audit', 'leader'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(s => allowed.includes(Number(s.id)));
     }
@@ -73,7 +73,7 @@ const filteredOnlineShops = computed(() => {
 const filteredWarehouses = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = warehouses.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.warehouse_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'warehouse').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(w => allowed.includes(Number(w.id)));
     }
@@ -83,7 +83,7 @@ const filteredWarehouses = computed(() => {
 const filteredDistributors = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = distributors.value || [];
-    if (!['super_admin', 'analist', 'owner', 'admin_produk', 'audit', 'leader'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.distributor_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'distributor').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(d => allowed.includes(Number(d.id)));
     }
