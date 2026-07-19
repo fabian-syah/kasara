@@ -213,7 +213,33 @@ const exportExcel = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        let filename = `stok-masuk-${activeTab.value}`;
+        
+        let locationName = 'Semua-Lokasi';
+        if (props.isEmbedded) {
+            if (props.branchId) {
+                const b = branches.value.find(x => Number(x.id) === Number(props.branchId));
+                if (b) locationName = b.name.replace(/\s+/g, '-');
+            } else if (props.onlineShopId) {
+                const s = onlineShops.value.find(x => Number(x.id) === Number(props.onlineShopId));
+                if (s) locationName = s.name.replace(/\s+/g, '-');
+            }
+        } else {
+            if (locationType.value === 'branch' && filters.value.branch_id) {
+                const b = branches.value.find(x => Number(x.id) === Number(filters.value.branch_id));
+                if (b) locationName = b.name.replace(/\s+/g, '-');
+            } else if (locationType.value === 'online_shop' && filters.value.online_shop_id) {
+                const s = onlineShops.value.find(x => Number(x.id) === Number(filters.value.online_shop_id));
+                if (s) locationName = s.name.replace(/\s+/g, '-');
+            } else if (locationType.value === 'warehouse' && filters.value.warehouse_id) {
+                const w = warehouses.value.find(x => Number(x.id) === Number(filters.value.warehouse_id));
+                if (w) locationName = w.name.replace(/\s+/g, '-');
+            } else if (locationType.value === 'distributor' && filters.value.distributor_id) {
+                const d = distributors.value.find(x => Number(x.id) === Number(filters.value.distributor_id));
+                if (d) locationName = d.name.replace(/\s+/g, '-');
+            }
+        }
+
+        let filename = `stok-masuk-${activeTab.value}-${locationName}`;
         if (filterMode.value === 'month') {
             filename += `-${selectedMonth.value.month}-${selectedMonth.value.year}`;
         } else {
@@ -333,32 +359,32 @@ const handleVoid = async (item) => {
                     </div>
                     <select v-model="locationType" @change="handleLocationTypeChange"
                         class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
-                        <option value="branch">Cabang</option>
-                        <option value="online_shop">Toko Online</option>
-                        <option value="warehouse">Gudang</option>
-                        <option value="distributor">Distributor</option>
+                        <option value="branch" class="bg-surface-800 text-text-primary">Cabang</option>
+                        <option value="online_shop" class="bg-surface-800 text-text-primary">Toko Online</option>
+                        <option value="warehouse" class="bg-surface-800 text-text-primary">Gudang</option>
+                        <option value="distributor" class="bg-surface-800 text-text-primary">Distributor</option>
                     </select>
                 </div>
                 <div class="w-px h-4 bg-surface-700 mr-1"></div>
                 <select v-if="locationType === 'branch'" v-model="filters.branch_id" @change="fetchData(1)"
                     class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                    <option :value="null">Semua Cabang</option>
-                    <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                    <option :value="null" class="bg-surface-800 text-text-primary">Semua Cabang</option>
+                    <option v-for="b in filteredBranches" :key="b.id" :value="b.id" class="bg-surface-800 text-text-primary">{{ b.name }}</option>
                 </select>
                 <select v-else-if="locationType === 'online_shop'" v-model="filters.online_shop_id" @change="fetchData(1)"
                     class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                    <option :value="null">Semua Toko Online</option>
-                    <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+                    <option :value="null" class="bg-surface-800 text-text-primary">Semua Toko Online</option>
+                    <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id" class="bg-surface-800 text-text-primary">{{ s.name }}</option>
                 </select>
                 <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
                     class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                    <option :value="null">Semua Gudang</option>
-                    <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                    <option :value="null" class="bg-surface-800 text-text-primary">Semua Gudang</option>
+                    <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id" class="bg-surface-800 text-text-primary">{{ w.name }}</option>
                 </select>
                 <select v-else-if="locationType === 'distributor'" v-model="filters.distributor_id" @change="fetchData(1)"
                     class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                    <option :value="null">Semua Distributor</option>
-                    <option v-for="d in filteredDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                    <option :value="null" class="bg-surface-800 text-text-primary">Semua Distributor</option>
+                    <option v-for="d in filteredDistributors" :key="d.id" :value="d.id" class="bg-surface-800 text-text-primary">{{ d.name }}</option>
                 </select>
             </div>
 
@@ -375,7 +401,7 @@ const handleVoid = async (item) => {
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50" />
                 <select v-if="filterMode === 'month'" v-model="selectedMonth"
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
-                    <option v-for="(option, index) in monthOptions" :key="index" :value="option.value">{{ option.label }}</option>
+                    <option v-for="(option, index) in monthOptions" :key="index" :value="option.value" class="bg-surface-800 text-text-primary">{{ option.label }}</option>
                 </select>
                 <span class="text-xs text-text-secondary ml-2">Total: {{ pagination.total }} item</span>
             </div>
