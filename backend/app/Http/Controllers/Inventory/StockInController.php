@@ -956,7 +956,7 @@ class StockInController extends Controller
         $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
         $hpItems = $hpQuery->latest()->get();
 
-        $refIds = $hpItems->pluck('reference_id')->filter()->unique()->toArray();
+        $refIds = $hpItems->pluck('reference_id')->filter(fn($val) => is_numeric($val))->unique()->toArray();
         $productDetails = ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id');
 
         $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
