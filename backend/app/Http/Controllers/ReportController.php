@@ -1008,68 +1008,134 @@ class ReportController extends Controller
         if ($startDate) $baseQuery->where('stock_outs.reporting_date', '>=', $startDate);
         if ($endDate) $baseQuery->where('stock_outs.reporting_date', '<=', $endDate);
 
-        $baseStats = $baseQuery->select(
+        $rawTransactions = $baseQuery->select(
+            'stock_outs.id',
+            'stock_outs.category',
+            'stock_outs.selling_price',
+            'stock_outs.split_payments',
+            'stock_outs.notes',
+            'stock_outs.sales_account',
+            'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
-            DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
-            // Omset: Gross Sales (including standard sales categories, excluding Tukar Unit)
-            DB::raw("SUM(CASE 
-                WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
-                WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
-                THEN GREATEST(0, COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
-                WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
-                THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
-                ELSE 0
-            END) as sales_omset"),
-            DB::raw("COUNT(DISTINCT CASE 
-                WHEN NOT (
-                     stock_outs.category IN ('refund', 'angkat_barang') 
-                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                ) THEN stock_outs.id 
-            END) as transaction_count"),
-            // Refund details
-            DB::raw("COUNT(DISTINCT CASE 
-                WHEN stock_outs.category = 'refund' 
-                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                THEN stock_outs.id 
-            END) as refund_count"),
-            DB::raw("SUM(CASE 
-                WHEN stock_outs.category = 'refund' 
-                     OR LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%'
-                THEN COALESCE(stock_outs.selling_price, 0) 
-                ELSE 0 
-            END) as refund_amount"),
-            // Angkat Barang details
-            DB::raw("COUNT(DISTINCT CASE 
-                WHEN stock_outs.category = 'angkat_barang' 
-                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                THEN stock_outs.id 
-            END) as ab_count"),
-            DB::raw("SUM(CASE 
-                WHEN stock_outs.category = 'angkat_barang' 
-                     OR LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%'
-                THEN COALESCE(stock_outs.selling_price, 0) 
-                ELSE 0 
-            END) as ab_amount"),
-            DB::raw("SUM(
-                CASE 
-                    WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                    THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
-                    WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship')
-                    THEN GREATEST(0, ABS(COALESCE(stock_outs.selling_price, 0)))
-                    WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
-                    THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                    WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
-                    THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                    WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                    THEN COALESCE((SELECT SUM(dg.outgoing_price - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
-                    ELSE 0
-                END
-            ) as omset_bersih")
-        )
-        ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
-        ->get();
+            DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id')
+        )->get();
+
+        $ttData = DB::table('tukar_tambahs')
+            ->whereIn('receipt_id', $rawTransactions->pluck('receipt_id')->unique())
+            ->select('receipt_id', 'outgoing_price', 'incoming_cost_price')
+            ->get()
+            ->groupBy('receipt_id');
+
+        $dgData = DB::table('downgrades')
+            ->whereIn('receipt_id', $rawTransactions->pluck('receipt_id')->unique())
+            ->select('receipt_id', 'outgoing_price', 'incoming_cost_price')
+            ->get()
+            ->groupBy('receipt_id');
+
+        $aggregatedStats = [];
+
+        foreach ($rawTransactions as $tx) {
+            $cat = strtolower(str_replace(' ', '_', $tx->category));
+            $notes = strtolower($tx->notes ?? '');
+            $sa = strtolower($tx->sales_account ?? '');
+
+            $saleType = 'ignored';
+            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                $saleType = 'tukar_tambah';
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+                $saleType = 'base_sale';
+            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                $saleType = 'angkat_barang';
+            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                $saleType = 'refund';
+            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                $saleType = 'downgrade';
+            }
+
+            $price = max(0, abs((float) $tx->selling_price));
+            $spTotal = 0;
+            if ($tx->split_payments) {
+                $sData = is_string($tx->split_payments) ? json_decode($tx->split_payments, true) : $tx->split_payments;
+                if (is_array($sData)) {
+                    foreach ($sData as $sp) {
+                        $spTotal += abs((float) ($sp['amount'] ?? 0));
+                    }
+                }
+            }
+            $effectivePrice = ($price == 0 && $spTotal > 0) ? $spTotal : $price;
+
+            $txOmset = 0;
+            $txOmsetBersih = 0;
+            $isTransaction = false;
+            $isRefund = false;
+            $isAb = false;
+            $refundAmt = 0;
+            $abAmt = 0;
+
+            if ($saleType === 'base_sale') {
+                $txOmset = $effectivePrice;
+                $txOmsetBersih = $effectivePrice;
+                $isTransaction = true;
+            } elseif ($saleType === 'tukar_tambah') {
+                $tt = $ttData->get($tx->receipt_id);
+                $outPrice = $tt ? $tt->sum('outgoing_price') : 0;
+                if ($outPrice <= 0) $outPrice = $effectivePrice;
+                $inPrice = $tt ? $tt->sum('incoming_cost_price') : 0;
+
+                $txOmset = $outPrice;
+                $txOmsetBersih = $outPrice - $inPrice; // Match AuditController exact logic
+                $isTransaction = true;
+            } elseif ($saleType === 'downgrade') {
+                $dg = $dgData->get($tx->receipt_id);
+                $outDg = $dg ? $dg->sum('outgoing_price') : 0;
+                $inDg = $dg ? $dg->sum('incoming_cost_price') : 0;
+                
+                if ($outDg > 0 || $inDg > 0) {
+                    $txOmset = $outDg;
+                    $txOmsetBersih = $outDg - $inDg;
+                } else {
+                    $txOmsetBersih = -$effectivePrice;
+                }
+                $isTransaction = true;
+            } elseif ($saleType === 'refund') {
+                $txOmsetBersih = -$effectivePrice;
+                $isRefund = true;
+                $refundAmt = $effectivePrice;
+            } elseif ($saleType === 'angkat_barang') {
+                $txOmsetBersih = -$effectivePrice;
+                $isAb = true;
+                $abAmt = $effectivePrice;
+            }
+
+            $locKey = ($tx->branch_id ? 'B_' . $tx->branch_id : 'O_' . $tx->online_shop_id);
+            if (!isset($aggregatedStats[$locKey])) {
+                $aggregatedStats[$locKey] = [
+                    'branch_id' => $tx->branch_id,
+                    'online_shop_id' => $tx->online_shop_id,
+                    'sales_omset' => 0,
+                    'omset_bersih' => 0,
+                    'transaction_count' => 0,
+                    'refund_count' => 0,
+                    'refund_amount' => 0,
+                    'ab_count' => 0,
+                    'ab_amount' => 0
+                ];
+            }
+
+            $aggregatedStats[$locKey]['sales_omset'] += $txOmset;
+            $aggregatedStats[$locKey]['omset_bersih'] += $txOmsetBersih;
+            if ($isTransaction) $aggregatedStats[$locKey]['transaction_count']++;
+            if ($isRefund) {
+                $aggregatedStats[$locKey]['refund_count']++;
+                $aggregatedStats[$locKey]['refund_amount'] += $refundAmt;
+            }
+            if ($isAb) {
+                $aggregatedStats[$locKey]['ab_count']++;
+                $aggregatedStats[$locKey]['ab_amount'] += $abAmt;
+            }
+        }
+
+        $baseStats = collect(array_values($aggregatedStats));
 
         // 2. Get Item Counts (Iphone vs Android)
         $itemCountsQuery = DB::table('stock_outs')
