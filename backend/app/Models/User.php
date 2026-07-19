@@ -131,7 +131,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['branch', 'App\Models\Branch'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Branch::where(function ($q) use ($excluded) {
@@ -156,7 +156,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['online_shop', 'App\Models\OnlineShop'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
@@ -179,7 +179,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['warehouse', 'App\Models\Warehouse'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Warehouse::where(function ($q) use ($excluded) {
@@ -202,7 +202,7 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['distributor', 'App\Models\Distributor'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if ($this->hasAnyRole(['super_admin', 'analist', 'analis', 'audit'])) {
+        if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Distributor::where(function ($q) use ($excluded) {
