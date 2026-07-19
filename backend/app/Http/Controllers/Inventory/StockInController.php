@@ -955,68 +955,72 @@ class StockInController extends Controller
             ->where('type', 'in')
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpQuery, $request, 'hp', 'in');
-        $hpItems = $hpQuery->latest()->get();
-
-        $refIds = $hpItems->pluck('reference_id')->filter(fn($val) => is_numeric($val))->unique()->toArray();
-        $productDetails = !empty($refIds) ? ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id') : collect();
 
         $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
-        foreach ($hpItems as $idx => $item) {
-            $detail = is_numeric($item->reference_id) ? $productDetails->get($item->reference_id) : null;
+        
+        $hpQuery->latest()->chunk(500, function ($hpItems) use (&$hpSheet) {
+            $refIds = $hpItems->pluck('reference_id')->filter(fn($val) => is_numeric($val))->unique()->toArray();
+            $productDetails = !empty($refIds) ? ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id') : collect();
 
-            $locationName = '-';
-            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
-            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
-            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+            foreach ($hpItems as $item) {
+                $detail = is_numeric($item->reference_id) ? $productDetails->get($item->reference_id) : null;
 
-            $imei = $detail?->imei ?? '-';
-            if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
-                $imei = $matches[1];
+                $locationName = '-';
+                if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+                elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+                elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+
+                $imei = $detail?->imei ?? '-';
+                if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
+                    $imei = $matches[1];
+                }
+
+                $hpSheet[] = [
+                    count($hpSheet),
+                    $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
+                    $item->product?->brand ?? '-',
+                    $item->product?->name ?? '-',
+                    $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
+                    $detail?->condition ?? '-',
+                    str_replace("'", "", (string)$imei),
+                    $locationName,
+                    $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
+                    (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
+                    $item->user?->name ?? '-',
+                    $item->notes ?: ($item->description ?? '-'),
+                ];
             }
-
-            $hpSheet[] = [
-                $idx + 1,
-                $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
-                $item->product?->brand ?? '-',
-                $item->product?->name ?? '-',
-                $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
-                $detail?->condition ?? '-',
-                str_replace("'", "", (string)$imei),
-                $locationName,
-                $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
-                (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
-                $item->user?->name ?? '-',
-                $item->notes ?: ($item->description ?? '-'),
-            ];
-        }
+        });
 
         // 2. NON-HP STOCK IN (InventoryLog)
         $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])
             ->where('type', 'in')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpQuery, $request, 'non-hp', 'in');
-        $nonHpItems = $nonHpQuery->latest()->get();
 
         $nonHpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
-        foreach ($nonHpItems as $idx => $item) {
-            $locationName = '-';
-            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name ?? '-';
-            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name ?? '-';
-            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name ?? '-';
+        
+        $nonHpQuery->latest()->chunk(500, function ($nonHpItems) use (&$nonHpSheet) {
+            foreach ($nonHpItems as $item) {
+                $locationName = '-';
+                if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name ?? '-';
+                elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name ?? '-';
+                elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name ?? '-';
 
-            $nonHpSheet[] = [
-                $idx + 1,
-                $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
-                $item->product?->brand ?? '-',
-                $item->product?->name ?? '-',
-                $locationName,
-                (int)$item->quantity,
-                $item->distributor?->name ?? ($item->supplier_name ?? '-'),
-                (float)($item->cost_price ?? 0),
-                $item->user?->name ?? '-',
-                $item->notes ?: ($item->description ?? '-'),
-            ];
-        }
+                $nonHpSheet[] = [
+                    count($nonHpSheet),
+                    $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
+                    $item->product?->brand ?? '-',
+                    $item->product?->name ?? '-',
+                    $locationName,
+                    (int)$item->quantity,
+                    $item->distributor?->name ?? ($item->supplier_name ?? '-'),
+                    (float)($item->cost_price ?? 0),
+                    $item->user?->name ?? '-',
+                    $item->notes ?: ($item->description ?? '-'),
+                ];
+            }
+        });
 
         $dateSuffix = $request->date ? "_{$request->date}" : "_" . now()->format('Y-m-d_H-i');
         $filename = 'RIWAYAT_STOK_MASUK' . $dateSuffix . '.xlsx';
@@ -1052,91 +1056,95 @@ class StockInController extends Controller
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', 'hp'));
         $this->applyStockHistoryFilters($hpOutQuery, $request, 'hp', 'out');
-        $hpOutItems = $hpOutQuery->latest()->get();
-
-        $outImeis = [];
-        foreach ($hpOutItems as $itm) {
-            if ($itm->description && preg_match('/\(([\d]+)\)/', $itm->description, $matches)) {
-                $outImeis[] = $matches[1];
-            }
-        }
-        $outDetails = ProductDetail::withTrashed()->whereIn('imei', $outImeis)->get()->keyBy('imei');
 
         $hpOutSheet = [['No', 'Waktu', 'Sumber / Kategori Keluar', 'Merek', 'Produk', 'Spec', 'IMEI', 'Lokasi', 'Tujuan / Catatan', 'Akun Inventory']];
-        foreach ($hpOutItems as $idx => $item) {
-            $locationName = '-';
-            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
-            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
-            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
-
-            $imei = '-';
-            $spec = '-';
-            if ($item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
-                $imei = $matches[1];
-                $det = $outDetails->get($imei);
-                if ($det) {
-                    $spec = implode('/', array_filter([$det->ram, $det->storage]));
+        
+        $hpOutQuery->latest()->chunk(500, function ($hpOutItems) use (&$hpOutSheet) {
+            $outImeis = [];
+            foreach ($hpOutItems as $itm) {
+                if ($itm->description && preg_match('/\(([\d]+)\)/', $itm->description, $matches)) {
+                    $outImeis[] = $matches[1];
                 }
             }
+            $outDetails = !empty($outImeis) ? ProductDetail::withTrashed()->whereIn('imei', $outImeis)->get()->keyBy('imei') : collect();
 
-            $outCategory = 'Stock Out';
-            if ($item->description) {
-                $parts = explode('(', $item->description);
-                $trimmedPart = trim($parts[0]);
-                if (!empty($trimmedPart)) {
-                    $outCategory = $trimmedPart;
+            foreach ($hpOutItems as $item) {
+                $locationName = '-';
+                if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+                elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+                elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+
+                $imei = '-';
+                $spec = '-';
+                if ($item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
+                    $imei = $matches[1];
+                    $det = $outDetails->get($imei);
+                    if ($det) {
+                        $spec = implode('/', array_filter([$det->ram, $det->storage]));
+                    }
                 }
-            }
 
-            $hpOutSheet[] = [
-                $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
-                strtoupper($outCategory),
-                $item->product?->brand ?? '-',
-                $item->product?->name ?? '-',
-                $spec,
-                str_replace("'", "", $imei),
-                $locationName,
-                $item->description ?? '-',
-                $item->user?->name ?? '-',
-            ];
-        }
+                $outCategory = 'Stock Out';
+                if ($item->description) {
+                    $parts = explode('(', $item->description);
+                    $trimmedPart = trim($parts[0]);
+                    if (!empty($trimmedPart)) {
+                        $outCategory = $trimmedPart;
+                    }
+                }
+
+                $hpOutSheet[] = [
+                    count($hpOutSheet),
+                    $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
+                    strtoupper($outCategory),
+                    $item->product?->brand ?? '-',
+                    $item->product?->name ?? '-',
+                    $spec,
+                    str_replace("'", "", $imei),
+                    $locationName,
+                    $item->description ?? '-',
+                    $item->user?->name ?? '-',
+                ];
+            }
+        });
 
         // Stock Out Non-HP (InventoryLog)
         $nonHpOutQuery = InventoryLog::with(['product', 'user', 'distributor', 'branch', 'warehouse', 'onlineShop'])
             ->where('type', 'out')
             ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpOutQuery, $request, 'non-hp', 'out');
-        $nonHpOutItems = $nonHpOutQuery->latest()->get();
 
         $nonHpOutSheet = [['No', 'Waktu', 'Sumber / Kategori Keluar', 'Merek', 'Produk', 'Lokasi', 'Qty Keluar', 'Tujuan / Catatan', 'Akun Inventory']];
-        foreach ($nonHpOutItems as $idx => $item) {
-            $locationName = '-';
-            if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
-            elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
-            elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
+        
+        $nonHpOutQuery->latest()->chunk(500, function ($nonHpOutItems) use (&$nonHpOutSheet) {
+            foreach ($nonHpOutItems as $item) {
+                $locationName = '-';
+                if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
+                elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
+                elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
-            $outCategory = 'Stock Out';
-            if ($item->description) {
-                $parts = explode('(', $item->description);
-                $trimmedPart = trim($parts[0]);
-                if (!empty($trimmedPart)) {
-                    $outCategory = $trimmedPart;
+                $outCategory = 'Stock Out';
+                if ($item->description) {
+                    $parts = explode('(', $item->description);
+                    $trimmedPart = trim($parts[0]);
+                    if (!empty($trimmedPart)) {
+                        $outCategory = $trimmedPart;
+                    }
                 }
-            }
 
-            $nonHpOutSheet[] = [
-                $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
-                strtoupper($outCategory),
-                $item->product?->brand ?? '-',
-                $item->product?->name ?? '-',
-                $locationName,
-                (int)$item->quantity,
-                $item->description ?? '-',
-                $item->user?->name ?? '-',
-            ];
-        }
+                $nonHpOutSheet[] = [
+                    count($nonHpOutSheet),
+                    $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
+                    strtoupper($outCategory),
+                    $item->product?->brand ?? '-',
+                    $item->product?->name ?? '-',
+                    $locationName,
+                    (int)$item->quantity,
+                    $item->description ?? '-',
+                    $item->user?->name ?? '-',
+                ];
+            }
+        });
 
         $dateSuffix = $request->date ? "_{$request->date}" : "_" . now()->format('Y-m-d_H-i');
         $filename = 'RIWAYAT_STOK_KELUAR' . $dateSuffix . '.xlsx';
