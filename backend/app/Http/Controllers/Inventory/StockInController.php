@@ -540,11 +540,62 @@ class StockInController extends Controller
 
         // Role-based filtering
         $role = strtolower($user->getRoleNames()->first() ?? '');
-        $privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-        $isPrivileged = collect($privilegedRoles)->contains(fn($r) => str_contains($role, $r));
+        $privilegedRoles = ['super_admin', 'owner', 'leader', 'admin_produk'];
+        $isGlobalPrivileged = collect($privilegedRoles)->contains(fn($r) => str_contains($role, $r));
 
-        if (!$isPrivileged) {
+        if (!$isGlobalPrivileged && !$user->hasRole(['audit', 'analis', 'analist'])) {
             $query->where('user_id', $user->id);
+        } elseif ($user->hasRole(['audit', 'analis', 'analist'])) {
+            $query->where(function ($q) use ($user) {
+                $branchIds = $user->getAccessibleBranchIds();
+                $warehouseIds = $user->getAccessibleWarehouseIds();
+                $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                $distributorIds = $user->getAccessibleDistributorIds();
+
+                $hasConstraint = false;
+                if (!empty($branchIds)) {
+                    $q->orWhere(function ($sq) use ($branchIds) {
+                        $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!empty($warehouseIds)) {
+                    $q->orWhere(function ($sq) use ($warehouseIds) {
+                        $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!empty($onlineShopIds)) {
+                    $q->orWhere(function ($sq) use ($onlineShopIds) {
+                        $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $onlineShopIds);
+                    });
+                    $hasConstraint = true;
+                }
+                if (!empty($distributorIds)) {
+                    $q->orWhere(function ($sq) use ($distributorIds) {
+                        $sq->where('placement_type', 'distributor')->whereIn('placement_id', $distributorIds);
+                    });
+                    $hasConstraint = true;
+                }
+                
+                if (!$hasConstraint) {
+                    $q->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        // Apply filters from request
+        if ($request->branch_id) {
+            $query->where('placement_type', 'branch')->where('placement_id', $request->branch_id);
+        }
+        if ($request->online_shop_id) {
+            $query->where('placement_type', 'online_shop')->where('placement_id', $request->online_shop_id);
+        }
+        if ($request->warehouse_id) {
+            $query->where('placement_type', 'warehouse')->where('placement_id', $request->warehouse_id);
+        }
+        if ($request->distributor_id) {
+            $query->where('placement_type', 'distributor')->where('placement_id', $request->distributor_id);
         }
 
         // Type filter
