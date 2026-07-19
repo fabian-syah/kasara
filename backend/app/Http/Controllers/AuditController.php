@@ -1428,24 +1428,8 @@ class AuditController extends Controller
                             if ($ps->split_payments) {
                                 $sData = is_string($ps->split_payments) ? json_decode($ps->split_payments, true) : $ps->split_payments;
                                 if (is_array($sData)) {
-                                    // First get the raw total of split payments
-                                    $rawSpTotal = 0;
-                                    foreach ($sData as $sp) {
-                                        $rawSpTotal += abs((float) ($sp['amount'] ?? 0));
-                                    }
-                                    
-                                    // Determine the multiplier to scale payments down if they exceed the actual price
-                                    // (e.g. cashier typed 5.750.000 but price after discount is 5.650.000)
-                                    $scale = ($price > 0 && $rawSpTotal > 0 && $rawSpTotal != $price) ? ($price / $rawSpTotal) : 1;
-                                    
                                     foreach ($sData as $sp) {
                                         $amt = abs((float) ($sp['amount'] ?? 0));
-                                        
-                                        // Apply scale if necessary to enforce consistency with Omset
-                                        if ($scale != 1) {
-                                            $amt = round($amt * $scale);
-                                        }
-                                        
                                         $spTotal += $amt;
                                         if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
@@ -1461,7 +1445,8 @@ class AuditController extends Controller
                                 }
                             }
 
-                            $effectivePrice = ($price == 0 && $spTotal > 0) ? $spTotal : $price;
+                            // USER RULE: Omset MUST strictly follow actual received payments (spTotal) over database selling_price!
+                            $effectivePrice = ($spTotal > 0) ? $spTotal : $price;
 
                             if ($saleType === 'base_sale') {
                                 $baseSalesOnly += $effectivePrice;

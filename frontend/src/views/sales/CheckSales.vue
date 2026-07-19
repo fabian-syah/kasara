@@ -1098,17 +1098,8 @@ const summaryStats = computed(() => {
         });
 
         // The user explicitly requested: omset bersih = total omset - (angkat barang + refund + selisih downgrade)
-        // We ensure totalOmset matches the expectation and compute omsetBersih dynamically to override the flawed backend omset_bersih
-        
-        // We use local baseSales + tradeOutgoingTotal if available and matches Excel better, else fallback to summary
-        if (activeRecords.value.length <= 150 && activeRecords.value.length > 0) {
-            // If we are on the first page and it has all records, local calculation is 100% accurate (matches Excel)
-            finalOmset = baseSales + tradeOutgoingTotal;
-            finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
-        } else {
-            // Fallback for paginated results (more than 150)
-            finalOmsetBersih = finalOmset - (summaryOutlay + summaryTradeIncoming);
-        }
+        // We use backend's omset_bersih because backend now correctly calculates Omset using actual payments
+        // We can trust the backend's calculations.
     } else if (!hasSummary) {
         finalOmset = baseSales + tradeOutgoingTotal;
         finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);

@@ -1079,7 +1079,9 @@ class ReportController extends Controller
                     }
                 }
             }
-            $effectivePrice = ($price == 0 && $spTotal > 0) ? $spTotal : $price;
+            
+            // USER RULE: Omset MUST strictly follow actual received payments (spTotal) over database selling_price!
+            $effectivePrice = ($spTotal > 0) ? $spTotal : $price;
 
             $txOmset = 0;
             $txOmsetBersih = 0;
