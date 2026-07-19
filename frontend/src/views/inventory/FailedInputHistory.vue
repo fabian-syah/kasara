@@ -286,10 +286,10 @@ onMounted(() => {
                     </div>
                     <select v-model="locationType" @change="handleLocationTypeChange"
                         class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
-                        <option value="branch">Cabang</option>
-                                    <option value="online">Online</option>
-                                    <option value="warehouse">Gudang</option>
-                                    <option value="distributor">Distributor</option>
+                        <option value="branch" v-if="filteredBranches.length > 0">Cabang</option>
+                        <option value="online" v-if="filteredOnlineShops.length > 0">Online</option>
+                        <option value="warehouse" v-if="filteredWarehouses.length > 0">Gudang</option>
+                        <option value="distributor" v-if="filteredDistributors.length > 0">Distributor</option>
                     </select>
                 </div>
                 <div class="w-px h-4 bg-surface-700 mr-1"></div>
@@ -299,16 +299,23 @@ onMounted(() => {
                     <option v-for="b in filteredBranches" :key="b.id" :value="b.id">{{ b.name }}</option>
                 </select>
                 
-                            <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
-                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                                <option :value="null">Semua Gudang</option>
-                                <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-                            </select>
-                            <select v-else-if="locationType === 'distributor'" v-model="filters.distributor_id" @change="fetchData(1)"
-                                class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
-                                <option :value="null">Semua Distributor</option>
-                                <option v-for="d in filteredDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                            </select>
+                <select v-else-if="locationType === 'online'" v-model="filters.online_shop_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Toko Online</option>
+                    <option v-for="s in filteredOnlineShops" :key="s.id" :value="s.id">{{ s.name }}</option>
+                </select>
+                
+                <select v-else-if="locationType === 'warehouse'" v-model="filters.warehouse_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Gudang</option>
+                    <option v-for="w in filteredWarehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                </select>
+                
+                <select v-else-if="locationType === 'distributor'" v-model="filters.distributor_id" @change="fetchData(1)"
+                    class="bg-transparent border-none text-xs font-bold text-text-primary focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                    <option :value="null">Semua Distributor</option>
+                    <option v-for="d in filteredDistributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                </select>
             </div>
 
             <!-- Date Filter -->
