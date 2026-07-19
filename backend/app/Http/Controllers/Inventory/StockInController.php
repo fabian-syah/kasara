@@ -968,7 +968,7 @@ class StockInController extends Controller
             elseif ($item->warehouse_id) $locationName = $item->warehouse?->name ?? ('Gudang #' . $item->warehouse_id);
             elseif ($item->online_shop_id) $locationName = $item->onlineShop?->name ?? ('OS #' . $item->online_shop_id);
 
-            $imei = $detail->imei ?? '-';
+            $imei = $detail?->imei ?? '-';
             if ($imei === '-' && $item->description && preg_match('/\(([\d]+)\)/', $item->description, $matches)) {
                 $imei = $matches[1];
             }
@@ -979,11 +979,11 @@ class StockInController extends Controller
                 $item->product?->brand ?? '-',
                 $item->product?->name ?? '-',
                 $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
-                $detail->condition ?? '-',
+                $detail?->condition ?? '-',
                 str_replace("'", "", $imei),
                 $locationName,
-                $item->distributor?->name ?? ($item->supplier_name ?? ($detail->distributor?->name ?? ($detail->supplier_name ?? '-'))),
-                (float)($detail->cost_price ?? ($item->cost_price ?? 0)),
+                $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
+                (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
                 $item->user->name ?? '-',
                 $item->notes ?: ($item->description ?? '-'),
             ];
