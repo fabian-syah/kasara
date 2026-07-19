@@ -97,6 +97,15 @@ const fetchLocations = async () => {
         onlineShops.value = response.data.online_shops || [];
         warehouses.value = response.data.warehouses || [];
         distributors.value = response.data.distributors || [];
+
+        setTimeout(() => {
+            if (filteredBranches.value.length === 0 && locationType.value === 'branch') {
+                if (filteredWarehouses.value.length > 0) locationType.value = 'warehouse';
+                else if (filteredOnlineShops.value.length > 0) locationType.value = 'online_shop';
+                else if (filteredDistributors.value.length > 0) locationType.value = 'distributor';
+                handleLocationTypeChange();
+            }
+        }, 50);
     } catch (err) {
         console.error(err);
     }
@@ -361,10 +370,10 @@ const getCategoryColor = (cat) => {
                     </div>
                     <select v-model="locationType" @change="handleLocationTypeChange"
                         class="bg-transparent border-none text-[10px] uppercase tracking-wider font-black text-text-secondary focus:ring-0 cursor-pointer pr-6">
-                        <option value="branch" class="bg-surface-800 text-text-primary">Cabang</option>
-                        <option value="online_shop" class="bg-surface-800 text-text-primary">Toko Online</option>
-                        <option value="warehouse" class="bg-surface-800 text-text-primary">Gudang</option>
-                        <option value="distributor" class="bg-surface-800 text-text-primary">Distributor</option>
+                        <option v-if="filteredBranches.length > 0" value="branch" class="bg-surface-800 text-text-primary">Cabang</option>
+                        <option v-if="filteredOnlineShops.length > 0" value="online_shop" class="bg-surface-800 text-text-primary">Toko Online</option>
+                        <option v-if="filteredWarehouses.length > 0" value="warehouse" class="bg-surface-800 text-text-primary">Gudang</option>
+                        <option v-if="filteredDistributors.length > 0" value="distributor" class="bg-surface-800 text-text-primary">Distributor</option>
                     </select>
                 </div>
                 <div class="w-px h-4 bg-surface-700 mr-1"></div>

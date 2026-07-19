@@ -984,7 +984,7 @@ class StockInController extends Controller
                 $locationName,
                 $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
                 (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
                 $item->notes ?: ($item->description ?? '-'),
             ];
         }
@@ -1010,7 +1010,7 @@ class StockInController extends Controller
                 (int)$item->quantity,
                 $item->distributor?->name ?? ($item->supplier_name ?? '-'),
                 (float)($item->cost_price ?? 0),
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
                 $item->notes ?: ($item->description ?? '-'),
             ];
         }
@@ -1091,7 +1091,7 @@ class StockInController extends Controller
                 str_replace("'", "", $imei),
                 $locationName,
                 $item->description ?? '-',
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
             ];
         }
 
@@ -1127,7 +1127,7 @@ class StockInController extends Controller
                 $locationName,
                 (int)$item->quantity,
                 $item->description ?? '-',
-                $item->user->name ?? '-',
+                $item->user?->name ?? '-',
             ];
         }
 
