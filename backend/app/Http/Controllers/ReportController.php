@@ -1005,8 +1005,25 @@ class ReportController extends Controller
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
             ->whereNull('stock_outs.deleted_at');
 
-        if ($startDate) $baseQuery->where('stock_outs.reporting_date', '>=', $startDate);
-        if ($endDate) $baseQuery->where('stock_outs.reporting_date', '<=', $endDate);
+        $startTS = $startDate ? $startDate . ' 05:00:00' : null;
+        $endTS = $endDate ? date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59' : null;
+
+        if ($startDate && $endDate) {
+            $baseQuery->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
+                $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                  ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+            });
+        } elseif ($startDate) {
+            $baseQuery->where(function ($q) use ($startDate, $startTS) {
+                $q->where('stock_outs.reporting_date', '>=', $startDate)
+                  ->orWhere('stock_outs.created_at', '>=', $startTS);
+            });
+        } elseif ($endDate) {
+            $baseQuery->where(function ($q) use ($endDate, $endTS) {
+                $q->where('stock_outs.reporting_date', '<=', $endDate)
+                  ->orWhere('stock_outs.created_at', '<=', $endTS);
+            });
+        }
 
         $rawTransactions = $baseQuery->select(
             'stock_outs.id',
