@@ -946,6 +946,7 @@ class StockInController extends Controller
 
     public function exportStockInHistory(Request $request)
     {
+        try {
         /** @var \App\Models\User $user */
         $user = Auth::user();
         
@@ -957,11 +958,11 @@ class StockInController extends Controller
         $hpItems = $hpQuery->latest()->get();
 
         $refIds = $hpItems->pluck('reference_id')->filter(fn($val) => is_numeric($val))->unique()->toArray();
-        $productDetails = ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id');
+        $productDetails = !empty($refIds) ? ProductDetail::withTrashed()->whereIn('id', $refIds)->get()->keyBy('id') : collect();
 
         $hpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Kapasitas', 'Kondisi', 'IMEI', 'Lokasi', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($hpItems as $idx => $item) {
-            $detail = $productDetails->get($item->reference_id);
+            $detail = is_numeric($item->reference_id) ? $productDetails->get($item->reference_id) : null;
 
             $locationName = '-';
             if ($item->branch_id) $locationName = $item->branch?->name ?? ('Cabang #' . $item->branch_id);
@@ -975,12 +976,12 @@ class StockInController extends Controller
 
             $hpSheet[] = [
                 $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
+                $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
                 $item->product?->brand ?? '-',
                 $item->product?->name ?? '-',
                 $detail ? implode('/', array_filter([$detail->ram, $detail->storage])) : '-',
                 $detail?->condition ?? '-',
-                str_replace("'", "", $imei),
+                str_replace("'", "", (string)$imei),
                 $locationName,
                 $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
                 (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
@@ -990,20 +991,22 @@ class StockInController extends Controller
         }
 
         // 2. NON-HP STOCK IN (InventoryLog)
-        $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])->where('type', 'in');
+        $nonHpQuery = InventoryLog::with(['product', 'user', 'distributor'])
+            ->where('type', 'in')
+            ->whereHas('product', fn($q) => $q->where('type', '!=', 'hp'));
         $this->applyStockHistoryFilters($nonHpQuery, $request, 'non-hp', 'in');
         $nonHpItems = $nonHpQuery->latest()->get();
 
         $nonHpSheet = [['No', 'Waktu', 'Merek', 'Produk', 'Lokasi', 'Qty Masuk', 'Distributor / Supplier', 'HPP', 'Akun Inventory', 'Catatan']];
         foreach ($nonHpItems as $idx => $item) {
             $locationName = '-';
-            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name;
-            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name;
-            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name;
+            if ($item->branch_id) $locationName = \App\Models\Branch::find($item->branch_id)?->name ?? '-';
+            elseif ($item->warehouse_id) $locationName = \App\Models\Warehouse::find($item->warehouse_id)?->name ?? '-';
+            elseif ($item->online_shop_id) $locationName = \App\Models\OnlineShop::find($item->online_shop_id)?->name ?? '-';
 
             $nonHpSheet[] = [
                 $idx + 1,
-                $item->created_at->format('d/m/Y H:i'),
+                $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
                 $item->product?->brand ?? '-',
                 $item->product?->name ?? '-',
                 $locationName,
@@ -1033,6 +1036,10 @@ class StockInController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Export Stock In History Error: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            return response()->json(['error' => $e->getMessage(), 'line' => $e->getLine(), 'file' => $e->getFile()], 500);
+        }
     }
 
     public function exportStockOutHistory(Request $request)
