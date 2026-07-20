@@ -332,6 +332,7 @@ function getCategoryColor(category) {
 
                                         <div v-if="result.notes || result.cancel_reason" class="col-span-full">
                                             <p class="text-[10px] text-text-secondary">Keterangan</p>
+                                            <p v-if="result.cancelled_by_name" class="text-[11px] text-red-500 mb-0.5 font-medium">Dibatalkan oleh: {{ result.cancelled_by_name }}</p>
                                             <p class="text-xs text-text-primary italic">{{ result.cancel_reason || result.notes }}</p>
                                         </div>
                                     </template>
@@ -409,6 +410,7 @@ function getCategoryColor(category) {
                                     <template v-if="result.category === 'kesalahan_input'">
                                         <div class="col-span-full">
                                             <p class="text-[10px] text-text-secondary">Alasan</p>
+                                            <p v-if="result.cancelled_by_name" class="text-[11px] text-red-500 mb-0.5 font-medium">Dihapus oleh: {{ result.cancelled_by_name }}</p>
                                             <p class="text-xs text-text-primary">{{ result.deletion_reason }}</p>
                                         </div>
                                     </template>

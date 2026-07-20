@@ -1277,7 +1277,8 @@ class StockOutController extends Controller
                 'branch',
                 'onlineShop',
                 'warehouse',
-                'paymentMethod'
+                'paymentMethod',
+                'cancelledByUser'
             ])
                 ->where('receipt_id', $query)
                 ->orWhere('shopee_tracking_no', $query)
@@ -1662,6 +1663,7 @@ class StockOutController extends Controller
                     'notes' => $out->notes,
                     'cancel_reason' => $out->cancel_reason,
                     'deletion_reason' => $out->deletion_reason,
+                    'cancelled_by_name' => $out->category === 'kesalahan_input' ? ($out->user?->name ?? '') : ($out->cancelledByUser?->name ?? ''),
                     'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
                     'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
                     'created_at' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->toDateTimeString() : $out->created_at->toDateTimeString(),
