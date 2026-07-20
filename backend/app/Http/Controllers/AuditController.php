@@ -4091,8 +4091,8 @@ class AuditController extends Controller
         });
 
         $totalSudahDiaudit = (clone $query)->whereHas('auditAnswers')->count();
-        $totalBelumDiaudit = (clone $query)->whereDoesntHave('auditAnswers')->where('category', '!=', 'cancel_penjualan')->count();
-        $totalCancelGlobal = (clone $query)->where('category', 'cancel_penjualan')->count();
+        $totalBelumDiaudit = (clone $query)->whereDoesntHave('auditAnswers')->whereNotIn('category', ['cancel_penjualan', 'kesalahan_input'])->count();
+        $totalCancelGlobal = (clone $query)->whereIn('category', ['cancel_penjualan', 'kesalahan_input'])->count();
         $totalTransactions = (clone $query)->count();
 
         $paginatedOut = $query->latest()->paginate(50);
@@ -4161,8 +4161,8 @@ class AuditController extends Controller
                 'outlet_name' => $outletName,
                 'audit_score' => $score,
                 'audit_total' => $totalQuestions,
-                'cancelled_by_name' => $trx->cancelledByUser?->name,
-                'cancel_reason' => $trx->cancel_reason,
+                'cancelled_by_name' => $trx->category === 'kesalahan_input' ? ($trx->user?->name ?? '') : ($trx->cancelledByUser?->name ?? ''),
+                'cancel_reason' => $trx->category === 'kesalahan_input' ? $trx->deletion_reason : $trx->cancel_reason,
             ];
         });
 

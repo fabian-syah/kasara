@@ -100,6 +100,7 @@
                             <option value="tukar_tambah">Tukar Tambah</option>
                             <option value="downgrade">Downgrade</option>
                             <option value="cancel_penjualan">Cancel Penjualan</option>
+                            <option value="kesalahan_input">Kesalahan Input</option>
                             <option value="pindah_cabang">Pindah Cabang</option>
                             <option value="rusak">Rusak</option>
                             <option value="mati">Mati</option>
@@ -193,7 +194,7 @@
                             <tr v-else v-for="(item, index) in stockOutRecords.data" :key="item.id"
                                 class="transition-colors group text-text-primary"
                                 :class="[
-                                    item.category === 'cancel_penjualan' 
+                                    (item.category === 'cancel_penjualan' || item.category === 'kesalahan_input')
                                         ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
                                         : item.audit_score != null 
                                             ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20' 
@@ -220,9 +221,9 @@
                                             <AlertTriangle :size="12" class="text-red-500" />
                                             {{ getCategoryLabel(item.category) }}
                                         </span>
-                                        <div v-else-if="item.category === 'cancel_penjualan'" class="flex flex-col gap-1">
+                                        <div v-else-if="item.category === 'cancel_penjualan' || item.category === 'kesalahan_input'" class="flex flex-col gap-1">
                                             <span class="inline-flex w-fit px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 whitespace-nowrap">
-                                                Cancel Penjualan
+                                                {{ item.category === 'cancel_penjualan' ? 'Cancel Penjualan' : 'Kesalahan Input' }}
                                             </span>
                                             <div v-if="item.cancelled_by_name" class="text-[10px] text-red-500/80 font-medium leading-tight">Oleh: {{ item.cancelled_by_name }}</div>
                                             <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
