@@ -380,14 +380,16 @@
                                                 <span>Bayar</span>
                                             </button>
                                             <button @click.prevent.stop="openReceipt(item)"
-                                                class="shrink-0 p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
+                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
                                                 @click.prevent.stop="handleCancelSale(item)"
-                                                class="shrink-0 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
+                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
                                             </button>
@@ -509,14 +511,16 @@
                                                 <span>Bayar</span>
                                             </button>
                                             <button @click.prevent.stop="openReceipt(item)"
-                                                class="shrink-0 p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
+                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
                                                 @click.prevent.stop="handleCancelSale(item)"
-                                                class="shrink-0 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
+                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
                                             </button>
