@@ -862,7 +862,15 @@ const printReceipt = () => {
             const htmlContent = cloned.outerHTML;
 
             const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
+            // JANGAN gunakan display: none, karena iOS Safari tidak akan merender dan memblokir print()
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = 'none';
+            iframe.style.visibility = 'hidden';
+            iframe.style.opacity = '0';
+            iframe.style.zIndex = '-9999';
+            
             document.body.appendChild(iframe);
             const doc = iframe.contentWindow.document;
             
