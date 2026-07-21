@@ -379,11 +379,11 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click="openReceipt(item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95"
+                                            <button type="button" @click="openReceipt(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
-                                                <Printer :size="12" stroke-width="3" />
-                                                <span>PRINT</span>
+                                                <Printer :size="12" stroke-width="3" class="pointer-events-none" />
+                                                <span class="pointer-events-none">PRINT</span>
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
@@ -510,11 +510,11 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click="openReceipt(item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95"
+                                            <button type="button" @click="openReceipt(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
-                                                <Printer :size="12" stroke-width="3" />
-                                                <span>PRINT</span>
+                                                <Printer :size="12" stroke-width="3" class="pointer-events-none" />
+                                                <span class="pointer-events-none">PRINT</span>
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
