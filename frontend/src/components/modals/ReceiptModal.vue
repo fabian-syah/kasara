@@ -255,6 +255,8 @@
                                                 <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
                                                 <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                    class="py-3 px-3 text-right font-black w-[70px]">Diskon</th>
+                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
                                                 <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
@@ -311,12 +313,22 @@
                                                         class="py-3 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
                                                         <span v-if="item._hidePrice">-</span>
                                                         <span v-else-if="item.is_bundle_header">
-                                                            {{ formatNumber(Math.abs(item.price)) }}
+                                                            {{ formatNumber(Math.abs(item.original_price || item.price)) }}
                                                         </span>
                                                         <span v-else>
-                                                            {{ formatNumber(Math.abs((item.price || item.selling_price
-                                                                || 0) -
-                                                            (item.discount || item.item_discount || 0))) }}
+                                                            {{ formatNumber(Math.abs(item.price || item.selling_price || 0)) }}
+                                                        </span>
+                                                    </td>
+
+                                                    <!-- DISKON COLUMN -->
+                                                    <td
+                                                        class="py-3 px-3 align-middle text-right font-bold text-red-600 whitespace-nowrap">
+                                                        <span v-if="item._hidePrice">-</span>
+                                                        <span v-else-if="item.is_bundle_header">
+                                                            {{ item.discount > 0 ? '-' + formatNumber(Math.abs(item.discount)) : '-' }}
+                                                        </span>
+                                                        <span v-else>
+                                                            {{ (item.discount || item.item_discount) > 0 ? '-' + formatNumber(Math.abs(item.discount || item.item_discount)) : '-' }}
                                                         </span>
                                                     </td>
 
@@ -346,7 +358,7 @@
                                             <tr v-for="n in Math.max(0, 2 - (processedReceiptItems.length || 0))"
                                                 :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
                                                 <td class="py-3 px-3">&nbsp;</td>
-                                                <td colspan="4"></td>
+                                                <td colspan="5"></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1188,10 +1200,19 @@ const processedReceiptItems = computed(() => {
                 });
 
                 // 2. Sum final selling prices of all child components
-                const groupTotal = groupItems.reduce((sum, child) => {
-                    const price = Math.abs((child.price || child.selling_price || 0) - (child.discount || child.item_discount || 0));
-                    return sum + (price * (child.qty || 1));
-                }, 0);
+                let groupTotal = 0;
+                let groupOriginalTotal = 0;
+                let groupDiscountTotal = 0;
+                
+                groupItems.forEach((child) => {
+                    const originalPrice = child.price || child.selling_price || 0;
+                    const discount = child.discount || child.item_discount || 0;
+                    const qty = child.qty || 1;
+                    
+                    groupOriginalTotal += (originalPrice * qty);
+                    groupDiscountTotal += (discount * qty);
+                    groupTotal += (Math.abs(originalPrice - discount) * qty);
+                });
 
                 // 3. Construct a unified, clean descriptive name for the bundle header
                 let bundleDisplayName = groupKey
@@ -1212,6 +1233,8 @@ const processedReceiptItems = computed(() => {
                     is_bundle_child: false,
                     name: bundleDisplayName,
                     price: groupTotal,
+                    original_price: groupOriginalTotal,
+                    discount: groupDiscountTotal,
                     qty: 1,
                     imei: '-',
                     notes: groupKey,
