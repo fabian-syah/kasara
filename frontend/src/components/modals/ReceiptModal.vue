@@ -841,91 +841,7 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
-    // === iOS SAFARI IFRAME FALLBACK ===
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    
-    if (isIOS) {
-        const element = document.querySelector('.nota-paper');
-        if (element) {
-            // Clone and clean hidden elements
-            const cloned = element.cloneNode(true);
-            cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
-            
-            // Gather existing styles
-            let compiledStyles = '';
-            document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
-                compiledStyles += el.outerHTML;
-            });
-
-            const isA5 = paperSize.value === 'A5';
-            const size = isA5 ? 'A5 portrait' : 'A4 portrait';
-            const htmlContent = cloned.outerHTML;
-
-            const iframe = document.createElement('iframe');
-            // JANGAN gunakan display: none, karena iOS Safari tidak akan merender dan memblokir print()
-            iframe.style.position = 'absolute';
-            iframe.style.width = '0';
-            iframe.style.height = '0';
-            iframe.style.border = 'none';
-            iframe.style.visibility = 'hidden';
-            iframe.style.opacity = '0';
-            iframe.style.zIndex = '-9999';
-            
-            document.body.appendChild(iframe);
-            const doc = iframe.contentWindow.document;
-            
-            doc.open();
-            doc.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>Cetak Nota</title>
-                    ${compiledStyles}
-                    <style>
-                        @page { size: ${size}; margin: 0 !important; }
-                        html, body {
-                            background: white !important;
-                            margin: 0 !important;
-                            padding: 0 !important;
-                            width: 100% !important;
-                        }
-                        .nota-paper {
-                            width: ${isA5 ? '148mm' : '210mm'} !important;
-                            max-width: ${isA5 ? '148mm' : '210mm'} !important;
-                            margin: 0 auto !important;
-                            padding: 0 !important;
-                            box-shadow: none !important;
-                            transform: none !important;
-                            page-break-inside: avoid !important;
-                        }
-                    </style>
-                </head>
-                <body style="background: white; margin: 0; padding: 0;">
-                    <div style="width: 100%; display: flex; justify-content: center;">
-                        ${htmlContent}
-                    </div>
-                </body>
-                </html>
-            `);
-            doc.close();
-
-            // HARUS SINKRON: iOS Safari akan memblokir print() jika ada setTimeout
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-            
-            // Cleanup delay 
-            setTimeout(() => {
-                if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                }
-            }, 3000);
-            return;
-        }
-    }
-    // === END iOS FALLBACK ===
-
-    // Dynamically inject @page size based on selected paper
+    // 1. Dapatkan atau siapkan style element (disiapkan di luar pemanggilan untuk menghindari DOM insertion saat klik)
     const styleId = 'dynamic-print-page-size';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -933,13 +849,11 @@ const printReceipt = () => {
         styleEl.id = styleId;
         document.head.appendChild(styleEl);
     }
+    
     const isA5 = paperSize.value === 'A5';
     const size = isA5 ? 'A5 portrait' : 'A4 portrait';
 
-    // Temporarily clear page title to remove browser header/footer text
-    const originalTitle = document.title;
-    document.title = ' ';
-    
+    // 2. Set styling untuk print
     styleEl.textContent = `
         @media print {
             @page { size: ${size}; margin: 0 !important; }
@@ -1063,10 +977,10 @@ const printReceipt = () => {
             ` : ''}
         }
     `;
+
+    // 3. Panggil window.print() secara langsung
+    // (Kami tidak mengubah document.title sebelum ini agar Safari tidak curiga)
     window.print();
-    
-    // Restore title after print
-    setTimeout(() => { document.title = originalTitle; }, 500);
 };
 
 useEscapeKey(() => {
