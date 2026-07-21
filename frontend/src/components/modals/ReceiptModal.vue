@@ -316,7 +316,7 @@
                                                             {{ formatNumber(Math.abs(item.original_price || item.price)) }}
                                                         </span>
                                                         <span v-else>
-                                                            {{ formatNumber(Math.abs(item.price || item.selling_price || 0)) }}
+                                                            {{ formatNumber(Math.abs(item.pivot?.selling_price || item.price || item.selling_price || 0)) }}
                                                         </span>
                                                     </td>
 
@@ -328,7 +328,7 @@
                                                             {{ item.discount > 0 ? '-' + formatNumber(Math.abs(item.discount)) : '-' }}
                                                         </span>
                                                         <span v-else>
-                                                            {{ (item.discount || item.item_discount) > 0 ? '-' + formatNumber(Math.abs(item.discount || item.item_discount)) : '-' }}
+                                                            {{ (item.pivot?.item_discount || item.discount || item.item_discount) > 0 ? '-' + formatNumber(Math.abs(item.pivot?.item_discount || item.discount || item.item_discount)) : '-' }}
                                                         </span>
                                                     </td>
 
@@ -346,10 +346,7 @@
                                                             {{ formatNumber(Math.abs(item.price)) }}
                                                         </span>
                                                         <span v-else>
-                                                            {{ formatNumber(Math.abs(item.qty * ((item.price ||
-                                                                item.selling_price || 0) - (item.discount ||
-                                                                    item.item_discount ||
-                                                            0)))) }}
+                                                            {{ formatNumber(Math.abs(item.qty * ((item.pivot?.selling_price || item.price || item.selling_price || 0) - (item.pivot?.item_discount || item.discount || item.item_discount || 0)))) }}
                                                         </span>
                                                     </td>
                                                 </tr>
@@ -1205,8 +1202,8 @@ const processedReceiptItems = computed(() => {
                 let groupDiscountTotal = 0;
                 
                 groupItems.forEach((child) => {
-                    const originalPrice = child.price || child.selling_price || 0;
-                    const discount = child.discount || child.item_discount || 0;
+                    const originalPrice = child.pivot?.selling_price || child.price || child.selling_price || 0;
+                    const discount = child.pivot?.item_discount || child.discount || child.item_discount || 0;
                     const qty = child.qty || 1;
                     
                     groupOriginalTotal += (originalPrice * qty);
