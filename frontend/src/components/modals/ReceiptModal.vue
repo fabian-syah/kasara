@@ -310,44 +310,46 @@
 
                                                     <!-- HARGA SATUAN COLUMN -->
                                                     <td
-                                                        class="py-3 px-3 align-middle text-right font-bold text-neutral-900 whitespace-nowrap">
-                                                        <span v-if="item._hidePrice">-</span>
-                                                        <span v-else-if="item.is_bundle_header">
-                                                            {{ formatNumber(Math.abs(item.original_price || item.price)) }}
-                                                        </span>
-                                                        <span v-else>
-                                                            {{ formatNumber(Math.abs(item.pivot?.selling_price || item.price || item.selling_price || 0)) }}
-                                                        </span>
+                                                    <td class="py-3 px-3 align-middle text-right">
+                                                        <div v-if="!item.is_bundle_header && !item.is_bundle_child"
+                                                            class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
+                                                            {{ formatNumber(Math.abs(item.originalPrice || 0)) }}
+                                                        </div>
+                                                        <div v-else-if="item.is_bundle_header" class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                     </td>
 
                                                     <!-- DISKON COLUMN -->
-                                                    <td
-                                                        class="py-3 px-3 align-middle text-right font-bold text-red-600 whitespace-nowrap">
-                                                        <span v-if="item._hidePrice">-</span>
-                                                        <span v-else-if="item.is_bundle_header">
-                                                            {{ item.discount > 0 ? '-' + formatNumber(Math.abs(item.discount)) : '-' }}
-                                                        </span>
-                                                        <span v-else>
-                                                            {{ (item.pivot?.item_discount || item.discount || item.item_discount) > 0 ? '-' + formatNumber(Math.abs(item.pivot?.item_discount || item.discount || item.item_discount)) : '-' }}
-                                                        </span>
+                                                    <td class="py-3 px-3 align-middle text-right">
+                                                        <div v-if="!item.is_bundle_header && !item.is_bundle_child"
+                                                            class="text-[10px] font-black text-red-600">
+                                                            <span v-if="(item.itemDiscount || 0) > 0">
+                                                                - {{ formatNumber(Math.abs(item.itemDiscount || 0)) }}
+                                                            </span>
+                                                            <span v-else class="text-neutral-300">-</span>
+                                                        </div>
+                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                     </td>
 
                                                     <!-- QTY COLUMN -->
-                                                    <td
-                                                        class="py-3 px-3 text-neutral-950 text-center font-black align-middle text-xs">
-                                                        {{ item.qty }}
+                                                    <td class="py-3 px-3 align-middle text-center">
+                                                        <div v-if="!item.is_bundle_header"
+                                                            class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                            {{ item.qty || 1 }}
+                                                        </div>
+                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                     </td>
 
                                                     <!-- JUMLAH COLUMN -->
-                                                    <td
-                                                        class="py-3 px-3 align-middle text-right font-black text-neutral-950 whitespace-nowrap text-xs">
-                                                        <span v-if="item._hidePrice">-</span>
-                                                        <span v-else-if="item.is_bundle_header">
-                                                            {{ formatNumber(Math.abs(item.price)) }}
-                                                        </span>
-                                                        <span v-else>
-                                                            {{ formatNumber(Math.abs(item.qty * ((item.pivot?.selling_price || item.price || item.selling_price || 0) - (item.pivot?.item_discount || item.discount || item.item_discount || 0)))) }}
-                                                        </span>
+                                                    <td class="py-3 px-3 align-middle text-right">
+                                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                            <span v-if="item.is_bundle_child" class="text-neutral-400">-</span>
+                                                            <span v-else-if="item.is_bundle_header">
+                                                                {{ formatNumber(Math.abs(item.price)) }}
+                                                            </span>
+                                                            <span v-else>
+                                                                {{ formatNumber(Math.abs(item.finalTotal || 0)) }}
+                                                            </span>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             </template>
@@ -1184,7 +1186,19 @@ const processedReceiptItems = computed(() => {
         const groupKey = it.notes || it.pivot?.notes || it.pivot_notes;
 
         if (!isBundle) {
-            newList.push({ ...it, is_bundle_header: false, is_bundle_child: false, show_bottom_border: true });
+            const originalPrice = it.original_price ?? it.pivot?.selling_price ?? it.price ?? it.selling_price ?? 0;
+            const itemDiscount = it.item_discount ?? it.pivot?.item_discount ?? it.discount ?? 0;
+            const finalTotal = Math.abs(originalPrice - itemDiscount) * (it.qty || 1);
+
+            newList.push({ 
+                ...it, 
+                is_bundle_header: false, 
+                is_bundle_child: false, 
+                show_bottom_border: true,
+                originalPrice: Number(originalPrice),
+                itemDiscount: Number(itemDiscount),
+                finalTotal: Number(finalTotal)
+            });
         } else {
             // Only process this bundle group the FIRST time its group key is encountered to keep it unified
             if (!seenBundleKeys.has(groupKey)) {
