@@ -410,13 +410,13 @@
                                                 <span class="text-neutral-900 font-bold">
                                                     {{ formatCurrency(transaction.original_price ||
                                                         (Number(transaction.selling_price || 0) +
-                                                            Number(transaction.total_discount || 0))) }}
+                                                            Number(transaction.global_discount_value || 0))) }}
                                                 </span>
                                             </div>
-                                            <div v-if="transaction.total_discount > 0" class="flex justify-between">
-                                                <span class="font-bold text-neutral-500 text-[10px]">Diskon</span>
+                                            <div v-if="Number(transaction.global_discount_value) > 0" class="flex justify-between">
+                                                <span class="font-bold text-neutral-500 text-[10px]">Diskon (Nota)</span>
                                                 <span class="text-red-600 font-bold">-{{
-                                                    formatCurrency(transaction.total_discount) }}</span>
+                                                    formatCurrency(transaction.global_discount_value) }}</span>
                                             </div>
                                             <div v-for="(payment, idx) in transaction.split_payments_data || []"
                                                 :key="idx"
