@@ -379,21 +379,19 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click.stop="openReceipt(item)"
-                                                @touchend.prevent.stop="openReceipt(item)"
-                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
-                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+                                            <button @click="openReceipt(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap"
                                                 title="Buat Struk">
-                                                <Printer :size="18" />
+                                                <Printer :size="12" stroke-width="3" />
+                                                <span>PRINT</span>
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
-                                                @click.stop="handleCancelSale(item)"
-                                                @touchend.prevent.stop="handleCancelSale(item)"
-                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
-                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+                                                @click="handleCancelSale(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-red-600 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-all border border-red-100 dark:border-red-500/20 whitespace-nowrap"
                                                 title="Batalkan Penjualan">
-                                                <Trash2 :size="18" />
+                                                <Trash2 :size="12" stroke-width="3" />
+                                                <span>HAPUS</span>
                                             </button>
                                         </div>
                                     </td>
@@ -512,21 +510,19 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click.stop="openReceipt(item)"
-                                                @touchend.prevent.stop="openReceipt(item)"
-                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
-                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+                                            <button @click="openReceipt(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap"
                                                 title="Buat Struk">
-                                                <Printer :size="18" />
+                                                <Printer :size="12" stroke-width="3" />
+                                                <span>PRINT</span>
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
-                                                @click.stop="handleCancelSale(item)"
-                                                @touchend.prevent.stop="handleCancelSale(item)"
-                                                class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
-                                                style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
+                                                @click="handleCancelSale(item)"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-red-600 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-all border border-red-100 dark:border-red-500/20 whitespace-nowrap"
                                                 title="Batalkan Penjualan">
-                                                <Trash2 :size="18" />
+                                                <Trash2 :size="12" stroke-width="3" />
+                                                <span>HAPUS</span>
                                             </button>
                                         </div>
                                     </td>
