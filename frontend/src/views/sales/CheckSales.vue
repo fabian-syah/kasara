@@ -379,7 +379,8 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click.prevent.stop="openReceipt(item)"
+                                            <button @click.stop="openReceipt(item)"
+                                                @touchend.prevent.stop="openReceipt(item)"
                                                 class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
                                                 style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Buat Struk">
@@ -387,7 +388,8 @@
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
-                                                @click.prevent.stop="handleCancelSale(item)"
+                                                @click.stop="handleCancelSale(item)"
+                                                @touchend.prevent.stop="handleCancelSale(item)"
                                                 class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
                                                 style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Batalkan Penjualan">
@@ -510,7 +512,8 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click.prevent.stop="openReceipt(item)"
+                                            <button @click.stop="openReceipt(item)"
+                                                @touchend.prevent.stop="openReceipt(item)"
                                                 class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
                                                 style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Buat Struk">
@@ -518,7 +521,8 @@
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
-                                                @click.prevent.stop="handleCancelSale(item)"
+                                                @click.stop="handleCancelSale(item)"
+                                                @touchend.prevent.stop="handleCancelSale(item)"
                                                 class="shrink-0 min-w-[44px] min-h-[44px] p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer relative z-10 flex items-center justify-center"
                                                 style="touch-action: manipulation; -webkit-tap-highlight-color: transparent;"
                                                 title="Batalkan Penjualan">
