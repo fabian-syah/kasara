@@ -662,6 +662,7 @@
                 <th style="width: 110px;">IMEI</th>
                 <th>Deskripsi Barang</th>
                 <th style="width: 85px; text-align: right;">Harga Satuan</th>
+                <th style="width: 60px; text-align: right;">Diskon</th>
                 <th style="width: 35px; text-align: center;">Qty</th>
                 <th style="width: 85px; text-align: right;">Jumlah</th>
             </tr>
@@ -708,10 +709,16 @@
 
                             // Calculate combined price
                             $groupTotal = 0;
+                            $groupOriginalTotal = 0;
+                            $groupDiscountTotal = 0;
                             foreach($groupChildren as $child) {
-                                $price = abs(($child->is_hp ? ($child->pivot->selling_price ?? 0) : ($child->selling_price ?? 0)) - ($child->is_hp ? ($child->pivot->item_discount ?? 0) : ($child->item_discount ?? 0)));
+                                $price = ($child->is_hp ? ($child->pivot->selling_price ?? 0) : ($child->selling_price ?? 0));
+                                $discount = ($child->is_hp ? ($child->pivot->item_discount ?? 0) : ($child->item_discount ?? 0));
                                 $qty = $child->is_hp ? 1 : ($child->quantity ?? 1);
-                                $groupTotal += ($price * $qty);
+                                
+                                $groupOriginalTotal += ($price * $qty);
+                                $groupDiscountTotal += ($discount * $qty);
+                                $groupTotal += (abs($price - $discount) * $qty);
                             }
 
                             // Format cleaner display name
@@ -732,6 +739,8 @@
                                 'is_bundle_child' => false,
                                 'name' => $cleanName,
                                 'price' => $groupTotal,
+                                'original_price' => $groupOriginalTotal,
+                                'discount' => $groupDiscountTotal,
                                 'qty' => 1,
                                 'imei' => '-'
                             ];
@@ -807,14 +816,28 @@
                     <!-- HARGA SATUAN COLUMN -->
                     <td style="text-align: right; font-weight: 700; color: #1f2937;">
                         @if($item->is_bundle_header)
-                            {{ number_format($item->price, 0, ',', '.') }}
+                            {{ number_format($item->original_price ?? $item->price, 0, ',', '.') }}
                         @elseif(isset($item->_hidePrice))
                             -
                         @else
                             @php
-                                $price = abs(($item->is_hp ? ($item->pivot->selling_price ?? 0) : ($item->selling_price ?? 0)) - ($item->is_hp ? ($item->pivot->item_discount ?? 0) : ($item->item_discount ?? 0)));
+                                $original_price = ($item->is_hp ? ($item->pivot->selling_price ?? 0) : ($item->selling_price ?? 0));
                             @endphp
-                            {{ number_format($price, 0, ',', '.') }}
+                            {{ number_format(abs($original_price), 0, ',', '.') }}
+                        @endif
+                    </td>
+
+                    <!-- DISKON COLUMN -->
+                    <td style="text-align: right; font-weight: 700; color: #dc2626;">
+                        @if($item->is_bundle_header)
+                            {{ isset($item->discount) && $item->discount > 0 ? '-'.number_format($item->discount, 0, ',', '.') : '-' }}
+                        @elseif(isset($item->_hidePrice))
+                            -
+                        @else
+                            @php
+                                $discount = ($item->is_hp ? ($item->pivot->item_discount ?? 0) : ($item->item_discount ?? 0));
+                            @endphp
+                            {{ $discount > 0 ? '-'.number_format(abs($discount), 0, ',', '.') : '-' }}
                         @endif
                     </td>
 
@@ -849,7 +872,7 @@
             @for($i = 0; $i < max(0, 2 - $rowCount); $i++)
                 <tr style="opacity: 0.1;">
                     <td style="padding: 12px;">&nbsp;</td>
-                    <td colspan="4"></td>
+                    <td colspan="5"></td>
                 </tr>
             @endfor
         </tbody>

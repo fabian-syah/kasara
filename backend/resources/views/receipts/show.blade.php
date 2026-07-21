@@ -93,6 +93,7 @@
                     <th class="py-2 text-left w-24">IMEI</th>
                     <th class="py-2 text-left">Deskripsi Barang</th>
                     <th class="py-2 text-right w-24">Harga Satuan</th>
+                    <th class="py-2 text-right w-20">Diskon</th>
                     <th class="py-2 text-center w-12">Qty</th>
                     <th class="py-2 text-right w-28">Jumlah</th>
                 </tr>
@@ -138,10 +139,16 @@
 
                                 // Calculate combined price
                                 $groupTotal = 0;
+                                $groupOriginalTotal = 0;
+                                $groupDiscountTotal = 0;
                                 foreach($groupChildren as $child) {
-                                    $price = abs(($child->is_hp ? ($child->pivot->selling_price ?? 0) : ($child->selling_price ?? 0)) - ($child->is_hp ? ($child->pivot->item_discount ?? 0) : ($child->item_discount ?? 0)));
+                                    $price = ($child->is_hp ? ($child->pivot->selling_price ?? 0) : ($child->selling_price ?? 0));
+                                    $discount = ($child->is_hp ? ($child->pivot->item_discount ?? 0) : ($child->item_discount ?? 0));
                                     $qty = $child->is_hp ? 1 : ($child->quantity ?? 1);
-                                    $groupTotal += ($price * $qty);
+                                    
+                                    $groupOriginalTotal += ($price * $qty);
+                                    $groupDiscountTotal += ($discount * $qty);
+                                    $groupTotal += (abs($price - $discount) * $qty);
                                 }
 
                                 // Format cleaner display name
@@ -162,6 +169,8 @@
                                     'is_bundle_child' => false,
                                     'name' => $cleanName,
                                     'price' => $groupTotal,
+                                    'original_price' => $groupOriginalTotal,
+                                    'discount' => $groupDiscountTotal,
                                     'qty' => 1,
                                     'imei' => '-'
                                 ];
@@ -229,14 +238,28 @@
                         <!-- HARGA SATUAN COLUMN -->
                         <td class="py-3 text-right font-bold">
                             @if($item->is_bundle_header)
-                                {{ number_format($item->price, 0, ',', '.') }}
+                                {{ number_format($item->original_price ?? $item->price, 0, ',', '.') }}
                             @elseif(isset($item->_hidePrice))
                                 -
                             @else
                                 @php
-                                    $price = abs(($item->is_hp ? ($item->pivot->selling_price ?? 0) : ($item->selling_price ?? 0)) - ($item->is_hp ? ($item->pivot->item_discount ?? 0) : ($item->item_discount ?? 0)));
+                                    $original_price = ($item->is_hp ? ($item->pivot->selling_price ?? 0) : ($item->selling_price ?? 0));
                                 @endphp
-                                {{ number_format($price, 0, ',', '.') }}
+                                {{ number_format(abs($original_price), 0, ',', '.') }}
+                            @endif
+                        </td>
+
+                        <!-- DISKON COLUMN -->
+                        <td class="py-3 text-right text-red-600 font-bold">
+                            @if($item->is_bundle_header)
+                                {{ isset($item->discount) && $item->discount > 0 ? '-'.number_format($item->discount, 0, ',', '.') : '-' }}
+                            @elseif(isset($item->_hidePrice))
+                                -
+                            @else
+                                @php
+                                    $discount = ($item->is_hp ? ($item->pivot->item_discount ?? 0) : ($item->item_discount ?? 0));
+                                @endphp
+                                {{ $discount > 0 ? '-'.number_format(abs($discount), 0, ',', '.') : '-' }}
                             @endif
                         </td>
 
