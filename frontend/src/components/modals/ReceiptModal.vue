@@ -315,7 +315,6 @@
                                                     </td>
 
                                                     <!-- HARGA SATUAN COLUMN -->
-                                                    <td
                                                     <td class="py-3 px-3 align-middle text-right">
                                                         <div v-if="!item.is_bundle_header && !item.is_bundle_child"
                                                             class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
