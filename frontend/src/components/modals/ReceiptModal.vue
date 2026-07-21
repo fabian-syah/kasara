@@ -841,6 +841,82 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
+    // === iOS SAFARI "NEW TAB" FALLBACK ===
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (isIOS) {
+        const element = document.querySelector('.nota-paper');
+        if (element) {
+            const cloned = element.cloneNode(true);
+            cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
+            
+            let compiledStyles = '';
+            document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+                compiledStyles += el.outerHTML;
+            });
+
+            const isA5 = paperSize.value === 'A5';
+            const size = isA5 ? 'A5 portrait' : 'A4 portrait';
+            const htmlContent = cloned.outerHTML;
+
+            // Buka tab baru HANYA jika dipicu dari user gesture langsung
+            const printWindow = window.open('', '_blank');
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <title>Cetak Nota</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                        ${compiledStyles}
+                        <style>
+                            @page { size: ${size}; margin: 0 !important; }
+                            html, body {
+                                background: white !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                width: 100% !important;
+                            }
+                            .nota-paper {
+                                width: ${isA5 ? '148mm' : '100%'} !important;
+                                max-width: ${isA5 ? '148mm' : '100%'} !important;
+                                margin: 0 auto !important;
+                                padding: 0 !important;
+                                box-shadow: none !important;
+                                transform: none !important;
+                                page-break-inside: avoid !important;
+                            }
+                        </style>
+                    </head>
+                    <body style="background: white; margin: 0; padding: 0;">
+                        <div style="width: 100%; display: flex; justify-content: center;">
+                            ${htmlContent}
+                        </div>
+                        <script>
+                            // Di tab baru, window.print aman dipanggil setelah load
+                            window.onload = function() {
+                                setTimeout(function() {
+                                    window.print();
+                                    // Beri waktu untuk pengguna klik cancel/print sebelum menutup tab
+                                    setTimeout(function() { window.close(); }, 1000);
+                                }, 300);
+                            };
+                        <${'/'}script>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                return;
+            } else {
+                alert('Pop-up terblokir oleh Safari! Tolong izinkan Pop-up untuk situs ini (Settings > Safari > Block Pop-ups dimatikan) agar bisa mencetak.');
+                return; // Berhenti jika pop-up diblokir
+            }
+        }
+    }
+    // === END iOS FALLBACK ===
+
     // 1. Dapatkan atau siapkan style element (disiapkan di luar pemanggilan untuk menghindari DOM insertion saat klik)
     const styleId = 'dynamic-print-page-size';
     let styleEl = document.getElementById(styleId);
