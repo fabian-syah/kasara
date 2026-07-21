@@ -356,7 +356,7 @@
                                                 class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
                                                     @click="viewProof(img)"
-                                                    class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
                                                     <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
@@ -366,7 +366,7 @@
                                             </div>
                                             <!-- Fallback if proof_images is empty but single proof_image exists (Foto Unit/Nota) -->
                                             <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
-                                                class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
+                                                class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
                                                 <span>Lihat Bukti</span>
@@ -374,20 +374,20 @@
 
                                             <!-- NEW: Payment Proof Button -->
                                             <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image)"
-                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
                                                 title="Lihat Foto Bukti Pembayaran/Transfer">
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button @click="openReceipt(item)"
-                                                class="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                            <button @click.prevent.stop="openReceipt(item)"
+                                                class="shrink-0 p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
                                                 title="Buat Struk">
                                                 <Printer :size="18" />
                                             </button>
                                             <button
                                                 v-if="item.category !== 'cancel_penjualan' && canCancel(item.created_at || item.date)"
-                                                @click="handleCancelSale(item)"
-                                                class="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                @click.prevent.stop="handleCancelSale(item)"
+                                                class="shrink-0 p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Batalkan Penjualan">
                                                 <Trash2 :size="18" />
                                             </button>
