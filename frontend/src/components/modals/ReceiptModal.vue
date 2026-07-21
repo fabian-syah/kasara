@@ -902,17 +902,16 @@ const printReceipt = () => {
             `);
             doc.close();
 
-            // Needs slight delay for styles to render in the iframe
+            // HARUS SINKRON: iOS Safari akan memblokir print() jika ada setTimeout
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            
+            // Cleanup delay 
             setTimeout(() => {
-                iframe.contentWindow.focus();
-                iframe.contentWindow.print();
-                // Optional cleanup
-                setTimeout(() => {
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                }, 2000);
-            }, 300);
+                if (document.body.contains(iframe)) {
+                    document.body.removeChild(iframe);
+                }
+            }, 3000);
             return;
         }
     }
