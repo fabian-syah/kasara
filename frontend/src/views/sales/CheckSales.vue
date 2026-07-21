@@ -297,9 +297,9 @@
                                         formatCurrency((detail.original_price ? (detail.original_price - detail.item_discount) : detail.price) * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1 items-start">
-                                            <span v-if="item.total_discount > 0"
+                                            <span v-if="item.global_discount_value > 0"
                                                 class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
-                                                Disc: -{{ formatCurrency(item.total_discount) }}
+                                                Disc: -{{ formatCurrency(item.global_discount_value) }}
                                             </span>
                                             <span
                                                 class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
@@ -440,9 +440,9 @@
                                         formatCurrency(item.grand_total + (item.global_discount_value || 0)) }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1 items-start">
-                                            <span v-if="item.total_discount > 0"
+                                            <span v-if="item.global_discount_value > 0"
                                                 class="px-2 py-0.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-black rounded-md border border-red-100 dark:border-red-500/20 whitespace-nowrap flex items-center gap-1">
-                                                Disc: -{{ formatCurrency(item.total_discount) }}
+                                                Disc: -{{ formatCurrency(item.global_discount_value) }}
                                             </span>
                                             <span
                                                 class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">

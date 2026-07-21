@@ -2259,6 +2259,7 @@ class AuditController extends Controller
                     'grand_total' => $finalPrice,
                     'selling_price' => $finalPrice,
                     'total_discount' => (float) $trx->total_discount,
+                    'global_discount_value' => (float) $trx->global_discount_value,
                     'original_price' => (float) ($priceOut + $trx->total_discount),
                     'is_bundle' => (bool) $trx->is_bundle,
                     'bundle_description' => $trx->bundle_description,
