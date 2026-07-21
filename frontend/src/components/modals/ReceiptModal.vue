@@ -841,12 +841,18 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
+    alert("DEBUG 1: Tombol Cetak Nota di dalam modal berhasil ditekan!");
+
     // === iOS SAFARI "NEW TAB" FALLBACK ===
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
+    alert("DEBUG 2: Perangkat terdeteksi sebagai iOS? -> " + isIOS);
+
     if (isIOS) {
         const element = document.querySelector('.nota-paper');
         if (element) {
+            alert("DEBUG 3: Elemen nota berhasil ditemukan. Mencoba membuka tab baru...");
+            
             const cloned = element.cloneNode(true);
             cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
             
@@ -862,6 +868,7 @@ const printReceipt = () => {
             // Buka tab baru HANYA jika dipicu dari user gesture langsung
             const printWindow = window.open('', '_blank');
             if (printWindow) {
+                alert("DEBUG 4: Tab baru berhasil dibuka! Memasukkan konten...");
                 printWindow.document.open();
                 printWindow.document.write(`
                     <!DOCTYPE html>
