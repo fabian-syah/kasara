@@ -689,7 +689,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, onErrorCaptured } from 'vue'
 import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
@@ -835,10 +835,25 @@ const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
 
 const iosDebugMessage = ref('')
+
+onErrorCaptured((err, instance, info) => {
+    iosDebugMessage.value = `[VUE ERROR]: ${err.message} (Info: ${info})`;
+    return false; // prevent crash propagation
+});
+
 const debugOpenReceipt = (item) => {
     iosDebugMessage.value = 'Membuka nota: ' + (item.order_no || 'Unknown');
     setTimeout(() => {
-        openReceipt(item);
+        try {
+            openReceipt(item);
+            setTimeout(() => {
+                if (!iosDebugMessage.value.includes('VUE ERROR')) {
+                    iosDebugMessage.value += ' -> Perintah buka selesai (Render)';
+                }
+            }, 300);
+        } catch (err) {
+            iosDebugMessage.value = 'TRYCATCH ERR: ' + err.message;
+        }
     }, 100);
 }
 
