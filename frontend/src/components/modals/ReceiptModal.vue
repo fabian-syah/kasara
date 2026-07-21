@@ -7,12 +7,6 @@
                 <div
                     class="bg-white dark:bg-surface-800 rounded-2xl sm:rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl print:shadow-none print:rounded-none print:max-w-full flex flex-col h-full max-h-[92vh] sm:max-h-[85vh]">
 
-                    <!-- Debug Banner -->
-                    <div v-if="iosDebugMessage" class="absolute top-4 left-1/2 -translate-x-1/2 z-[999999] bg-neutral-900 text-emerald-400 px-6 py-4 rounded-xl shadow-2xl font-mono text-xs border border-neutral-700 flex flex-col gap-2 items-center text-center max-w-[90vw] break-all">
-                        <span>[DEBUG LOG]: {{ iosDebugMessage }}</span>
-                        <button type="button" @click="iosDebugMessage = ''" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg mt-1 text-[10px] text-white">Tutup</button>
-                    </div>
-
                     <!-- Modal Header (hide on print) -->
                     <div
                         class="p-6 flex justify-between items-center border-b border-gray-100 dark:border-surface-700 print:hidden shrink-0">
@@ -581,7 +575,6 @@ const close = () => {
 
 const isGeneratingPDF = ref(false);
 const paperSize = ref('A4');
-const iosDebugMessage = ref('');
 
 watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.autoSend) {
@@ -847,17 +840,12 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
-    iosDebugMessage.value = "DEBUG 1: Tombol Cetak Nota ditekan!";
-
     // === iOS SAFARI "NEW TAB" FALLBACK ===
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     
-    setTimeout(() => { iosDebugMessage.value = "DEBUG 2: Perangkat terdeteksi sebagai iOS? -> " + isIOS; }, 1000);
-
     if (isIOS) {
         const element = document.querySelector('.nota-paper');
         if (element) {
-            setTimeout(() => { iosDebugMessage.value = "DEBUG 3: Elemen nota ditemukan. Mencoba buka tab baru..."; }, 2000);
             
             const cloned = element.cloneNode(true);
             cloned.querySelectorAll('.print\\:hidden').forEach(el => el.remove());
@@ -874,7 +862,6 @@ const printReceipt = () => {
             // Buka tab baru HANYA jika dipicu dari user gesture langsung
             const printWindow = window.open('', '_blank');
             if (printWindow) {
-                setTimeout(() => { iosDebugMessage.value = "DEBUG 4: Tab baru dibuka! Memasukkan konten..."; }, 3000);
                 printWindow.document.open();
                 printWindow.document.write(`
                     <!DOCTYPE html>

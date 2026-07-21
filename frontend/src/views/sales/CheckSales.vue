@@ -13,12 +13,6 @@
     </div>
 
     <div v-else class="space-y-6 relative">
-        <!-- Debug Banner -->
-        <div v-if="iosDebugMessage" class="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] bg-neutral-900 text-emerald-400 px-6 py-4 rounded-xl shadow-2xl font-mono text-xs border border-neutral-700 flex flex-col gap-2 items-center text-center max-w-[90vw] break-all">
-            <span>[DEBUG LOG]: {{ iosDebugMessage }}</span>
-            <button type="button" @click="iosDebugMessage = ''" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg mt-1 text-[10px] text-white">Tutup</button>
-        </div>
-
         <!-- Header & Filters -->
         <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
@@ -385,7 +379,7 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button type="button" @click="debugOpenReceipt(item)"
+                                            <button type="button" @click="openReceipt(item)"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
                                                 <Printer :size="12" stroke-width="3" class="pointer-events-none" />
@@ -516,7 +510,7 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button type="button" @click="debugOpenReceipt(item)"
+                                            <button type="button" @click="openReceipt(item)"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
                                                 <Printer :size="12" stroke-width="3" class="pointer-events-none" />
@@ -689,7 +683,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, onErrorCaptured } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
@@ -833,29 +827,6 @@ const showReceiptModal = ref(false)
 const currentReceiptData = ref(null)
 const showCancelModal = ref(false)
 const selectedSaleForCancel = ref(null)
-
-const iosDebugMessage = ref('')
-
-onErrorCaptured((err, instance, info) => {
-    iosDebugMessage.value = `[VUE ERROR]: ${err.message} (Info: ${info})`;
-    return false; // prevent crash propagation
-});
-
-const debugOpenReceipt = (item) => {
-    iosDebugMessage.value = 'Membuka nota: ' + (item.order_no || 'Unknown');
-    setTimeout(() => {
-        try {
-            openReceipt(item);
-            setTimeout(() => {
-                if (!iosDebugMessage.value.includes('VUE ERROR')) {
-                    iosDebugMessage.value += ' -> Perintah buka selesai (Render)';
-                }
-            }, 300);
-        } catch (err) {
-            iosDebugMessage.value = 'TRYCATCH ERR: ' + err.message;
-        }
-    }, 100);
-}
 
 const showScreenshotModal = ref(false)
 const selectedSaleForScreenshot = ref(null)
