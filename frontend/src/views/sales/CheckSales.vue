@@ -379,7 +379,7 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button type="button" @click="() => { alert('DEBUG iOS: Buka nota ' + (item.order_no || '')); openReceipt(item); }"
+                                            <button type="button" @click="() => { window.alert('DEBUG iOS: Buka nota ' + (item.order_no || '')); openReceipt(item); }"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
                                                 <Printer :size="12" stroke-width="3" class="pointer-events-none" />
@@ -510,7 +510,7 @@
                                                 <Wallet :size="12" stroke-width="3" />
                                                 <span>Bayar</span>
                                             </button>
-                                            <button type="button" @click="() => { alert('DEBUG iOS: Buka nota ' + (item.order_no || '')); openReceipt(item); }"
+                                            <button type="button" @click="() => { window.alert('DEBUG iOS: Buka nota ' + (item.order_no || '')); openReceipt(item); }"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
                                                 <Printer :size="12" stroke-width="3" class="pointer-events-none" />
