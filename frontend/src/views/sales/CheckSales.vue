@@ -284,10 +284,17 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ detail.imei && detail.imei
                                         !== '-' ? detail.imei : '-' }}</td>
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
-                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{
-                                        formatCurrency(detail.price) }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">
+                                        <div class="flex flex-col">
+                                            <span>{{ formatCurrency(detail.original_price || detail.price) }}</span>
+                                            <span v-if="detail.item_discount > 0"
+                                                class="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-red-100 dark:border-red-500/20">
+                                                Disc: -{{ formatCurrency(detail.item_discount) }}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
-                                        formatCurrency(detail.price * detail.qty) }}</td>
+                                        formatCurrency((detail.original_price ? (detail.original_price - detail.item_discount) : detail.price) * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1 items-start">
                                             <span v-if="item.total_discount > 0"
@@ -420,10 +427,17 @@
                                     <td class="px-6 py-4 font-mono text-xs text-blue-500">{{ item.imeis && item.imeis
                                         !== '-' ? item.imeis : '-' }}</td>
                                     <td class="px-6 py-4 font-bold text-text-primary">{{ item.qty }}</td>
-                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">{{
-                                        formatCurrency(item.grand_total / (item.qty || 1)) }}</td>
+                                    <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">
+                                        <div class="flex flex-col">
+                                            <span>{{ formatCurrency((item.original_price || item.grand_total) / (item.qty || 1)) }}</span>
+                                            <span v-if="item.total_discount > 0 && (item.total_discount - (item.global_discount_value || 0)) > 0"
+                                                class="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-red-100 dark:border-red-500/20">
+                                                Disc: -{{ formatCurrency((item.total_discount - (item.global_discount_value || 0)) / (item.qty || 1)) }}
+                                            </span>
+                                        </div>
+                                    </td>
                                     <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
-                                        formatCurrency(item.grand_total) }}</td>
+                                        formatCurrency(item.grand_total + (item.global_discount_value || 0)) }}</td>
                                     <td class="px-6 py-4">
                                         <div class="flex flex-col gap-1 items-start">
                                             <span v-if="item.total_discount > 0"
