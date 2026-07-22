@@ -32,6 +32,47 @@ const newAccountName = ref("");
 const newAccountPin = ref("");
 const isCreatingAccount = ref(false);
 
+// Edit Account State
+const showEditModal = ref(false);
+const editAccountData = ref({
+    id: null,
+    name: "",
+    username: "",
+    password: ""
+});
+const isUpdatingAccount = ref(false);
+
+function openEditModal(acc) {
+    editAccountData.value = {
+        id: acc.id,
+        name: acc.name,
+        username: acc.username,
+        password: ""
+    };
+    showEditModal.value = true;
+}
+
+async function submitEditAccount() {
+    isUpdatingAccount.value = true;
+    try {
+        const payload = new FormData();
+        payload.append('name', editAccountData.value.name);
+        payload.append('username', editAccountData.value.username);
+        if (editAccountData.value.password) {
+            payload.append('password', editAccountData.value.password);
+        }
+        
+        await inventoryApi.updateAccount(editAccountData.value.id, payload);
+        toast.success("Akun inventory berhasil diupdate!");
+        showEditModal.value = false;
+        await fetchAccounts();
+    } catch (e) {
+        toast.error(e.response?.data?.message || "Gagal mengupdate akun.");
+    } finally {
+        isUpdatingAccount.value = false;
+    }
+}
+
 async function fetchAccounts() {
     try {
         const invRes = await inventoryApi.myAccounts();
@@ -296,13 +337,17 @@ const accountsByBranch = computed(() => {
                                             </div>
                                             <div>
                                                 <p class="text-[10px] font-black text-zinc-800 dark:text-white uppercase">{{ acc.name }}</p>
-                                                <p class="text-[9px] font-black uppercase" :class="acc.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
+                                                <p class="text-[9px] font-black text-zinc-500 uppercase">{{ acc.username }}</p>
+                                                <p class="text-[9px] font-black uppercase mt-0.5" :class="acc.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
                                                     {{ acc.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div class="flex items-center gap-3">
+                                            <button @click="openEditModal(acc)" type="button" class="text-[9px] font-black uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors">
+                                                EDIT AKUN
+                                            </button>
                                             <button @click="requestPinReset(acc.id)" type="button" class="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">
                                                 RESET PIN
                                             </button>
@@ -325,6 +370,36 @@ const accountsByBranch = computed(() => {
         :error="pinError" :loading="isPinLoading"
         @close="showPinModal = false"
         @success="handlePinSuccess" />
+
+    <!-- Edit Account Modal -->
+    <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm" @click="showEditModal = false">
+        <div class="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-zinc-200 dark:border-zinc-800" @click.stop>
+            <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase mb-4 tracking-wider">Edit Akun Inventory</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="label">NAMA AKUN</label>
+                    <input v-model="editAccountData.name" type="text" class="input" placeholder="Nama Akun" />
+                </div>
+                <div>
+                    <label class="label">USERNAME</label>
+                    <input v-model="editAccountData.username" type="text" class="input" placeholder="Username" />
+                </div>
+                <div>
+                    <label class="label">PASSWORD BARU (Opsional)</label>
+                    <input v-model="editAccountData.password" type="password" class="input" placeholder="Kosongkan jika tidak diubah" />
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button @click="showEditModal = false" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 px-3 py-2">
+                    Batal
+                </button>
+                <button @click="submitEditAccount" :disabled="isUpdatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
+                    <Loader2 v-if="isUpdatingAccount" class="animate-spin" :size="14" />
+                    Simpan
+                </button>
+            </div>
+        </div>
+    </div>
 </template>
 
 <style scoped>

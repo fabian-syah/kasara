@@ -93,6 +93,8 @@ class InventoryAccountController extends Controller
 
         $request->validate([
             'name' => 'nullable|string|max:50',
+            'username' => 'nullable|string|max:50|unique:users,username,' . $id,
+            'password' => 'nullable|string|min:6',
             'phone' => 'nullable|string|max:20',
             'branch_id' => 'nullable|integer',
             'warehouse_id' => 'nullable|integer',
@@ -112,6 +114,19 @@ class InventoryAccountController extends Controller
             $account->online_shop_id = $request->online_shop_id;
         if ($request->has('distributor_id'))
             $account->distributor_id = $request->distributor_id;
+
+        if ($request->has('name')) {
+            $account->name = $request->name;
+            $account->full_name = $request->name;
+        }
+
+        if ($request->has('username')) {
+            $account->username = $request->username;
+        }
+
+        if ($request->has('password') && !empty($request->password)) {
+            $account->password = Hash::make($request->password);
+        }
 
         $account->phone = $request->phone;
 
