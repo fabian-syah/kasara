@@ -309,11 +309,11 @@
                                     </td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1.5 items-start">
-                                            <!-- Account Priority: inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
-                                            <div v-if="item.inventory_user_name || item.sales_account"
+                                            <!-- Account Priority: inventory_user?.name -> inventory_user_name -> sales_account -> 9090 Mask -> PIN Mask -->
+                                            <div v-if="item.inventory_user?.name || item.inventory_user_name || item.sales_account"
                                                 class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
                                                 <User :size="12" stroke-width="2.5" />
-                                                {{ item.inventory_user_name || item.sales_account }}
+                                                {{ item.inventory_user?.name || item.inventory_user_name || item.sales_account }}
                                             </div>
                                             <div v-else-if="String(item.transaction_pin) === '9090'"
                                                 class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
@@ -329,7 +329,7 @@
                                                 :title="item.notes">
                                                 {{ item.notes }}
                                             </div>
-                                            <div v-else-if="!item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
+                                            <div v-else-if="!item.inventory_user?.name && !item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
                                                 class="text-text-secondary italic text-xs px-0.5">
                                                 Tanpa Catatan
                                             </div>
@@ -1016,7 +1016,7 @@ const summaryStats = computed(() => {
 
     activeRecords.value.forEach(item => {
         const origCat = item.category?.toLowerCase();
-        const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user_name);
+        const cat = resolveActualCategory(item.category, item.notes, item.sales_account || item.inventory_user?.name || item.inventory_user_name);
 
         let total = 0;
         const discount = parseFloat(item.total_discount) || 0;
