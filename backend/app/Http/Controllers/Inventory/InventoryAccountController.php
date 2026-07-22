@@ -87,7 +87,7 @@ class InventoryAccountController extends Controller
         $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
         $userRole = strtolower($user->roles->first()->name ?? '');
 
-        if ($account->created_by !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
+        if ($account->created_by !== $user->id && $account->id !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
             return response()->json(['message' => 'Unauthorized action. Hanya pembuat akun yang bisa mengedit.'], 403);
         }
 
