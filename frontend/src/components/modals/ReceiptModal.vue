@@ -310,16 +310,16 @@
 
                                                     <!-- HARGA SATUAN COLUMN -->
                                                     <td class="py-3 px-3 align-middle text-right">
-                                                        <div v-if="!item.is_bundle_header && !item.is_bundle_child"
+                                                        <div v-if="!item.is_bundle_child"
                                                             class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
                                                             {{ formatNumber(Math.abs(item.originalPrice || 0)) }}
                                                         </div>
-                                                        <div v-else-if="item.is_bundle_header" class="text-[10px] font-bold text-neutral-400 text-center">-</div>
+                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                     </td>
 
                                                     <!-- DISKON COLUMN -->
                                                     <td class="py-3 px-3 align-middle text-right">
-                                                        <div v-if="!item.is_bundle_header && !item.is_bundle_child"
+                                                        <div v-if="!item.is_bundle_child"
                                                             class="text-[10px] font-black text-red-600">
                                                             <span v-if="(item.itemDiscount || 0) > 0">
                                                                 - {{ formatNumber(Math.abs(item.itemDiscount || 0)) }}
@@ -331,7 +331,7 @@
 
                                                     <!-- QTY COLUMN -->
                                                     <td class="py-3 px-3 align-middle text-center">
-                                                        <div v-if="!item.is_bundle_header"
+                                                        <div v-if="!item.is_bundle_child"
                                                             class="text-[10px] sm:text-[11px] font-black text-neutral-900">
                                                             {{ item.qty || 1 }}
                                                         </div>
@@ -414,7 +414,7 @@
                                                             Number(transaction.global_discount_value || 0))) }}
                                                 </span>
                                             </div>
-                                            <div v-if="Number(transaction.global_discount_value) > 0" class="flex justify-between">
+                                            <div v-if="Number(transaction.global_discount_value) > 0 && !hasBundleAbsorbedGlobalDiscount" class="flex justify-between">
                                                 <span class="font-bold text-neutral-500 text-[10px]">Diskon (Nota)</span>
                                                 <span class="text-red-600 font-bold">-{{
                                                     formatCurrency(transaction.global_discount_value) }}</span>
@@ -1071,6 +1071,10 @@ const calculatedChange = computed(() => {
     return Math.max(0, calculatedTotalPaid.value - Math.abs(calculatedGrandTotal.value));
 });
 
+const hasBundleAbsorbedGlobalDiscount = computed(() => {
+    return processedReceiptItems.value.some(item => item.is_bundle_header && item.absorbedGlobalDiscount);
+});
+
 const receiptSetting = computed(() => {
     const b = props.transaction.branch || authStore.userBranch;
     const os = props.transaction.online_shop || authStore.user?.online_shop;
@@ -1238,6 +1242,16 @@ const processedReceiptItems = computed(() => {
                     bundleDisplayName = 'Paket Promo: ' + bundleDisplayName;
                 }
 
+                // ABSORB GLOBAL DISCOUNT INTO BUNDLE
+                const globalDisc = Number(props.transaction?.global_discount_value || 0);
+                let absorbed = false;
+                if (globalDisc > 0 && !seenBundleKeys.hasAbsorbedGlobal) {
+                    groupDiscountTotal += globalDisc;
+                    groupTotal -= globalDisc;
+                    seenBundleKeys.hasAbsorbedGlobal = true;
+                    absorbed = true;
+                }
+
                 // 4. Push the HEADER ROW which displays the consolidated price
                 newList.push({
                     is_hp: false,
@@ -1245,8 +1259,9 @@ const processedReceiptItems = computed(() => {
                     is_bundle_child: false,
                     name: bundleDisplayName,
                     price: groupTotal,
-                    original_price: groupOriginalTotal,
-                    discount: groupDiscountTotal,
+                    originalPrice: groupOriginalTotal,
+                    itemDiscount: groupDiscountTotal,
+                    absorbedGlobalDiscount: absorbed,
                     qty: 1,
                     imei: '-',
                     notes: groupKey,
