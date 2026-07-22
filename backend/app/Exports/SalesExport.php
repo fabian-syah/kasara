@@ -127,7 +127,8 @@ class SalesExport
                 $imei = $item->imei ? "'" . $item->imei : '-';
                 $dist = $item->distributor?->name ?? $item->supplier_name ?? 'PSTORE';
                 $itemBase = (float)($item->pivot->selling_price ?? 0);
-                $price = $itemBase - (float)($item->pivot->item_discount ?? 0);
+                $itemDiscount = (float)($item->pivot->item_discount ?? 0);
+                $price = $itemBase - $itemDiscount;
                 $sumOutPrices += $price;
 
                 $allOrderItems[] = [
@@ -136,6 +137,7 @@ class SalesExport
                     'imei' => $imei,
                     'qty' => 1,
                     'price' => $price,
+                    'discount' => $itemDiscount,
                     'dist' => $dist
                 ];
             }
@@ -146,7 +148,8 @@ class SalesExport
                 $qty = $nItem->quantity;
                 $dist = $nItem->distributor?->name ?? $nItem->product?->brand ?? '-';
                 $baseN = (float)($nItem->selling_price ?? 0);
-                $pricePerItem = $baseN - (float)($nItem->item_discount ?? 0);
+                $itemDiscount = (float)($nItem->item_discount ?? 0);
+                $pricePerItem = $baseN - $itemDiscount;
                 $totalPrice = $pricePerItem * $qty;
                 $sumOutPrices += $totalPrice;
 
@@ -156,6 +159,7 @@ class SalesExport
                     'imei' => '-',
                     'qty' => $qty,
                     'price' => $pricePerItem,
+                    'discount' => $itemDiscount,
                     'dist' => $dist
                 ];
             }
@@ -174,13 +178,14 @@ class SalesExport
                     'imei' => $iImei,
                     'qty' => 1,
                     'price' => $iPrice,
+                    'discount' => 0,
                     'dist' => $dIn
                 ];
             }
 
             // Edge case ensure at least one entry
             if (empty($allOrderItems)) {
-                $allOrderItems[] = ['type' => 'none', 'name' => '-', 'imei' => '-', 'qty' => 0, 'price' => 0, 'dist' => '-'];
+                $allOrderItems[] = ['type' => 'none', 'name' => '-', 'imei' => '-', 'qty' => 0, 'price' => 0, 'discount' => 0, 'dist' => '-'];
             }
 
             // 2. Formulate Header Row Financial Constants
@@ -251,6 +256,7 @@ class SalesExport
                     'imei_keluar' => ($detail['type'] === 'outgoing') ? $detail['imei'] : '',
                     'qty_keluar' => ($detail['type'] === 'outgoing') ? $detail['qty'] : '',
                     'harga_satuan_keluar' => ($detail['type'] === 'outgoing' && $detail['price'] > 0) ? (float)$detail['price'] : '',
+                    'diskon_satuan_keluar' => ($detail['type'] === 'outgoing' && $detail['discount'] > 0) ? (float)$detail['discount'] : '',
                     'distributor_keluar' => ($detail['type'] === 'outgoing') ? $detail['dist'] : '',
                     
                     // Conditional Inbound Columns
@@ -269,7 +275,7 @@ class SalesExport
                     $rowPayData[$pm->name] = $isFirstRow ? (float)($payData[$pm->name] ?? 0) : '';
                 }
                 $rowArr['payment_details'] = $rowPayData;
-                $rowArr['total_discount'] = $isFirstRow ? (float)($so->total_discount ?? 0) : '';
+                $rowArr['global_discount'] = $isFirstRow ? (float)($so->global_discount_value ?? 0) : '';
 
                 // Final Aggregation Values - Empty on downstream rows
                 $rowArr['total_penjualan'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : '';
@@ -301,6 +307,7 @@ class SalesExport
             'IMEI',
             'Qty',
             'Harga Satuan',
+            'Diskon Satuan',
             'Distributor',
             'Produk Masuk',
             'IMEI',
@@ -315,7 +322,7 @@ class SalesExport
         }
 
         $heads = array_merge($heads, [
-            'Diskon',
+            'Diskon Global',
             'Total Penjualan',
             'Pengeluaran Refund Angkat Barang Downgrade',
             'Status'

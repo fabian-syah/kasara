@@ -3495,6 +3495,7 @@ class AuditController extends Controller
                     str_replace("'", "", $row['imei_keluar'] ?? '') . "\u{200B}",
                     $row['qty_keluar'] ?? '',
                     $row['harga_satuan_keluar'] ?? '',
+                    $row['diskon_satuan_keluar'] ?? '',
                     $row['distributor_keluar'] ?? '',
                     $row['produk_masuk'] ?? '',
                     str_replace("'", "", $row['imei_masuk'] ?? '') . "\u{200B}",
@@ -3512,7 +3513,7 @@ class AuditController extends Controller
                 }
 
                 $xlsxRow = array_merge($xlsxRow, [
-                    ($row['total_discount'] === '') ? '' : (float)($row['total_discount'] ?? 0),
+                    ($row['global_discount'] === '') ? '' : (float)($row['global_discount'] ?? 0),
                     ($row['total_penjualan'] === '') ? '' : (float)($row['total_penjualan'] ?? 0),
                     ($row['total_pengeluaran'] === '') ? '' : (float)($row['total_pengeluaran'] ?? 0),
                     $row['status'] ?? ''
@@ -3532,10 +3533,10 @@ class AuditController extends Controller
                 $footerRow = array_fill(0, $colCount, '');
                 $footerRow[0] = 'TOTAL AKHIR';
 
-                // Start summation from column index 17 (first payment/money column) 
+                // Start summation from column index 20 (first payment/money column) 
                 // up to the second-to-last column (Total Pengeluaran). Skip the final Status column.
-                // Recalibrated from index 17 up to 19 (+2 for added columns: bundling and in_tukar_tambah)
-                $startSumCol = 19;
+                // Recalibrated from index 19 up to 20 (+1 for added column: diskon_satuan)
+                $startSumCol = 20;
                 $endSumCol = $colCount - 2;
 
                 if ($endSumCol >= $startSumCol) {
