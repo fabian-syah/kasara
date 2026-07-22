@@ -4,7 +4,7 @@ import { useAuthStore } from "../../store/auth";
 import { inventory as inventoryApi, auth as authApiApi, users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { 
-    Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User
+    Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 
@@ -34,11 +34,13 @@ const isCreatingAccount = ref(false);
 
 // Edit Account State
 const showEditModal = ref(false);
+const showPassword = ref(false);
 const editAccountData = ref({
     id: null,
     name: "",
     username: "",
-    password: ""
+    password: "",
+    password_confirmation: ""
 });
 const isUpdatingAccount = ref(false);
 
@@ -47,12 +49,19 @@ function openEditModal(acc) {
         id: acc.id,
         name: acc.name,
         username: acc.username,
-        password: ""
+        password: "",
+        password_confirmation: ""
     };
+    showPassword.value = false;
     showEditModal.value = true;
 }
 
 async function submitEditAccount() {
+    if (editAccountData.value.password && editAccountData.value.password !== editAccountData.value.password_confirmation) {
+        toast.error("Password baru dan konfirmasi password tidak cocok!");
+        return;
+    }
+    
     isUpdatingAccount.value = true;
     try {
         const payload = new FormData();
@@ -386,7 +395,19 @@ const accountsByBranch = computed(() => {
                 </div>
                 <div>
                     <label class="label">PASSWORD BARU (Opsional)</label>
-                    <input v-model="editAccountData.password" type="password" class="input" placeholder="Kosongkan jika tidak diubah" />
+                    <div class="relative">
+                        <input v-model="editAccountData.password" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Kosongkan jika tidak diubah" />
+                        <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                            <Eye v-if="!showPassword" :size="16" />
+                            <EyeOff v-else :size="16" />
+                        </button>
+                    </div>
+                </div>
+                <div v-if="editAccountData.password">
+                    <label class="label">KONFIRMASI PASSWORD BARU</label>
+                    <div class="relative">
+                        <input v-model="editAccountData.password_confirmation" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Ulangi password baru" />
+                    </div>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">
