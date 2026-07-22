@@ -237,17 +237,22 @@ class InventoryAccountController extends Controller
                     $q->select('id', 'name', 'full_name');
                 }
             ])
-            ->where('is_active', true)
-            ->where('id', '!=', $user->id);
+            ->where('is_active', true);
 
-        if ($branchId) {
-            $query->where('branch_id', $branchId);
-        } elseif ($onlineShopId) {
-            $query->where('online_shop_id', $onlineShopId);
+        if ($user->hasRole('inventory')) {
+            $query->where('id', $user->id);
         } else {
-            $query->where(function ($q) use ($user) {
-                $q->where('created_by', $user->id);
-            });
+            $query->where('id', '!=', $user->id);
+            
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            } elseif ($onlineShopId) {
+                $query->where('online_shop_id', $onlineShopId);
+            } else {
+                $query->where(function ($q) use ($user) {
+                    $q->where('created_by', $user->id);
+                });
+            }
         }
 
         $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
