@@ -320,11 +320,8 @@ class AuditController extends Controller
                                 });
                             }
                         })
-                        ->when($isInventoryRole, function ($q) use ($userId, $userName) {
-                            $q->where(function ($sq) use ($userId, $userName) {
-                                $sq->where('inventory_user_id', $userId)
-                                   ->orWhere('sales_account', $userName);
-                            });
+                        ->when($isInventoryRole, function ($q) use ($userId) {
+                            $q->where('inventory_user_id', $userId);
                         })
                         ->latest()->paginate(50);
                 },
@@ -1222,10 +1219,7 @@ class AuditController extends Controller
                             $query->whereNull('stock_outs.deleted_at');
 
                             if ($isInventoryRole) {
-                                $query->where(function ($sq) use ($userId, $userName) {
-                                    $sq->where('stock_outs.inventory_user_id', $userId)
-                                       ->orWhere('stock_outs.sales_account', $userName);
-                                });
+                                $query->where('stock_outs.inventory_user_id', $userId);
                             }
 
                             $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
