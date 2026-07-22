@@ -479,6 +479,15 @@ const routes = [
                 }
             },
             {
+                path: 'settings/profile-inventory',
+                name: 'ProfileInventory',
+                component: () => import('../views/settings/ProfileInventory.vue'),
+                meta: {
+                    title: 'Pengaturan Pribadi',
+                    menu: 'profile_inventory'
+                }
+            },
+            {
                 path: 'settings/payments',
                 name: 'PaymentMethods',
                 component: () => import('../views/settings/PaymentMethods.vue'),

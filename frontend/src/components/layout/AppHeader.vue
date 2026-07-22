@@ -147,21 +147,34 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                         </div>
 
                         <div class="p-1">
-                            <router-link to="/settings" @click="isUserMenuOpen = false"
-                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
-                                <Settings :size="16" />
-                                <span>Pengaturan Toko</span>
-                            </router-link>
-                            <router-link to="/settings/inventory-account" @click="isUserMenuOpen = false"
-                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
-                                <Users :size="16" />
-                                <span>Akun Inventory</span>
-                            </router-link>
-                            <router-link to="/settings/nota" @click="isUserMenuOpen = false"
-                                class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
-                                <FileText :size="16" />
-                                <span>Setting Nota</span>
-                            </router-link>
+                            <!-- Show these only for non-inventory roles -->
+                            <template v-if="authStore.userRole !== 'inventory'">
+                                <router-link to="/settings" @click="isUserMenuOpen = false"
+                                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                    <Settings :size="16" />
+                                    <span>Pengaturan Toko</span>
+                                </router-link>
+                                <router-link to="/settings/inventory-account" @click="isUserMenuOpen = false"
+                                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                    <Users :size="16" />
+                                    <span>Akun Inventory</span>
+                                </router-link>
+                                <router-link to="/settings/nota" @click="isUserMenuOpen = false"
+                                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                    <FileText :size="16" />
+                                    <span>Setting Nota</span>
+                                </router-link>
+                            </template>
+                            
+                            <!-- Show only for inventory role -->
+                            <template v-else>
+                                <router-link to="/settings/profile-inventory" @click="isUserMenuOpen = false"
+                                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
+                                    <User :size="16" />
+                                    <span>Pengaturan Pribadi</span>
+                                </router-link>
+                            </template>
+
                             <button @click="themeStore.toggleDarkMode"
                                 class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                 <component :is="themeStore.isDark ? Sun : Moon" :size="16" />

@@ -216,6 +216,7 @@ const menuItems = [
     },
 
     { id: "settings", path: "/settings", label: "Pengaturan", icon: Settings },
+    { id: "profile_inventory", path: "/settings/profile-inventory", label: "Pengaturan Pribadi", icon: UserCircle },
 ];
 
 // User info
@@ -229,6 +230,24 @@ const visibleMenuItems = computed(() => {
     if (!role) return menuItems.filter((item) => item.id === "dashboard");
 
     let filtered = [];
+
+    // Khusus untuk role inventory, hanya tampilkan Dashboard, Buat Penjualan, dan Cek Penjualan, serta Pengaturan Pribadi
+    if (role === 'inventory') {
+        filtered = menuItems.filter(item => ['dashboard', 'sales_create', 'sales_check', 'profile_inventory'].includes(item.id));
+        
+        // Remove 'custom_nota' from 'sales_check' items since it's restricted anyway
+        filtered = filtered.map(group => {
+            if (group.id === 'sales_check' && group.items) {
+                return {
+                    ...group,
+                    items: group.items.filter(sub => sub.id === 'sales_check_main')
+                };
+            }
+            return group;
+        });
+
+        return filtered;
+    }
 
     if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
         filtered = menuItems.filter(item => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(item.id));
