@@ -659,7 +659,7 @@ const routes = [
                 meta: {
                     title: 'Buat Penjualan',
                     menu: 'sales_create',
-                    permissions: ['pos.access', 'transactions.create']
+                    permissions: ['pos.access', 'transactions.create', 'inventory']
                 }
             },
             {
@@ -669,7 +669,7 @@ const routes = [
                 meta: {
                     title: 'Cek Penjualan',
                     menu: 'sales_check',
-                    permissions: ['transactions.view']
+                    permissions: ['transactions.view', 'inventory']
                 }
             },
             {
