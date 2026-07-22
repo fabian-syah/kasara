@@ -119,9 +119,15 @@ class SalesExport
             // 1. Group all discrete logical products to create unique split rows
             $allOrderItems = [];
             $sumOutPrices = 0;
+            $isBundling = false;
 
             // Handle HP Items
             foreach ($so->items as $item) {
+                $notes = strtolower($item->pivot->notes ?? '');
+                if (str_contains($notes, 'paket') || str_contains($notes, 'bundle')) {
+                    $isBundling = true;
+                }
+
                 $storage = !empty($item->storage) ? " {$item->storage}" : "";
                 $prodName = ($item->product->brand ?? '') . ' ' . ($item->product->name ?? '') . $storage . " [" . match($item->condition) { 'new' => 'Baru', 'ex_ibox' => 'Ex iBox', default => 'Second' } . "]";
                 $imei = $item->imei ? "'" . $item->imei : '-';
@@ -144,6 +150,11 @@ class SalesExport
 
             // Handle Non-HP Items
             foreach ($so->nonHpItems as $nItem) {
+                $notes = strtolower($nItem->notes ?? '');
+                if (str_contains($notes, 'paket') || str_contains($notes, 'bundle')) {
+                    $isBundling = true;
+                }
+
                 $nName = ($nItem->product?->name ?? 'Aksesoris');
                 $qty = $nItem->quantity;
                 $dist = $nItem->distributor?->name ?? $nItem->product?->brand ?? '-';
@@ -249,7 +260,7 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => strtoupper($so->category),
-                    'bundling' => ($cat === 'bundling') ? 'YA' : '-',
+                    'bundling' => ($cat === 'bundling' || $isBundling) ? 'BUNDLING' : '-',
                     
                     // Conditional Outbound Columns
                     'produk_keluar' => ($detail['type'] === 'outgoing') ? $detail['name'] : '',
