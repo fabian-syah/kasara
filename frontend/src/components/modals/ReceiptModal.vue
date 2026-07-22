@@ -254,7 +254,7 @@
                                                     class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
                                                 <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                <th v-if="hasAnyItemDiscount" style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-right font-black w-[70px]">Diskon</th>
                                                 <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
                                                     class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
@@ -318,7 +318,7 @@
                                                     </td>
 
                                                     <!-- DISKON COLUMN -->
-                                                    <td class="py-3 px-3 align-middle text-right">
+                                                    <td v-if="hasAnyItemDiscount" class="py-3 px-3 align-middle text-right">
                                                         <div v-if="!item.is_bundle_child"
                                                             class="text-[10px] font-black text-red-600">
                                                             <span v-if="(item.itemDiscount || 0) > 0">
@@ -1073,6 +1073,10 @@ const calculatedChange = computed(() => {
 
 const hasBundleAbsorbedGlobalDiscount = computed(() => {
     return processedReceiptItems.value.some(item => item.is_bundle_header && item.absorbedGlobalDiscount);
+});
+
+const hasAnyItemDiscount = computed(() => {
+    return processedReceiptItems.value.some(item => (item.itemDiscount || 0) > 0);
 });
 
 const receiptSetting = computed(() => {
