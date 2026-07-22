@@ -46,6 +46,7 @@ const toast = useToast();
 // Wizard Steps
 const currentStep = ref(1); // 1: Account, 2: Category, 3: Items/Form, 4: Payment
 const salesAccount = ref("");
+const salesAccountId = ref(null);
 const salesAccounts = ref([]);
 const transactionCategory = ref("penjualan_store");
 
@@ -74,10 +75,11 @@ const getCategoryStorageKey = (base) => {
     return `${base}_${userId}${acc}`;
 };
 
-watch([currentStep, salesAccount, transactionCategory], ([step, acc, cat]) => {
+watch([currentStep, salesAccount, salesAccountId, transactionCategory], ([step, acc, accId, cat]) => {
     localStorage.setItem(getWizardStorageKey(), JSON.stringify({
         currentStep: step,
         salesAccount: acc,
+        salesAccountId: accId,
         transactionCategory: cat
     }));
 }, { deep: true });
@@ -88,6 +90,9 @@ const productPrices = ref([]);
 const distributors = ref([]);
 
 const selectedAccountObject = computed(() => {
+    if (salesAccountId.value) {
+        return salesAccounts.value.find(acc => acc.id === salesAccountId.value) || null;
+    }
     return salesAccounts.value.find(acc => acc.name === salesAccount.value) || null;
 });
 const availablePaymentMethods = ref([]);
@@ -224,6 +229,7 @@ onMounted(async () => {
             const data = JSON.parse(savedState);
             currentStep.value = data.currentStep || 1;
             salesAccount.value = data.salesAccount || "";
+            salesAccountId.value = data.salesAccountId || null;
             transactionCategory.value = data.transactionCategory || "";
         } catch (e) {}
     }
@@ -252,8 +258,12 @@ onMounted(async () => {
             if (userData.roles?.some(r => r.name === 'toko_offline') && !userData.transaction_pin) {
                 showInitialPinSetup.value = true;
             }
-            const match = salesAccounts.value.find(acc => acc.name === userData.name || acc.id === userData.id);
-            if (match && !salesAccount.value) salesAccount.value = match.name;
+            // Try match by ID first if present
+            const match = salesAccounts.value.find(acc => acc.id === userData.id || acc.name === userData.name);
+            if (match && !salesAccount.value) {
+                salesAccount.value = match.name;
+                salesAccountId.value = match.id;
+            }
         }
 
         // If we restored to step 3 or 4, fetch heavy data
@@ -416,9 +426,9 @@ watch(transactionCategory, () => {
 
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name"
+                                <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name; salesAccountId = acc.id"
                                     class="w-full p-3 sm:p-4 rounded-2xl border-2 transition-all flex flex-col justify-center gap-1 relative overflow-hidden group"
-                                    :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/10' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
+                                    :class="(salesAccountId === acc.id) || (!salesAccountId && salesAccount === acc.name) ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/10' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
                                     
                                     <div class="flex items-center gap-3 w-full pr-8">
                                         <!-- Photo or Initials -->
@@ -431,7 +441,7 @@ watch(transactionCategory, () => {
                                         <!-- Account Info -->
                                         <div class="flex flex-col items-start truncate text-left flex-1 min-w-0 pt-0.5">
                                             <span class="font-black text-sm sm:text-base transition-colors truncate w-full"
-                                                :class="salesAccount === acc.name ? 'text-primary-600' : 'text-text-primary'">
+                                                :class="(salesAccountId === acc.id) || (!salesAccountId && salesAccount === acc.name) ? 'text-primary-600' : 'text-text-primary'">
                                                 {{ acc.name }}
                                             </span>
                                             <span v-if="acc.created_by" class="text-[10px] sm:text-xs font-bold text-text-secondary truncate w-full mt-0.5">
@@ -441,8 +451,8 @@ watch(transactionCategory, () => {
                                         
                                         <!-- Radio UI -->
                                         <div class="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all absolute top-1/2 -translate-y-1/2 right-4"
-                                            :class="salesAccount === acc.name ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
-                                            <div v-if="salesAccount === acc.name" class="w-2 h-2 rounded-full bg-white"></div>
+                                            :class="(salesAccountId === acc.id) || (!salesAccountId && salesAccount === acc.name) ? 'border-primary-600 bg-primary-600' : 'border-surface-300 bg-white dark:bg-surface-800'">
+                                            <div v-if="(salesAccountId === acc.id) || (!salesAccountId && salesAccount === acc.name)" class="w-2 h-2 rounded-full bg-white"></div>
                                         </div>
                                     </div>
                                 </button>

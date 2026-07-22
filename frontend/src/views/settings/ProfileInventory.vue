@@ -85,43 +85,59 @@ const handleSave = async () => {
 </script>
 
 <template>
-    <div class="max-w-4xl mx-auto space-y-6">
-        <div>
-            <h1 class="text-2xl font-bold text-text-primary">Pengaturan Pribadi</h1>
-            <p class="text-text-secondary text-sm mt-1">Lihat dan perbarui informasi akun inventory Anda</p>
+    <div class="max-w-4xl mx-auto space-y-6 sm:space-y-8 font-jakarta pb-10">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">Pengaturan Pribadi</h1>
+                <p class="text-text-secondary text-sm font-medium mt-1.5">Kelola informasi dan keamanan akun inventory Anda</p>
+            </div>
         </div>
 
-        <!-- Notifikasi -->
-        <div v-if="successMessage" class="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
-            <CheckCircle2 :size="20" />
-            <p class="text-sm font-medium">{{ successMessage }}</p>
+        <!-- Notifications -->
+        <div v-if="successMessage" class="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800/50 animate-fade-in shadow-sm">
+            <CheckCircle2 :size="20" class="shrink-0" />
+            <p class="text-sm font-bold">{{ successMessage }}</p>
         </div>
-        <div v-if="errorMessage" class="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl border border-red-100 dark:border-red-800/50">
-            <AlertCircle :size="20" />
-            <p class="text-sm font-medium">{{ errorMessage }}</p>
+        <div v-if="errorMessage" class="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-2xl border border-red-100 dark:border-red-800/50 animate-fade-in shadow-sm">
+            <AlertCircle :size="20" class="shrink-0" />
+            <p class="text-sm font-bold">{{ errorMessage }}</p>
         </div>
 
-        <div class="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm">
-            <div class="p-6 sm:p-8">
-                <!-- Header Profil -->
-                <div class="flex flex-col sm:flex-row items-center gap-6 mb-8">
-                    <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-primary-50 dark:border-primary-900/20 shadow-md shrink-0">
+        <!-- Main Content -->
+        <div class="bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 overflow-hidden shadow-xl shadow-surface-200/20 dark:shadow-black/10 relative">
+            <!-- Decorative background elements -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+            
+            <div class="p-6 sm:p-10 relative z-10">
+                <!-- Profile Header -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 mb-10">
+                    <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] overflow-hidden border-4 sm:border-[6px] border-primary-50 dark:border-primary-900/20 shadow-xl shadow-primary-500/10 shrink-0 group relative bg-surface-100 dark:bg-surface-800">
                         <img :src="authStore.userPhotoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Inventory')}&background=10b981&color=fff&size=128`"
-                            alt="Profile Photo" class="w-full h-full object-cover" />
+                             alt="Profile Photo" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                     </div>
-                    <div class="text-center sm:text-left flex-1">
-                        <h2 class="text-2xl font-bold text-text-primary">{{ user?.name || 'Akun Inventory' }}</h2>
-                        <p class="text-primary-500 font-medium mt-1">{{ userRole }}</p>
+                    
+                    <div class="text-center sm:text-left flex-1 pt-2 w-full">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl text-[10px] font-black uppercase tracking-widest mb-3 border border-primary-100 dark:border-primary-800/50">
+                            <UserCircle :size="14" />
+                            {{ userRole }}
+                        </div>
+                        <h2 class="text-3xl sm:text-4xl font-black text-text-primary tracking-tight truncate w-full">{{ user?.name || 'Akun Inventory' }}</h2>
+                        <div class="flex items-center justify-center sm:justify-start gap-2 mt-3 text-text-secondary font-medium">
+                            <Building2 :size="16" class="text-primary-500" />
+                            <span class="truncate">{{ user?.branch?.name || user?.warehouse?.name || user?.online_shop?.name || 'Semua Lokasi' }}</span>
+                        </div>
                     </div>
-                    <div class="shrink-0 mt-4 sm:mt-0">
-                        <button v-if="!isEditing" @click="toggleEdit" class="px-5 py-2.5 bg-primary-50 text-primary-600 hover:bg-primary-100 dark:bg-primary-900/30 dark:text-primary-400 dark:hover:bg-primary-900/50 rounded-xl font-medium transition-colors border border-primary-100 dark:border-primary-800/50 flex items-center gap-2">
-                            Ubah Data
+                    
+                    <div class="shrink-0 mt-2 sm:mt-4 w-full sm:w-auto">
+                        <button v-if="!isEditing" @click="toggleEdit" class="w-full sm:w-auto px-6 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            Ubah Username & Password
                         </button>
-                        <div v-else class="flex gap-2">
-                            <button @click="toggleEdit" class="px-4 py-2.5 text-text-secondary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-xl font-medium transition-colors border border-transparent">
+                        <div v-else class="flex gap-3 w-full">
+                            <button @click="toggleEdit" class="flex-1 sm:flex-none px-5 py-3.5 bg-surface-100 hover:bg-surface-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-text-secondary rounded-2xl font-bold transition-all">
                                 Batal
                             </button>
-                            <button @click="handleSave" :disabled="isLoading" class="px-5 py-2.5 bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 rounded-xl font-medium transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <button @click="handleSave" :disabled="isLoading" class="flex-1 sm:flex-none px-6 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                                 <Loader2 v-if="isLoading" class="animate-spin" :size="18" />
                                 <Save v-else :size="18" />
                                 Simpan
@@ -130,66 +146,79 @@ const handleSave = async () => {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Info Card: Username -->
-                    <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-xl border border-surface-200 dark:border-surface-700 transition-colors" :class="{'ring-2 ring-primary-500/20 border-primary-300 dark:border-primary-700': isEditing}">
-                        <div class="flex items-center gap-3 text-text-secondary mb-3">
-                            <User :size="18" />
-                            <span class="font-medium text-sm">Username</span>
+                <!-- Info Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <!-- Username Card -->
+                    <div class="bg-surface-50 dark:bg-surface-800/80 p-6 rounded-[1.5rem] border border-surface-200 dark:border-surface-700 transition-all duration-300 relative overflow-hidden group" :class="{'ring-2 ring-primary-500/30 border-primary-400 dark:border-primary-600 bg-white dark:bg-surface-800 shadow-md': isEditing}">
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="flex items-center gap-3 text-text-secondary">
+                                <div class="w-10 h-10 rounded-xl bg-white dark:bg-surface-700 flex items-center justify-center shadow-sm border border-surface-200 dark:border-surface-600 text-primary-500 group-hover:scale-110 transition-transform">
+                                    <User :size="18" stroke-width="2.5" />
+                                </div>
+                                <span class="font-black text-[11px] uppercase tracking-widest">Username</span>
+                            </div>
                         </div>
-                        <div v-if="!isEditing">
-                            <p class="text-text-primary font-semibold text-lg">{{ user?.username || '-' }}</p>
+                        <div v-if="!isEditing" class="relative z-10">
+                            <p class="text-text-primary font-black text-xl">{{ user?.username || '-' }}</p>
                         </div>
-                        <div v-else>
-                            <input v-model="formData.username" type="text" class="w-full bg-white dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg px-4 py-2 text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" placeholder="Masukkan username baru" />
+                        <div v-else class="relative z-10">
+                            <input v-model="formData.username" type="text" class="w-full bg-surface-50 dark:bg-surface-900/50 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 text-text-primary font-bold focus:bg-white dark:focus:bg-surface-900 focus:border-primary-500 outline-none transition-all" placeholder="Masukkan username baru" />
                         </div>
                     </div>
 
-                    <!-- Info Card: Akun Utama -->
-                    <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-xl border border-primary-100 dark:border-primary-900/30">
-                        <div class="flex items-center gap-3 text-primary-600 dark:text-primary-400 mb-3">
-                            <UserCircle :size="18" />
-                            <span class="font-medium text-sm">Akun Utama (Pembuat)</span>
+                    <!-- Creator Account Card -->
+                    <div class="bg-gradient-to-br from-primary-50 to-emerald-50 dark:from-primary-900/20 dark:to-emerald-900/20 p-6 rounded-[1.5rem] border border-primary-100 dark:border-primary-800/30 relative overflow-hidden group hover:shadow-lg hover:shadow-primary-500/5 transition-all">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-white/40 dark:bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-primary-500/10 transition-colors"></div>
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="flex items-center gap-3 text-primary-700 dark:text-primary-400">
+                                <div class="w-10 h-10 rounded-xl bg-white/60 dark:bg-surface-800/50 flex items-center justify-center shadow-sm backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                    <UserCircle :size="18" stroke-width="2.5" />
+                                </div>
+                                <span class="font-black text-[11px] uppercase tracking-widest">Akun Utama</span>
+                            </div>
                         </div>
-                        <p class="text-text-primary font-semibold text-lg">{{ mainAccountName }}</p>
-                        <p class="text-xs text-text-secondary mt-1">Akun ini dikelola oleh {{ mainAccountName }}</p>
+                        <div class="relative z-10">
+                            <p class="text-primary-900 dark:text-primary-100 font-black text-xl">{{ mainAccountName }}</p>
+                            <p class="text-xs font-semibold text-primary-700/70 dark:text-primary-400/70 mt-1.5 flex items-center gap-1.5">
+                                Akun pembuat & pengelola utama
+                            </p>
+                        </div>
                     </div>
 
-                    <!-- Info Card: Cabang -->
-                    <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-xl border border-surface-200 dark:border-surface-700 md:col-span-2">
-                        <div class="flex items-center gap-3 text-text-secondary mb-3">
-                            <Building2 :size="18" />
-                            <span class="font-medium text-sm">Cabang / Lokasi Penempatan</span>
+                    <!-- Edit Password Section -->
+                    <div v-if="isEditing" class="md:col-span-2 bg-surface-50 dark:bg-surface-800/80 p-6 sm:p-8 rounded-[1.5rem] border-2 border-primary-200 dark:border-primary-800/50 ring-4 ring-primary-500/5 relative overflow-hidden animate-fade-in shadow-sm">
+                        <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+                        
+                        <div class="flex items-center gap-3 text-primary-600 dark:text-primary-400 mb-6 relative z-10">
+                            <div class="w-12 h-12 rounded-2xl bg-white dark:bg-surface-700 flex items-center justify-center shadow-sm border border-primary-100 dark:border-primary-800">
+                                <Key :size="20" stroke-width="2.5" />
+                            </div>
+                            <div>
+                                <h3 class="font-black text-lg">Keamanan Password</h3>
+                                <p class="text-xs font-medium text-text-secondary mt-0.5">Biarkan kosong jika tidak ingin mengubah password</p>
+                            </div>
                         </div>
-                        <p class="text-text-primary font-semibold text-lg">{{ user?.branch?.name || user?.warehouse?.name || user?.online_shop?.name || 'Semua Lokasi' }}</p>
-                    </div>
-
-                    <!-- Edit Password Section (Only visible when editing) -->
-                    <div v-if="isEditing" class="md:col-span-2 bg-surface-50 dark:bg-surface-800 p-5 rounded-xl border border-surface-200 dark:border-surface-700 ring-2 ring-primary-500/20 border-primary-300 dark:border-primary-700">
-                        <div class="flex items-center gap-3 text-text-secondary mb-4">
-                            <Key :size="18" />
-                            <span class="font-medium text-sm">Ubah Password (Opsional)</span>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 relative z-10">
                             <!-- Password Baru -->
                             <div>
-                                <label class="block text-xs text-text-secondary mb-1">Password Baru</label>
-                                <div class="relative">
-                                    <input :type="showPassword ? 'text' : 'password'" v-model="formData.password" class="w-full bg-white dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg px-4 py-2 pr-10 text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" placeholder="Biarkan kosong jika tidak diubah" />
-                                    <button @click="showPassword = !showPassword" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 transition-colors">
-                                        <Eye v-if="!showPassword" :size="18" />
-                                        <EyeOff v-else :size="18" />
+                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">Password Baru</label>
+                                <div class="relative group/input">
+                                    <input :type="showPassword ? 'text' : 'password'" v-model="formData.password" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••••••" />
+                                    <button @click="showPassword = !showPassword" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
+                                        <Eye v-if="!showPassword" :size="18" stroke-width="2.5" />
+                                        <EyeOff v-else :size="18" stroke-width="2.5" />
                                     </button>
                                 </div>
                             </div>
                             <!-- Konfirmasi Password -->
                             <div>
-                                <label class="block text-xs text-text-secondary mb-1">Konfirmasi Password</label>
-                                <div class="relative">
-                                    <input :type="showConfirmPassword ? 'text' : 'password'" v-model="formData.password_confirmation" class="w-full bg-white dark:bg-surface-900 border border-surface-300 dark:border-surface-600 rounded-lg px-4 py-2 pr-10 text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" placeholder="Ulangi password baru" />
-                                    <button @click="showConfirmPassword = !showConfirmPassword" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 transition-colors">
-                                        <Eye v-if="!showConfirmPassword" :size="18" />
-                                        <EyeOff v-else :size="18" />
+                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">Ulangi Password</label>
+                                <div class="relative group/input">
+                                    <input :type="showConfirmPassword ? 'text' : 'password'" v-model="formData.password_confirmation" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••••••" />
+                                    <button @click="showConfirmPassword = !showConfirmPassword" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
+                                        <Eye v-if="!showConfirmPassword" :size="18" stroke-width="2.5" />
+                                        <EyeOff v-else :size="18" stroke-width="2.5" />
                                     </button>
                                 </div>
                             </div>
@@ -197,14 +226,15 @@ const handleSave = async () => {
                     </div>
                 </div>
                 
-                <div v-if="!isEditing" class="mt-8 bg-surface-50 dark:bg-surface-800/50 border border-surface-200 dark:border-surface-700/50 rounded-xl p-4 flex items-start gap-3">
-                    <div class="mt-0.5 text-primary-500">
-                        <Key :size="18" />
+                <!-- Info Footer -->
+                <div v-if="!isEditing" class="mt-8 bg-surface-50 dark:bg-surface-800/50 border border-surface-200 dark:border-surface-700/50 rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 transition-colors">
+                    <div class="w-12 h-12 rounded-full bg-white dark:bg-surface-700 flex items-center justify-center text-primary-500 shrink-0 shadow-sm border border-surface-200 dark:border-surface-600">
+                        <Key :size="20" stroke-width="2.5" />
                     </div>
                     <div>
-                        <h3 class="text-text-primary font-medium text-sm mb-1">Keamanan Akun</h3>
-                        <p class="text-text-secondary text-sm leading-relaxed">
-                            Anda sekarang dapat mengubah username dan password Anda sendiri. Jaga kerahasiaan password Anda. Jika lupa password, Anda tetap dapat meminta <strong>{{ mainAccountName }}</strong> untuk meresetnya.
+                        <h3 class="text-text-primary font-black text-sm mb-1">Keamanan Akun Inventory</h3>
+                        <p class="text-text-secondary text-xs sm:text-sm font-medium leading-relaxed">
+                            Anda memiliki kendali penuh atas password Anda sendiri. Jaga kerahasiaannya. Jika Anda lupa password, Anda dapat meminta <strong class="text-text-primary">{{ mainAccountName }}</strong> untuk meresetnya dari panel utama.
                         </p>
                     </div>
                 </div>
@@ -212,3 +242,16 @@ const handleSave = async () => {
         </div>
     </div>
 </template>
+
+<style scoped>
+.font-jakarta {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
