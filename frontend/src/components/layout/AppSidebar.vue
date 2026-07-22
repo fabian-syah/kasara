@@ -36,7 +36,8 @@ import {
     MoreHorizontal,
     Trophy,
     History,
-    PieChart
+    PieChart,
+    UserCircle
 } from "lucide-vue-next";
 
 const props = defineProps({
