@@ -255,11 +255,12 @@ class AuditController extends Controller
 
             $isInventoryRole = $user->hasRole('inventory');
             $userId = $user->id;
+            $userName = $user->name;
 
             // Use Octane to run independent queries in parallel
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
                 // 1. Paginated Sales Query
-                function () use ($normalizedSalesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist, $isInventoryRole, $userId) {
+                function () use ($normalizedSalesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist, $isInventoryRole, $userId, $userName) {
 
                     return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
                         ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedSalesCategories)
@@ -319,8 +320,11 @@ class AuditController extends Controller
                                 });
                             }
                         })
-                        ->when($isInventoryRole, function ($q) use ($userId) {
-                            $q->where('inventory_user_id', $userId);
+                        ->when($isInventoryRole, function ($q) use ($userId, $userName) {
+                            $q->where(function ($sq) use ($userId, $userName) {
+                                $sq->where('inventory_user_id', $userId)
+                                   ->orWhere('sales_account', $userName);
+                            });
                         })
                         ->latest()->paginate(50);
                 },
@@ -1201,12 +1205,12 @@ class AuditController extends Controller
                 },
 
                 // 10. Unified Report Summary
-                function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles, $isInventoryRole, $userId) {
+                function () use ($salesCategories, $startDate, $endDate, $stockStartDate, $stockEndDate, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $paymentMethods, $distributors, $isUnrestricted, $isAnalist, $isSuperAdmin, $currentRoles, $isInventoryRole, $userId, $userName) {
                     try {
                         $allowedGlobalRoles = ['super_admin', 'analist', 'analis', 'owner', 'Owner', 'pimpinan', 'management', 'developer', 'pimpinan_pusat', 'audit'];
                         $isGlobalUnrestricted = !empty(array_intersect($allowedGlobalRoles, $currentRoles));
 
-                        $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin, $isInventoryRole, $userId) {
+                        $applyLocalScope = function ($query) use ($startDate, $endDate, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin, $isInventoryRole, $userId, $userName) {
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
 
@@ -1218,7 +1222,10 @@ class AuditController extends Controller
                             $query->whereNull('stock_outs.deleted_at');
 
                             if ($isInventoryRole) {
-                                $query->where('stock_outs.inventory_user_id', $userId);
+                                $query->where(function ($sq) use ($userId, $userName) {
+                                    $sq->where('stock_outs.inventory_user_id', $userId)
+                                       ->orWhere('stock_outs.sales_account', $userName);
+                                });
                             }
 
                             $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
