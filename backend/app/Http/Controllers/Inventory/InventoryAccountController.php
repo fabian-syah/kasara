@@ -126,6 +126,7 @@ class InventoryAccountController extends Controller
 
         if ($request->has('password') && !empty($request->password)) {
             $account->password = Hash::make($request->password);
+            $account->password_changed_at = now();
         }
 
         $account->phone = $request->phone;
