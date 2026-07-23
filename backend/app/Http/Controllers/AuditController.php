@@ -1439,13 +1439,16 @@ class AuditController extends Controller
                             if ($ps->split_payments) {
                                 $sData = is_string($ps->split_payments) ? json_decode($ps->split_payments, true) : $ps->split_payments;
                                 if (is_array($sData)) {
+                                    $remainingToAllocate = $price;
                                     foreach ($sData as $sp) {
                                         $amt = abs((float) ($sp['amount'] ?? 0));
                                         $spTotal += $amt;
                                         if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                             $mName = $pm?->name ?? 'Lainnya';
-                                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $amt;
+                                            $allocatedAmt = min($amt, $remainingToAllocate);
+                                            $pSums[$mName] = ($pSums[$mName] ?? 0) + $allocatedAmt;
+                                            $remainingToAllocate -= $allocatedAmt;
                                         }
                                     }
                                 }
@@ -1457,7 +1460,8 @@ class AuditController extends Controller
                             }
 
                             // USER RULE: Omset MUST strictly follow actual received payments (spTotal) over database selling_price!
-                            $effectivePrice = ($spTotal > 0) ? $spTotal : $price;
+                            // If spTotal exceeds price, it means there is kembalian (change), so we cap it to price.
+                            $effectivePrice = ($spTotal > 0) ? min($spTotal, $price) : $price;
 
                             if ($saleType === 'base_sale') {
                                 $baseSalesOnly += $effectivePrice;
