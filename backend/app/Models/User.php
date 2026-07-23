@@ -131,6 +131,14 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['branch', 'App\Models\Branch'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
+        // If this is an inventory account with no branches, inherit from creator
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+            $creator = self::find($this->created_by);
+            if ($creator) {
+                return $creator->getAccessibleBranchIds();
+            }
+        }
+
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
@@ -156,6 +164,13 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['online_shop', 'App\Models\OnlineShop'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+            $creator = self::find($this->created_by);
+            if ($creator) {
+                return $creator->getAccessibleOnlineShopIds();
+            }
+        }
+
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
@@ -178,6 +193,13 @@ class User extends Authenticatable
 
         $extras = $this->placements()->whereIn('model_type', ['warehouse', 'App\Models\Warehouse'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
+
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+            $creator = self::find($this->created_by);
+            if ($creator) {
+                return $creator->getAccessibleWarehouseIds();
+            }
+        }
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
             /** @var array $excluded */
