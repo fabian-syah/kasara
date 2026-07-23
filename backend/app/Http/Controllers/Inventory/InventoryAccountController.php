@@ -49,7 +49,7 @@ class InventoryAccountController extends Controller
                 'code_id' => 'INV-' . strtoupper(Str::random(10)),
                 'email' => $email,
                 'password' => $password,
-                'branch_id' => $request->branch_id ?? $user->branch_id,
+                'branch_id' => $request->branch_id ?? $user->branch_id ?? ($user->getAccessibleBranchIds()[0] ?? null),
                 'warehouse_id' => $request->warehouse_id ?? $user->warehouse_id,
                 'online_shop_id' => $request->online_shop_id ?? $user->online_shop_id,
                 'distributor_id' => $request->distributor_id ?? $user->distributor_id,
