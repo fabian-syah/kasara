@@ -20,6 +20,7 @@ class DowngradeController extends Controller
     use VerifiesPin;
     public function store(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         $request->validate([
@@ -88,9 +89,17 @@ class DowngradeController extends Controller
                 }
                 $inventoryUserId = $inventoryUserId ?? $user->id;
                 
+                /** @var \App\Models\User|null $targetUser */
                 $targetUser = \App\Models\User::find($inventoryUserId);
                 $branchId = $targetUser->branch_id ?? $user->branch_id;
+                if (!$branchId) {
+                    $branchId = $targetUser?->getAccessibleBranchIds()[0] ?? ($user->getAccessibleBranchIds()[0] ?? null);
+                }
+                
                 $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
+                if (!$warehouseId) {
+                    $warehouseId = $targetUser?->getAccessibleWarehouseIds()[0] ?? ($user->getAccessibleWarehouseIds()[0] ?? null);
+                }
 
                 $diff = (float)$request->price_difference;
                 $negDiff = -abs($diff);

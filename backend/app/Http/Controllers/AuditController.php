@@ -1542,7 +1542,7 @@ class AuditController extends Controller
                             $trxCategory = strtolower($trxCategory ?? '');
 
                             // Only count towards HP totals if it's a standard sale, not a return/retrieval or special activity
-                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            $isStandardSale = !in_array($trxCategory, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit']);
 
                             if ($isStandardSale) {
                                 if ($itemCategory === 'apple_lux') {
@@ -1590,7 +1590,7 @@ class AuditController extends Controller
                             }
 
                             // Standard sales criteria: Exclude refunds from standard unit/revenue maps
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan']);
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit']);
 
                             $itemCat = $getCategoryByItem($hp->distributor_id, true);
                             $addUnitToMap($map, $hp->brand, $itemCat, $catLower);
@@ -1731,7 +1731,7 @@ class AuditController extends Controller
                             $cat = $getCategoryByItem($did);
 
                             // Breakdown for non-IMEI HP if any
-                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade']);
+                            $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade', 'tukar_unit']);
 
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
                                 if ($cat === 'apple_lux') {
