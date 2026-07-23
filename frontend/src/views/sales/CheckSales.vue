@@ -219,7 +219,7 @@
                                 </div>
                             </td>
                         </tr>
-                        <tr v-else-if="(salesRecords.daily_sales?.data || salesRecords.daily_sales).length === 0">
+                        <tr v-else-if="!salesRecords.daily_sales || (salesRecords.daily_sales?.data || salesRecords.daily_sales).length === 0">
                             <td colspan="15" class="px-6 py-12 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center">
                                     <div
