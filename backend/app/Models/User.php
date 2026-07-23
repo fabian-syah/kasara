@@ -132,9 +132,9 @@ class User extends Authenticatable
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         // If this is an inventory account with no branches, inherit from creator
-        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by && $this->created_by !== $this->id) {
             $creator = self::find($this->created_by);
-            if ($creator) {
+            if ($creator && !$creator->hasRole('inventory')) {
                 return $creator->getAccessibleBranchIds();
             }
         }
@@ -164,9 +164,9 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['online_shop', 'App\Models\OnlineShop'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by && $this->created_by !== $this->id) {
             $creator = self::find($this->created_by);
-            if ($creator) {
+            if ($creator && !$creator->hasRole('inventory')) {
                 return $creator->getAccessibleOnlineShopIds();
             }
         }
@@ -194,9 +194,9 @@ class User extends Authenticatable
         $extras = $this->placements()->whereIn('model_type', ['warehouse', 'App\Models\Warehouse'])->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
-        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by) {
+        if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by && $this->created_by !== $this->id) {
             $creator = self::find($this->created_by);
-            if ($creator) {
+            if ($creator && !$creator->hasRole('inventory')) {
                 return $creator->getAccessibleWarehouseIds();
             }
         }
