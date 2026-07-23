@@ -1222,7 +1222,7 @@ class AuditController extends Controller
                                 $query->where('stock_outs.inventory_user_id', $userId);
                             }
 
-                            $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
+                            $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin, $isInventoryRole) {
                                 $scoper = function ($qq, $col, $val) {
                                     $qq->where("stock_outs.$col", $val);
                                 };
@@ -1259,21 +1259,26 @@ class AuditController extends Controller
                                             ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->whereNotNull('users.online_shop_id'));
                                     }
                                 } else {
-                                    // Restricted users (Staff, Leaders, etc.) OR Filtered Unrestricted (Analist, SuperAdmin) use their accessible IDs
-                                    $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                                        if (!empty($branchIds)) {
-                                            $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.branch_id', $branchIds)));
-                                        }
-                                        if (!empty($onlineShopIds)) {
-                                            $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                                ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.online_shop_id', $onlineShopIds)));
-                                        }
-
-                                        if (empty($branchIds) && empty($onlineShopIds)) {
-                                            $sub->whereRaw('1=0');
-                                        }
-                                    });
+                                    if ($isInventoryRole) {
+                                        // Skip location restrictions if it's an inventory role, 
+                                        // since they are already restricted to their own transactions above.
+                                    } else {
+                                        // Restricted users (Staff, Leaders, etc.) OR Filtered Unrestricted (Analist, SuperAdmin) use their accessible IDs
+                                        $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                                            if (!empty($branchIds)) {
+                                                $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                                    ->orWhere(fn($sq) => $sq->whereNull('stock_outs.branch_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.branch_id', $branchIds)));
+                                            }
+                                            if (!empty($onlineShopIds)) {
+                                                $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                                    ->orWhere(fn($sq) => $sq->whereNull('stock_outs.online_shop_id')->whereExists(fn($s) => $s->select(DB::raw(1))->from('users')->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')->whereIn('users.online_shop_id', $onlineShopIds)));
+                                            }
+    
+                                            if (empty($branchIds) && empty($onlineShopIds)) {
+                                                $sub->whereRaw('1=0');
+                                            }
+                                        });
+                                    }
                                 }
                             });
                         };
