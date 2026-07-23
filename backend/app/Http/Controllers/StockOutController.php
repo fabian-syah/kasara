@@ -447,6 +447,22 @@ class StockOutController extends Controller
                 'has_non_hp_items' => !empty($request->non_hp_items)
             ]);
 
+            // Resolve Fallback Origins for Inventory Accounts without native location
+            $originBranchId = $request->origin_branch_id ?? $user->branch_id;
+            if (!$originBranchId && !empty($user->getAccessibleBranchIds())) {
+                $originBranchId = $user->getAccessibleBranchIds()[0];
+            }
+
+            $originWarehouseId = $request->origin_warehouse_id ?? $user->warehouse_id;
+            if (!$originWarehouseId && !empty($user->getAccessibleWarehouseIds())) {
+                $originWarehouseId = $user->getAccessibleWarehouseIds()[0];
+            }
+
+            $originOnlineShopId = $request->origin_online_shop_id ?? $user->online_shop_id;
+            if (!$originOnlineShopId && !empty($user->getAccessibleOnlineShopIds())) {
+                $originOnlineShopId = $user->getAccessibleOnlineShopIds()[0];
+            }
+
             // Resolve Location for Reporting Date
             $userLocation = null;
             try {
@@ -588,9 +604,9 @@ class StockOutController extends Controller
                             'reference_id' => 'OUT-' . time() . '-' . $inventory->id,
                             'user_id' => $user->id,
                             'distributor_id' => $distId ?? $inventory->distributor_id,
-                            'branch_id' => $request->origin_branch_id ?? $user->branch_id ?? null,
-                            'warehouse_id' => $request->origin_warehouse_id ?? $user->warehouse_id ?? null,
-                            'online_shop_id' => $request->origin_online_shop_id ?? $user->online_shop_id ?? null,
+                            'branch_id' => $originBranchId,
+                            'warehouse_id' => $originWarehouseId,
+                            'online_shop_id' => $originOnlineShopId,
                             'reporting_date' => $reportingDate,
                         ]);
                     }
@@ -703,9 +719,9 @@ class StockOutController extends Controller
                 'sub_category' => $request->sub_category,
                 'user_id' => Auth::id(),
                 'inventory_user_id' => $request->inventory_user_id,
-                'warehouse_id' => $request->origin_warehouse_id,
-                'branch_id' => $request->origin_branch_id,
-                'online_shop_id' => $request->origin_online_shop_id,
+                'warehouse_id' => $originWarehouseId,
+                'branch_id' => $originBranchId,
+                'online_shop_id' => $originOnlineShopId,
                 'selling_price' => $totalSellingPrice,
 
                 // FIX: Mapping lokasi tujuan agar terbaca di History & Akun Gudang
