@@ -206,6 +206,7 @@ const form = ref({
 });
 
 const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
+const inventoryPlacementType = ref('branch'); // UI toggle for inventory modal
 
 // Helper to reset form
 function resetForm() {
@@ -346,7 +347,8 @@ const placementType = computed(() => {
   if (['audit', 'leader'].includes(role)) return 'audit';
   if (['distributor'].includes(role)) return 'distributor';
   if (['distribution'].includes(role)) return 'distributor';
-  if (['gudang', 'inventory'].includes(role)) return 'warehouse';
+  if (['gudang'].includes(role)) return 'warehouse';
+  if (['inventory'].includes(role)) return inventoryPlacementType.value;
   if (['toko_online'].includes(role)) return 'online_shop';
   return 'branch';
 });
@@ -458,6 +460,14 @@ function openEditModal(user) {
     selected_distributors: distributorPlacements,
   };
   selectedMultiPlacementType.value = 'physical'; // Reset UI toggle
+  
+  if (user.roles?.length && user.roles[0].name === 'inventory') {
+      if (user.warehouse_id) inventoryPlacementType.value = 'warehouse';
+      else if (user.online_shop_id) inventoryPlacementType.value = 'online_shop';
+      else inventoryPlacementType.value = 'branch';
+  } else {
+      inventoryPlacementType.value = 'branch';
+  }
   showModal.value = true;
 }
 
@@ -1059,8 +1069,18 @@ function getUserRoleName(user) {
               </div>
             </div>
 
+            <!-- Inventory Placement Type Selector -->
+            <div v-if="form.role === 'inventory'" class="animate-in fade-in slide-in-from-top-2">
+              <label class="label">Tipe Penempatan Inventory</label>
+              <select v-model="inventoryPlacementType" class="input">
+                <option value="branch">Cabang Fisik</option>
+                <option value="warehouse">Gudang</option>
+                <option value="online_shop">Toko Online</option>
+              </select>
+            </div>
+
             <!-- Dynamic Placement Selection -->
-            <div v-if="form.role && placementType !== 'none' && !(editingUser && form.role === 'inventory')" class="animate-in fade-in slide-in-from-top-2">
+            <div v-if="form.role && placementType !== 'none'" class="animate-in fade-in slide-in-from-top-2">
               <label class="label">{{ placementLabel }}</label>
 
               <!-- Audit/Leader Multi-Selection with Cleaner UI -->
