@@ -743,7 +743,7 @@ class ReportController extends Controller
                 $ttOutgoing = $tt ? $tt->sum('outgoing_price') : $sellingPrice;
                 $ttCost = $tt ? $tt->sum('incoming_cost_price') : 0;
                 $txOmset = max(0, abs($ttOutgoing));
-                $txOmsetBersih = max(0, $ttOutgoing - $ttCost);
+                $txOmsetBersih = max(0, $ttCost);
                 $txProfit = max(0, abs($ttOutgoing)) - $txModal;
                 $statsByLocation[$locKey]['tukar_tambah_qty'] += 1;
                 $statsByLocation[$locKey]['tukar_tambah_amt'] += $txOmset;
@@ -751,7 +751,7 @@ class ReportController extends Controller
                 $dg = $downgrades->get($tx->receipt_id);
                 $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
                 $txOmset = max(0, abs($dgOutgoing));
-                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->outgoing_price - $d->incoming_cost_price) : -abs($sellingPrice);
+                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->incoming_cost_price) : -abs($sellingPrice);
                 $txProfit = $dgOutgoing - $txModal;
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
                 $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;

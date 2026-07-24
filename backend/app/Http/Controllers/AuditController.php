@@ -880,14 +880,14 @@ class AuditController extends Controller
                                 $inPrice = max(0, $outPrice - $price);
                             }
                             $dailyStats[$date]['total_omset'] += $outPrice;
-                            $dailyStats[$date]['omset_bersih'] += ($outPrice - $inPrice);
+                            $dailyStats[$date]['omset_bersih'] += $inPrice;
                         } elseif ($saleType === 'downgrade') {
                             $outDg = floatval($tx->dg_outgoing_price ?? 0);
                             $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
                             
                             if ($outDg > 0 || $inDg > 0) {
                                 $dailyStats[$date]['total_omset'] += $outDg;
-                                $dailyStats[$date]['omset_bersih'] += ($outDg - $inDg);
+                                $dailyStats[$date]['omset_bersih'] += $inDg;
                             } else {
                                 $dailyStats[$date]['omset_bersih'] -= $price;
                             }
@@ -1864,7 +1864,7 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeOutVal + (isset($totalDowngradeOutgoing) ? $totalDowngradeOutgoing : 0);
 
                         // Sync with Dashboard: Omset Bersih = Total Omset - All Deductions
-                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming - (isset($totalDowngradeIncoming) ? $totalDowngradeIncoming : 0);
+                        $omsetBersih = $baseSalesOnly + $totalTradeIncoming + (isset($totalDowngradeIncoming) ? $totalDowngradeIncoming : 0) - $deductions;
 
                         return [
                             'audit_stats' => [

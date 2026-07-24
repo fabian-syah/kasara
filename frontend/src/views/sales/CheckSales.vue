@@ -129,8 +129,7 @@
                         :class="summaryStats.omsetBersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600'">
                         {{ formatCurrency(summaryStats.omsetBersih) }}
                     </p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Sales - (Angkat +
-                        Refund + In TT + In DG)</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan Biasa + In TT + In DG - (Angkat + Refund)</p>
                 </div>
             </div>
 
@@ -1090,7 +1089,7 @@ const summaryStats = computed(() => {
     });
 
     let finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
-    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (finalOmset - (outlay + tradeIncomingTotal));
+    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (baseSales + tradeIncomingTotal - outlay);
 
     if (hasSummary && summary.activities && summary.activities.details) {
         const acts = summary.activities.details;
@@ -1120,7 +1119,7 @@ const summaryStats = computed(() => {
         // We can trust the backend's calculations.
     } else if (!hasSummary) {
         finalOmset = baseSales + tradeOutgoingTotal;
-        finalOmsetBersih = finalOmset - (outlay + tradeIncomingTotal);
+        finalOmsetBersih = baseSales + tradeIncomingTotal - outlay;
     }
 
     // Unit HP & Non-HP values fall back to backend report_summary values when available
