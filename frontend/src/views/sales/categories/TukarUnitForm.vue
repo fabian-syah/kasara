@@ -849,7 +849,7 @@ async function submitUnitExchange(pin = null) {
                                 selectedOutgoingItem.name }} ({{
                                 selectedOutgoingItem.imei || 'Non-IMEI' }})
                             <br/>
-                            Harga Jual (Sistem): Rp {{ formatNumber(selectedOutgoingItem.selling_price) }}
+                            Harga Jual (Sistem): Rp {{ formatNumber(selectedOutgoingItem.selling_price || selectedOutgoingItem.price) }}
                         </p>
                     </div>
 
