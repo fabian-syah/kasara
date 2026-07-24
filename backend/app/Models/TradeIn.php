@@ -70,8 +70,8 @@ class TradeIn extends Model
 
     public static function generateReceiptId()
     {
-        $prefix = 'TI' . date('dMy'); // TI13Mar26
-        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->latest()->first();
+        $prefix = 'TI' . date('dMy'); // TI18Mar26
+        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->orderBy('id', 'desc')->first();
 
         if (!$latest) {
             $number = 1;
