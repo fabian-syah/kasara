@@ -403,7 +403,7 @@ class UnitExchangeController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => $msg,
-                    'data' => $exchange->load('incomingProductType.brand', 'distributor')
+                    'data' => $exchange->load('incomingProductType.brand', 'distributor', 'outgoingProductDetail.product.brand')
                 ]);
             });
         } catch (\Exception $e) {

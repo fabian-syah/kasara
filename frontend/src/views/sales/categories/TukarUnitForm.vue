@@ -557,22 +557,35 @@ async function submitUnitExchange(pin = null) {
             order_no: data.receipt_id,
             items: [
                 {
-                    name: `OUT: ${data.outgoing_product_detail?.product?.name || data.outgoing_product_detail?.name || 'Unit Keluar'}`,
-                    imei: data.outgoing_product_detail?.imei || '-',
-                    price: data.outgoing_price,
-                    qty: data.outgoing_quantity || 1,
-                    condition: data.outgoing_product_detail?.condition || 'second',
-                    storage: data.outgoing_product_detail?.storage,
-                    is_hp: !!data.outgoing_product_detail?.imei
+                    name: `IN: ${data.incoming_product_type?.name || 'Unit Masuk'}`,
+                    qty: data.incoming_quantity || 1,
+                    price: data.incoming_cost_price,
+                    original_price: data.incoming_cost_price,
+                    item_discount: 0,
+                    brand: data.incoming_product_type?.brand?.name || '-',
+                    type: 'IN',
+                    is_hp: true,
+                    imei: data.incoming_imei || '-',
+                    distributor_name: data.distributor?.name || 'Konsumen',
+                    condition: data.incoming_condition || 'second',
+                    storage: data.incoming_storage || '-',
+                    is_incoming: true
                 },
                 {
-                    name: `IN: ${data.incoming_product_type?.name || 'Unit Masuk'}`,
-                    imei: data.incoming_imei || '-',
-                    price: -data.outgoing_price, // Negative to balance out
-                    qty: data.incoming_quantity || 1,
-                    condition: data.incoming_condition,
-                    storage: data.incoming_storage,
-                    is_hp: true
+                    name: `OUT: ${data.outgoing_product_detail?.product?.name || data.outgoing_product_detail?.name || 'Unit Keluar'}`,
+                    qty: data.outgoing_quantity || 1,
+                    price: data.outgoing_price,
+                    original_price: data.outgoing_price,
+                    item_discount: 0,
+                    brand: data.outgoing_product_detail?.product?.brand || '-',
+                    type: 'HP',
+                    is_hp: !!data.outgoing_product_detail?.imei,
+                    imei: data.outgoing_product_detail?.imei || '-',
+                    distributor_name: data.distributor?.name || 'KOSONG',
+                    ram: data.outgoing_product_detail?.storage,
+                    storage: data.outgoing_product_detail?.storage,
+                    condition: data.outgoing_product_detail?.condition || 'second',
+                    notes: ''
                 }
             ],
             original_price: data.outgoing_price,
