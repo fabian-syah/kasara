@@ -109,6 +109,9 @@ class AuditController extends Controller
             $isAnalist = $user->hasAnyRole(['analist', 'analis', 'audit']);
             $isSuperAdmin = $user->hasAnyRole(['super_admin', 'audit']);
             $currentRoles = $user->roles()->pluck('name')->toArray();
+            $isInventoryRole = $user->hasRole('inventory');
+            $userId = $user->id;
+            $userName = $user->name;
 
             // Fallback: If ID is not numeric, it might be a name
             if ($requestedBranchId && !is_numeric($requestedBranchId)) {
@@ -145,7 +148,14 @@ class AuditController extends Controller
                 $distributorIds = [];
             }
 
-            $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isInventoryRole, $userId) {
+                if ($isInventoryRole) {
+                    $query->where(function ($q) use ($userId) {
+                        $q->where('stock_outs.user_id', $userId)
+                          ->orWhere('stock_outs.inventory_user_id', $userId);
+                    });
+                    return;
+                }
                 $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $q->where(function($sq) use ($requestedBranchId) {
@@ -184,7 +194,14 @@ class AuditController extends Controller
             };
 
             // Scoper for DB::table queries that have 'users' join already
-            $dbScope = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $dbScope = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isInventoryRole, $userId) {
+                if ($isInventoryRole) {
+                    $query->where(function ($q) use ($userId) {
+                        $q->where('stock_outs.user_id', $userId)
+                          ->orWhere('stock_outs.inventory_user_id', $userId);
+                    });
+                    return;
+                }
                 $query->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $sub->where('users.branch_id', $requestedBranchId);
@@ -222,7 +239,13 @@ class AuditController extends Controller
             $distributors = Distributor::all()->keyBy('id');
 
             // Define a manual helper because closures inside Octane can be tricky
-            $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+            $helper_scopeUser = function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isInventoryRole, $userId) {
+                if ($isInventoryRole) {
+                    $q->where(function ($sq) use ($userId) {
+                        $sq->where('users.id', $userId); // helper_scopeUser applies to users table
+                    });
+                    return;
+                }
                 $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $sub->where('users.branch_id', $requestedBranchId);
@@ -252,10 +275,6 @@ class AuditController extends Controller
 
             // Normalize categories before parallel execution
             $normalizedSalesCategories = array_unique(array_map(function($c) { return strtolower(str_replace(' ', '_', $c)); }, $salesCategories));
-
-            $isInventoryRole = $user->hasRole('inventory');
-            $userId = $user->id;
-            $userName = $user->name;
 
             // Use Octane to run independent queries in parallel
             [$paginatedSales, $brandSalesRaw, $csSalesRaw, $dailyHistoryRaw, $typeStatsRaw, $conditionStatsRaw, $distributorStatsRaw, $soldProducts, $soldDistributors, $reportSummary] = Octane::concurrently([
@@ -321,7 +340,10 @@ class AuditController extends Controller
                             }
                         })
                         ->when($isInventoryRole, function ($q) use ($userId) {
-                            $q->where('inventory_user_id', $userId);
+                            $q->where(function ($sq) use ($userId) {
+                                $sq->where('user_id', $userId)
+                                   ->orWhere('inventory_user_id', $userId);
+                            });
                         })
                         ->latest()->paginate(50);
                 },
@@ -1219,7 +1241,10 @@ class AuditController extends Controller
                             $query->whereNull('stock_outs.deleted_at');
 
                             if ($isInventoryRole) {
-                                $query->where('stock_outs.inventory_user_id', $userId);
+                                $query->where(function ($q) use ($userId) {
+                                    $q->where('stock_outs.user_id', $userId)
+                                      ->orWhere('stock_outs.inventory_user_id', $userId);
+                                });
                             }
 
                             $query->where(function ($q) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $requestedLocationType, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin, $isInventoryRole) {
