@@ -4200,6 +4200,17 @@ class AuditController extends Controller
                     $outletName = $warehouses[$invUser->warehouse_id]->name;
             }
 
+            $inputUser = $trx->user;
+            $inputOutletName = '-';
+            if ($inputUser) {
+                if ($inputUser->branch_id && isset($branches[$inputUser->branch_id]))
+                    $inputOutletName = $branches[$inputUser->branch_id]->name;
+                elseif ($inputUser->online_shop_id && isset($onlineShops[$inputUser->online_shop_id]))
+                    $inputOutletName = $onlineShops[$inputUser->online_shop_id]->name;
+                elseif ($inputUser->warehouse_id && isset($warehouses[$inputUser->warehouse_id]))
+                    $inputOutletName = $warehouses[$inputUser->warehouse_id]->name;
+            }
+
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
@@ -4209,9 +4220,16 @@ class AuditController extends Controller
                 'brand_names' => collect()->concat($trx->items->map(fn($i) => $i->product->brand ?? $i->product->brandRelation->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->brand ?? $i->product->brandRelation->name ?? '-'))->unique()->filter(fn($b) => $b !== '-')->implode(', ') ?: '-',
                 'product_names' => collect()->concat($trx->items->map(fn($i) => $i->product->name ?? '-'))->concat($trx->nonHpItems->map(fn($i) => $i->product->name ?? '-'))->unique()->filter(fn($n) => $n !== '-')->implode(', ') ?: '-',
                 'imeis' => $trx->items->map(fn($i) => $i->imei)->filter()->implode(', ') ?: '-',
+                'storages' => $trx->items->map(fn($i) => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage)->filter()->unique()->implode(', ') ?: null,
+                'conditions' => $trx->items->map(fn($i) => match ($i->condition) {
+                    'new' => 'Baru',
+                    'ex_ibox' => 'Ex iBox',
+                    default => 'Second'
+                })->filter()->unique()->implode(', ') ?: null,
                 'qty' => $hpItemsCount + $nonHpItemsCount,
                 'source' => $sourceLabel,
                 'outlet_name' => $outletName,
+                'input_location' => $inputOutletName,
                 'audit_score' => $score,
                 'audit_total' => $totalQuestions,
                 'cancelled_by_name' => $trx->category === 'kesalahan_input' ? ($trx->user?->name ?? '') : ($trx->cancelledByUser?->name ?? ''),

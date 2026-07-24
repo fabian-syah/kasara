@@ -155,7 +155,8 @@
                                 <th class="px-4 py-4">No</th>
                                 <th class="px-4 py-4">Waktu</th>
                                 <th class="px-4 py-4">ID Transaksi</th>
-                                <th class="px-4 py-4">Lokasi</th>
+                                <th class="px-4 py-4">Lokasi Sumber</th>
+                                <th class="px-4 py-4">Lokasi Input</th>
                                 <th class="px-4 py-4">Kategori</th>
                                 <th class="px-4 py-4">Tipe</th>
                                 <th class="px-4 py-4">Brand</th>
@@ -171,7 +172,7 @@
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
-                                <td colspan="14" class="px-6 py-12">
+                                <td colspan="16" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data barang keluar...</span>
@@ -179,7 +180,7 @@
                                 </td>
                             </tr>
                              <tr v-else-if="!stockOutRecords.data || stockOutRecords.data.length === 0">
-                                <td colspan="14" class="px-6 py-12 text-center text-text-secondary">
+                                <td colspan="16" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -212,6 +213,9 @@
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
                                     {{ item.outlet_name || '-' }}
                                 </td>
+                                <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
+                                    {{ item.input_location || '-' }}
+                                </td>
                                 <td class="px-4 py-4">
                                     <div class="flex items-center">
                                         <span
@@ -238,22 +242,39 @@
                                 </td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">
-                                    {{ item.brand_names }}
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span>{{ formatList(item.brand_names, 1).display }}</span>
+                                        <span v-if="formatList(item.brand_names, 1).more > 0" class="px-1.5 py-0.5 bg-gray-100 dark:bg-surface-700 rounded text-[10px] cursor-help" :title="item.brand_names">+{{ formatList(item.brand_names, 1).more }}</span>
+                                    </div>
                                 </td>
-                                <td class="px-4 py-4 text-xs font-medium text-text-secondary">
-                                    {{ item.product_names }}
+                                <td class="px-4 py-4 text-xs font-medium text-text-secondary max-w-[150px]">
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span class="truncate" :title="item.product_names">{{ formatList(item.product_names, 1).display }}</span>
+                                        <span v-if="formatList(item.product_names, 1).more > 0" class="px-1.5 py-0.5 bg-gray-100 dark:bg-surface-700 rounded text-[10px] cursor-help" :title="item.product_names">+{{ formatList(item.product_names, 1).more }}</span>
+                                    </div>
                                 </td>
-                                <td class="px-4 py-4 text-xs font-mono text-blue-500">
-                                    {{ item.imeis }}
+                                <td class="px-4 py-4 text-xs font-mono text-blue-500 max-w-[180px]">
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span class="truncate" :title="item.imeis">{{ formatList(item.imeis, 2).display }}</span>
+                                        <span v-if="formatList(item.imeis, 2).more > 0" class="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[10px] font-bold cursor-help" :title="item.imeis">+{{ formatList(item.imeis, 2).more }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4 text-xs text-text-secondary">
-                                    {{ item.storages || '-' }}
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <span>{{ formatList(item.storages, 1).display }}</span>
+                                        <span v-if="formatList(item.storages, 1).more > 0" class="px-1.5 py-0.5 bg-gray-100 dark:bg-surface-700 rounded text-[10px] cursor-help" :title="item.storages">+{{ formatList(item.storages, 1).more }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4">
-                                    <span v-if="item.conditions" class="px-1.5 py-0.5 text-[10px] font-semibold rounded"
-                                        :class="item.conditions === 'Baru' ? 'bg-emerald-500/10 text-emerald-500' : item.conditions === 'Ex iBox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'"
-                                    >{{ item.conditions }}</span>
-                                    <span v-else class="text-xs text-gray-400">-</span>
+                                    <div class="flex items-center gap-1 flex-wrap">
+                                        <template v-if="item.conditions && item.conditions !== '-'">
+                                            <span v-for="(cond, cIdx) in formatList(item.conditions, 1).items.slice(0, 1)" :key="cIdx" class="px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                                                :class="cond === 'Baru' ? 'bg-emerald-500/10 text-emerald-500' : cond === 'Ex iBox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'"
+                                            >{{ cond }}</span>
+                                            <span v-if="formatList(item.conditions, 1).more > 0" class="px-1.5 py-0.5 bg-gray-100 dark:bg-surface-700 rounded text-[10px] cursor-help" :title="item.conditions">+{{ formatList(item.conditions, 1).more }}</span>
+                                        </template>
+                                        <span v-else class="text-xs text-gray-400">-</span>
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4 text-text-primary font-semibold">
                                     {{ item.qty }}
@@ -477,6 +498,17 @@ const stockOutRecords = ref({
     total: 0,
     per_page: 50
 });
+
+const formatList = (text, max = 1) => {
+    if (!text || text === '-') return { display: '-', more: 0, items: [] };
+    const items = text.split(',').map(s => s.trim()).filter(Boolean);
+    if (items.length <= max) return { display: text, more: 0, items };
+    return {
+        display: items.slice(0, max).join(', '),
+        more: items.length - max,
+        items
+    };
+};
 
 const getCategoryLabel = (val) => {
     const categories = {
