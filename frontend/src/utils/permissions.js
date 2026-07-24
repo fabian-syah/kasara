@@ -197,6 +197,13 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.INVENTORY_MANAGE, // Allow confirming transfers
         PERMISSIONS.USERS_VIEW, // Needed to select target account for stock in
         PERMISSIONS.REPORTS_VIEW
+    ],
+
+    [ROLES.INVENTORY]: [
+        PERMISSIONS.INVENTORY_VIEW,
+        PERMISSIONS.INVENTORY_MANAGE,
+        PERMISSIONS.TRANSACTIONS_VIEW,
+        PERMISSIONS.TRANSACTIONS_CREATE
     ]
 }
 
@@ -214,7 +221,7 @@ export const ROLE_MENUS = {
     [ROLES.GUDANG]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'retur_items', 'support_group', 'track'],
     [ROLES.INVENTORY_KASIR]: ['dashboard', 'pos', 'support_group', 'track'],
     [ROLES.TOKO_ONLINE]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'reports', 'report_sales', 'support_group', 'track'],
-    [ROLES.INVENTORY]: ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'profile_inventory']
+    [ROLES.INVENTORY]: ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_opname', 'support_group', 'track', 'profile_inventory']
 }
 
 // Helper functions

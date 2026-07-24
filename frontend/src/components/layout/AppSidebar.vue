@@ -232,16 +232,27 @@ const visibleMenuItems = computed(() => {
 
     let filtered = [];
 
-    // Khusus untuk role inventory, hanya tampilkan Dashboard, Buat Penjualan, dan Cek Penjualan, serta Pengaturan Pribadi
+    // Khusus untuk role inventory, hanya tampilkan Dashboard, Buat Penjualan, dan Cek Penjualan, serta Pengaturan Pribadi, Stok Opname, Lacak IMEI
     if (role === 'inventory') {
-        filtered = menuItems.filter(item => ['dashboard', 'sales_create', 'sales_check', 'profile_inventory'].includes(item.id));
+        filtered = menuItems.filter(item => ['dashboard', 'sales_create', 'sales_check', 'inventory', 'support_group', 'profile_inventory'].includes(item.id));
         
-        // Remove 'custom_nota' from 'sales_check' items since it's restricted anyway
         filtered = filtered.map(group => {
             if (group.id === 'sales_check' && group.items) {
                 return {
                     ...group,
                     items: group.items.filter(sub => sub.id === 'sales_check_main')
+                };
+            }
+            if (group.id === 'inventory' && group.items) {
+                return {
+                    ...group,
+                    items: group.items.filter(sub => sub.id === 'inventory_opname')
+                };
+            }
+            if (group.id === 'support_group' && group.items) {
+                return {
+                    ...group,
+                    items: group.items.filter(sub => sub.id === 'track')
                 };
             }
             return group;
