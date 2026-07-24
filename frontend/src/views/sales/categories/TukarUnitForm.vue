@@ -573,9 +573,9 @@ async function submitUnitExchange(pin = null) {
                 },
                 {
                     name: `OUT: ${data.outgoing_product_detail?.product?.name || data.outgoing_product_detail?.name || 'Unit Keluar'}`,
-                    qty: data.outgoing_quantity || 1,
-                    price: data.outgoing_price,
-                    original_price: data.outgoing_price,
+                    qty: unitExchangeForm.value.outgoing_quantity || 1,
+                    price: unitExchangeForm.value.outgoing_price,
+                    original_price: unitExchangeForm.value.outgoing_price,
                     item_discount: 0,
                     brand: data.outgoing_product_detail?.product?.brand || '-',
                     type: 'HP',
