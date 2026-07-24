@@ -295,14 +295,21 @@
                                             item.audit_score }}% ⚠️</span>
                                 </td>
                                 <!-- Actions -->
-                                <td class="px-4 py-4 text-center">
-                                    <button v-if="!['penjualan_offline', 'orderan_online'].includes(item.category)"
-                                        @click="openChecklist(item)"
-                                        class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
-                                        title="Cek Audit Barang Keluar">
-                                        <ClipboardCheck :size="16" />
-                                    </button>
-                                    <span v-else class="text-xs text-gray-400 italic">History</span>
+                                <td class="px-4 py-4">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button @click="openItemDetails(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Lihat Detail Item">
+                                            <Eye :size="16" />
+                                        </button>
+                                        <button v-if="!['penjualan_offline', 'orderan_online'].includes(item.category)"
+                                            @click="openChecklist(item)"
+                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
+                                            title="Cek Audit Barang Keluar">
+                                            <ClipboardCheck :size="16" />
+                                        </button>
+                                        <span v-else class="text-xs text-gray-400 italic">History</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -465,6 +472,69 @@
                 </div>
             </div>
         </Teleport>
+
+        <!-- Item Details Modal -->
+        <Teleport to="body">
+            <div v-if="showItemDetailsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeItemDetails"></div>
+                <div
+                    class="relative bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+                    <!-- Header -->
+                    <div
+                        class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                                Detail Barang Keluar
+                            </h3>
+                            <p class="text-sm text-gray-500 mt-0.5">
+                                ID Transaksi: <span class="font-semibold text-text-primary">{{ selectedItemDetails?.receipt_id }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Body (Table) -->
+                    <div class="p-0 overflow-y-auto flex-1 bg-gray-50/30 dark:bg-surface-900/30">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs font-semibold text-text-secondary uppercase bg-gray-50/50 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700 sticky top-0 z-10 backdrop-blur-md">
+                                <tr>
+                                    <th class="px-4 py-3">No</th>
+                                    <th class="px-4 py-3">Tipe</th>
+                                    <th class="px-4 py-3">Brand</th>
+                                    <th class="px-4 py-3">Nama Produk</th>
+                                    <th class="px-4 py-3">IMEI</th>
+                                    <th class="px-4 py-3">Kapasitas</th>
+                                    <th class="px-4 py-3">Kondisi</th>
+                                    <th class="px-4 py-3 text-center">Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
+                                <tr v-for="(detail, i) in selectedItemDetails?.detailed_items" :key="i" class="hover:bg-gray-50 dark:hover:bg-surface-700/30">
+                                    <td class="px-4 py-3 text-xs text-text-secondary">{{ i + 1 }}</td>
+                                    <td class="px-4 py-3 text-xs font-medium">{{ detail.type }}</td>
+                                    <td class="px-4 py-3 text-xs">{{ detail.brand }}</td>
+                                    <td class="px-4 py-3 text-xs">{{ detail.name }}</td>
+                                    <td class="px-4 py-3 text-xs font-mono text-blue-500">{{ detail.imei }}</td>
+                                    <td class="px-4 py-3 text-xs">{{ detail.storage }}</td>
+                                    <td class="px-4 py-3 text-xs">
+                                        <span v-if="detail.condition && detail.condition !== '-'" class="px-1.5 py-0.5 text-[10px] font-semibold rounded"
+                                            :class="detail.condition === 'Baru' ? 'bg-emerald-500/10 text-emerald-500' : detail.condition === 'Ex iBox' ? 'bg-purple-500/10 text-purple-500' : 'bg-amber-500/10 text-amber-500'"
+                                        >{{ detail.condition }}</span>
+                                        <span v-else>-</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs text-center font-semibold">{{ detail.qty }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Footer -->
+                    <div class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end">
+                        <button @click="closeItemDetails"
+                            class="px-5 py-2 text-sm font-bold text-gray-700 bg-gray-100 dark:bg-surface-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-surface-600 rounded-xl transition-colors">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -481,6 +551,7 @@ import {
     ChevronLeft,
     ChevronRight,
     AlertTriangle,
+    Eye,
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useAuthStore } from '../../store/auth';
@@ -537,6 +608,20 @@ const checklistData = ref(null);
 const checklistStockOutId = ref(null);
 const checklistEditMode = ref(false);
 
+// Item Details Modal State
+const showItemDetailsModal = ref(false);
+const selectedItemDetails = ref(null);
+
+const openItemDetails = (item) => {
+    selectedItemDetails.value = item;
+    showItemDetailsModal.value = true;
+};
+
+const closeItemDetails = () => {
+    showItemDetailsModal.value = false;
+    selectedItemDetails.value = null;
+};
+
 const closeChecklist = () => {
     showChecklistModal.value = false;
     checklistEditMode.value = false;
@@ -544,6 +629,7 @@ const closeChecklist = () => {
 
 useEscapeKey(() => {
     if (showChecklistModal.value) closeChecklist();
+    if (showItemDetailsModal.value) closeItemDetails();
 });
 
 const openChecklist = async (item) => {

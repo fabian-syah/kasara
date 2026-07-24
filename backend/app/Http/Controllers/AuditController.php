@@ -4234,6 +4234,31 @@ class AuditController extends Controller
                 'audit_total' => $totalQuestions,
                 'cancelled_by_name' => $trx->category === 'kesalahan_input' ? ($trx->user?->name ?? '') : ($trx->cancelledByUser?->name ?? ''),
                 'cancel_reason' => $trx->category === 'kesalahan_input' ? $trx->deletion_reason : $trx->cancel_reason,
+                'detailed_items' => collect()->concat(
+                    $trx->items->map(fn($i) => [
+                        'type' => 'HP',
+                        'brand' => $i->product->brand ?? $i->product->brandRelation->name ?? '-',
+                        'name' => $i->product->name ?? '-',
+                        'imei' => $i->imei ?? '-',
+                        'storage' => $i->ram && $i->storage ? $i->ram . '/' . $i->storage : $i->storage,
+                        'condition' => match ($i->condition) {
+                            'new' => 'Baru',
+                            'ex_ibox' => 'Ex iBox',
+                            default => 'Second'
+                        },
+                        'qty' => 1
+                    ])
+                )->concat(
+                    $trx->nonHpItems->map(fn($i) => [
+                        'type' => 'Non-HP',
+                        'brand' => $i->product->brand ?? $i->product->brandRelation->name ?? '-',
+                        'name' => $i->product->name ?? '-',
+                        'imei' => '-',
+                        'storage' => '-',
+                        'condition' => '-',
+                        'qty' => $i->quantity ?? 1
+                    ])
+                )->values()->toArray(),
             ];
         });
 
