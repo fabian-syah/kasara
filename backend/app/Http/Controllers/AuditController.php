@@ -1388,9 +1388,6 @@ class AuditController extends Controller
 
                             // If it's a standard sale category, do NOT override with deductions by notes
                             if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'])) {
-                                if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
-                                    return 'tukar_tambah';
-                                }
                                 return $category;
                             }
                             if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
@@ -1448,7 +1445,7 @@ class AuditController extends Controller
                             $price = max(0, abs((float) $ps->selling_price));
 
                             $saleType = 'ignored';
-                            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                            if ($cat === 'tukar_tambah') {
                                 $saleType = 'tukar_tambah';
                             } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
                                 $saleType = 'base_sale';

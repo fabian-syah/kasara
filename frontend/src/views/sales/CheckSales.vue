@@ -996,9 +996,6 @@ const summaryStats = computed(() => {
 
         // If it's a standard sale category, do NOT override with deductions by notes
         if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
-            if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
-                return 'tukar_tambah';
-            }
             return cat;
         }
 
@@ -1032,7 +1029,13 @@ const summaryStats = computed(() => {
         // We do not subtract it again to prevent double discounting.
         
         // Standard Sales categories
-        const isBaseSale = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat);
+        let saleType = 'other';
+        if (cat === 'tukar_tambah') {
+            saleType = 'tukar_tambah';
+        } else if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat)) {
+            saleType = 'base_sale';
+        }
+        const isBaseSale = saleType === 'base_sale';
         const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
         const isDeduction = ['refund', 'angkat_barang'].includes(cat);
 
