@@ -990,6 +990,10 @@ const summaryStats = computed(() => {
         const n = (notes || '').toLowerCase();
         const sa = (salesAccount || '').toLowerCase();
 
+        if (['cancel_penjualan', 'kesalahan_input', 'retur'].includes(cat)) {
+            return cat;
+        }
+
         // If it's a standard sale category, do NOT override with deductions by notes
         if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
             if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
