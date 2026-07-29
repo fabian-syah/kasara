@@ -454,6 +454,13 @@ async function submitUnitExchange(pin = null) {
         return;
     }
 
+    const totalIn = (unitExchangeForm.value.incoming_cost_price || 0) * (unitExchangeForm.value.incoming_quantity || 1);
+    const totalOut = (unitExchangeForm.value.outgoing_price || 0) * (unitExchangeForm.value.outgoing_quantity || 1);
+    if (totalOut !== totalIn) {
+        alert("Transaksi Tukar Unit harus memiliki total harga Unit Keluar dan Unit Masuk yang sama persis (Selisih Rp 0). Jika ada selisih harga, silakan gunakan menu 'Tukar Tambah' atau 'Downgrade'.");
+        return;
+    }
+
     if (!unitExchangeForm.value.customer_name || !unitExchangeForm.value.customer_phone || !unitExchangeForm.value.incoming_brand_id || !unitExchangeForm.value.incoming_product_type_id || !unitExchangeForm.value.incoming_storage || !unitExchangeForm.value.incoming_condition || !unitExchangeForm.value.incoming_cost_price || !unitExchangeForm.value.reason || !unitExchangeForm.value.outgoing_product_detail_id || !unitExchangeForm.value.outgoing_price || !unitExchangeForm.value.distributor_id) {
         alert("Mohon lengkapi semua data wajib (Customer, Distributor, Unit Masuk, Unit Keluar, Harga Jual, Alasan).");
         return;

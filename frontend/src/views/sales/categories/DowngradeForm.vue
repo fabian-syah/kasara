@@ -460,8 +460,8 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
-    if (downgradePriceDiff.value > 0) {
-        alert("Harga Unit Keluar lebih besar dari Harga Unit Masuk. Gunakan menu 'Tukar Tambah' jika unit toko lebih mahal.");
+    if (downgradePriceDiff.value >= 0) {
+        alert("Harga Unit Keluar tidak lebih kecil dari Harga Unit Masuk. Gunakan menu 'Tukar Unit' jika harga sama, atau 'Tukar Tambah' jika unit toko lebih mahal.");
         return;
     }
 

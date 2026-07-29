@@ -482,8 +482,8 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
-    if (tukarTambahPriceDiff.value < 0) {
-        alert("Harga Unit Keluar lebih kecil dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar atau sama dengan Unit Masuk. Silakan gunakan menu 'Downgrade' jika unit toko lebih murah.");
+    if (tukarTambahPriceDiff.value <= 0) {
+        alert("Harga Unit Keluar tidak lebih besar dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar dari Unit Masuk. Silakan gunakan menu 'Tukar Unit' jika harga sama, atau 'Downgrade' jika unit toko lebih murah.");
         return;
     }
 
