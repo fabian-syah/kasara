@@ -42,7 +42,9 @@ const tukarTambahPhotos = ref({
     unit: null,
     unitPreview: null,
     customer: null,
-    customerPreview: null
+    customerPreview: null,
+    paymentProof: null,
+    paymentProofPreview: null
 });
 
 
@@ -122,7 +124,8 @@ watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuer
     
     const persistentPhotos = {
         unitPreview: newPhotos.unitPreview,
-        customerPreview: newPhotos.customerPreview
+        customerPreview: newPhotos.customerPreview,
+        paymentProofPreview: newPhotos.paymentProofPreview
     };
 
     localStorage.setItem(storageKey.value, JSON.stringify({
@@ -144,6 +147,7 @@ async function restoreDraft() {
             if (data.photos) {
                 tukarTambahPhotos.value.unitPreview = data.photos.unitPreview;
                 tukarTambahPhotos.value.customerPreview = data.photos.customerPreview;
+                tukarTambahPhotos.value.paymentProofPreview = data.photos.paymentProofPreview;
                 
                 if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
                     try {
@@ -153,6 +157,11 @@ async function restoreDraft() {
                 if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
                     try {
                         tukarTambahPhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.paymentProofPreview && data.photos.paymentProofPreview.startsWith('data:')) {
+                    try {
+                        tukarTambahPhotos.value.paymentProof = dataURLtoFile(data.photos.paymentProofPreview, 'payment_proof_restored.jpg');
                     } catch (e) {}
                 }
             }
@@ -271,6 +280,17 @@ const tukarTambahPriceDiff = computed(() => {
 const isSplitInvalid = computed(() => {
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     return totalSplit !== tukarTambahPriceDiff.value;
+});
+
+const isCashOnly = computed(() => {
+    return splitPayments.value.every(p => {
+        const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
+        if (method) {
+            const name = method.name.toLowerCase();
+            return name.includes('cash') || name.includes('tunai');
+        }
+        return false;
+    });
 });
 
 // Watchers
@@ -483,6 +503,11 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
+    if (!isCashOnly.value && tukarTambahPriceDiff.value > 0 && !tukarTambahPhotos.value.paymentProof) {
+        alert("Foto bukti pembayaran transfer wajib diupload untuk metode non-tunai.");
+        return;
+    }
+
     if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitTukarTambah(verifiedPin));
         return;
@@ -493,6 +518,7 @@ async function submitTukarTambah(pin = null) {
     const formData = new FormData();
     if (tukarTambahPhotos.value.unit) formData.append('photo_unit', tukarTambahPhotos.value.unit);
     if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
+    if (tukarTambahPhotos.value.paymentProof) formData.append('payment_proof_image', tukarTambahPhotos.value.paymentProof);
     if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
@@ -614,7 +640,8 @@ async function submitTukarTambah(pin = null) {
             distributor_name: data.distributor?.name || 'KOSONG',
             proof_images: [
                 data.photo_unit ? `${authStore.storageBaseUrl}/storage/${data.photo_unit}` : null,
-                data.photo_customer ? `${authStore.storageBaseUrl}/storage/${data.photo_customer}` : null
+                data.photo_customer ? `${authStore.storageBaseUrl}/storage/${data.photo_customer}` : null,
+                data.payment_proof_image ? `${authStore.storageBaseUrl}/storage/${data.payment_proof_image}` : null
             ].filter(Boolean)
         };
 
@@ -647,7 +674,7 @@ async function submitTukarTambah(pin = null) {
                 amount: 0
             }
         ];
-        tukarTambahPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        tukarTambahPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null, paymentProof: null, paymentProofPreview: null };
 
     } catch (error) {
         console.error("Tukar tambah failed", error);
@@ -930,6 +957,26 @@ async function submitTukarTambah(pin = null) {
                             <input type="file" ref="customerTTInput"
                                 @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden"
                                 capture="environment" />
+                        </div>
+                        <div v-if="!isCashOnly && tukarTambahPriceDiff > 0" class="col-span-1 sm:col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-2 text-center">FOTO BUKTI TRANSFER <span class="text-red-500">*</span></label>
+                            <div @click="$refs.paymentProofTTInput.click()" class="relative border-2 border-dashed border-amber-300 dark:border-amber-600 rounded-xl aspect-square sm:aspect-[2/1] md:aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all overflow-hidden group">
+                                <template v-if="isCompressing">
+                                    <Loader2 class="w-8 h-8 text-amber-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-amber-600 uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="tukarTambahPhotos.paymentProofPreview">
+                                    <img :src="tukarTambahPhotos.paymentProofPreview" class="w-full h-full object-cover" />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <Camera class="text-white w-6 h-6" />
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <Plus :size="24" class="text-amber-500 mb-1" />
+                                    <span class="text-[9px] font-black text-amber-600 uppercase">Upload Bukti TF</span>
+                                </template>
+                            </div>
+                            <input type="file" ref="paymentProofTTInput" @change="e => handlePhotoChange('paymentProof', e)" accept="image/*" class="hidden" capture="environment" />
                         </div>
                     </div>
                 </div>

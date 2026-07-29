@@ -41,7 +41,9 @@ const downgradePhotos = ref({
     unit: null,
     unitPreview: null,
     customer: null,
-    customerPreview: null
+    customerPreview: null,
+    paymentProof: null,
+    paymentProofPreview: null
 });
 
 const downgradeForm = ref({
@@ -120,7 +122,8 @@ watch([downgradeForm, stockSearchQuery, downgradePhotos], ([newForm, newQuery, n
     
     const persistentPhotos = {
         unitPreview: newPhotos.unitPreview,
-        customerPreview: newPhotos.customerPreview
+        customerPreview: newPhotos.customerPreview,
+        paymentProofPreview: newPhotos.paymentProofPreview
     };
 
     localStorage.setItem(storageKey.value, JSON.stringify({
@@ -142,6 +145,7 @@ async function restoreDraft() {
             if (data.photos) {
                 downgradePhotos.value.unitPreview = data.photos.unitPreview;
                 downgradePhotos.value.customerPreview = data.photos.customerPreview;
+                downgradePhotos.value.paymentProofPreview = data.photos.paymentProofPreview;
                 
                 if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
                     try {
@@ -151,6 +155,11 @@ async function restoreDraft() {
                 if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
                     try {
                         downgradePhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
+                    } catch (e) {}
+                }
+                if (data.photos.paymentProofPreview && data.photos.paymentProofPreview.startsWith('data:')) {
+                    try {
+                        downgradePhotos.value.paymentProof = dataURLtoFile(data.photos.paymentProofPreview, 'payment_proof_restored.jpg');
                     } catch (e) {}
                 }
             }
@@ -264,6 +273,17 @@ const downgradePriceDiff = computed(() => {
 const isSplitInvalid = computed(() => {
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     return totalSplit !== Math.abs(downgradePriceDiff.value);
+});
+
+const isCashOnly = computed(() => {
+    return splitPayments.value.every(p => {
+        const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
+        if (method) {
+            const name = method.name.toLowerCase();
+            return name.includes('cash') || name.includes('tunai');
+        }
+        return false;
+    });
 });
 
 // Watchers
@@ -462,6 +482,11 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
+    if (!isCashOnly.value && Math.abs(downgradePriceDiff.value) > 0 && !downgradePhotos.value.paymentProof) {
+        alert("Foto bukti transfer pengembalian uang wajib diupload untuk metode non-tunai.");
+        return;
+    }
+
     if (!pin && props.selectedAccountObject?.pin_enabled) {
         emit('verify-pin', (verifiedPin) => submitDowngrade(verifiedPin));
         return;
@@ -471,6 +496,7 @@ async function submitDowngrade(pin = null) {
     const formData = new FormData();
     if (downgradePhotos.value.unit) formData.append('photo_unit', downgradePhotos.value.unit);
     if (downgradePhotos.value.customer) formData.append('photo_customer', downgradePhotos.value.customer);
+    if (downgradePhotos.value.paymentProof) formData.append('payment_proof_image', downgradePhotos.value.paymentProof);
     if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
@@ -593,7 +619,8 @@ async function submitDowngrade(pin = null) {
             distributor_name: data.distributor?.name || 'KOSONG',
             proof_images: [
                 data.photo_unit ? `${authStore.storageBaseUrl}/storage/${data.photo_unit}` : null,
-                data.photo_customer ? `${authStore.storageBaseUrl}/storage/${data.photo_customer}` : null
+                data.photo_customer ? `${authStore.storageBaseUrl}/storage/${data.photo_customer}` : null,
+                data.payment_proof_image ? `${authStore.storageBaseUrl}/storage/${data.payment_proof_image}` : null
             ].filter(Boolean)
         };
 
@@ -626,7 +653,7 @@ async function submitDowngrade(pin = null) {
                 amount: 0
             }
         ];
-        downgradePhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        downgradePhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null, paymentProof: null, paymentProofPreview: null };
         localStorage.removeItem(storageKey.value);
     } catch (error) {
         console.error("Downgrade failed", error);
@@ -839,8 +866,28 @@ async function submitDowngrade(pin = null) {
                             </div>
                             <input type="file" ref="customerDGInput" @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden" capture="environment" />
                         </div>
+                        <div v-if="!isCashOnly && Math.abs(downgradePriceDiff) > 0" class="col-span-1 sm:col-span-2 md:col-span-1">
+                            <label class="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-2 text-center">FOTO BUKTI TRANSFER <span class="text-red-500">*</span></label>
+                            <div @click="$refs.paymentProofDGInput.click()" class="relative border-2 border-dashed border-amber-300 dark:border-amber-600 rounded-xl aspect-square sm:aspect-[2/1] md:aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all overflow-hidden group">
+                                <template v-if="isCompressing">
+                                    <Loader2 class="w-8 h-8 text-amber-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-amber-600 uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="downgradePhotos.paymentProofPreview">
+                                    <img :src="downgradePhotos.paymentProofPreview" class="w-full h-full object-cover" />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <Camera class="text-white w-6 h-6" />
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <Plus :size="24" class="text-amber-500 mb-1" />
+                                    <span class="text-[9px] font-black text-amber-600 uppercase">Upload Bukti TF</span>
+                                </template>
+                            </div>
+                            <input type="file" ref="paymentProofDGInput" @change="e => handlePhotoChange('paymentProof', e)" accept="image/*" class="hidden" capture="environment" />
+                        </div>
                     </div>
-                    <p class="text-[10px] text-text-secondary italic text-center">*Minimal upload salah satu foto</p>
+                    <p class="text-[10px] text-text-secondary italic text-center">*Minimal upload salah satu foto (Unit/Customer)</p>
                 </div>
             </div>
 

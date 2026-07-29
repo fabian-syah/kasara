@@ -50,6 +50,7 @@ class DowngradeController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'nullable|image|max:20480',
             'photo_customer' => 'nullable|image|max:20480',
+            'payment_proof_image' => 'nullable|image|max:20480',
             'transaction_pin' => 'nullable|string',
             'inventory_user_id' => 'nullable|exists:users,id',
             'split_payments' => 'nullable',
@@ -65,12 +66,16 @@ class DowngradeController extends Controller
                 // 1. Handle File Uploads
                 $photoPathUnit = null;
                 $photoPathCustomer = null;
+                $paymentProofImagePath = null;
 
                 if ($request->hasFile('photo_unit')) {
                     $photoPathUnit = $request->file('photo_unit')->store('downgrades/units', 'public');
                 }
                 if ($request->hasFile('photo_customer')) {
                     $photoPathCustomer = $request->file('photo_customer')->store('downgrades/customers', 'public');
+                }
+                if ($request->hasFile('payment_proof_image')) {
+                    $paymentProofImagePath = $request->file('payment_proof_image')->store('downgrades/payment-proofs', 'public');
                 }
 
                 // Resolve inventory_user_id and target location
@@ -242,6 +247,7 @@ class DowngradeController extends Controller
                     'status' => 'received',
                     'notes' => "Downgrade Alasan: " . $request->reason . ($request->notes ? " | Ket: " . $request->notes : ""),
                     'proof_image' => $photoPathUnit,
+                    'payment_proof_image' => $paymentProofImagePath,
                     'selling_price' => $negDiff,
                     'total_amount' => $negDiff,
                     'paid' => $negDiff,
@@ -324,6 +330,8 @@ class DowngradeController extends Controller
                 Storage::disk('public')->delete($photoPathUnit);
             if (isset($photoPathCustomer))
                 Storage::disk('public')->delete($photoPathCustomer);
+            if (isset($paymentProofImagePath))
+                Storage::disk('public')->delete($paymentProofImagePath);
 
             return response()->json([
                 'success' => false,
