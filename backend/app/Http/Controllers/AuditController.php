@@ -1521,9 +1521,8 @@ class AuditController extends Controller
                         }
 
                         $paymentTotal = $baseSalesOnly + $totalTradeOutgoing + $totalDowngradeOutgoing;
-                        // ABSOLUTE UNIFIED FORMULA CONFIRMED BY USER: Omset Bersih = Total Omset - Deductions.
-                        // This is equivalent to: Base Sales + TT Out + Downgrade Out - Deductions - TT In - Downgrade In.
-                        $omsetBersih = $paymentTotal - $deductions - $totalTradeIncoming - $totalDowngradeIncoming;
+                        // User Logic: Omset Bersih = Penjualan Biasa + In TT + In DG - Deductions (Angkat/Refund)
+                        $omsetBersih = $baseSalesOnly + $totalTradeIncoming + $totalDowngradeIncoming - $deductions;
 
                         $map = ['apple_lux' => 0, 'hp' => 0, 'iphone' => 0, 'android' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'accessories' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $mapRp = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
@@ -2225,11 +2224,14 @@ class AuditController extends Controller
                 }
 
                 // Tukar Tambah: selisih harga = uang masuk ke toko (positif)
-                // Refund/Angkat Barang: uang keluar dari toko (negatif)
-                if (in_array($catLower, ['refund', 'angkat_barang'])) {
+                // Downgrade, Refund, Angkat Barang: uang keluar dari toko (negatif)
+                // Tukar Unit: selisih selalu 0
+                if (in_array($catLower, ['refund', 'angkat_barang', 'downgrade'])) {
                     $finalPrice = -abs($rawSellingPrice);
-                } elseif ($catLower === 'tukar_tambah' || $catLower === 'downgrade') {
+                } elseif ($catLower === 'tukar_tambah') {
                     $finalPrice = abs($rawSellingPrice);
+                } elseif ($catLower === 'tukar_unit') {
+                    $finalPrice = 0;
                 } else {
                     $finalPrice = $rawSellingPrice;
                 }
