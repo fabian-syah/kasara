@@ -254,7 +254,12 @@ const formattedDate = computed(() => {
   const dateStr = props.sale?.created_at || props.sale?.date
   if (!dateStr) return '-'
   
-  const d = new Date(dateStr)
+  let safeDateStr = dateStr;
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    safeDateStr = dateStr.replace(' ', 'T') + '+07:00';
+  }
+
+  const d = new Date(safeDateStr)
   if (isNaN(d)) return props.sale?.date
   
   const tz = branchTimezone.value
@@ -272,7 +277,12 @@ const formattedDateShort = computed(() => {
   const dateStr = props.sale?.created_at || props.sale?.date
   if (!dateStr) return '-'
   
-  const d = new Date(dateStr)
+  let safeDateStr = dateStr;
+  if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    safeDateStr = dateStr.replace(' ', 'T') + '+07:00';
+  }
+
+  const d = new Date(safeDateStr)
   if (isNaN(d)) return props.sale?.date
   
   const tz = branchTimezone.value

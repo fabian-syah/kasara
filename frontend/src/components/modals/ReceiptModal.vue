@@ -1132,15 +1132,40 @@ const displayDate = computed(() => {
         return rawDate;
     }
 
-    const dateObj = new Date(rawDate);
+    // Safely parse backend timestamp which might be in "YYYY-MM-DD HH:mm:ss" format (WIB)
+    let safeDateStr = rawDate;
+    if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(rawDate)) {
+        safeDateStr = rawDate.replace(' ', 'T') + '+07:00';
+    }
+
+    const dateObj = new Date(safeDateStr);
     if (!isNaN(dateObj.getTime())) {
-        return dateObj.toLocaleString("id-ID", {
+        const options = {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
-        }).replace(/\./g, ':');
+        };
+
+        const tz = props.transaction.branch_timezone || props.transaction.branch?.timezone || props.transaction.user?.branch?.timezone || null;
+        if (tz) {
+            const tzMap = {
+                'WIB': 'Asia/Jakarta',
+                'WITA': 'Asia/Makassar',
+                'WIT': 'Asia/Jayapura',
+                'ASIA/JAKARTA': 'Asia/Jakarta',
+                'ASIA/MAKASSAR': 'Asia/Makassar',
+                'ASIA/JAYAPURA': 'Asia/Jayapura'
+            };
+            options.timeZone = tzMap[tz.toUpperCase()] || tz;
+        }
+
+        let formatted = dateObj.toLocaleString("id-ID", options).replace(/\./g, ':');
+        if (tz) {
+            formatted += ` ${tz.toUpperCase()}`;
+        }
+        return formatted;
     }
 
     if (props.transaction.time) {

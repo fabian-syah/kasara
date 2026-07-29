@@ -240,8 +240,10 @@
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
                                     <td class="px-6 py-4 text-text-secondary" v-if="idx === 0"
                                         :rowspan="item.items.length">{{ ((salesRecords.daily_sales?.current_page || 1) - 1) * (salesRecords.daily_sales?.per_page || 50) + index + 1 }}</td>
-                                    <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">{{
-                                        formatDate(item.date) }}</td>
+                                    <td class="px-6 py-4 font-medium" v-if="idx === 0" :rowspan="item.items.length">
+                                        {{ formatDate(item.created_at || item.date, 'datetime', item.branch?.timezone || item.user?.branch?.timezone || 'WIB') }}
+                                        <div class="text-[10px] text-text-secondary mt-0.5 font-bold">{{ item.branch?.timezone || item.user?.branch?.timezone || 'WIB' }}</div>
+                                    </td>
                                     <td class="px-6 py-4 font-mono text-xs" v-if="idx === 0"
                                         :rowspan="item.items.length">
                                         <div>{{ item.order_no }}</div>
@@ -399,7 +401,10 @@
                                 <tr v-else
                                     class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors text-text-primary">
                                     <td class="px-6 py-4 text-text-primary">{{ ((salesRecords.daily_sales?.current_page || 1) - 1) * (salesRecords.daily_sales?.per_page || 50) + index + 1 }}</td>
-                                    <td class="px-6 py-4 font-medium">{{ formatDate(item.date) }}</td>
+                                    <td class="px-6 py-4 font-medium">
+                                    {{ formatDate(item.created_at || item.date, 'datetime', item.branch?.timezone || item.user?.branch?.timezone || 'WIB') }}
+                                    <div class="text-[10px] text-text-secondary mt-0.5 font-bold">{{ item.branch?.timezone || item.user?.branch?.timezone || 'WIB' }}</div>
+                                </td>
                                     <td class="px-6 py-4 font-mono text-xs text-text-primary">
                                         <div>{{ item.order_no }}</div>
                                         <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
@@ -1207,15 +1212,36 @@ const handleMonthChange = () => {
     }
 }
 
-const formatDate = (dateString) => {
+const formatDate = (dateString, format = 'datetime', tz = null) => {
     if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('id-ID', {
+    
+    // Safely parse backend timestamp which might be in "YYYY-MM-DD HH:mm:ss" format (WIB)
+    let safeDateStr = dateString;
+    if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateString)) {
+        safeDateStr = dateString.replace(' ', 'T') + '+07:00';
+    }
+    
+    const d = new Date(safeDateStr)
+    if (isNaN(d.getTime())) return '-'
+
+    const options = {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-    })
+    }
+
+    if (tz) {
+        const tzMap = {
+            'WIB': 'Asia/Jakarta',
+            'WITA': 'Asia/Makassar',
+            'WIT': 'Asia/Jayapura'
+        };
+        options.timeZone = tzMap[tz.toUpperCase()] || tz;
+    }
+
+    return d.toLocaleString('id-ID', options)
 }
 
 const canCancel = (date) => {

@@ -97,11 +97,17 @@ export function parseCurrency(val) {
  * @param {string} format - Format type: 'short', 'long', 'time', 'datetime'
  * @returns {string} Formatted date string
  */
-export function formatDate(date, format = 'short') {
+export function formatDate(date, format = 'short', timezone = null) {
     if (!date) return '-'
 
     // Handle space instead of T for better browser compatibility
-    const dateStr = typeof date === 'string' ? date.replace(' ', 'T') : date
+    let dateStr = typeof date === 'string' ? date.replace(' ', 'T') : date
+    
+    // Safely parse backend timestamp which might be in "YYYY-MM-DD HH:mm:ss" format (WIB)
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+        dateStr += '+07:00';
+    }
+    
     const d = new Date(dateStr)
 
     if (isNaN(d.getTime())) return '-'
@@ -113,7 +119,22 @@ export function formatDate(date, format = 'short') {
         datetime: { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }
     }
 
-    return d.toLocaleDateString('id-ID', options[format] || options.short)
+    const fmtOptions = { ... (options[format] || options.short) }
+
+    if (timezone) {
+        const tzMap = {
+            'WIB': 'Asia/Jakarta',
+            'WITA': 'Asia/Makassar',
+            'WIT': 'Asia/Jayapura',
+            'ASIA/JAKARTA': 'Asia/Jakarta',
+            'ASIA/MAKASSAR': 'Asia/Makassar',
+            'ASIA/JAYAPURA': 'Asia/Jayapura'
+        };
+        const tz = tzMap[timezone.toUpperCase()] || timezone;
+        fmtOptions.timeZone = tz;
+    }
+
+    return d.toLocaleString('id-ID', fmtOptions)
 }
 
 /**
