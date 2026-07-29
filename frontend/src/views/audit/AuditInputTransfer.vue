@@ -898,6 +898,7 @@ async function submitStockIn(verifiedPin = null) {
         if (itemType.value === 'hp') {
             let totalInserted = 0;
             let totalDuplicates = [];
+            let allInsertedIds = [];
 
             for (const item of hpItems.value) {
                 let productId = item.product_id;
@@ -986,6 +987,9 @@ async function submitStockIn(verifiedPin = null) {
                     totalDuplicates.push(...response.data.duplicates);
                 }
                 totalInserted += response.data.inserted_count || 0;
+                if (response.data.inserted_ids) {
+                    allInsertedIds.push(...response.data.inserted_ids);
+                }
             }
 
             if (totalDuplicates.length > 0) {
@@ -1001,16 +1005,8 @@ async function submitStockIn(verifiedPin = null) {
                 // --- START AUTO-TRANSFER ---
                 try {
                     toast.info("Memproses pengiriman ke tujuan...");
-                    const allImeis = [];
-                    hpItems.value.forEach(item => { allImeis.push(...item.parsedImeis); });
-                    const res = await inventoryApi.list({ [`${placementType.value}_id`]: placementId.value, type: 'hp', per_page: 100 });
-                    const items = res.data.data || res.data;
-                    const newlyInserted = items.filter(i => {
-                        const imei = i.productDetail?.imei || i.imei || '';
-                        return allImeis.includes(imei);
-                    });
 
-                    if (newlyInserted.length > 0) {
+                    if (allInsertedIds.length > 0) {
                         const formData = new FormData();
                         formData.append('category', 'pindah_cabang');
                         formData.append('destination_type', transferDestinationType.value);
@@ -1019,8 +1015,8 @@ async function submitStockIn(verifiedPin = null) {
                         formData.append(`origin_${placementType.value}_id`, placementId.value);
                         if (transferNotes.value) formData.append('notes', transferNotes.value);
 
-                        newlyInserted.forEach(item => {
-                            formData.append('product_detail_ids[]', item.id);
+                        allInsertedIds.forEach(id => {
+                            formData.append('product_detail_ids[]', id);
                         });
 
                         const outRes = await api.post('/stock-outs', formData, {
@@ -1075,10 +1071,8 @@ async function submitStockIn(verifiedPin = null) {
             // --- START AUTO-TRANSFER ---
             try {
                 toast.info("Memproses pengiriman ke tujuan...");
-                const res = await inventoryApi.list({ [`${placementType.value}_id`]: placementId.value, type: 'non-hp', per_page: 100 });
-                const items = res.data.data || res.data;
-                items.sort((a, b) => b.id - a.id);
-                const newlyInserted = items.slice(0, nonHpItems.value.reduce((sum, i) => sum + (i.quantity || 1), 0));
+                
+                const newlyInserted = response.data.inserted_items || [];
 
                 if (newlyInserted.length > 0) {
                     const formData = new FormData();
@@ -1091,7 +1085,7 @@ async function submitStockIn(verifiedPin = null) {
 
                     newlyInserted.forEach((item, index) => {
                         formData.append(`non_hp_items[${index}][product_id]`, item.product_id || item.id);
-                        formData.append(`non_hp_items[${index}][quantity]`, item.out_quantity || item.quantity || 1);
+                        formData.append(`non_hp_items[${index}][quantity]`, item.quantity || 1);
                         formData.append(`non_hp_items[${index}][selling_price]`, item.selling_price || 0);
                     });
 

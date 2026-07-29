@@ -270,7 +270,16 @@ class StockInController extends Controller
                 
                 \Illuminate\Support\Facades\Cache::increment('inv_version');
 
-                return response()->json(['message' => 'Multiple stock in successful', 'count' => count($results)], 201);
+                return response()->json([
+                    'message' => 'Multiple stock in successful', 
+                    'count' => count($results),
+                    'inserted_items' => collect($results)->map(fn($r) => [
+                        'id' => $r->id,
+                        'product_id' => $r->product_id,
+                        'quantity' => $r->quantity, // though this might be total, we can use the requested quantity
+                        'selling_price' => $r->selling_price
+                    ])->toArray()
+                ], 201);
             }
 
             // 2. Handle HP (IMEI Based)
@@ -457,6 +466,7 @@ class StockInController extends Controller
                     'message' => 'Stock in processed',
                     'success' => true,
                     'inserted_count' => $inserted_count,
+                    'inserted_ids' => collect($newDetails)->pluck('id')->toArray(),
                     'duplicates' => collect($duplicates)->map(fn($dup) => [
                         'imei' => $dup['imei'],
                         'location' => $dup['location'],
