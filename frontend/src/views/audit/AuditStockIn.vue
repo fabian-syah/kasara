@@ -205,14 +205,19 @@
                                 <td class="px-4 py-4">
                                     <span class="px-2.5 py-1 text-xs font-semibold rounded-lg" :class="item.category === 'pindah_cabang'
                                         ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                                        : item.category === 'cancel_penjualan'
+                                        ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400'
                                         : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
                                         ">
                                         {{
                                             item.category === 'pindah_cabang'
                                                 ? 'Transfer'
+                                                : item.category === 'cancel_penjualan'
+                                                ? 'Cancel Penjualan'
                                                 : 'Inventory'
                                         }}
                                     </span>
+                                    <div v-if="item.category === 'cancel_penjualan' && item.updated_at" class="text-[10px] text-red-500/80 font-medium leading-tight mt-1">{{ new Date(item.updated_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) }}</div>
                                 </td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.type }}</td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">

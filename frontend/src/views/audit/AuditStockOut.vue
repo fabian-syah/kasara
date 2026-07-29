@@ -229,6 +229,7 @@
                                             <span class="inline-flex w-fit px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 whitespace-nowrap">
                                                 {{ item.category === 'cancel_penjualan' ? 'Cancel Penjualan' : 'Kesalahan Input' }}
                                             </span>
+                                            <div v-if="item.updated_at" class="text-[10px] text-red-500/80 font-medium leading-tight">{{ new Date(item.updated_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) }}</div>
                                             <div v-if="item.cancelled_by_name" class="text-[10px] text-red-500/80 font-medium leading-tight">Oleh: {{ item.cancelled_by_name }}</div>
                                             <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
                                         </div>
