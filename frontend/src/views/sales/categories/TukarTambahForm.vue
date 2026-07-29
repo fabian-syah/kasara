@@ -38,6 +38,14 @@ const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
 
 const isCompressing = ref(false);
+const showValidationModal = ref(false);
+const validationMessage = ref("");
+
+function showValidationError(msg) {
+    validationMessage.value = msg;
+    showValidationModal.value = true;
+}
+
 const tukarTambahPhotos = ref({
     unit: null,
     unitPreview: null,
@@ -441,7 +449,7 @@ async function handlePhotoChange(type, event) {
             reader.readAsDataURL(compressedFile);
         } catch (error) {
             console.error("Compression failed:", error);
-            alert("Gagal mengompres gambar. Silakan coba lagi.");
+            showValidationError("Gagal mengompres gambar. Silakan coba lagi.");
         } finally {
             isCompressing.value = false;
         }
@@ -478,33 +486,33 @@ async function submitTukarTambah(pin = null) {
         tukarTambahForm.value.incoming_imei &&
         selectedOutgoingTukarTambah.value.imei.toLowerCase().trim() === tukarTambahForm.value.incoming_imei.toLowerCase().trim()
     ) {
-        alert("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
+        showValidationError("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
         return;
     }
 
     if (tukarTambahPriceDiff.value <= 0) {
-        alert("Harga Unit Keluar tidak lebih besar dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar dari Unit Masuk. Silakan gunakan menu 'Tukar Unit' jika harga sama, atau 'Downgrade' jika unit toko lebih murah.");
+        showValidationError("Harga Unit Keluar tidak lebih besar dari Harga Unit Masuk. Tukar Tambah seharusnya nilai Unit Keluar lebih besar dari Unit Masuk. Silakan gunakan menu 'Tukar Unit' jika harga sama, atau 'Downgrade' jika unit toko lebih murah.");
         return;
     }
 
     if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.outgoing_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.distributor_id) {
-        alert("Mohon lengkapi semua data wajib (Customer, Distributor, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
+        showValidationError("Mohon lengkapi semua data wajib (Customer, Distributor, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
         return;
     }
 
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     if (totalSplit !== tukarTambahPriceDiff.value) {
-        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan sisa bayar (${formatCurrency(tukarTambahPriceDiff.value)}).`);
+        showValidationError(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan sisa bayar (${formatCurrency(tukarTambahPriceDiff.value)}).`);
         return;
     }
 
     if (!tukarTambahPhotos.value.unit) {
-        alert("Foto unit wajib diupload.");
+        showValidationError("Foto unit wajib diupload.");
         return;
     }
 
     if (!isCashOnly.value && tukarTambahPriceDiff.value > 0 && !tukarTambahPhotos.value.paymentProof) {
-        alert("Foto bukti pembayaran transfer wajib diupload untuk metode non-tunai.");
+        showValidationError("Foto bukti pembayaran transfer wajib diupload untuk metode non-tunai.");
         return;
     }
 
@@ -1045,16 +1053,18 @@ async function submitTukarTambah(pin = null) {
                     <div
                         class="p-8 bg-primary-600 rounded-[2rem] shadow-2xl shadow-primary-500/30 text-center transform transition-all hover:scale-[1.02]">
                         <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="text-left">
-                                <p class="text-lg font-bold text-white">
+                            <div class="text-left bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
+                                <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
+                                    UNIT KELUAR</span>
+                                <p class="text-lg font-bold text-white truncate">
                                     {{ formatCurrency(tukarTambahForm.outgoing_price * tukarTambahForm.outgoing_quantity) }}
                                 </p>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
                                 <span
                                     class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
                                     UNIT MASUK</span>
-                                <p class="text-lg font-bold text-white">
+                                <p class="text-lg font-bold text-white truncate">
                                     {{ formatCurrency(tukarTambahForm.incoming_cost_price * tukarTambahForm.incoming_quantity) }}
                                 </p>
                             </div>
@@ -1094,6 +1104,25 @@ async function submitTukarTambah(pin = null) {
                     <template v-else>
                         <Save :size="24" /> Selesaikan Tukar Tambah
                     </template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Validation Modal -->
+        <div v-if="showValidationModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showValidationModal = false"></div>
+            <div class="bg-surface-900 border border-surface-700 p-8 rounded-[2rem] w-full max-w-md shadow-2xl relative z-10 animate-in zoom-in-95 duration-300">
+                <button @click="showValidationModal = false" class="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-surface-800 hover:bg-surface-700 hover:text-red-500 text-text-secondary transition-colors">
+                    <X :size="16" />
+                </button>
+                <div class="flex items-center gap-3 text-red-500 mb-5 font-black text-xl uppercase tracking-widest">
+                    <AlertCircle :size="28" stroke-width="2.5" /> PERHATIAN
+                </div>
+                <div class="text-text-primary text-sm font-semibold leading-relaxed mb-8 bg-red-500/10 p-5 rounded-2xl border border-red-500/20">
+                    {{ validationMessage }}
+                </div>
+                <button @click="showValidationModal = false" class="w-full py-4 bg-primary-600 hover:bg-primary-500 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-primary-500/20 active:scale-95 text-xs">
+                    SAYA MENGERTI
                 </button>
             </div>
         </div>
