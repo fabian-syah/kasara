@@ -656,14 +656,11 @@ async function fetchInitialData() {
         targetUsers.value = (user.data.data || user.data);
         const allWh = wh.data.data || wh.data;
         const auditWh = allWh.find(w => w.name.toLowerCase().includes('audit') || w.code === 'AUDIT');
-        if (auditWh) {
-            auditWarehouseId.value = auditWh.id;
-            placementId.value = auditWh.id;
-            placementType.value = 'warehouse';
-        } else if (authStore.user) {
-            placementId.value = authStore.user.online_shop_id || authStore.user.warehouse_id || authStore.user.branch_id || authStore.user.distributor_id;
-            placementType.value = authStore.user.online_shop_id ? 'online_shop' : (authStore.user.warehouse_id ? 'warehouse' : (authStore.user.distributor_id ? 'distributor' : 'branch'));
-        }
+        
+        // Force use Audit Warehouse ID 6 as requested
+        auditWarehouseId.value = auditWh ? auditWh.id : 6;
+        placementId.value = auditWarehouseId.value;
+        placementType.value = 'warehouse';
     } catch (e) { toast.error("Gagal load data"); }
     finally { isLoading.value = false; }
 }
