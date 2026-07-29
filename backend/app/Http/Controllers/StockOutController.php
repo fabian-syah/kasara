@@ -447,20 +447,32 @@ class StockOutController extends Controller
                 'has_non_hp_items' => !empty($request->non_hp_items)
             ]);
 
-            // Resolve Fallback Origins for Inventory Accounts without native location
-            $originBranchId = $request->origin_branch_id ?? $user->branch_id;
-            if (!$originBranchId && !empty($user->getAccessibleBranchIds())) {
-                $originBranchId = $user->getAccessibleBranchIds()[0];
-            }
+            // Resolve ONE SINGLE Origin Location to prevent foreign key issues and duplicate assignment
+            $originBranchId = null;
+            $originWarehouseId = null;
+            $originOnlineShopId = null;
 
-            $originWarehouseId = $request->origin_warehouse_id ?? $user->warehouse_id;
-            if (!$originWarehouseId && !empty($user->getAccessibleWarehouseIds())) {
-                $originWarehouseId = $user->getAccessibleWarehouseIds()[0];
-            }
-
-            $originOnlineShopId = $request->origin_online_shop_id ?? $user->online_shop_id;
-            if (!$originOnlineShopId && !empty($user->getAccessibleOnlineShopIds())) {
-                $originOnlineShopId = $user->getAccessibleOnlineShopIds()[0];
+            if ($request->origin_branch_id) {
+                $originBranchId = $request->origin_branch_id;
+            } elseif ($request->origin_warehouse_id) {
+                $originWarehouseId = $request->origin_warehouse_id;
+            } elseif ($request->origin_online_shop_id) {
+                $originOnlineShopId = $request->origin_online_shop_id;
+            } elseif ($user->branch_id) {
+                $originBranchId = $user->branch_id;
+            } elseif ($user->warehouse_id) {
+                $originWarehouseId = $user->warehouse_id;
+            } elseif ($user->online_shop_id) {
+                $originOnlineShopId = $user->online_shop_id;
+            } else {
+                // Fallback for super admins or users without a direct assignment
+                if (!empty($user->getAccessibleBranchIds())) {
+                    $originBranchId = $user->getAccessibleBranchIds()[0];
+                } elseif (!empty($user->getAccessibleWarehouseIds())) {
+                    $originWarehouseId = $user->getAccessibleWarehouseIds()[0];
+                } elseif (!empty($user->getAccessibleOnlineShopIds())) {
+                    $originOnlineShopId = $user->getAccessibleOnlineShopIds()[0];
+                }
             }
 
             // Resolve Location for Reporting Date
