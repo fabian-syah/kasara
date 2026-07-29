@@ -660,6 +660,9 @@ async function fetchInitialData() {
             auditWarehouseId.value = auditWh.id;
             placementId.value = auditWh.id;
             placementType.value = 'warehouse';
+        } else if (authStore.user) {
+            placementId.value = authStore.user.online_shop_id || authStore.user.warehouse_id || authStore.user.branch_id || authStore.user.distributor_id;
+            placementType.value = authStore.user.online_shop_id ? 'online_shop' : (authStore.user.warehouse_id ? 'warehouse' : (authStore.user.distributor_id ? 'distributor' : 'branch'));
         }
     } catch (e) { toast.error("Gagal load data"); }
     finally { isLoading.value = false; }
@@ -1003,7 +1006,7 @@ async function submitStockIn(verifiedPin = null) {
                     toast.info("Memproses pengiriman ke tujuan...");
                     const allImeis = [];
                     hpItems.value.forEach(item => { allImeis.push(...item.parsedImeis); });
-                    const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'hp', per_page: 100 });
+                    const res = await inventoryApi.list({ [`${placementType.value}_id`]: placementId.value, type: 'hp', per_page: 100 });
                     const items = res.data.data || res.data;
                     const newlyInserted = items.filter(i => {
                         const imei = i.productDetail?.imei || i.imei || '';
@@ -1016,7 +1019,7 @@ async function submitStockIn(verifiedPin = null) {
                         formData.append('destination_type', transferDestinationType.value);
                         formData.append('destination_id', transferDestinationId.value);
                         formData.append('receiver_name', transferReceiverName.value);
-                        formData.append('origin_warehouse_id', auditWarehouseId.value);
+                        formData.append(`origin_${placementType.value}_id`, placementId.value);
                         if (transferNotes.value) formData.append('notes', transferNotes.value);
 
                         newlyInserted.forEach(item => {
@@ -1075,7 +1078,7 @@ async function submitStockIn(verifiedPin = null) {
             // --- START AUTO-TRANSFER ---
             try {
                 toast.info("Memproses pengiriman ke tujuan...");
-                const res = await inventoryApi.list({ warehouse_id: auditWarehouseId.value, type: 'non-hp', per_page: 100 });
+                const res = await inventoryApi.list({ [`${placementType.value}_id`]: placementId.value, type: 'non-hp', per_page: 100 });
                 const items = res.data.data || res.data;
                 items.sort((a, b) => b.id - a.id);
                 const newlyInserted = items.slice(0, nonHpItems.value.reduce((sum, i) => sum + (i.quantity || 1), 0));
@@ -1086,7 +1089,7 @@ async function submitStockIn(verifiedPin = null) {
                     formData.append('destination_type', transferDestinationType.value);
                     formData.append('destination_id', transferDestinationId.value);
                     formData.append('receiver_name', transferReceiverName.value);
-                    formData.append('origin_warehouse_id', auditWarehouseId.value);
+                    formData.append(`origin_${placementType.value}_id`, placementId.value);
                     if (transferNotes.value) formData.append('notes', transferNotes.value);
 
                     newlyInserted.forEach((item, index) => {
