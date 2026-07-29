@@ -2287,6 +2287,7 @@ class AuditController extends Controller
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
+                    'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
                     'order_no' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                     'customer_phone' => $trx->customer_wa ?? '-',
@@ -3243,6 +3244,7 @@ class AuditController extends Controller
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
+                'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
                 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                 'category' => $trx->category,
@@ -3988,6 +3990,7 @@ class AuditController extends Controller
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
+                'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
                 'receipt_id' => $trx->receipt_id,
                 'category' => $displayCategory,
                 'type' => $trx->items->isNotEmpty() ? 'HP' : 'Non-HP',
@@ -4215,6 +4218,7 @@ class AuditController extends Controller
             return [
                 'id' => $trx->id,
                 'date' => $trx->created_at->toDateTimeString(),
+                'updated_at' => (in_array($trx->category, ['cancel_penjualan', 'kesalahan_input']) && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
                 'receipt_id' => $trx->receipt_id,
                 'category' => $trx->category,
                 'type' => $hpItemsCount > 0 ? 'HP' : 'Non-HP',
