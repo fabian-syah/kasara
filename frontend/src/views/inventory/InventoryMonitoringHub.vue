@@ -324,6 +324,38 @@ function getSenderDetails(transfer) {
     return parts.join(' - ') || 'Unknown Sender';
 }
 
+function getSenderBranchName(transfer) {
+    let source = transfer.branch || transfer.branch_relation || transfer.branchRelation ||
+                 transfer.online_shop || transfer.online_shop_relation || transfer.onlineShopRelation || transfer.onlineShop ||
+                 transfer.warehouse || transfer.warehouse_relation || transfer.warehouseRelation;
+    if (!source) {
+        const u = transfer.user;
+        source = u?.branch || u?.warehouse || u?.online_shop || u?.onlineShop;
+    }
+    if (!source) {
+        const iu = transfer.inventory_user || transfer.inventoryUser;
+        source = iu?.branch || iu?.warehouse || iu?.online_shop || iu?.onlineShop;
+    }
+    if (!source) {
+        source = transfer.source;
+    }
+    let sourceName = source && typeof source === 'object' ? source.name : source;
+    if (!sourceName) {
+        sourceName = transfer.items?.[0]?.distributor?.name || 
+                     transfer.items?.[0]?.supplier_name ||
+                     transfer.non_hp_items?.[0]?.distributor?.name || 
+                     transfer.nonHpItems?.[0]?.distributor?.name ||
+                     transfer.nonHpItems?.[0]?.supplier_name;
+    }
+    return sourceName || 'Umum';
+}
+
+function getSenderAccountName(transfer) {
+    return transfer.inventory_user?.name || transfer.inventoryUser?.name || 
+           transfer.inventory_user?.username || transfer.inventoryUser?.username ||
+           transfer.user?.name || transfer.user?.username || transfer.user?.email || '';
+}
+
 // --- API Calls ---
 
 async function fetchInventoryAccounts() {
@@ -785,8 +817,14 @@ onMounted(() => {
                                             {{ transfer.receipt_id }}
                                         </span>
                                         <div class="flex flex-col">
-                                            <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
-                                            <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                            <template v-if="['incoming_otw', 'history_in'].includes(activeTab)">
+                                                <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
+                                                <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
+                                            </template>
+                                            <template v-else>
+                                                <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                                <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                            </template>
                                         </div>
                                     </div>
                                 </td>
@@ -904,8 +942,14 @@ onMounted(() => {
                                     {{ transfer.receipt_id }}
                                 </span>
                                 <div class="flex flex-col">
-                                    <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
-                                    <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                    <template v-if="['incoming_otw', 'history_in'].includes(activeTab)">
+                                        <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
+                                        <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
+                                    </template>
+                                    <template v-else>
+                                        <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                        <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                    </template>
                                 </div>
                             </div>
                             <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
