@@ -780,9 +780,15 @@ onMounted(() => {
                             <tr v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                                 class="group cursor-pointer hover:bg-surface-700/40 transition-colors duration-200">
                                 <td class="px-8 py-5 whitespace-nowrap">
-                                    <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
-                                        {{ transfer.receipt_id }}
-                                    </span>
+                                    <div class="flex flex-col gap-1.5">
+                                        <span class="w-fit px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
+                                            {{ transfer.receipt_id }}
+                                        </span>
+                                        <div class="flex flex-col">
+                                            <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                            <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                        </div>
+                                    </div>
                                 </td>
                                 <!-- Cabang Pengirim / Tujuan Penerima -->
                                 <td v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
@@ -892,10 +898,16 @@ onMounted(() => {
                 <div class="block md:hidden space-y-4">
                     <div v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                         class="p-6 bg-surface-800/50 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer">
-                        <div class="flex items-center justify-between">
-                            <span class="px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
-                                {{ transfer.receipt_id }}
-                            </span>
+                        <div class="flex items-start justify-between">
+                            <div class="flex flex-col gap-1.5">
+                                <span class="w-fit px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
+                                    {{ transfer.receipt_id }}
+                                </span>
+                                <div class="flex flex-col">
+                                    <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                    <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                </div>
+                            </div>
                             <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
                                 :class="getStatusBadgeClass(transfer.status, activeTab)">
                                 <span class="w-1.5 h-1.5 rounded-full" 
