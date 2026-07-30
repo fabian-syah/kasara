@@ -685,9 +685,9 @@ onMounted(() => {
                     <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <!-- ASET PERJALANAN (IN) -->
                         <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
-                            <div class="space-y-2">
+                            <div class="space-y-2 min-w-0">
                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Perjalanan (IN)</h3>
-                                <p class="text-xl lg:text-2xl font-black text-emerald-500 tracking-tight transition-all duration-300">
+                                <p class="text-lg lg:text-xl xl:text-2xl font-black text-emerald-500 tracking-tight transition-all duration-300 truncate" :title="formatCurrency(assetInValue)">
                                     {{ formatCurrency(assetInValue) }}
                                 </p>
                             </div>
@@ -701,9 +701,9 @@ onMounted(() => {
 
                         <!-- ASET PENGIRIMAN (OUT) -->
                         <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
-                            <div class="space-y-2">
+                            <div class="space-y-2 min-w-0">
                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
-                                <p class="text-xl lg:text-2xl font-black text-blue-500 tracking-tight transition-all duration-300">
+                                <p class="text-lg lg:text-xl xl:text-2xl font-black text-blue-500 tracking-tight transition-all duration-300 truncate" :title="formatCurrency(assetOutValue)">
                                     {{ formatCurrency(assetOutValue) }}
                                 </p>
                             </div>
