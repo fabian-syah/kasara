@@ -356,6 +356,18 @@ function getSenderAccountName(transfer) {
            transfer.user?.name || transfer.user?.username || transfer.user?.email || '';
 }
 
+function getReceiverBranchName(transfer, defaultVal = 'Umum') {
+    if (!transfer) return defaultVal;
+    let dest = transfer.destination || 
+               transfer.destination_branch || transfer.destinationBranch || 
+               transfer.destination_online_shop || transfer.destinationOnlineShop || 
+               transfer.destination_warehouse || transfer.destinationWarehouse;
+               
+    if (!dest) return defaultVal;
+    
+    return typeof dest === 'object' ? (dest.name || defaultVal) : (dest || defaultVal);
+}
+
 // --- API Calls ---
 
 async function fetchInventoryAccounts() {
@@ -850,7 +862,7 @@ onMounted(() => {
                                                     </div>
                                                     <div class="flex flex-col">
                                                         <span class="text-[8px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
-                                                        <span class="text-[10px] font-bold text-white leading-none">{{ transfer.destination?.name || 'Umum' }}</span>
+                                                        <span class="text-[10px] font-bold text-white leading-none">{{ getReceiverBranchName(transfer) }}</span>
                                                     </div>
                                                 </div>
                                                 <div v-if="transfer.receiver_name" class="flex items-center gap-2">
@@ -874,7 +886,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="font-bold text-white text-sm">
-                                                {{ ['incoming_otw', 'history_in'].includes(activeTab) ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
+                                                {{ ['incoming_otw', 'history_in'].includes(activeTab) ? getSenderDetails(transfer) : getReceiverBranchName(transfer) }}
                                             </span>
                                             <span v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab) && transfer.receiver_name" class="text-[10px] font-black text-green-400 uppercase tracking-widest mt-0.5">
                                                 Penerima: {{ transfer.receiver_name }}
@@ -1017,7 +1029,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[9px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
-                                            <span class="text-[11px] font-bold text-white">{{ transfer.destination?.name || 'Umum' }}</span>
+                                            <span class="text-[11px] font-bold text-white">{{ getReceiverBranchName(transfer) }}</span>
                                         </div>
                                     </div>
                                     <div v-if="transfer.receiver_name" class="flex items-center gap-3">
@@ -1051,7 +1063,7 @@ onMounted(() => {
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">{{ activeTab === 'incoming_otw' ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}</span>
                                 <span class="font-bold text-white text-base truncate max-w-xs">
-                                    {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : (transfer.destination?.name || 'Umum') }}
+                                    {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : getReceiverBranchName(transfer) }}
                                 </span>
                             </div>
                         </div>
@@ -1288,7 +1300,7 @@ onMounted(() => {
                         </div>
                         <div class="detail-card">
                             <p class="label">Tujuan</p>
-                            <p class="value text-white">{{ selectedTransfer.destination?.name || '-' }}</p>
+                            <p class="value text-white">{{ getReceiverBranchName(selectedTransfer, '-') }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Waktu Kirim</p>
