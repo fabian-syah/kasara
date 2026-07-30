@@ -1647,7 +1647,10 @@ class StockOutController extends Controller
                         'status' => 'available',
                         'placement_type' => $out->branch_id ? 'branch' : ($out->warehouse_id ? 'warehouse' : 'online_shop'),
                         'placement_id' => $out->branch_id ?? $out->warehouse_id ?? $out->online_shop_id,
-                        'placement_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
+                        'placement_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
                         'created_at' => $out->created_at->toDateTimeString(),
                         'timestamp' => $out->created_at->timestamp,
                         'distributor' => $out->items->first()?->distributor?->name ?? ($out->nonHpDetails->first()?->distributor?->name ?? null),
@@ -1684,7 +1687,7 @@ class StockOutController extends Controller
                     'items' => $mergedItems,
                     'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                     'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-                    'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
+                    'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : null),
                     'receiver_name' => $out->receiver_name,
                     'customer_name' => $out->customer_name,
                     'customer_wa' => $out->customer_wa,
@@ -1704,7 +1707,10 @@ class StockOutController extends Controller
                     'branch' => $out->branch,
                     'online_shop' => $out->onlineShop,
                     'warehouse' => $out->warehouse,
-                    'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
+                    'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                        (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                        (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                        (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
                     'original_price' => (float)$out->selling_price,
                     'selling_price' => (float)$out->selling_price,
                     'total_discount' => (float)$out->total_discount,
@@ -1747,7 +1753,7 @@ class StockOutController extends Controller
                         'items' => $mergedItems,
                         'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                         'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : null,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : null),
                         'receiver_name' => $out->receiver_name,
                         'customer_name' => $out->customer_name,
                         'customer_wa' => $out->customer_wa,
@@ -1760,7 +1766,10 @@ class StockOutController extends Controller
                         'branch' => $out->branch,
                         'online_shop' => $out->onlineShop,
                         'warehouse' => $out->warehouse,
-                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: '-')),
+                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
                     ];
                 }
 
