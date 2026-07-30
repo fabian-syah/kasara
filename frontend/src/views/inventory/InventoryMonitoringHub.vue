@@ -363,9 +363,22 @@ function getReceiverBranchName(transfer, defaultVal = 'Umum') {
                transfer.destination_online_shop || transfer.destinationOnlineShop || 
                transfer.destination_warehouse || transfer.destinationWarehouse;
                
-    if (!dest) return defaultVal;
+    if (dest) {
+        return typeof dest === 'object' ? (dest.name || defaultVal) : (dest || defaultVal);
+    }
     
-    return typeof dest === 'object' ? (dest.name || defaultVal) : (dest || defaultVal);
+    if (transfer.destination_type) {
+        const typeMap = {
+            'branch': 'Cabang',
+            'warehouse': 'Gudang',
+            'online_shop': 'Toko Online',
+            'distributor': 'Distributor'
+        };
+        const typeName = typeMap[transfer.destination_type] || transfer.destination_type;
+        return `${typeName} (Terhapus)`;
+    }
+    
+    return defaultVal;
 }
 
 // --- API Calls ---
