@@ -374,7 +374,7 @@
                                             </button>
 
                                             <!-- NEW: Payment Proof Button -->
-                                            <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image)"
+                                            <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
                                                 title="Lihat Foto Bukti Pembayaran/Transfer">
                                                 <Wallet :size="12" stroke-width="3" />
@@ -490,7 +490,7 @@
                                             <div v-if="item.proof_images && item.proof_images.length > 0"
                                                 class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                    @click="viewProof(img)"
+                                                    @click="viewProof(img, 'unit', item)"
                                                     class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                     :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                     <Image :size="12" stroke-width="3" />
