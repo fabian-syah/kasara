@@ -817,12 +817,12 @@ onMounted(() => {
                                             {{ transfer.receipt_id }}
                                         </span>
                                         <div class="flex flex-col">
-                                            <template v-if="['incoming_otw', 'history_in'].includes(activeTab)">
+                                            <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
                                                 <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
                                                 <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
                                             </template>
                                             <template v-else>
-                                                <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                                <span class="text-[11px] font-bold text-text-secondary">Cabang Penerima: {{ transfer.destination?.name || 'Umum' }}</span>
                                                 <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
                                             </template>
                                         </div>
@@ -942,12 +942,12 @@ onMounted(() => {
                                     {{ transfer.receipt_id }}
                                 </span>
                                 <div class="flex flex-col">
-                                    <template v-if="['incoming_otw', 'history_in'].includes(activeTab)">
+                                    <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
                                         <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
                                         <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
                                     </template>
                                     <template v-else>
-                                        <span class="text-[11px] font-bold text-text-secondary">Tujuan: {{ transfer.destination?.name || 'Umum' }}</span>
+                                        <span class="text-[11px] font-bold text-text-secondary">Cabang Penerima: {{ transfer.destination?.name || 'Umum' }}</span>
                                         <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
                                     </template>
                                 </div>
