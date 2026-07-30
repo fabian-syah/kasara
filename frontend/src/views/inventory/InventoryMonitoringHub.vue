@@ -812,18 +812,56 @@ onMounted(() => {
                             <tr v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                                 class="group cursor-pointer hover:bg-surface-700/40 transition-colors duration-200">
                                 <td class="px-8 py-5 whitespace-nowrap">
-                                    <div class="flex flex-col gap-1.5">
-                                        <span class="w-fit px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
-                                            {{ transfer.receipt_id }}
-                                        </span>
-                                        <div class="flex flex-col">
+                                    <div class="flex flex-col gap-2.5">
+                                        <!-- Receipt ID Badge -->
+                                        <div class="flex items-center">
+                                            <div class="px-3 py-1.5 bg-surface-750 border border-surface-700 rounded-lg flex items-center gap-2 shadow-sm">
+                                                <FileText :size="14" class="text-text-secondary" />
+                                                <span class="text-xs font-black text-white tracking-wider">{{ transfer.receipt_id }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Extra Info (Sender/Receiver) depending on tab -->
+                                        <div class="flex flex-col gap-1.5 bg-surface-800/50 p-2.5 rounded-xl border border-surface-700/50 w-fit mt-1">
                                             <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
-                                                <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
-                                                <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-5 h-5 rounded-md bg-surface-700 flex items-center justify-center shrink-0">
+                                                        <Building2 :size="10" class="text-text-secondary" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[8px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Pengirim</span>
+                                                        <span class="text-[10px] font-bold text-white leading-none">{{ getSenderBranchName(transfer) }}</span>
+                                                    </div>
+                                                </div>
+                                                <div v-if="getSenderAccountName(transfer)" class="flex items-center gap-2">
+                                                    <div class="w-5 h-5 rounded-md bg-primary-500/10 flex items-center justify-center shrink-0">
+                                                        <User :size="10" class="text-primary-500" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[8px] font-black uppercase tracking-widest text-primary-500/60">Pengirim</span>
+                                                        <span class="text-[10px] font-bold text-primary-400 leading-none">{{ getSenderAccountName(transfer) }}</span>
+                                                    </div>
+                                                </div>
                                             </template>
                                             <template v-else>
-                                                <span class="text-[11px] font-bold text-text-secondary">Cabang Penerima: {{ transfer.destination?.name || 'Umum' }}</span>
-                                                <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
+                                                <div class="flex items-center gap-2">
+                                                    <div class="w-5 h-5 rounded-md bg-surface-700 flex items-center justify-center shrink-0">
+                                                        <Building2 :size="10" class="text-text-secondary" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[8px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
+                                                        <span class="text-[10px] font-bold text-white leading-none">{{ transfer.destination?.name || 'Umum' }}</span>
+                                                    </div>
+                                                </div>
+                                                <div v-if="transfer.receiver_name" class="flex items-center gap-2">
+                                                    <div class="w-5 h-5 rounded-md bg-primary-500/10 flex items-center justify-center shrink-0">
+                                                        <User :size="10" class="text-primary-500" />
+                                                    </div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[8px] font-black uppercase tracking-widest text-primary-500/60">Penerima</span>
+                                                        <span class="text-[10px] font-bold text-primary-400 leading-none">{{ transfer.receiver_name }}</span>
+                                                    </div>
+                                                </div>
                                             </template>
                                         </div>
                                     </div>
@@ -936,28 +974,63 @@ onMounted(() => {
                 <div class="block md:hidden space-y-4">
                     <div v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
                         class="p-6 bg-surface-800/50 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer">
-                        <div class="flex items-start justify-between">
-                            <div class="flex flex-col gap-1.5">
-                                <span class="w-fit px-4 py-1.5 rounded-xl bg-surface-750 border border-surface-700 text-sm font-black text-white tracking-wider">
-                                    {{ transfer.receipt_id }}
-                                </span>
-                                <div class="flex flex-col">
-                                    <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
-                                        <span class="text-[11px] font-bold text-text-secondary">Cabang Pengirim: {{ getSenderBranchName(transfer) }}</span>
-                                        <span v-if="getSenderAccountName(transfer)" class="text-[10px] font-bold text-primary-400">Pengirim: {{ getSenderAccountName(transfer) }}</span>
-                                    </template>
-                                    <template v-else>
-                                        <span class="text-[11px] font-bold text-text-secondary">Cabang Penerima: {{ transfer.destination?.name || 'Umum' }}</span>
-                                        <span v-if="transfer.receiver_name" class="text-[10px] font-bold text-primary-400">Penerima: {{ transfer.receiver_name }}</span>
-                                    </template>
+                        <div class="flex flex-col gap-4">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="px-3 py-1.5 bg-surface-750 border border-surface-700 rounded-lg flex items-center gap-2 shadow-sm">
+                                    <FileText :size="14" class="text-text-secondary" />
+                                    <span class="text-xs font-black text-white tracking-wider">{{ transfer.receipt_id }}</span>
                                 </div>
+                                <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border shrink-0"
+                                    :class="getStatusBadgeClass(transfer.status, activeTab)">
+                                    <span class="w-1.5 h-1.5 rounded-full" 
+                                        :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
+                                    {{ getStatusLabel(transfer.status, activeTab) }}
+                                </span>
                             </div>
-                            <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
-                                :class="getStatusBadgeClass(transfer.status, activeTab)">
-                                <span class="w-1.5 h-1.5 rounded-full" 
-                                    :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
-                                {{ getStatusLabel(transfer.status, activeTab) }}
-                            </span>
+
+                            <!-- New Sender/Receiver Info for Mobile -->
+                            <div class="flex flex-col gap-2.5 bg-surface-800/80 p-3.5 rounded-xl border border-surface-700/50 shadow-inner">
+                                <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-surface-700 flex items-center justify-center shrink-0 shadow-sm">
+                                            <Building2 :size="14" class="text-text-secondary" />
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Pengirim</span>
+                                            <span class="text-[11px] font-bold text-white">{{ getSenderBranchName(transfer) }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="getSenderAccountName(transfer)" class="flex items-center gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0 border border-primary-500/20 shadow-sm">
+                                            <User :size="14" class="text-primary-500" />
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-primary-500/60">Pengirim</span>
+                                            <span class="text-[11px] font-bold text-primary-400">{{ getSenderAccountName(transfer) }}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-surface-700 flex items-center justify-center shrink-0 shadow-sm">
+                                            <Building2 :size="14" class="text-text-secondary" />
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
+                                            <span class="text-[11px] font-bold text-white">{{ transfer.destination?.name || 'Umum' }}</span>
+                                        </div>
+                                    </div>
+                                    <div v-if="transfer.receiver_name" class="flex items-center gap-3">
+                                        <div class="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0 border border-primary-500/20 shadow-sm">
+                                            <User :size="14" class="text-primary-500" />
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] font-black uppercase tracking-widest text-primary-500/60">Penerima</span>
+                                            <span class="text-[11px] font-bold text-primary-400">{{ transfer.receiver_name }}</span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                         <div class="flex items-center gap-3">
                             <div class="w-9 h-9 rounded-xl bg-surface-750 flex items-center justify-center text-text-secondary border border-surface-700 shrink-0">
