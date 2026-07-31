@@ -577,6 +577,15 @@
                                                 </div>
                                             </template>
                                         </div>
+                                        <!-- IMEI Details for Unit Proof -->
+                                        <div v-else-if="(currentProofType === 'unit' || currentProofType === 'customer') && currentProofItem && ((currentProofItem.imeis && currentProofItem.imeis !== '-') || (currentProofItem.items && currentProofItem.items.some(i => i.imei && i.imei !== '-')))" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
+                                                <span class="text-text-secondary uppercase text-[10px] tracking-wider">IMEI:</span>
+                                                <span class="text-blue-600 dark:text-blue-400 font-mono font-black truncate max-w-[200px] sm:max-w-[300px]" :title="currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '')">
+                                                    {{ currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '') }}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="flex gap-2">
