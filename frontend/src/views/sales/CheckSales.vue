@@ -645,9 +645,8 @@
                                             </h4>
                                             
                                             <!-- Payment Details in Title -->
-                                            <div v-if="currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <div v-if="currentProofType === 'payment' && currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
                                                 <template v-if="currentProofItem.split_payments_data && currentProofItem.split_payments_data.length > 0">
-                                                    <span class="px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 text-[10px] font-black uppercase rounded shadow-sm">SPLIT</span>
                                                     <div v-for="(split, sIdx) in currentProofItem.split_payments_data" :key="sIdx" class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                         <span class="text-text-secondary uppercase text-[10px] tracking-wider">{{ split.method_name }}:</span>
                                                         <span class="text-emerald-600 dark:text-emerald-400 font-black">{{ formatCurrency(split.amount) }}</span>

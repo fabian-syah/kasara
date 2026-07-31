@@ -348,21 +348,21 @@
                                         <!-- Bukti Buttons -->
                                         <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
                                             <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                @click="viewProof(img)"
+                                                @click="viewProof(img, 'unit', item)"
                                                 class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
                                                 :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
                                                 <Image :size="12" stroke-width="3" />
                                                 <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' : 'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' + (imgIdx + 1)) }}</span>
                                             </button>
                                         </div>
-                                        <button v-else-if="item.proof_image" @click="viewProof(item.proof_image)"
+                                        <button v-else-if="item.proof_image" @click="viewProof(item.proof_image, 'unit', item)"
                                             class="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
                                             title="Lihat Foto Bukti">
                                             <Image :size="14" stroke-width="2.5" />
                                             <span>Lihat Bukti</span>
                                         </button>
 
-                                        <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image)"
+                                        <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
                                             class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
                                             title="Lihat Foto Bukti Pembayaran/Transfer">
                                             <Wallet :size="12" stroke-width="3" />
@@ -546,15 +546,38 @@
                             class="p-6 bg-white/90 dark:bg-surface-800/90 backdrop-blur-xl border-t border-gray-100 dark:border-surface-700 flex flex-col gap-4">
                             <div class="flex justify-between items-start">
                                 <div class="flex flex-col">
-                                    <span
-                                        class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
                                         FOTO #{{ index + 1 }}
-                                        <span v-if="index === 0 && currentProofImages.length > 1"
-                                            class="ml-2 text-gray-400">— UNIT</span>
-                                        <span v-else-if="index === 1" class="ml-2 text-gray-400">— CUSTOMER</span>
+                                        <template v-if="currentProofType === 'payment'">
+                                            <span class="ml-2 text-amber-500">— BUKTI PEMBAYARAN</span>
+                                        </template>
+                                        <template v-else>
+                                            <span v-if="index === 0 && currentProofImages.length > 1"
+                                                class="ml-2 text-gray-400">— UNIT</span>
+                                            <span v-else-if="index === 1" class="ml-2 text-gray-400">— CUSTOMER</span>
+                                        </template>
                                     </span>
-                                    <h4 class="text-lg font-black text-text-primary leading-tight">Bukti Transaksi
-                                    </h4>
+                                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1">
+                                        <h4 class="text-lg font-black text-text-primary leading-tight whitespace-nowrap">
+                                            {{ currentProofType === 'payment' ? 'Bukti Pembayaran' : 'Bukti Transaksi' }}
+                                        </h4>
+                                        
+                                        <!-- Payment Details in Title -->
+                                        <div v-if="currentProofType === 'payment' && currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <template v-if="currentProofItem.split_payments_data && currentProofItem.split_payments_data.length > 0">
+                                                <div v-for="(split, sIdx) in currentProofItem.split_payments_data" :key="sIdx" class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
+                                                    <span class="text-text-secondary uppercase text-[10px] tracking-wider">{{ split.method_name }}:</span>
+                                                    <span class="text-emerald-600 dark:text-emerald-400 font-black">{{ formatCurrency(split.amount) }}</span>
+                                                </div>
+                                            </template>
+                                            <template v-else-if="currentProofItem.payment_method_name || currentProofItem.payment_method">
+                                                <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
+                                                    <span class="text-text-secondary uppercase text-[10px] tracking-wider">{{ currentProofItem.payment_method_name || currentProofItem.payment_method }}:</span>
+                                                    <span class="text-emerald-600 dark:text-emerald-400 font-black">{{ formatCurrency(currentProofItem.grand_total) }}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="flex gap-2">
                                     <a :href="imgUrl" target="_blank"
@@ -683,9 +706,13 @@ const openChecklistFromReceipt = () => {
 // Proof Modal
 const showProofModal = ref(false)
 const currentProofImages = ref([])
+const currentProofType = ref('unit')
+const currentProofItem = ref(null)
 
-const viewProof = (imgUrl) => {
+const viewProof = (imgUrl, type = 'unit', item = null) => {
     currentProofImages.value = [imgUrl]
+    currentProofType.value = type
+    currentProofItem.value = item
     showProofModal.value = true
 }
 
