@@ -3862,27 +3862,63 @@ class AuditController extends Controller
 
         // Filter by location
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-            // For barang_masuk_inventory (manual), filter by inventoryUser's location
+            // For barang_masuk_inventory (manual), filter by StockOut location or fallback to inventoryUser
             $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                 $sub->whereIn('category', ['barang_masuk', 'Barang Masuk Inventory']);
-                $sub->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
+                $sub->where(function ($locQ) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
-                        $sq->where('branch_id', $requestedBranchId);
+                        $locQ->where('branch_id', $requestedBranchId)
+                             ->orWhere(function($q2) use ($requestedBranchId) {
+                                 $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                    ->whereHas('inventoryUser', fn($sq) => $sq->where('branch_id', $requestedBranchId));
+                             });
                     } elseif ($requestedOnlineShopId) {
-                        $sq->where('online_shop_id', $requestedOnlineShopId);
+                        $locQ->where('online_shop_id', $requestedOnlineShopId)
+                             ->orWhere(function($q2) use ($requestedOnlineShopId) {
+                                 $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                    ->whereHas('inventoryUser', fn($sq) => $sq->where('online_shop_id', $requestedOnlineShopId));
+                             });
                     } elseif ($requestedWarehouseId) {
-                        $sq->where('warehouse_id', $requestedWarehouseId);
+                        $locQ->where('warehouse_id', $requestedWarehouseId)
+                             ->orWhere(function($q2) use ($requestedWarehouseId) {
+                                 $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                    ->whereHas('inventoryUser', fn($sq) => $sq->where('warehouse_id', $requestedWarehouseId));
+                             });
                     } elseif ($requestedDistributorId) {
-                        $sq->where('distributor_id', $requestedDistributorId);
+                        $locQ->where('distributor_id', $requestedDistributorId)
+                             ->orWhere(function($q2) use ($requestedDistributorId) {
+                                 $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                    ->whereHas('inventoryUser', fn($sq) => $sq->where('distributor_id', $requestedDistributorId));
+                             });
                     } else {
-                        if (!empty($branchIds))
-                            $sq->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds))
-                            $sq->orWhereIn('online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds))
-                            $sq->orWhereIn('warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds))
-                            $sq->orWhereIn('distributor_id', $distributorIds);
+                        if (!empty($branchIds)) {
+                            $locQ->orWhereIn('branch_id', $branchIds)
+                                 ->orWhere(function($q2) use ($branchIds) {
+                                     $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                        ->whereHas('inventoryUser', fn($sq) => $sq->whereIn('branch_id', $branchIds));
+                                 });
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $locQ->orWhereIn('online_shop_id', $onlineShopIds)
+                                 ->orWhere(function($q2) use ($onlineShopIds) {
+                                     $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                        ->whereHas('inventoryUser', fn($sq) => $sq->whereIn('online_shop_id', $onlineShopIds));
+                                 });
+                        }
+                        if (!empty($warehouseIds)) {
+                            $locQ->orWhereIn('warehouse_id', $warehouseIds)
+                                 ->orWhere(function($q2) use ($warehouseIds) {
+                                     $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                        ->whereHas('inventoryUser', fn($sq) => $sq->whereIn('warehouse_id', $warehouseIds));
+                                 });
+                        }
+                        if (!empty($distributorIds)) {
+                            $locQ->orWhereIn('distributor_id', $distributorIds)
+                                 ->orWhere(function($q2) use ($distributorIds) {
+                                     $q2->whereNull('branch_id')->whereNull('warehouse_id')->whereNull('online_shop_id')
+                                        ->whereHas('inventoryUser', fn($sq) => $sq->whereIn('distributor_id', $distributorIds));
+                                 });
+                        }
                     }
                 });
             });
