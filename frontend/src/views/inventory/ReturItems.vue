@@ -34,39 +34,7 @@ import {
 const toast = useToast();
 const authStore = useAuthStore();
 
-import { useToast } from '../../composables/useToast';
-import { useAuthStore } from '../../store/auth';
-import api from '../../api/axios';
-import {
-    ArrowDownRight,
-    Package,
-    Loader2,
-    Smartphone,
-    User,
-    Calendar,
-    FileText,
-    CheckCircle,
-    AlertTriangle,
-    Search,
-    RefreshCw,
-    Image,
-    X,
-    UserCircle,
-    MessageSquare,
-    Warehouse,
-    ChevronRight,
-    Tag,
-    HardDrive,
-    DollarSign,
-    Shield,
-    Phone,
-    StickyNote,
-    Hash,
-    MapPin
-} from 'lucide-vue-next';
 
-const toast = useToast();
-const authStore = useAuthStore();
 
 // State
 const returItems = ref([]);
@@ -268,17 +236,10 @@ onMounted(() => {
 
         <div class="relative">
             <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
-            <input
-                v-model="searchQuery"
-                @input="handleSearchInput"
-                class="input h-12 pl-11 pr-11"
-                placeholder="Cari IMEI atau nama barang retur..."
-            />
-            <button
-                v-if="searchQuery"
-                @click="clearSearch"
-                class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-700 hover:bg-surface-600 flex items-center justify-center text-text-secondary"
-            >
+            <input v-model="searchQuery" @input="handleSearchInput" class="input h-12 pl-11 pr-11"
+                placeholder="Cari IMEI atau nama barang retur..." />
+            <button v-if="searchQuery" @click="clearSearch"
+                class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-surface-700 hover:bg-surface-600 flex items-center justify-center text-text-secondary">
                 <X :size="16" />
             </button>
         </div>
