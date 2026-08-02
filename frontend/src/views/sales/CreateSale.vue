@@ -23,7 +23,9 @@ import {
     ShoppingBag,
     Plus,
     UserPlus,
-    Loader2
+    Loader2,
+    Wallet,
+    CheckSquare
 } from "lucide-vue-next";
 import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
@@ -37,6 +39,8 @@ import TukarTambahForm from "./categories/TukarTambahForm.vue";
 import DowngradeForm from "./categories/DowngradeForm.vue";
 import PenjualanStep3 from "./categories/PenjualanStep3.vue";
 import PaymentStep from "./categories/PaymentStep.vue";
+import DpForm from "./categories/DpForm.vue";
+import PelunasanDpForm from "./categories/PelunasanDpForm.vue";
 
 const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
@@ -57,6 +61,8 @@ const allCategories = [
     { id: "tukar_unit", label: "Tukar Unit", icon: 'RefreshCw' },
     { id: "tukar_tambah", label: "Tukar Tambah", icon: 'TrendingUp' },
     { id: "downgrade", label: "Downgrade", icon: 'TrendingDown' },
+    { id: "dp", label: "DP (Down Payment)", icon: 'Wallet' },
+    { id: "pelunasan_dp", label: "Pelunasan DP", icon: 'CheckSquare' },
 ];
 
 const categoriesPenjualan = computed(() => {
@@ -304,6 +310,8 @@ const categoryLabels = {
     tukar_unit: 'Tukar Unit berhasil! 🔁',
     tukar_tambah: 'Tukar Tambah berhasil! 📈',
     downgrade: 'Downgrade berhasil diproses! 📉',
+    dp: 'DP berhasil diproses! 💳',
+    pelunasan_dp: 'Pelunasan DP berhasil! ✅',
 };
 
 function handleTransactionComplete(transaction) {
@@ -482,6 +490,8 @@ watch(transactionCategory, () => {
                             <RefreshCw v-else-if="cat.id === 'tukar_unit'" :size="20" class="sm:w-8 sm:h-8" />
                             <TrendingUp v-else-if="cat.id === 'tukar_tambah'" :size="20" class="sm:w-8 sm:h-8" />
                             <TrendingDown v-else-if="cat.id === 'downgrade'" :size="20" class="sm:w-8 sm:h-8" />
+                            <Wallet v-else-if="cat.id === 'dp'" :size="20" class="sm:w-8 sm:h-8" />
+                            <CheckSquare v-else-if="cat.id === 'pelunasan_dp'" :size="20" class="sm:w-8 sm:h-8" />
                         </div>
                         <h3
                             class="text-sm sm:text-xl font-black text-text-primary group-hover:text-primary-600 transition-colors uppercase tracking-tight">
@@ -546,6 +556,17 @@ watch(transactionCategory, () => {
                 <DowngradeForm v-else-if="transactionCategory === 'downgrade'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
+                    @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
+
+                <DpForm v-else-if="transactionCategory === 'dp'"
+                    :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :distributors="distributors" :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
+                    @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
+
+                <PelunasanDpForm v-else-if="transactionCategory === 'pelunasan_dp'"
+                    :availablePaymentMethods="availablePaymentMethods" :selectedAccountObject="selectedAccountObject"
                     :salesAccount="salesAccount"
                     @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
             </div>

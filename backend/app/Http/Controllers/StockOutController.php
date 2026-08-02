@@ -246,6 +246,20 @@ class StockOutController extends Controller
         return response()->json($results);
     }
 
+    public function getActiveDps(Request $request)
+    {
+        $dps = StockOut::with(['items.product', 'nonHpDetails.product'])
+            ->where('category', 'dp')
+            ->where('is_dp_settled', false)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $dps
+        ]);
+    }
+
     // Create stock out
     public function store(Request $request)
     {
@@ -285,17 +299,20 @@ class StockOutController extends Controller
                     'cancel_penjualan',
                     'hilang',
                     'keluar',
+                    'dp',
+                    'pelunasan_dp',
                 ])
             ],
             'missing_category' => 'required_if:category,hilang|nullable|string',
             'person_in_charge' => 'required_if:category,hilang|nullable|string',
             'loss_chronology' => 'required_if:category,hilang|nullable|string',
             'sub_category' => 'required_if:category,keluar|nullable|string',
-            'product_detail_ids' => 'required_without:non_hp_items|array',
+            'product_detail_ids' => 'required_without_all:non_hp_items,parent_dp_id|array',
             'product_detail_ids.*' => 'exists:product_details,id',
-            'non_hp_items' => 'required_without:product_detail_ids|array',
+            'non_hp_items' => 'required_without_all:product_detail_ids,parent_dp_id|array',
             'non_hp_items.*.product_id' => 'required|exists:products,id',
             'non_hp_items.*.quantity' => 'required|integer|min:1',
+            'parent_dp_id' => 'required_if:category,pelunasan_dp|nullable|exists:stock_outs,id',
 
             // Pindah Cabang
             'destination_type' => 'required_if:category,pindah_cabang|nullable|in:branch,warehouse,online_shop,distributor',
@@ -330,7 +347,7 @@ class StockOutController extends Controller
         ];
 
         // Mandatory fields for Sales
-        $salesCategories = ['penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online'];
+        $salesCategories = ['penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online', 'dp', 'pelunasan_dp'];
         if (in_array($request->category, $salesCategories)) {
             // Shopee/Online uses shopee_receiver as customer name
             if ($request->category === 'shopee' || $request->category === 'orderan_online') {
@@ -402,7 +419,7 @@ class StockOutController extends Controller
         $request->validate($rules, $messages);
 
         // Validasi khusus: Metode Pembayaran wajib dipilih untuk kategori penjualan
-        if (in_array($request->category, ['penjualan_store', 'penjualan_offline', 'bundling'])) {
+        if (in_array($request->category, ['penjualan_store', 'penjualan_offline', 'bundling', 'dp', 'pelunasan_dp'])) {
             $hasPayment = false;
             if ($request->payment_method_id) {
                 $hasPayment = true;
@@ -803,7 +820,14 @@ class StockOutController extends Controller
                 'missing_category' => $request->missing_category,
                 'person_in_charge' => $request->person_in_charge,
                 'loss_chronology' => $request->loss_chronology,
+                'dp_amount' => $request->category === 'dp' ? ($request->dp_amount ?? $request->paid_amount) : 0,
+                'is_dp_settled' => false,
+                'parent_dp_id' => $request->category === 'pelunasan_dp' ? $request->parent_dp_id : null,
             ]);
+
+            if ($request->category === 'pelunasan_dp' && $request->parent_dp_id) {
+                StockOut::where('id', $request->parent_dp_id)->update(['is_dp_settled' => true]);
+            }
 
             // Pre-generate PDF in the background to speed up WhatsApp sharing later
             if ($stockOut->category === 'penjualan_store') {

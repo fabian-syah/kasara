@@ -97,7 +97,13 @@ const missingFields = computed(() => {
     if (!isCashOnly.value && !paymentProofImage.value) fields.push("Foto Bukti Pembayaran");
 
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
-    if (totalPaid < cartTotal.value) fields.push("Pembayaran Kurang");
+    if (totalPaid < cartTotal.value && props.transactionCategory !== 'dp') {
+        fields.push("Pembayaran Kurang");
+    }
+
+    if (props.transactionCategory === 'dp' && totalPaid <= 0) {
+        fields.push("DP tidak boleh 0");
+    }
 
     return fields;
 });
@@ -718,11 +724,15 @@ async function processPayment(pin = null) {
 
                     <!-- Change/Balance Status -->
                     <div v-if="changeAmount < 0"
-                        class="p-4 sm:p-6 bg-red-500/10 border-2 border-red-500/20 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 animate-pulse gap-2 sm:gap-0">
+                        class="p-4 sm:p-6 border-2 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center my-6 gap-2 sm:gap-0"
+                        :class="transactionCategory === 'dp' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-red-500/10 border-red-500/20 animate-pulse'">
                         <span
-                            class="text-[10px] sm:text-sm font-black text-red-700 dark:text-red-400 uppercase tracking-widest">Uang
-                            Kurang</span>
-                        <span class="text-2xl sm:text-3xl font-black text-red-600 dark:text-red-500">{{
+                            class="text-[10px] sm:text-sm font-black uppercase tracking-widest"
+                            :class="transactionCategory === 'dp' ? 'text-amber-700 dark:text-amber-400' : 'text-red-700 dark:text-red-400'">
+                            {{ transactionCategory === 'dp' ? 'Sisa Tagihan (Belum Lunas)' : 'Uang Kurang' }}
+                        </span>
+                        <span class="text-2xl sm:text-3xl font-black"
+                            :class="transactionCategory === 'dp' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500'">{{
                             formatCurrency(Math.abs(changeAmount))
                             }}</span>
                     </div>
