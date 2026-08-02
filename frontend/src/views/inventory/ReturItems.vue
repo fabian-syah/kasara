@@ -143,7 +143,7 @@ async function acceptReturn() {
         closeDetail();
         fetchReturItems();
     } catch (e) {
-        toast.error("Gagal menerima barang");
+        toast.error(e.response?.data?.message || "Gagal menerima barang");
     } finally {
         isAccepting.value = false;
     }
