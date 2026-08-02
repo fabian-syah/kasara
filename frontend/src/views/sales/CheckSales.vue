@@ -129,7 +129,7 @@
                         :class="summaryStats.omsetBersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600'">
                         {{ formatCurrency(summaryStats.omsetBersih) }}
                     </p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Penjualan Biasa + In TT + In DG - (Angkat + Refund)</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Omset - In TT - In DG - (Angkat + Refund)</p>
                 </div>
             </div>
 
@@ -1162,12 +1162,12 @@ const summaryStats = computed(() => {
             }
         });
 
-        // The user explicitly requested: omset bersih = total omset - (angkat barang + refund + selisih downgrade)
+        // The user explicitly requested: omset bersih = total omset - (angkat barang + refund + in tt + in dg)
         // We use backend's omset_bersih because backend now correctly calculates Omset using actual payments
         // We can trust the backend's calculations.
     } else if (!hasSummary) {
         finalOmset = baseSales + tradeOutgoingTotal;
-        finalOmsetBersih = baseSales + tradeIncomingTotal - outlay;
+        finalOmsetBersih = finalOmset - tradeIncomingTotal - outlay;
     }
 
     // Unit HP & Non-HP values fall back to backend report_summary values when available

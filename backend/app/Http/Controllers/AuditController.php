@@ -1889,7 +1889,7 @@ class AuditController extends Controller
                         $paymentTotal = $baseSalesOnly + $tradeOutVal + (isset($totalDowngradeOutgoing) ? $totalDowngradeOutgoing : 0);
 
                         // Sync with Dashboard: Omset Bersih = Total Omset - All Deductions
-                        $omsetBersih = $baseSalesOnly + $totalTradeIncoming + (isset($totalDowngradeIncoming) ? $totalDowngradeIncoming : 0) - $deductions;
+                        $omsetBersih = $paymentTotal - $totalTradeIncoming - (isset($totalDowngradeIncoming) ? $totalDowngradeIncoming : 0) - $deductions;
 
                         return [
                             'audit_stats' => [
