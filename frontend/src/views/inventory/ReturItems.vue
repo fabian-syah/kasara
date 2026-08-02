@@ -34,6 +34,40 @@ import {
 const toast = useToast();
 const authStore = useAuthStore();
 
+import { useToast } from '../../composables/useToast';
+import { useAuthStore } from '../../store/auth';
+import api from '../../api/axios';
+import {
+    ArrowDownRight,
+    Package,
+    Loader2,
+    Smartphone,
+    User,
+    Calendar,
+    FileText,
+    CheckCircle,
+    AlertTriangle,
+    Search,
+    RefreshCw,
+    Image,
+    X,
+    UserCircle,
+    MessageSquare,
+    Warehouse,
+    ChevronRight,
+    Tag,
+    HardDrive,
+    DollarSign,
+    Shield,
+    Phone,
+    StickyNote,
+    Hash,
+    MapPin
+} from 'lucide-vue-next';
+
+const toast = useToast();
+const authStore = useAuthStore();
+
 // State
 const returItems = ref([]);
 const isLoading = ref(false);
@@ -43,6 +77,7 @@ let searchTimer = null;
 // Detail modal state
 const showDetail = ref(false);
 const selectedItem = ref(null);
+const transactionPin = ref('');
 
 // Inventory Account Selection
 const inventoryAccounts = ref([]);
@@ -123,6 +158,7 @@ function openDetail(item) {
 function closeDetail() {
     showDetail.value = false;
     selectedItem.value = null;
+    transactionPin.value = '';
 }
 
 // Accept return
@@ -137,7 +173,8 @@ async function acceptReturn() {
     try {
         await api.patch(`/inventory/${selectedItem.value.id}/status`, {
             status: 'available',
-            inventory_user_id: selectedInventoryAccount.value
+            inventory_user_id: selectedInventoryAccount.value,
+            transaction_pin: transactionPin.value
         });
         toast.success("Barang berhasil diterima ke gudang");
         closeDetail();
@@ -160,7 +197,8 @@ async function rejectReturn() {
     isRejecting.value = true;
     try {
         await api.patch(`/inventory/${selectedItem.value.id}/reject-return`, {
-            inventory_user_id: selectedInventoryAccount.value
+            inventory_user_id: selectedInventoryAccount.value,
+            transaction_pin: transactionPin.value
         });
         toast.success("Retur ditolak dan barang dikembalikan ke lokasi asal");
         closeDetail();
@@ -522,7 +560,15 @@ onMounted(() => {
                                 {{ acc.full_name || acc.name }} {{ acc.code_id ? `(${acc.code_id})` : '' }}
                             </option>
                         </select>
-                        <p class="text-[10px] text-text-secondary">
+                        <div class="mt-3">
+                            <label class="text-[10px] text-text-secondary uppercase flex items-center gap-1 mb-1">
+                                <Shield :size="10" /> PIN Keamanan Akun
+                            </label>
+                            <input type="password" v-model="transactionPin" maxlength="4"
+                                class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm tracking-widest text-center"
+                                placeholder="----" />
+                        </div>
+                        <p class="text-[10px] text-text-secondary mt-2">
                             Barang retur akan tercatat diterima oleh akun ini dan statusnya berubah menjadi tersedia.
                         </p>
                     </div>
