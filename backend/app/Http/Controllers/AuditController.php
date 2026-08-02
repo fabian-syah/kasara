@@ -226,7 +226,7 @@ class AuditController extends Controller
                 });
             };
 
-            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
+            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
             $activityCategories = ['refund', 'angkat_barang', 'cancel_penjualan'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
@@ -2213,6 +2213,11 @@ class AuditController extends Controller
 
 
                 $rawSellingPrice = (float) $trx->selling_price;
+                if ($catLower === 'dp') {
+                    $rawSellingPrice = (float) $trx->dp_amount;
+                } elseif ($catLower === 'pelunasan_dp') {
+                    $rawSellingPrice = (float) $trx->paid_amount;
+                }
                 $priceOut = $rawSellingPrice;
                 if ($exchangeInfo) {
                     $pIn = (float) ($exchangeInfo->incoming_cost_price ?? 0);

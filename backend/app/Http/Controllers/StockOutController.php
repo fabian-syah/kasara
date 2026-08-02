@@ -1736,9 +1736,9 @@ class StockOutController extends Controller
                         (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
                         (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
                     'original_price' => (float)$out->selling_price,
-                    'selling_price' => (float)$out->selling_price,
+                    'selling_price' => $out->category === 'dp' ? (float)$out->dp_amount : ($out->category === 'pelunasan_dp' ? (float)$out->paid_amount : (float)$out->selling_price),
                     'total_discount' => (float)$out->total_discount,
-                    'grand_total' => (float)($out->selling_price - $out->total_discount),
+                    'grand_total' => $out->category === 'dp' ? ((float)$out->dp_amount - (float)$out->total_discount) : ($out->category === 'pelunasan_dp' ? ((float)$out->paid_amount - (float)$out->total_discount) : (float)($out->selling_price - $out->total_discount)),
                     'payment_method_name' => $out->paymentMethod?->name ?? '-',
                     'split_payments_data' => $out->split_payments_data ?? [],
                     'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
