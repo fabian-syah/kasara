@@ -521,7 +521,7 @@ onMounted(() => {
                                 {{ acc.full_name || acc.name }} {{ acc.code_id ? `(${acc.code_id})` : '' }}
                             </option>
                         </select>
-                        <div class="mt-3">
+                        <div v-if="inventoryAccounts.find(a => a.id === selectedInventoryAccount)?.pin_enabled" class="mt-3">
                             <label class="text-[10px] text-text-secondary uppercase flex items-center gap-1 mb-1">
                                 <Shield :size="10" /> PIN Keamanan Akun
                             </label>
