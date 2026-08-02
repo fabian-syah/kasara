@@ -751,6 +751,8 @@ const categoryLabels = {
     'tukar_tambah': 'Tukar Tambah',
     'tukar_unit': 'Tukar Unit',
     'downgrade': 'Downgrade',
+    'dp': 'DP',
+    'pelunasan_dp': 'Pelunasan DP',
     'brand_ambassador': 'Brand Ambassador',
     'event_/_sponsorship': 'Event / Sponsorship',
     'event_sponsorship': 'Event / Sponsorship'
