@@ -249,9 +249,12 @@ class InventoryAccountController extends Controller
             } elseif ($onlineShopId) {
                 $query->where('online_shop_id', $onlineShopId);
             } else {
-                $query->where(function ($q) use ($user) {
-                    $q->where('created_by', $user->id);
-                });
+                $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
+                if (!$user->hasRole($unrestrictedRoles)) {
+                    $query->where(function ($q) use ($user) {
+                        $q->where('created_by', $user->id);
+                    });
+                }
             }
         }
 
