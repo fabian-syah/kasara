@@ -26,6 +26,8 @@ class InventoryController extends Controller
     // Filtered by branch - only super_admin can see all
     public function index(Request $request)
     {
+        ini_set('memory_limit', '512M'); // Fix OOM on large inventory load
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
         $type = $request->type ?? 'hp';
