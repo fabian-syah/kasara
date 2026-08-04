@@ -298,10 +298,10 @@
                                 <span class="uppercase tracking-wide">IN TT</span>
                                 <span>{{ formatCurrency(totalInTt) }}</span>
                             </div>
-                            <div v-if="totalInDg > 0"
+                            <div v-if="totalOutDg > 0"
                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">OUT DOWNGRADE</span>
-                                <span>{{ formatCurrency(totalInDg) }}</span>
+                                <span>{{ formatCurrency(totalOutDg) }}</span>
                             </div>
                         </div>
 
@@ -570,6 +570,30 @@
                                                 <div v-if="d.price !== undefined && d.price !== null"
                                                     class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">
                                                     Harga Masuk: {{ formatCurrency(d.price) }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="salesData.report_summary.activities.details.out_dg?.length > 0">
+                                    <h4 class="text-[10px] font-black text-emerald-600/70 uppercase tracking-[0.2em] mb-2">
+                                        Rincian Out Downgrade:
+                                    </h4>
+                                    <div class="space-y-3 pl-2">
+                                        <div v-for="(d, idx) in salesData.report_summary.activities.details.out_dg"
+                                            :key="'ui-odg-' + idx" class="border-l-2 border-emerald-100 pl-3 py-1">
+                                            <div
+                                                class="text-[11px] font-black text-gray-900 dark:text-white uppercase leading-tight">
+                                                {{ d.name }} {{ d.storage ? `(${d.storage})` : '' }}
+                                            </div>
+                                            <div class="flex items-center gap-4 mt-1">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">
+                                                    IMEI: {{ d.imei ||
+                                                        '-' }}</div>
+                                                <div v-if="d.price !== undefined && d.price !== null"
+                                                    class="text-[10px] font-black text-emerald-600 uppercase tracking-tighter">
+                                                    Harga Out: {{ formatCurrency(d.price) }}
                                                 </div>
                                             </div>
                                         </div>
@@ -1766,6 +1790,11 @@ const totalInDg = computed(() => {
     return details.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
 });
 
+const totalOutDg = computed(() => {
+    const details = salesData.value?.report_summary?.activities?.details?.out_dg || [];
+    return details.reduce((sum, item) => sum + (parseFloat(item.price) || 0), 0);
+});
+
 const sortedPayments = computed(() => {
     const p = salesData.value?.report_summary?.payments || {};
     const entries = Object.entries(p).filter(([method, amt]) => amt > 0 && !method.toUpperCase().includes('DOWNGRADE'));
@@ -1811,7 +1840,10 @@ const getBaseReportText = (isForCopy = false) => {
             text += `IN TT : ${formatCurrency(totalInTt.value)}\n`;
         }
         if (totalInDg.value > 0) {
-            text += `OUT DOWNGRADE : ${formatCurrency(totalInDg.value)}\n`;
+            text += `IN DOWNGRADE : ${formatCurrency(totalInDg.value)}\n`;
+        }
+        if (totalOutDg.value > 0) {
+            text += `OUT DOWNGRADE : ${formatCurrency(totalOutDg.value)}\n`;
         }
     }
 

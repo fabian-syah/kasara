@@ -1603,8 +1603,9 @@ class AuditController extends Controller
 
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account')->get() as $hp) {
                             $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
-                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah'])) {
-                                $activityDetails[$catLower][] = [
+                            if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                                $key = $catLower === 'downgrade' ? 'out_dg' : $catLower;
+                                $activityDetails[$key][] = [
                                     'name' => $hp->name,
                                     'imei' => $hp->imei,
                                     'storage' => $hp->storage,
@@ -1711,7 +1712,8 @@ class AuditController extends Controller
                             $catLower = $resolveActualCategory($trx->category, $trx->notes, $trx->sales_account);
 
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
-                                $activityDetails[$catLower][] = [
+                                $key = $catLower === 'downgrade' ? 'out_dg' : $catLower;
+                                $activityDetails[$key][] = [
                                     'name' => ($item->product?->name ?? 'Unknown') . " (Qty: {$item->quantity})",
                                     'imei' => null,
                                     'price' => (float) $item->selling_price
@@ -1915,6 +1917,7 @@ class AuditController extends Controller
                                 'angkat_barang' => count($activityDetails['angkat_barang'] ?? []),
                                 'in_tt' => count($activityDetails['in_tt'] ?? []),
                                 'in_dg' => count($activityDetails['in_dg'] ?? []),
+                                'out_dg' => count($activityDetails['out_dg'] ?? []),
                                 'details' => $activityDetails
                             ],
                             'debug' => [
