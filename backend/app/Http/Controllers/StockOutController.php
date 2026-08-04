@@ -696,7 +696,8 @@ class StockOutController extends Controller
                     $totalSellingPrice = floatval($request->selling_price);
                 }
             } else {
-                $totalSellingPrice = floatval($request->selling_price ?? 0);
+                $rawSelling = is_string($request->selling_price) ? preg_replace('/[^0-9]/', '', $request->selling_price) : $request->selling_price;
+                $totalSellingPrice = floatval($rawSelling ?? 0);
 
                 // Fallback Hitung Total dari Item secara otomatis jika 0 (terutama untuk Pindah Cabang)
                 if ($totalSellingPrice == 0) {
@@ -827,7 +828,7 @@ class StockOutController extends Controller
                 'non_hp_items' => $request->non_hp_items,
                 'sales_account' => $request->sales_account,
                 'payment_method_id' => $request->payment_method_id,
-                'paid_amount' => $request->paid_amount ?? 0,
+                'paid_amount' => is_string($request->paid_amount) ? floatval(preg_replace('/[^0-9]/', '', $request->paid_amount)) : ($request->paid_amount ?? 0),
                 'split_payments' => is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments,
                 'global_discount_value' => $request->global_discount_value ?? 0,
                 'global_discount_type' => $request->global_discount_type ?? 'fixed',
@@ -835,7 +836,11 @@ class StockOutController extends Controller
                 'missing_category' => $request->missing_category,
                 'person_in_charge' => $request->person_in_charge,
                 'loss_chronology' => $request->loss_chronology,
-                'dp_amount' => $request->category === 'dp' ? ($request->dp_amount ?? $request->paid_amount) : 0,
+                'dp_amount' => $request->category === 'dp' ? (
+                    is_string($request->dp_amount) ? floatval(preg_replace('/[^0-9]/', '', $request->dp_amount)) : ($request->dp_amount ?? (
+                        is_string($request->paid_amount) ? floatval(preg_replace('/[^0-9]/', '', $request->paid_amount)) : ($request->paid_amount ?? 0)
+                    ))
+                ) : 0,
                 'is_dp_settled' => false,
                 'parent_dp_id' => $request->category === 'pelunasan_dp' ? $request->parent_dp_id : null,
             ]);

@@ -2092,6 +2092,25 @@ class AuditController extends Controller
                     }
                 }
 
+                if ($catLower === 'dp' && empty($details)) {
+                    $details[] = [
+                        'name' => 'Pre-Order / DP: ' . ($trx->notes ?? 'Unit'),
+                        'qty' => 1,
+                        'price' => (float) ($trx->dp_amount ?? $trx->selling_price),
+                        'original_price' => (float) ($trx->dp_amount ?? $trx->selling_price),
+                        'item_discount' => 0,
+                        'brand' => '-',
+                        'type' => 'DP',
+                        'is_hp' => true,
+                        'imei' => '-',
+                        'distributor_name' => '-',
+                        'ram' => '-',
+                        'storage' => '-',
+                        'condition' => '-',
+                        'notes' => $trx->notes
+                    ];
+                }
+
                 // DISABLED GROUPING LOGIC FOR BUNDLES: Keep items individual as requested
                 /*
                 if ($trx->is_bundle) {
