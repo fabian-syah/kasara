@@ -2329,6 +2329,13 @@ class AuditController extends Controller
                     }
                 }
 
+                foreach ($details as &$d) {
+                    $d['name'] = str_ireplace('PSTORE UNIT', '', $d['name']);
+                    $d['name'] = preg_replace('/^\s*-\s*/', '', $d['name']);
+                    $d['name'] = trim($d['name']);
+                }
+                unset($d);
+
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
