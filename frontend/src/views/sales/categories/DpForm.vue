@@ -381,8 +381,10 @@ async function submitTradeIn(pin = null) {
         const selectedType = props.productTypes.find(t => t.id === dpForm.value.product_type_id);
         const selectedBrand = props.brands?.find(b => b.id === dpForm.value.brand_id);
         let itemName = [selectedBrand?.name, selectedType?.name, dpForm.value.storage, dpForm.value.condition].filter(Boolean).join(' ');
-        // Remove PSTORE UNIT aggressively
-        itemName = itemName.replace(/\bPSTORE\s+UNIT\b\s*(?:-\s*)?/gi, '').trim();
+        // Guaranteed removal of PSTORE UNIT
+        itemName = itemName.replace(/PSTORE UNIT/gi, '');
+        itemName = itemName.replace(/^\s*-\s*/, '');
+        itemName = itemName.trim();
 
             const transaction = {
                 id: data.id,
