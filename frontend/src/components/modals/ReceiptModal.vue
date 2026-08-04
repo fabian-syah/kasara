@@ -433,10 +433,9 @@
                                             <div
                                                 class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
                                                 <span
-                                                    class="font-black text-red-600 text-[10px] uppercase tracking-wider">Selisih
-                                                    Harga</span>
+                                                    class="font-black text-red-600 text-[10px] uppercase tracking-wider">Kembalian</span>
                                                 <span class="text-red-600 font-black text-sm">
-                                                    {{ formatCurrency(Math.abs(calculatedGrandTotal)) }}
+                                                    {{ formatCurrency(calculatedChange) }}
                                                 </span>
                                             </div>
                                         </div>
