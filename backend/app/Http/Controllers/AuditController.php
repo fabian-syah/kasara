@@ -2095,13 +2095,14 @@ class AuditController extends Controller
                 if ($catLower === 'dp' && empty($details)) {
                     $noteParts = explode("\n", $trx->notes ?? '', 2);
                     $itemName = trim($noteParts[0]) ?: 'Unit DP';
+                    $itemName = preg_replace('/^(?:Unit DP:\s*|Pre-Order \/ DP:\s*)/i', '', $itemName);
                     $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : null;
 
                     $details[] = [
                         'name' => $itemName,
                         'qty' => 1,
-                        'price' => (float) ($trx->dp_amount ?? $trx->selling_price),
-                        'original_price' => (float) ($trx->dp_amount ?? $trx->selling_price),
+                        'price' => (float) ($trx->dp_amount ?? $trx->paid_amount ?? $trx->selling_price),
+                        'original_price' => (float) ($trx->dp_amount ?? $trx->paid_amount ?? $trx->selling_price),
                         'item_discount' => 0,
                         'brand' => '-',
                         'type' => 'DP',
@@ -2237,10 +2238,9 @@ class AuditController extends Controller
 
                 $totalQty = collect($details)->sum('qty');
 
-
                 $rawSellingPrice = (float) $trx->selling_price;
                 if ($catLower === 'dp') {
-                    $rawSellingPrice = (float) $trx->dp_amount;
+                    $rawSellingPrice = (float) ($trx->dp_amount ?? $trx->paid_amount ?? $trx->selling_price);
                 } elseif ($catLower === 'pelunasan_dp') {
                     $rawSellingPrice = (float) $trx->paid_amount;
                 }
