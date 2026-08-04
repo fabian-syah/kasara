@@ -237,10 +237,13 @@ class SalesExport
                     $amt = abs((float)($so->paid_amount ?: $so->selling_price));
                     if (isset($payData[$name])) { $payData[$name] = $amt; }
                 } else {
+                    $remainingToAllocate = abs((float)$so->selling_price);
                     foreach ($splitPayments as $sp) {
                         $name = $sp['method_name'] ?? 'Lainnya';
                         $amt = abs((float)($sp['amount'] ?? 0));
-                        if (isset($payData[$name])) { $payData[$name] += $amt; }
+                        $allocatedAmt = min($amt, $remainingToAllocate);
+                        if (isset($payData[$name])) { $payData[$name] += $allocatedAmt; }
+                        $remainingToAllocate -= $allocatedAmt;
                     }
                 }
             }
