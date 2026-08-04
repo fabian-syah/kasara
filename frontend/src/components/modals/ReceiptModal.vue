@@ -294,10 +294,10 @@
                                                             <span v-if="item.is_bundle_child"
                                                                 class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
                                                             <span>
-                                                                {{ item.is_hp ? ((item.brand && item.brand !== '-' ?
-                                                                    item.brand : (item.product?.brand?.name ||
-                                                                item.product?.brandRelation?.name ||
-                                                                item.product?.brand)) || 'PSTORE UNIT') + ' - ' : ''
+                                                                {{ item.is_hp ? (
+                                                                    ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) ? 
+                                                                    ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) + ' - ' : ''
+                                                                ) : ''
                                                                 }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
                                                                 <template v-if="item.is_hp">
                                                                     {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}

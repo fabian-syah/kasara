@@ -282,7 +282,7 @@ const allItems = computed(() => {
         
         const name = `${brand} ${hp.product?.name || ''}${capacitySuffix}`.trim();
         items.push({
-            name: name || 'PSTORE UNIT',
+            name: name || '-',
             imei: hp.imei || '-',
             condition: hp.condition === 'new' ? 'Baru' : (hp.condition === 'ex_ibox' ? 'Ex iBox' : (hp.condition === 'second' ? 'Second' : (hp.condition || '-'))),
             qty: 1
