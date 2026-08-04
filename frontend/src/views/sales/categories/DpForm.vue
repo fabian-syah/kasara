@@ -34,9 +34,7 @@ const isRestoring = ref(true);
 const isCompressing = ref(false);
 const dpPhotos = ref({
     unit: null,
-    unitPreview: null,
-    customer: null,
-    customerPreview: null
+    unitPreview: null
 });
 
 const splitPayments = ref([]);
@@ -93,8 +91,7 @@ watch([dpForm, dpPhotos], ([newForm, newPhotos]) => {
     if (isRestoring.value) return;
     
     const persistentPhotos = {
-        unitPreview: newPhotos.unitPreview,
-        customerPreview: newPhotos.customerPreview
+        unitPreview: newPhotos.unitPreview
     };
 
     localStorage.setItem(storageKey.value, JSON.stringify({
@@ -126,16 +123,10 @@ async function restoreDraft() {
             
             if (data.photos) {
                 dpPhotos.value.unitPreview = data.photos.unitPreview;
-                dpPhotos.value.customerPreview = data.photos.customerPreview;
                 
                 if (data.photos.unitPreview && data.photos.unitPreview.startsWith('data:')) {
                     try {
                         dpPhotos.value.unit = dataURLtoFile(data.photos.unitPreview, 'unit_restored.jpg');
-                    } catch (e) {}
-                }
-                if (data.photos.customerPreview && data.photos.customerPreview.startsWith('data:')) {
-                    try {
-                        dpPhotos.value.customer = dataURLtoFile(data.photos.customerPreview, 'customer_restored.jpg');
                     } catch (e) {}
                 }
             }
@@ -216,7 +207,7 @@ const filteredTradeInCapacities = computed(() => {
 
 const filteredTradeInConditions = computed(() => {
     const defaults = ['new', 'second', 'ex_ibox'];
-    const set = new Set();
+    const set = new Set(defaults);
     
     if (dpForm.value.product_type_id) {
         props.productPrices
@@ -227,8 +218,6 @@ const filteredTradeInConditions = computed(() => {
             })
             .forEach(p => { if (p.condition) set.add(p.condition); });
     }
-    
-    if (set.size === 0) defaults.forEach(d => set.add(d));
     
     return Array.from(set);
 });
@@ -382,7 +371,6 @@ async function submitTradeIn(pin = null) {
 
     // Map photos to stock-out expected fields
     if (dpPhotos.value.unit) formData.append('proof_image', dpPhotos.value.unit);
-    if (dpPhotos.value.customer) formData.append('payment_proof_image', dpPhotos.value.customer);
 
     try {
         const response = await api.post('/stock-outs', formData, {
@@ -430,8 +418,7 @@ async function submitTradeIn(pin = null) {
             time: new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
             inventory_user_name: props.salesAccount || authStore.user?.name,
             proof_images: [
-                data.proof_image ? `${authStore.storageBaseUrl}/storage/${data.proof_image}` : null,
-                data.payment_proof_image ? `${authStore.storageBaseUrl}/storage/${data.payment_proof_image}` : null
+                data.proof_image ? `${authStore.storageBaseUrl}/storage/${data.proof_image}` : null
             ].filter(Boolean)
         };
 
@@ -455,7 +442,7 @@ async function submitTradeIn(pin = null) {
                 amount: 0
             }
         ];
-        dpPhotos.value = { unit: null, unitPreview: null, customer: null, customerPreview: null };
+        dpPhotos.value = { unit: null, unitPreview: null };
 
     } catch (error) {
         console.error("DP failed", error);
@@ -591,16 +578,16 @@ async function submitTradeIn(pin = null) {
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">Foto Bukti DP / Unit <span class="text-red-500">*</span></label>
-                        <div @click="$refs.unitAngkatInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                        <div @click="$refs.unitAngkatInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl aspect-video flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
                             <template v-if="isCompressing">
                                 <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
                                 <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
                             </template>
                             <template v-else-if="dpPhotos.unitPreview">
-                                <img :src="dpPhotos.unitPreview" class="w-full h-full object-cover" />
+                                <img :src="dpPhotos.unitPreview" class="w-full h-full object-contain bg-surface-100 dark:bg-surface-900" />
                                 <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                     <Camera class="text-white w-6 h-6" />
                                 </div>
@@ -611,26 +598,6 @@ async function submitTradeIn(pin = null) {
                             </template>
                         </div>
                         <input type="file" ref="unitAngkatInput" @change="e => handlePhotoChange('unit', e)" accept="image/*" class="hidden" capture="environment" />
-                    </div>
-                    <div>
-                        <label class="block text-xs font-black text-text-secondary uppercase tracking-widest mb-4 text-center">Foto Customer</label>
-                        <div @click="$refs.customerAngkatInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-2xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                            <template v-if="isCompressing">
-                                <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
-                                <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
-                            </template>
-                            <template v-else-if="dpPhotos.customerPreview">
-                                <img :src="dpPhotos.customerPreview" class="w-full h-full object-cover" />
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                    <Camera class="text-white w-6 h-6" />
-                                </div>
-                            </template>
-                            <template v-else>
-                                <Plus :size="32" class="text-text-secondary mb-2" />
-                                <span class="text-[10px] font-black text-text-secondary uppercase tracking-widest">Upload Customer</span>
-                            </template>
-                        </div>
-                        <input type="file" ref="customerAngkatInput" @change="e => handlePhotoChange('customer', e)" accept="image/*" class="hidden" capture="environment" />
                     </div>
                 </div>
             </div>

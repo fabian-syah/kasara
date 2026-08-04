@@ -230,6 +230,19 @@ class StockOutController extends Controller
                 $details = $grouped;
             }
 
+            if ($stockOut->category === 'dp' && empty($details)) {
+                $details[] = [
+                    'name' => 'Pre-Order / DP: ' . ($stockOut->notes ?? 'Unit'),
+                    'qty' => 1,
+                    'price' => (float) $stockOut->selling_price,
+                    'type' => 'DP',
+                    'is_hp' => true,
+                    'imei' => '-',
+                    'notes' => $stockOut->notes,
+                    'distributor_name' => '-'
+                ];
+            }
+
             // Update the object with consolidated items
             $stockOut->consolidated_items = $details;
 
@@ -307,9 +320,9 @@ class StockOutController extends Controller
             'person_in_charge' => 'required_if:category,hilang|nullable|string',
             'loss_chronology' => 'required_if:category,hilang|nullable|string',
             'sub_category' => 'required_if:category,keluar|nullable|string',
-            'product_detail_ids' => 'required_without_all:non_hp_items,parent_dp_id|array',
+            'product_detail_ids' => 'required_without_all:non_hp_items,parent_dp_id,brand_id|array',
             'product_detail_ids.*' => 'exists:product_details,id',
-            'non_hp_items' => 'required_without_all:product_detail_ids,parent_dp_id|array',
+            'non_hp_items' => 'required_without_all:product_detail_ids,parent_dp_id,brand_id|array',
             'non_hp_items.*.product_id' => 'required|exists:products,id',
             'non_hp_items.*.quantity' => 'required|integer|min:1',
             'parent_dp_id' => 'required_if:category,pelunasan_dp|nullable|exists:stock_outs,id',
@@ -808,7 +821,9 @@ class StockOutController extends Controller
                 'event_phone' => $request->event_phone,
                 'event_notes' => $request->event_notes,
 
-                'notes' => $request->notes,
+                'notes' => $request->category === 'dp' && $request->product_type_id 
+                    ? "Unit DP: " . trim((\App\Models\ProductType::find($request->product_type_id)?->name ?? 'Item') . " " . $request->storage . " " . $request->condition) . "\n" . $request->notes 
+                    : $request->notes,
                 'non_hp_items' => $request->non_hp_items,
                 'sales_account' => $request->sales_account,
                 'payment_method_id' => $request->payment_method_id,
