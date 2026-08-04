@@ -300,7 +300,7 @@
                             </div>
                             <div v-if="totalInDg > 0"
                                 class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
-                                <span class="uppercase tracking-wide">IN DOWNGRADE</span>
+                                <span class="uppercase tracking-wide">OUT DOWNGRADE</span>
                                 <span>{{ formatCurrency(totalInDg) }}</span>
                             </div>
                         </div>
@@ -1811,7 +1811,7 @@ const getBaseReportText = (isForCopy = false) => {
             text += `IN TT : ${formatCurrency(totalInTt.value)}\n`;
         }
         if (totalInDg.value > 0) {
-            text += `IN DOWNGRADE : ${formatCurrency(totalInDg.value)}\n`;
+            text += `OUT DOWNGRADE : ${formatCurrency(totalInDg.value)}\n`;
         }
     }
 

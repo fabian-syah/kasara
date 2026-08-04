@@ -561,9 +561,10 @@ watch(transactionCategory, () => {
 
                 <DpForm v-else-if="transactionCategory === 'dp'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
+                    :productPrices="productPrices"
                     :distributors="distributors" :selectedAccountObject="selectedAccountObject"
                     :salesAccount="salesAccount"
-                    @prev="prevStep" @next="currentStep = 4" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
+                    @prev="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <PelunasanDpForm v-else-if="transactionCategory === 'pelunasan_dp'"
                     :availablePaymentMethods="availablePaymentMethods" :selectedAccountObject="selectedAccountObject"
