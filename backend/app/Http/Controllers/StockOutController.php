@@ -823,7 +823,12 @@ class StockOutController extends Controller
                 'event_notes' => $request->event_notes,
 
                 'notes' => $request->category === 'dp' && $request->product_type_id 
-                    ? "Unit DP: " . trim((\App\Models\ProductType::find($request->product_type_id)?->name ?? 'Item') . " " . $request->storage . " " . $request->condition) . "\n" . $request->notes 
+                    ? trim(
+                        (\App\Models\Brand::find($request->brand_id)?->name ?? '') . " " . 
+                        (\App\Models\ProductType::find($request->product_type_id)?->name ?? 'Item') . " " . 
+                        $request->storage . " " . 
+                        $request->condition
+                      ) . ($request->notes ? "\n" . $request->notes : '')
                     : $request->notes,
                 'non_hp_items' => $request->non_hp_items,
                 'sales_account' => $request->sales_account,

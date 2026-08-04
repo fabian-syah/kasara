@@ -379,13 +379,15 @@ async function submitTradeIn(pin = null) {
 
         const data = response.data.data || response.data;
         const selectedType = props.productTypes.find(t => t.id === dpForm.value.product_type_id);
-        
-        const transaction = {
-            id: data.id,
-            order_no: data.receipt_id || "TRX-" + Date.now(),
-            items: [{
-                product: selectedType,
-                name: selectedType?.name || 'Manual Item DP',
+        const selectedBrand = props.brands?.find(b => b.id === dpForm.value.brand_id);
+        const itemName = [selectedBrand?.name, selectedType?.name, dpForm.value.storage, dpForm.value.condition].filter(Boolean).join(' ');
+
+            const transaction = {
+                id: data.id,
+                order_no: data.receipt_id || "TRX-" + Date.now(),
+                items: [{
+                    product: selectedType,
+                    name: itemName || 'Manual Item DP',
                 imei: '-',
                 selling_price: dpForm.value.selling_price,
                 condition: dpForm.value.condition,

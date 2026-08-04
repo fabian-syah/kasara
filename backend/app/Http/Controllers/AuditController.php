@@ -2093,8 +2093,12 @@ class AuditController extends Controller
                 }
 
                 if ($catLower === 'dp' && empty($details)) {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $itemName = trim($noteParts[0]) ?: 'Unit DP';
+                    $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : null;
+
                     $details[] = [
-                        'name' => 'Pre-Order / DP: ' . ($trx->notes ?? 'Unit'),
+                        'name' => $itemName,
                         'qty' => 1,
                         'price' => (float) ($trx->dp_amount ?? $trx->selling_price),
                         'original_price' => (float) ($trx->dp_amount ?? $trx->selling_price),
@@ -2107,7 +2111,7 @@ class AuditController extends Controller
                         'ram' => '-',
                         'storage' => '-',
                         'condition' => '-',
-                        'notes' => $trx->notes
+                        'notes' => $actualNote
                     ];
                 }
 
