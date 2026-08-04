@@ -2096,7 +2096,8 @@ class AuditController extends Controller
                     $noteParts = explode("\n", $trx->notes ?? '', 2);
                     $itemName = trim($noteParts[0]) ?: 'Unit DP';
                     $itemName = preg_replace('/^(?:Unit DP:\s*|Pre-Order \/ DP:\s*)/i', '', $itemName);
-                    $itemName = preg_replace('/^(?:PSTORE UNIT\s*-\s*|PSTORE UNIT\s+)/i', '', $itemName);
+                    // Remove PSTORE UNIT aggressively anywhere in the name
+                    $itemName = trim(str_ireplace(['PSTORE UNIT - ', 'PSTORE UNIT ', 'PSTORE UNIT'], '', $itemName));
                     $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : null;
 
                     $dpAmt = (float) $trx->dp_amount;
