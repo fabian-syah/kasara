@@ -783,11 +783,16 @@ class ReportController extends Controller
             if ($isNormalSales || $isTukarTambah) {
                 $splits = json_decode($tx->split_payments, true);
                 if (is_array($splits) && count($splits) > 0) {
+                    $remainingToAllocate = abs($sellingPrice);
                     foreach ($splits as $split) {
                         $pmId = $split['payment_method_id'] ?? ($split['method_id'] ?? null);
+                        $amt = abs((float) ($split['amount'] ?? 0));
+                        $allocatedAmt = min($amt, $remainingToAllocate);
+                        
                         if ($pmId && isset($statsByLocation[$locKey]['payments'][$pmId])) {
-                            $statsByLocation[$locKey]['payments'][$pmId] += abs((float) ($split['amount'] ?? 0));
+                            $statsByLocation[$locKey]['payments'][$pmId] += $allocatedAmt;
                         }
+                        $remainingToAllocate -= $allocatedAmt;
                     }
                 } elseif ($tx->payment_method_id) {
                     if (isset($statsByLocation[$locKey]['payments'][$tx->payment_method_id])) {
