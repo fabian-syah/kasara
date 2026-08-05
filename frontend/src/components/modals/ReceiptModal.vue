@@ -294,18 +294,20 @@
                                                             <span v-if="item.is_bundle_child"
                                                                 class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
                                                             <span>
-                                                                {{ item.is_hp ? (
-                                                                    ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) ? 
-                                                                    ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) + ' - ' : ''
-                                                                ) : ''
-                                                                }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
-                                                                <span v-if="(item.name || '').includes('IN:')" class="ml-1 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none">MASUK</span>
-                                                                <span v-if="(item.name || '').includes('OUT:')" class="ml-1 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none">KELUAR</span>
-                                                                <template v-if="item.is_hp">
-                                                                    {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
-                                                                    {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
+                                                                <span v-if="(item.name || '').includes('IN:')" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">MASUK</span>
+                                                                <span v-if="(item.name || '').includes('OUT:')" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">KELUAR</span>
+                                                                <span class="align-middle">
+                                                                    {{ item.is_hp ? (
+                                                                        ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) ? 
+                                                                        ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) + ' - ' : ''
+                                                                    ) : ''
+                                                                    }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
+                                                                    <template v-if="item.is_hp">
+                                                                        {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
+                                                                        {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
 
-                                                                </template>
+                                                                    </template>
+                                                                </span>
                                                             </span>
                                                         </div>
                                                     </td>
