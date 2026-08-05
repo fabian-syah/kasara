@@ -321,7 +321,30 @@ async function fetchData() {
       distributorsApi.list()
     ]);
 
-    users.value = usersRes.data.data || [];
+    let fetchedUsers = usersRes.data.data || [];
+    let allUsers = [...fetchedUsers];
+    
+    // Extract sub-accounts (from created_users) if they are not already in the main list
+    fetchedUsers.forEach(parent => {
+      if (parent.created_users && Array.isArray(parent.created_users)) {
+        parent.created_users.forEach(child => {
+          if (!allUsers.find(u => u.id === child.id)) {
+            // Manually attach parent reference and inherit placements
+            child.created_by_user = parent;
+            child.created_by = parent.id;
+            if (!child.branch_id) child.branch_id = parent.branch_id;
+            if (!child.branch) child.branch = parent.branch;
+            
+            // Mark as inventory sub-account if it has no role
+            if (!child.roles) child.roles = [];
+            
+            allUsers.push(child);
+          }
+        });
+      }
+    });
+
+    users.value = allUsers;
     branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
     warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
     onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
