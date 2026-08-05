@@ -237,9 +237,9 @@ class InventoryAccountController extends Controller
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $branchId = $request->branch_id ?? $request->header('X-Branch-ID');
-        $onlineShopId = $request->online_shop_id ?? $request->header('X-Online-Shop-ID');
-        $warehouseId = $request->warehouse_id ?? $request->header('X-Warehouse-ID');
+        $branchId = $request->branch_id ?? $request->header('X-Branch-ID') ?? $user->branch_id;
+        $onlineShopId = $request->online_shop_id ?? $request->header('X-Online-Shop-ID') ?? $user->online_shop_id;
+        $warehouseId = $request->warehouse_id ?? $request->header('X-Warehouse-ID') ?? $user->warehouse_id;
 
         $query = User::role('inventory')
             ->with([
