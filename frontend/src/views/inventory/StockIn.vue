@@ -1022,10 +1022,13 @@ onMounted(() => {
                             <CheckCircle2 :size="24" />
                         </div>
 
-                        <!-- EDIT BUTTON: Visible to creator OR high roles (super_admin, owner, audit, admin_produk) -->
+                        <!-- EDIT BUTTON: Visible to creator, high roles, OR users in the same placement -->
                         <div v-if="authStore.user?.id === user.created_by?.id ||
                             authStore.user?.id === user.created_by ||
-                            ['super_admin', 'owner', 'audit', 'admin_produk'].includes((authStore.userRole || '').toLowerCase())"
+                            ['super_admin', 'owner', 'audit', 'admin_produk', 'analist'].includes((authStore.userRole || '').toLowerCase()) ||
+                            (user.branch_id && user.branch_id === authStore.user?.branch_id) ||
+                            (user.warehouse_id && user.warehouse_id === authStore.user?.warehouse_id) ||
+                            (user.online_shop_id && user.online_shop_id === authStore.user?.online_shop_id)"
                             @click="openEditModal(user, $event)"
                             class="absolute top-3 right-10 p-1.5 hover:bg-surface-800 rounded-lg text-text-secondary hover:text-primary-500 transition-all z-10 group/edit">
                             <Edit2 :size="16" class="group-hover/edit:scale-110 transition-transform" />

@@ -84,11 +84,21 @@ class InventoryAccountController extends Controller
         $user = Auth::user();
         $account = User::findOrFail($id);
 
-        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk'];
+        $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
         $userRole = strtolower($user->roles->first()->name ?? '');
 
-        if ($account->created_by !== $user->id && $account->id !== $user->id && !in_array($userRole, $unrestrictedRoles)) {
-            return response()->json(['message' => 'Unauthorized action. Hanya pembuat akun yang bisa mengedit.'], 403);
+        // Check if user and account share the same placement
+        $isSamePlacement = false;
+        if ($account->branch_id && $account->branch_id == ($user->branch_id ?? $request->header('X-Branch-ID'))) {
+            $isSamePlacement = true;
+        } elseif ($account->online_shop_id && $account->online_shop_id == ($user->online_shop_id ?? $request->header('X-Online-Shop-ID'))) {
+            $isSamePlacement = true;
+        } elseif ($account->warehouse_id && $account->warehouse_id == ($user->warehouse_id ?? $request->header('X-Warehouse-ID'))) {
+            $isSamePlacement = true;
+        }
+
+        if ($account->created_by !== $user->id && $account->id !== $user->id && !in_array($userRole, $unrestrictedRoles) && !$isSamePlacement) {
+            return response()->json(['message' => 'Unauthorized action. Hanya pembuat akun atau user di penempatan yang sama yang bisa mengedit.'], 403);
         }
 
         $request->validate([
@@ -227,8 +237,9 @@ class InventoryAccountController extends Controller
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $branchId = $request->branch_id;
-        $onlineShopId = $request->online_shop_id;
+        $branchId = $request->branch_id ?? $request->header('X-Branch-ID');
+        $onlineShopId = $request->online_shop_id ?? $request->header('X-Online-Shop-ID');
+        $warehouseId = $request->warehouse_id ?? $request->header('X-Warehouse-ID');
 
         $query = User::role('inventory')
             ->with([
@@ -248,6 +259,8 @@ class InventoryAccountController extends Controller
                 $query->where('branch_id', $branchId);
             } elseif ($onlineShopId) {
                 $query->where('online_shop_id', $onlineShopId);
+            } elseif ($warehouseId) {
+                $query->where('warehouse_id', $warehouseId);
             } else {
                 $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
                 if (!$user->hasRole($unrestrictedRoles)) {
