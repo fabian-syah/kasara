@@ -625,7 +625,31 @@ function getPlacementName(user) {
   if (user.warehouse) return `Gudang: ${user.warehouse.name}`;
   if (user.online_shop) return `Online: ${user.online_shop.name}`;
   if (user.distributor) return `Dist: ${user.distributor.name}`;
+
+  // Inherit from parent if sub-account
+  const parent = subAccountParentMap.value?.get(user.id);
+  if (parent) {
+    if (parent.branch) return parent.branch.name;
+    if (parent.warehouse) return `Gudang: ${parent.warehouse.name}`;
+    if (parent.online_shop) return `Online: ${parent.online_shop.name}`;
+    if (parent.distributor) return `Dist: ${parent.distributor.name}`;
+  }
+
   return '-';
+}
+
+function getPlacementTimezone(user) {
+  if (!user) return 'WIB';
+  if (user.branch?.timezone) return user.branch.timezone;
+  if (user.warehouse?.timezone) return user.warehouse.timezone;
+  
+  const parent = subAccountParentMap.value?.get(user.id);
+  if (parent) {
+    if (parent.branch?.timezone) return parent.branch.timezone;
+    if (parent.warehouse?.timezone) return parent.warehouse.timezone;
+  }
+  
+  return 'WIB';
 }
 
 function getUserRoleName(user) {
@@ -825,16 +849,16 @@ function getUserRoleName(user) {
                   <MapPin :size="14" class="text-text-secondary" />
                   <span class="text-sm text-text-primary">{{ getPlacementName(user) }}</span>
                 </div>
-                <div class="text-[10px] text-text-secondary mt-1 pl-5 font-mono">{{ user.branch?.timezone || user.warehouse?.timezone || 'WIB' }}</div>
+                <div class="text-[10px] text-text-secondary mt-1 pl-5 font-mono">{{ getPlacementTimezone(user) }}</div>
               </td>
               <td class="px-6 py-4 text-sm text-text-secondary">
                 <div class="mb-1">
                   <span class="block text-[10px] uppercase font-bold text-text-secondary mb-0.5">Login Terakhir</span>
-                  <span class="text-text-primary">{{ formatLastSeen(user.last_seen, user.timezone) }}</span>
+                  <span class="text-text-primary">{{ formatLastSeen(user.last_seen, getPlacementTimezone(user)) }}</span>
                 </div>
                 <div>
                   <span class="block text-[10px] uppercase font-bold text-text-secondary mb-0.5">Ubah Password</span>
-                  <span class="text-text-primary">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, user.timezone) : '-' }}</span>
+                  <span class="text-text-primary">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, getPlacementTimezone(user)) : '-' }}</span>
                 </div>
               </td>
               <td class="px-6 py-4">
@@ -987,11 +1011,11 @@ function getUserRoleName(user) {
           <div class="col-span-2 grid grid-cols-2 gap-3 pt-2">
             <div>
               <p class="text-text-secondary text-xs mb-1">Login Terakhir</p>
-              <p class="text-text-primary text-xs">{{ formatLastSeen(user.last_seen, user.timezone) }}</p>
+              <p class="text-text-primary text-xs">{{ formatLastSeen(user.last_seen, getPlacementTimezone(user)) }}</p>
             </div>
             <div class="text-right">
               <p class="text-text-secondary text-xs mb-1">Ubah Password</p>
-              <p class="text-text-primary text-xs">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, user.timezone) : '-' }}</p>
+              <p class="text-text-primary text-xs">{{ user.password_changed_at ? formatLastSeen(user.password_changed_at, getPlacementTimezone(user)) : '-' }}</p>
             </div>
           </div>
         </div>
