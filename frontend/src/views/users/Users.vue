@@ -163,18 +163,17 @@ const filteredRolesOptions = computed(() => {
   ) ?? false);
 
   // Whitelist: only show roles matching audit's access types
-  const allowedRoles = new Set();
+  // By default, Audit can always create 'inventory' accounts
+  const allowedRoles = new Set(['inventory']);
 
   // Roles that an audit user can assign based on their own placements
   if (hasBranchAccess) {
-    ['toko_offline', 'security', 'leader'].forEach(r => allowedRoles.add(r));
+    ['security', 'leader'].forEach(r => allowedRoles.add(r));
   }
   if (hasWarehouseAccess) {
-    ['gudang', 'inventory'].forEach(r => allowedRoles.add(r));
+    ['gudang'].forEach(r => allowedRoles.add(r));
   }
-  if (hasOnlineAccess) {
-    ['toko_online'].forEach(r => allowedRoles.add(r));
-  }
+  // hasOnlineAccess no longer adds toko_online
   if (hasDistributorAccess) {
     ['distributor'].forEach(r => allowedRoles.add(r));
   }
