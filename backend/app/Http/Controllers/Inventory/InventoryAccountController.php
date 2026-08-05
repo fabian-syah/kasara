@@ -237,9 +237,9 @@ class InventoryAccountController extends Controller
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        $branchId = $request->branch_id ?? $request->header('X-Branch-ID') ?? $user->branch_id;
-        $onlineShopId = $request->online_shop_id ?? $request->header('X-Online-Shop-ID') ?? $user->online_shop_id;
-        $warehouseId = $request->warehouse_id ?? $request->header('X-Warehouse-ID') ?? $user->warehouse_id;
+        $branchId = $request->branch_id ?? $request->header('X-Branch-ID');
+        $onlineShopId = $request->online_shop_id ?? $request->header('X-Online-Shop-ID');
+        $warehouseId = $request->warehouse_id ?? $request->header('X-Warehouse-ID');
 
         $query = User::role('inventory')
             ->with([
@@ -265,7 +265,25 @@ class InventoryAccountController extends Controller
                 $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
                 if (!$user->hasRole($unrestrictedRoles)) {
                     $query->where(function ($q) use ($user) {
+                        // 1. Akun yang dibuat oleh user ini
                         $q->where('created_by', $user->id);
+                        
+                        // 2. Akun di primary placement user ini (misal Toko Offline biasa)
+                        if ($user->branch_id) $q->orWhere('branch_id', $user->branch_id);
+                        if ($user->online_shop_id) $q->orWhere('online_shop_id', $user->online_shop_id);
+                        if ($user->warehouse_id) $q->orWhere('warehouse_id', $user->warehouse_id);
+
+                        // 3. Akun di multiple placements (misal Audit / Leader)
+                        if (method_exists($user, 'getAccessibleBranchIds')) {
+                            $branchIds = $user->getAccessibleBranchIds();
+                            if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
+                            
+                            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+                            if (!empty($onlineShopIds)) $q->orWhereIn('online_shop_id', $onlineShopIds);
+
+                            $warehouseIds = $user->getAccessibleWarehouseIds();
+                            if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
+                        }
                     });
                 }
             }
