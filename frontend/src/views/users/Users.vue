@@ -232,11 +232,18 @@ function resetForm() {
 }
 
 // Format Date Helper
-function formatLastSeen(date, timezone) {
+function formatLastSeen(date, timezoneStr) {
   if (!date) return '-';
+  
+  // Map WIB/WITA/WIT to valid IANA timezones
+  let ianaTz = 'Asia/Jakarta';
+  if (timezoneStr === 'WITA') ianaTz = 'Asia/Makassar';
+  else if (timezoneStr === 'WIT') ianaTz = 'Asia/Jayapura';
+  else if (timezoneStr && timezoneStr.includes('/')) ianaTz = timezoneStr; // Allow if it's already an IANA string
+  
   try {
     return new Date(date).toLocaleString('id-ID', {
-      timeZone: timezone || 'Asia/Jakarta',
+      timeZone: ianaTz,
       day: 'numeric', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
