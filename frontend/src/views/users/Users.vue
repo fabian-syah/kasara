@@ -370,9 +370,9 @@ const filteredUsers = computed(() => {
   // Account Type Filter
   if (selectedAccountType.value) {
     if (selectedAccountType.value === 'main') {
-      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
+      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory') && !u.created_by_user && !u.created_by);
     } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
+      result = result.filter(u => u && (u.roles?.some(r => r.name === 'inventory') || u.created_by_user || u.created_by));
     }
   }
 
@@ -392,7 +392,12 @@ const filteredUsers = computed(() => {
 
   // Branch Filter
   if (selectedBranch.value) {
-    result = result.filter(u => u && u.branch_id == selectedBranch.value);
+    result = result.filter(u => 
+      u && (
+        u.branch_id == selectedBranch.value || 
+        (u.created_by_user && u.created_by_user.branch_id == selectedBranch.value)
+      )
+    );
   }
 
   return result;
@@ -746,7 +751,7 @@ function getUserRoleName(user) {
                     <div class="flex items-center gap-2 mb-1">
                       <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
                       <!-- Account Type Badge -->
-                      <span v-if="user.roles?.some(r => r.name === 'inventory')"
+                      <span v-if="user.roles?.some(r => r.name === 'inventory') || user.created_by_user || user.created_by"
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
                         Inventory
                       </span>
