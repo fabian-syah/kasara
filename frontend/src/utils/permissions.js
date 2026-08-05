@@ -28,7 +28,8 @@ export const ROLE_LABELS = {
     [ROLES.DISTRIBUTION]: 'Distribution',
     [ROLES.SALES]: 'Toko Offline',
     [ROLES.GUDANG]: 'Gudang',
-    [ROLES.TOKO_ONLINE]: 'Toko Online'
+    [ROLES.TOKO_ONLINE]: 'Toko Online',
+    [ROLES.INVENTORY]: 'Inventory'
 }
 
 // Permission constants
