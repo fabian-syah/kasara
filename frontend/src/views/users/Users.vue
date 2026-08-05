@@ -321,30 +321,7 @@ async function fetchData() {
       distributorsApi.list()
     ]);
 
-    let fetchedUsers = usersRes.data.data || [];
-    let allUsers = [...fetchedUsers];
-    
-    // Extract sub-accounts (from created_users) if they are not already in the main list
-    fetchedUsers.forEach(parent => {
-      if (parent.created_users && Array.isArray(parent.created_users)) {
-        parent.created_users.forEach(child => {
-          if (!allUsers.find(u => u.id === child.id)) {
-            // Manually attach parent reference and inherit placements
-            child.created_by_user = parent;
-            child.created_by = parent.id;
-            if (!child.branch_id) child.branch_id = parent.branch_id;
-            if (!child.branch) child.branch = parent.branch;
-            
-            // Mark as inventory sub-account if it has no role
-            if (!child.roles) child.roles = [];
-            
-            allUsers.push(child);
-          }
-        });
-      }
-    });
-
-    users.value = allUsers;
+    users.value = usersRes.data.data || [];
     branches.value = (branchesRes.data.data || []).filter(b => b.is_active && (!b.type || b.type === 'physical'));
     warehouses.value = (warehousesRes.data.data || []).filter(w => w.is_active);
     onlineShops.value = (onlineShopsRes.data.data || []).filter(s => s.is_active);
@@ -393,9 +370,9 @@ const filteredUsers = computed(() => {
   // Account Type Filter
   if (selectedAccountType.value) {
     if (selectedAccountType.value === 'main') {
-      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory') && !u.created_by_user && !u.created_by);
+      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
     } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u && (u.roles?.some(r => r.name === 'inventory') || u.created_by_user || u.created_by));
+      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
     }
   }
 
@@ -413,12 +390,19 @@ const filteredUsers = computed(() => {
     result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
   }
 
-  // Branch Filter
+  // Branch Filter — for inventory accounts without branch_id, match via their creator's branch
   if (selectedBranch.value) {
+    // Build a set of user IDs that belong to the selected branch (including parent accounts)
+    const parentIdsInBranch = new Set(
+      users.value
+        .filter(u => u && u.branch_id == selectedBranch.value)
+        .map(u => u.id)
+    );
+    
     result = result.filter(u => 
       u && (
         u.branch_id == selectedBranch.value || 
-        (u.created_by_user && u.created_by_user.branch_id == selectedBranch.value)
+        (u.created_by && parentIdsInBranch.has(u.created_by))
       )
     );
   }
@@ -774,7 +758,7 @@ function getUserRoleName(user) {
                     <div class="flex items-center gap-2 mb-1">
                       <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
                       <!-- Account Type Badge -->
-                      <span v-if="user.roles?.some(r => r.name === 'inventory') || user.created_by_user || user.created_by"
+                      <span v-if="user.roles?.some(r => r.name === 'inventory')"
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
                         Inventory
                       </span>
