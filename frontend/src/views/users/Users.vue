@@ -363,6 +363,31 @@ const placementLabel = computed(() => {
   return '';
 });
 
+// Build a set of sub-account IDs from the created_users relationship data
+// This is reliable because created_users is already shown correctly in the UI
+const subAccountIds = computed(() => {
+  const ids = new Set();
+  (users.value || []).forEach(u => {
+    if (u.created_users && Array.isArray(u.created_users)) {
+      u.created_users.forEach(child => ids.add(child.id));
+    }
+  });
+  return ids;
+});
+
+// Map sub-account ID -> parent user for branch inheritance
+const subAccountParentMap = computed(() => {
+  const map = new Map();
+  (users.value || []).forEach(parent => {
+    if (parent.created_users && Array.isArray(parent.created_users)) {
+      parent.created_users.forEach(child => {
+        map.set(child.id, parent);
+      });
+    }
+  });
+  return map;
+});
+
 const filteredUsers = computed(() => {
   if (!users.value) return [];
   let result = users.value;
@@ -370,9 +395,9 @@ const filteredUsers = computed(() => {
   // Account Type Filter
   if (selectedAccountType.value) {
     if (selectedAccountType.value === 'main') {
-      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
+      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory') && !subAccountIds.value.has(u.id));
     } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
+      result = result.filter(u => u && (u.roles?.some(r => r.name === 'inventory') || subAccountIds.value.has(u.id)));
     }
   }
 
@@ -390,21 +415,16 @@ const filteredUsers = computed(() => {
     result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
   }
 
-  // Branch Filter — for inventory accounts without branch_id, match via their creator's branch
+  // Branch Filter — for sub-accounts without branch_id, match via their parent's branch
   if (selectedBranch.value) {
-    // Build a set of user IDs that belong to the selected branch (including parent accounts)
-    const parentIdsInBranch = new Set(
-      users.value
-        .filter(u => u && u.branch_id == selectedBranch.value)
-        .map(u => u.id)
-    );
-    
-    result = result.filter(u => 
-      u && (
-        u.branch_id == selectedBranch.value || 
-        (u.created_by && parentIdsInBranch.has(u.created_by))
-      )
-    );
+    result = result.filter(u => {
+      if (!u) return false;
+      if (u.branch_id == selectedBranch.value) return true;
+      // Check if this is a sub-account whose parent belongs to the selected branch
+      const parent = subAccountParentMap.value.get(u.id);
+      if (parent && parent.branch_id == selectedBranch.value) return true;
+      return false;
+    });
   }
 
   return result;
@@ -758,7 +778,7 @@ function getUserRoleName(user) {
                     <div class="flex items-center gap-2 mb-1">
                       <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
                       <!-- Account Type Badge -->
-                      <span v-if="user.roles?.some(r => r.name === 'inventory')"
+                      <span v-if="user.roles?.some(r => r.name === 'inventory') || subAccountIds.has(user.id)"
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
                         Inventory
                       </span>
