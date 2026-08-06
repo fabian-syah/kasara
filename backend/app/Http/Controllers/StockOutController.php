@@ -589,12 +589,15 @@ class StockOutController extends Controller
                         $invQuery->where('placement_type', 'warehouse')->where('placement_id', $reqWarehouse);
                     } elseif ($reqOnlineShop) {
                         $invQuery->where('placement_type', 'online_shop')->where('placement_id', $reqOnlineShop);
-                    } elseif ($user->branch_id) {
-                        $invQuery->where('placement_type', 'branch')->where('placement_id', $user->branch_id);
-                    } elseif ($user->warehouse_id) {
-                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $user->warehouse_id);
-                    } elseif ($user->online_shop_id) {
-                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $user->online_shop_id);
+                    } elseif ($user->branch_id || !empty($user->getAccessibleBranchIds())) {
+                        $bId = $user->branch_id ?? $user->getAccessibleBranchIds()[0];
+                        $invQuery->where('placement_type', 'branch')->where('placement_id', $bId);
+                    } elseif ($user->warehouse_id || !empty($user->getAccessibleWarehouseIds())) {
+                        $wId = $user->warehouse_id ?? $user->getAccessibleWarehouseIds()[0];
+                        $invQuery->where('placement_type', 'warehouse')->where('placement_id', $wId);
+                    } elseif ($user->online_shop_id || !empty($user->getAccessibleOnlineShopIds())) {
+                        $osId = $user->online_shop_id ?? $user->getAccessibleOnlineShopIds()[0];
+                        $invQuery->where('placement_type', 'online_shop')->where('placement_id', $osId);
                     } else if (!$user->hasRole('super_admin')) {
                         throw new \Exception("Anda tidak memiliki lokasi fisik untuk mengurangi stok.");
                     }
