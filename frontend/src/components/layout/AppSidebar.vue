@@ -225,6 +225,33 @@ const userName = computed(() => authStore.userName);
 const userRole = computed(() => getRoleLabel(authStore.userRole));
 const userBranch = computed(() => authStore.user?.branch?.name || "-");
 
+// Determine effective allowed menus
+const effectiveAllowedMenus = computed(() => {
+    const role = authStore.userRole;
+    if (!role) return ['dashboard'];
+
+    if (role === 'inventory') {
+        const creatorRole = authStore.user?.creator_role || authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
+        if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
+            return [...getMenuForRole(creatorRole), 'profile_inventory'];
+        }
+        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_opname', 'support_group', 'track', 'profile_inventory'];
+    }
+
+    if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
+        const allIds = [];
+        menuItems.forEach(item => {
+            allIds.push(item.id);
+            if (item.items) {
+                item.items.forEach(sub => allIds.push(sub.id));
+            }
+        });
+        return allIds.filter(id => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(id));
+    }
+
+    return getMenuForRole(role);
+});
+
 // Filter menu based on user role
 const visibleMenuItems = computed(() => {
     const role = authStore.userRole;
@@ -237,7 +264,7 @@ const visibleMenuItems = computed(() => {
         const creatorRole = authStore.user?.creator_role || authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
 
         if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
-            const allowedMenus = [...getMenuForRole(creatorRole), 'profile_inventory'];
+            const allowedMenus = effectiveAllowedMenus.value;
             filtered = menuItems.filter(item => allowedMenus.includes(item.id));
             
             filtered = filtered.map(group => {
@@ -422,7 +449,7 @@ watch(() => route.path, () => {
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
                         class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
                         <router-link
-                            v-for="subitem in item.items.filter(si => visibleMenuItems.some(v => v.id === si.id) || getMenuForRole(authStore.userRole).includes(si.id))"
+                            v-for="subitem in item.items.filter(si => effectiveAllowedMenus.includes(si.id) || visibleMenuItems.some(v => v.id === si.id))"
                             :key="subitem.id" :to="subitem.path"
                             class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                             :class="isActiveRoute(subitem.path)
