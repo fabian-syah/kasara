@@ -236,8 +236,8 @@ const visibleMenuItems = computed(() => {
     if (role === 'inventory') {
         const creatorRole = authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
 
-        if (creatorRole === 'gudang') {
-            const allowedMenus = [...getMenuForRole('gudang'), 'profile_inventory'];
+        if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
+            const allowedMenus = [...getMenuForRole(creatorRole), 'profile_inventory'];
             filtered = menuItems.filter(item => allowedMenus.includes(item.id));
             
             filtered = filtered.map(group => {
