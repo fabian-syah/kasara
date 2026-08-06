@@ -91,11 +91,7 @@ class InventoryController extends Controller
         }
 
         // 3. Security Filter
-        // Special case: When fetching retur/service items, warehouse users can see ALL returned items
-        // (because returs originate from branches/shops but need to be accepted by warehouse)
-        $isReturRequest = ($request->status === 'service') && !empty($wIds);
-
-        if (!$unrestricted && !$isReturRequest) {
+        if (!$unrestricted) {
             $query->where(function ($q) use ($osIds, $bIds, $wIds, $dIds) {
                 $hasConstraint = false;
                 if (!empty($osIds)) {
