@@ -89,43 +89,48 @@ class UserController extends Controller
             // Untuk Branch/Warehouse/Gudang, kita tetap pakai logic placement sharing
             else {
                 if ($user->hasAnyRole(['audit', 'leader'])) {
-                    $branchIds = $user->getAccessibleBranchIds();
-                    $onlineShopIds = $user->getAccessibleOnlineShopIds();
-                    $warehouseIds = $user->getAccessibleWarehouseIds();
-                    $distributorIds = $user->getAccessibleDistributorIds();
+                    // Logic sharing
+                    $bIds = $user->getAccessibleBranchIds();
+                    $wIds = $user->getAccessibleWarehouseIds();
+                    $osIds = $user->getAccessibleOnlineShopIds();
+                    $dIds = $user->getAccessibleDistributorIds();
 
-                    $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                        if (!empty($branchIds))
-                            $q->orWhereIn('branch_id', $branchIds);
-
-                        if (!empty($warehouseIds))
-                            $q->orWhereIn('warehouse_id', $warehouseIds);
-
-                        if (!empty($distributorIds))
-                            $q->orWhereIn('distributor_id', $distributorIds);
-
-                        if (!empty($onlineShopIds)) {
-                            $q->orWhere(function ($sub) use ($onlineShopIds) {
-                                $sub->whereIn('online_shop_id', $onlineShopIds)
-                                    ->whereNull('branch_id');
-                            });
+                    $query->where(function ($q) use ($bIds, $wIds, $osIds, $dIds) {
+                        $hasConstraint = false;
+                        if (!empty($bIds)) {
+                            $q->orWhereIn('branch_id', $bIds);
+                            $hasConstraint = true;
                         }
-
-                        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
-                            $q->whereRaw('0=1');
+                        if (!empty($wIds)) {
+                            $q->orWhereIn('warehouse_id', $wIds);
+                            $hasConstraint = true;
+                        }
+                        if (!empty($osIds)) {
+                            $q->orWhereIn('online_shop_id', $osIds);
+                            $hasConstraint = true;
+                        }
+                        if (!empty($dIds)) {
+                            $q->orWhereIn('distributor_id', $dIds);
+                            $hasConstraint = true;
+                        }
+                        if (!$hasConstraint)
+                            $q->whereRaw('0 = 1');
                     });
                 } else {
-                    if ($user->branch_id) {
-                        $query->where('branch_id', $user->branch_id);
-                    }
-                    if ($user->warehouse_id) {
-                        $query->where('warehouse_id', $user->warehouse_id);
-                    }
-                    if ($user->online_shop_id) {
-                        $query->where('online_shop_id', $user->online_shop_id);
-                    }
-                    if ($user->distributor_id) {
-                        $query->where('distributor_id', $user->distributor_id);
+                    // Skip strict location filtering if fetching owned inventory accounts
+                    if ($request->role !== 'inventory') {
+                        if ($user->branch_id) {
+                            $query->where('branch_id', $user->branch_id);
+                        }
+                        if ($user->warehouse_id) {
+                            $query->where('warehouse_id', $user->warehouse_id);
+                        }
+                        if ($user->online_shop_id) {
+                            $query->where('online_shop_id', $user->online_shop_id);
+                        }
+                        if ($user->distributor_id) {
+                            $query->where('distributor_id', $user->distributor_id);
+                        }
                     }
                 }
             }

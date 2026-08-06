@@ -258,21 +258,22 @@ class InventoryAccountController extends Controller
             $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
             $isUnrestrictedUser = $user->hasRole($unrestrictedRoles);
             
-            // Location filter (branch/warehouse/online_shop)
-            if ($branchId) {
-                $query->where('branch_id', $branchId);
-            } elseif ($onlineShopId) {
-                $query->where('online_shop_id', $onlineShopId);
-            } elseif ($warehouseId) {
-                $query->where('warehouse_id', $warehouseId);
-            } elseif (!$isUnrestrictedUser) {
-                // Fallback: filter by accessible placements
-                $query->where(function ($q) use ($user) {
-                    if ($user->branch_id) $q->orWhere('branch_id', $user->branch_id);
-                    if ($user->online_shop_id) $q->orWhere('online_shop_id', $user->online_shop_id);
-                    if ($user->warehouse_id) $q->orWhere('warehouse_id', $user->warehouse_id);
-
-                    if (method_exists($user, 'getAccessibleBranchIds')) {
+            // Ownership isolation: non-unrestricted users ONLY see inventory accounts they created
+            if (!$isUnrestrictedUser) {
+                $query->where('created_by', $user->id);
+                // We SKIP the location filter if it's a restricted user, because they should always see their own inventory accounts
+                // regardless of whether the inventory account's location matches their current location.
+            } else {
+                // Location filter for UNRESTRICTED users (Super Admin, etc)
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                } elseif ($onlineShopId) {
+                    $query->where('online_shop_id', $onlineShopId);
+                } elseif ($warehouseId) {
+                    $query->where('warehouse_id', $warehouseId);
+                } else {
+                    // Fallback for unrestricted users if no header passed
+                    $query->where(function($q) use ($user) {
                         $branchIds = $user->getAccessibleBranchIds();
                         if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
                         
@@ -281,13 +282,8 @@ class InventoryAccountController extends Controller
 
                         $warehouseIds = $user->getAccessibleWarehouseIds();
                         if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
-                    }
-                });
-            }
-
-            // Ownership isolation: non-unrestricted users only see inventory accounts they created
-            if (!$isUnrestrictedUser) {
-                $query->where('created_by', $user->id);
+                    });
+                }
             }
         }
 
