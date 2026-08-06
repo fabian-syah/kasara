@@ -2,10 +2,10 @@
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="isOpen" class="fixed inset-0 z-[99999] flex items-end sm:items-center justify-center bg-black/60 dark:bg-black/80" @click.self="$emit('close')" style="touch-action: manipulation;">
-        <div class="relative w-full sm:max-w-[420px] h-full sm:h-auto sm:max-h-[92vh] flex flex-col sm:rounded-xl overflow-hidden shadow-2xl border-t sm:border border-surface-700 bg-surface-950">
+        <div class="relative w-full sm:max-w-[420px] h-[100dvh] sm:h-auto sm:max-h-[92vh] flex flex-col sm:rounded-xl overflow-hidden shadow-2xl border-t sm:border border-surface-700 bg-surface-950">
           
           <!-- Top Bar - sticky -->
-          <div class="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-4 py-3 sm:py-2.5 bg-surface-900 border-b border-surface-700 gap-2 shrink-0">
+          <div class="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-4 pb-3 sm:pb-2.5 bg-surface-900 border-b border-surface-700 gap-2 shrink-0 pt-[max(env(safe-area-inset-top),0.75rem)] sm:pt-2.5">
             <span class="text-[10px] sm:text-xs font-semibold text-text-secondary shrink-0">Bukti Penjualan</span>
             <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <button @click="handleCopyText" :disabled="copying"
