@@ -234,7 +234,7 @@ const visibleMenuItems = computed(() => {
 
     // Khusus untuk role inventory, sesuaikan dengan role akun utamanya
     if (role === 'inventory') {
-        const creatorRole = authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
+        const creatorRole = authStore.user?.creator_role || authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
 
         if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
             const allowedMenus = [...getMenuForRole(creatorRole), 'profile_inventory'];

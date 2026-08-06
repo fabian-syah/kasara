@@ -137,6 +137,7 @@ class AuthController extends Controller
                 'permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
                 'roles' => $user->roles->map(fn($r) => ['name' => $r->name])->toArray(),
                 'league' => $league,
+                'creator_role' => $user->createdBy ? ($user->createdBy->roles->first()->name ?? null) : null,
             ]),
         ]);
     }
