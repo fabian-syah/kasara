@@ -136,8 +136,14 @@ class UserController extends Controller
             $query->where('branch_id', $request->branch_id);
         if ($request->has('warehouse_id'))
             $query->where('warehouse_id', $request->warehouse_id);
-        if ($request->has('role'))
+        if ($request->has('role')) {
             $query->role($request->role);
+            
+            // Isolate Inventory Role: non-unrestricted users ONLY see inventory accounts they created
+            if ($request->role === 'inventory' && !$user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
+                $query->where('created_by', $user->id);
+            }
+        }
 
         if ($request->has('is_active')) {
             $query->where('is_active', $request->boolean('is_active'));
