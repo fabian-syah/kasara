@@ -43,7 +43,7 @@ class AuthController extends Controller
                 $token = $user->createToken('auth_token', ['*'], $expiration)->plainTextToken;
             }
 
-            $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements', 'createdBy');
+            $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements', 'createdBy.roles');
 
             // Get current league for user's branch
             $league = null;
@@ -112,7 +112,7 @@ class AuthController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = $request->user();
-        $user->load(['roles', 'branch', 'warehouse', 'onlineShop', 'placements', 'createdBy']);
+        $user->load(['roles', 'branch', 'warehouse', 'onlineShop', 'placements', 'createdBy.roles']);
 
         // Get current league for user's branch
         $league = null;

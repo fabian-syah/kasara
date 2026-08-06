@@ -232,8 +232,31 @@ const visibleMenuItems = computed(() => {
 
     let filtered = [];
 
-    // Khusus untuk role inventory, hanya tampilkan Dashboard, Buat Penjualan, dan Cek Penjualan, serta Pengaturan Pribadi, Stok Opname, Lacak IMEI
+    // Khusus untuk role inventory, sesuaikan dengan role akun utamanya
     if (role === 'inventory') {
+        const creatorRole = authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
+
+        if (creatorRole === 'gudang') {
+            const allowedMenus = [...getMenuForRole('gudang'), 'profile_inventory'];
+            filtered = menuItems.filter(item => allowedMenus.includes(item.id));
+            
+            filtered = filtered.map(group => {
+                if (group.items) {
+                    return {
+                        ...group,
+                        items: group.items.filter(sub => allowedMenus.includes(sub.id))
+                    };
+                }
+                return group;
+            }).filter(group => {
+                if (group.items && group.items.length === 0) return false;
+                return true;
+            });
+            
+            return filtered;
+        }
+
+        // Tampilan default untuk inventory (biasanya dari toko offline)
         filtered = menuItems.filter(item => ['dashboard', 'sales_create', 'sales_check', 'inventory', 'support_group', 'profile_inventory'].includes(item.id));
         
         filtered = filtered.map(group => {
