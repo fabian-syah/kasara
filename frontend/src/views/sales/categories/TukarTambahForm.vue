@@ -809,7 +809,7 @@ async function submitTukarTambah(pin = null) {
 
 <template>
     <div
-        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
+        class="flex-1 overflow-y-auto custom-scrollbar bg-white/70 dark:bg-surface-800/70 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-surface-600/30 p-5 sm:p-10 shadow-2xl relative">
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8 gap-4">
                 <div class="flex items-center gap-3">
@@ -984,9 +984,10 @@ async function submitTukarTambah(pin = null) {
                                     <div class="flex justify-between text-[10px] text-text-secondary font-bold">
                                         <span>{{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock || item.quantity) }}</span>
                                         <span class="text-primary-600">Jual: {{ formatCurrency(item.selling_price || item.price) }}</span>
-                                    </div>
-                                </div>
-                            </div>
+                        </div>
+                        </div> <!-- close relative z-10 -->
+                    </div>
+                </div>
                         </div>
                         <p v-if="selectedOutgoingTukarTambah"
                             class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
@@ -1174,7 +1175,7 @@ async function submitTukarTambah(pin = null) {
                     </div>
                 </div>
                 
-                <button @click="addItem" type="button" class="w-full py-3 border-2 border-dashed border-emerald-400 dark:border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                <button @click="addItem" type="button" class="w-full py-4 border-2 border-dashed border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 rounded-[1.25rem] font-bold tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all hover:border-emerald-400 active:scale-[0.98]">
                     <Plus :size="18" /> Tambah Unit Masuk Lain
                 </button>
             </div>
@@ -1184,7 +1185,7 @@ async function submitTukarTambah(pin = null) {
             <!-- 4. ALASAN, PEMBAYARAN & SUMMARY -->
             <div class="mt-8 space-y-6">
                 <h4
-                    class="text-sm font-black text-primary-600 uppercase tracking-widest border-b border-primary-100 dark:border-primary-900/30 pb-2">
+                    class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-emerald-600 uppercase tracking-[0.15em] border-b border-surface-200 dark:border-surface-700 pb-3 mb-6">
                     PEMBAYARAN & RINGKASAN
                 </h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
@@ -1231,8 +1232,14 @@ async function submitTukarTambah(pin = null) {
 
                     <!-- Financial summary card -->
                     <div
-                        class="p-8 bg-primary-600 rounded-[2rem] shadow-2xl shadow-primary-500/30 text-center transform transition-all hover:scale-[1.02]">
-                        <div class="grid grid-cols-2 gap-4 mb-6">
+                        class="relative overflow-hidden p-8 sm:p-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-primary-600 rounded-[2.5rem] shadow-2xl shadow-emerald-500/30 text-center transform transition-all hover:-translate-y-1 hover:shadow-emerald-500/40"
+                    >
+                        <div class="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+                        <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/20 blur-3xl rounded-full pointer-events-none"></div>
+                        <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-black/10 blur-3xl rounded-full pointer-events-none"></div>
+                        
+                        <div class="relative z-10">
+                        <div class="grid grid-cols-2 gap-4 mb-8">
                             <div class="text-left bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
                                 <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
                                     UNIT KELUAR</span>
@@ -1259,7 +1266,7 @@ async function submitTukarTambah(pin = null) {
                             </p>
                         </div>
                         <div
-                            class="mt-6 px-4 py-2 bg-white/10 rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/20"
+                            class="mt-8 px-5 py-2.5 bg-white/10 backdrop-blur-md rounded-full inline-flex items-center gap-2 text-[10px] text-white font-black uppercase tracking-widest border border-white/30 shadow-inner"
                             :class="{ 'bg-red-500/40 border-red-500/60': tukarTambahPriceDiff < 0 }">
                             <AlertCircle :size="14" />
                             <span>
@@ -1274,11 +1281,11 @@ async function submitTukarTambah(pin = null) {
             <!-- Submit Section -->
             <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
                 <button @click="emit('back')"
-                    class="flex-1 py-4 bg-surface-100 dark:bg-surface-700 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 transition-all">
+                    class="flex-1 py-4 sm:py-5 bg-surface-100 dark:bg-surface-800 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 dark:hover:bg-surface-700 transition-all active:scale-[0.98] border border-surface-200 dark:border-surface-700">
                     Kembali Pilih Kategori
                 </button>
                 <button @click="submitTukarTambah()" :disabled="isSubmitting || tukarTambahPriceDiff < 0 || isSplitInvalid"
-                    class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-3"
+                    class="flex-[2] py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-primary-600 hover:from-emerald-400 hover:to-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-[0.1em] shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50 hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3"
                     :class="{ 'bg-surface-300 dark:bg-surface-600 cursor-not-allowed opacity-50': tukarTambahPriceDiff < 0 || isSplitInvalid }">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
