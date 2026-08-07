@@ -96,20 +96,38 @@ function removeItem(index) {
     additionalItems.value.splice(index, 1);
 }
 
+function getFilteredBrandsForItem(item) {
+    const defaultBrands = props.brands || [];
+    if (!item.distributor_id) return defaultBrands;
+    const dist = (props.distributors || []).find(d => d.id === item.distributor_id);
+    if (!dist || !dist.allowed_brands) return defaultBrands;
+    try {
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        if (!Array.isArray(allowedIds)) return defaultBrands;
+        const numericIds = allowedIds.map(id => Number(id));
+        return defaultBrands.filter(b => numericIds.includes(Number(b.id)));
+    } catch {
+        return defaultBrands;
+    }
+}
+
 function getFilteredTypesForItem(item) {
     if (!item.brand_id) return [];
-    return props.productTypes.filter(t => t.brand_id === item.brand_id);
+    return (props.productTypes || []).filter(t => t.brand_id === item.brand_id);
 }
 
 function getCapacitiesForItem(item) {
     if (!item.product_type_id) return [];
     const set = new Set();
-    const prices = props.productPrices.filter(p => p.product_type_id === item.product_type_id);
-    prices.forEach(p => { if (p.storage) set.add(p.storage); });
-    if (set.size === 0) {
-        const pt = props.productTypes.find(t => t.id === item.product_type_id);
-        if (pt?.storage) pt.storage.split(/[,]/).forEach(s => { const c = s.trim(); if (c) set.add(c); });
+    const type = (props.productTypes || []).find(t => t.id === item.product_type_id);
+    if (type?.storage) {
+        type.storage.split(/[,]/).forEach(s => {
+            const clean = s.trim();
+            if (clean) set.add(clean);
+        });
     }
+    const prices = (props.productPrices || []).filter(p => p.product_type_id === item.product_type_id);
+    prices.forEach(p => { if (p.storage) set.add(p.storage); });
     return Array.from(set).sort();
 }
 
@@ -1009,7 +1027,7 @@ async function submitTukarTambah(pin = null) {
                     
                     <div class="mb-4">
                         <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">PILIH DISTRIBUTOR</label>
-                        <select v-model="item.distributor_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2 font-bold text-primary-600">
+                        <select v-model="item.distributor_id" @change="item.brand_id = null; item.product_type_id = null" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2 font-bold text-primary-600">
                             <option :value="null">-- PILIH DISTRIBUTOR --</option>
                             <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
                         </select>
@@ -1018,14 +1036,14 @@ async function submitTukarTambah(pin = null) {
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Brand</label>
-                            <select v-model="item.brand_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
+                            <select v-model="item.brand_id" @change="item.product_type_id = null; item.storage = ''; item.condition = 'second'" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
                                 <option :value="null">Pilih Brand</option>
-                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                                <option v-for="b in getFilteredBrandsForItem(item)" :key="b.id" :value="b.id">{{ b.name }}</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Tipe</label>
-                            <select v-model="item.product_type_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2" :disabled="!item.brand_id">
+                            <select v-model="item.product_type_id" @change="item.storage = ''; item.condition = 'second'" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2" :disabled="!item.brand_id">
                                 <option :value="null">Pilih Tipe</option>
                                 <option v-for="p in getFilteredTypesForItem(item)" :key="p.id" :value="p.id">{{ p.name }}</option>
                             </select>
