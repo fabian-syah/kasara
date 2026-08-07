@@ -1650,7 +1650,8 @@ class AuditController extends Controller
                                 'product_types.name as incoming_name',
                                 'tukar_tambahs.incoming_cost_price',
                                 'tukar_tambahs.incoming_imei',
-                                'tukar_tambahs.incoming_storage'
+                                'tukar_tambahs.incoming_storage',
+                                'tukar_tambahs.incoming_items'
                             )->get() as $itt
                         ) {
                             $activityDetails['in_tt'][] = [
@@ -2005,24 +2006,57 @@ class AuditController extends Controller
                     $pImei = $item->imei ?? '-';
 
                     if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
-                        $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
-                        $inImei = $exchangeInfo->incoming_imei ?? '-';
+                        
+                        $isMulti = false;
+                        if ($catLower === 'tukar_tambah' && !empty($exchangeInfo->incoming_items)) {
+                            $inItemsRaw = is_string($exchangeInfo->incoming_items) ? json_decode($exchangeInfo->incoming_items, true) : $exchangeInfo->incoming_items;
+                            if (is_array($inItemsRaw) && count($inItemsRaw) > 0) {
+                                $isMulti = true;
+                                foreach ($inItemsRaw as $inItem) {
+                                    $inProdType = \App\Models\ProductType::with('brand')->find($inItem['product_type_id'] ?? 0);
+                                    $inDist = \App\Models\Distributor::find($inItem['distributor_id'] ?? $exchangeInfo->distributor_id);
+                                    $imeis = $inItem['imeis'] ?? [];
+                                    if (empty($imeis)) $imeis = ['-'];
+                                    
+                                    foreach ($imeis as $imeiStr) {
+                                        $details[] = [
+                                            'name' => "IN: " . ($inProdType->name ?? 'Unit Konsumen'),
+                                            'qty' => 1,
+                                            'price' => (float) ($inItem['buy_price'] ?? 0),
+                                            'brand' => $inProdType->brand->name ?? '-',
+                                            'type' => 'IN',
+                                            'is_hp' => true,
+                                            'imei' => $imeiStr,
+                                            'distributor_name' => $inDist->name ?? 'Konsumen',
+                                            'condition' => $inItem['condition'] ?? 'second',
+                                            'storage' => $inItem['storage'] ?? '-',
+                                            'is_incoming' => true
+                                        ];
+                                    }
+                                }
+                            }
+                        }
 
-                        // Add a special "Incoming" item to the details array
-                        // This makes it show as a second row in CheckSales and Nota
-                        $details[] = [
-                            'name' => "IN: " . $inProd,
-                            'qty' => 1,
-                            'price' => (float) ($exchangeInfo->incoming_cost_price ?? 0),
-                            'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
-                            'type' => 'IN',
-                            'is_hp' => true,
-                            'imei' => $inImei,
-                            'distributor_name' => $exchangeInfo->distributor->name ?? 'Konsumen',
-                            'condition' => $exchangeInfo->incoming_condition ?? 'second',
-                            'storage' => $exchangeInfo->incoming_storage ?? '-',
-                            'is_incoming' => true
-                        ];
+                        if (!$isMulti) {
+                            $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
+                            $inImei = $exchangeInfo->incoming_imei ?? '-';
+
+                            // Add a special "Incoming" item to the details array
+                            // This makes it show as a second row in CheckSales and Nota
+                            $details[] = [
+                                'name' => "IN: " . $inProd,
+                                'qty' => 1,
+                                'price' => (float) ($exchangeInfo->incoming_cost_price ?? 0),
+                                'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
+                                'type' => 'IN',
+                                'is_hp' => true,
+                                'imei' => $inImei,
+                                'distributor_name' => $exchangeInfo->distributor->name ?? 'Konsumen',
+                                'condition' => $exchangeInfo->incoming_condition ?? 'second',
+                                'storage' => $exchangeInfo->incoming_storage ?? '-',
+                                'is_incoming' => true
+                            ];
+                        }
 
                         $pName = "OUT: " . $pName;
                     } elseif (in_array($catLower, ['refund', 'angkat_barang'])) {
