@@ -1654,12 +1654,35 @@ class AuditController extends Controller
                                 'tukar_tambahs.incoming_items'
                             )->get() as $itt
                         ) {
-                            $activityDetails['in_tt'][] = [
-                                'name' => 'IN: ' . ($itt->incoming_name ?? 'Unit Masuk'),
-                                'imei' => $itt->incoming_imei ?? '-',
-                                'storage' => $itt->incoming_storage ?? '-',
-                                'price' => (float) $itt->incoming_cost_price
-                            ];
+                            $hasMulti = false;
+                            if (!empty($itt->incoming_items)) {
+                                $inItemsRaw = is_string($itt->incoming_items) ? json_decode($itt->incoming_items, true) : $itt->incoming_items;
+                                if (is_array($inItemsRaw) && count($inItemsRaw) > 0) {
+                                    $hasMulti = true;
+                                    foreach ($inItemsRaw as $inItem) {
+                                        $inProdType = \App\Models\ProductType::find($inItem['product_type_id'] ?? 0);
+                                        $imeis = $inItem['imeis'] ?? [];
+                                        if (empty($imeis)) $imeis = ['-'];
+                                        foreach ($imeis as $imeiStr) {
+                                            $activityDetails['in_tt'][] = [
+                                                'name' => 'IN: ' . ($inProdType->name ?? 'Unit Masuk'),
+                                                'imei' => $imeiStr,
+                                                'storage' => $inItem['storage'] ?? '-',
+                                                'price' => (float) ($inItem['buy_price'] ?? 0)
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (!$hasMulti) {
+                                $activityDetails['in_tt'][] = [
+                                    'name' => 'IN: ' . ($itt->incoming_name ?? 'Unit Masuk'),
+                                    'imei' => $itt->incoming_imei ?? '-',
+                                    'storage' => $itt->incoming_storage ?? '-',
+                                    'price' => (float) $itt->incoming_cost_price
+                                ];
+                            }
                         }
 
                         // 1c. Fetch ALL Incoming Downgrade Units explicitly for report activity breakdown

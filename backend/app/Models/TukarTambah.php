@@ -33,9 +33,15 @@ class TukarTambah extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+        'incoming_items',
+        'outgoing_items',
+        'incoming_quantity',
+        'outgoing_quantity',
     ];
 
     protected $casts = [
+        'incoming_items' => 'array',
+        'outgoing_items' => 'array',
         'split_payments' => 'array',
     ];
 
