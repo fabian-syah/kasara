@@ -366,6 +366,14 @@ const tukarTambahPriceDiff = computed(() => {
     return totalOut - totalIn;
 });
 
+const totalIncomingPriceComputed = computed(() => {
+    let totalIn = (tukarTambahForm.value.incoming_cost_price || 0) * (tukarTambahForm.value.incoming_quantity || 1);
+    for (const item of additionalItems.value) {
+        totalIn += (item.buy_price || 0) * (item.quantity || 1);
+    }
+    return totalIn;
+});
+
 const isSplitInvalid = computed(() => {
     const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
     return totalSplit !== tukarTambahPriceDiff.value;
