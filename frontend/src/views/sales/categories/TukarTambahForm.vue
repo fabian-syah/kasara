@@ -984,10 +984,9 @@ async function submitTukarTambah(pin = null) {
                                     <div class="flex justify-between text-[10px] text-text-secondary font-bold">
                                         <span>{{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock || item.quantity) }}</span>
                                         <span class="text-primary-600">Jual: {{ formatCurrency(item.selling_price || item.price) }}</span>
-                        </div>
-                        </div> <!-- close relative z-10 -->
-                    </div>
-                </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <p v-if="selectedOutgoingTukarTambah"
                             class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
@@ -1274,6 +1273,7 @@ async function submitTukarTambah(pin = null) {
                                     tukarTambahPriceDiff >= 0 ? 'USER BAYAR KE TOKO' : 'Gunakan Menu Downgrade (Selisih Minus)'
                                 }}</span>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
