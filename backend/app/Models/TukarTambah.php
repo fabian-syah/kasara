@@ -35,8 +35,6 @@ class TukarTambah extends Model
         'branch_id',
         'incoming_items',
         'outgoing_items',
-        'incoming_quantity',
-        'outgoing_quantity',
     ];
 
     protected $casts = [

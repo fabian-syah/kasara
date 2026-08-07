@@ -148,7 +148,64 @@ const storageKey = computed(() => {
 watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
     
-    const persistentPhotos = {
+    
+// Multi-item support: additional incoming items beyond the first one
+const additionalItems = ref([]);
+
+function addItem() {
+    additionalItems.value.push({
+        incoming_source: tukarTambahForm.value.incoming_source,
+        distributor_id: tukarTambahForm.value.distributor_id,
+        brand_id: null,
+        product_type_id: null,
+        storage: "",
+        condition: "second",
+        imeis_raw: "",
+        quantity: 1,
+        buy_price: 0,
+    });
+}
+
+function removeItem(index) {
+    additionalItems.value.splice(index, 1);
+}
+
+function getFilteredBrandsForItem(item) {
+    const defaultBrands = props.brands || [];
+    if (!item.distributor_id) return defaultBrands;
+    const dist = (props.distributors || []).find(d => d.id === item.distributor_id);
+    if (!dist || !dist.allowed_brands) return defaultBrands;
+    try {
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands;
+        if (!Array.isArray(allowedIds)) return defaultBrands;
+        const numericIds = allowedIds.map(id => Number(id));
+        return defaultBrands.filter(b => numericIds.includes(Number(b.id)));
+    } catch {
+        return defaultBrands;
+    }
+}
+
+function getFilteredTypesForItem(item) {
+    if (!item.brand_id) return [];
+    return (props.productTypes || []).filter(t => t.brand_id === item.brand_id);
+}
+
+function getCapacitiesForItem(item) {
+    if (!item.product_type_id) return [];
+    const set = new Set();
+    const type = (props.productTypes || []).find(t => t.id === item.product_type_id);
+    if (type?.storage) {
+        type.storage.split(/[,]/).forEach(s => {
+            const clean = s.trim();
+            if (clean) set.add(clean);
+        });
+    }
+    const prices = (props.productPrices || []).filter(p => p.product_type_id === item.product_type_id);
+    prices.forEach(p => { if (p.storage) set.add(p.storage); });
+    return Array.from(set).sort();
+}
+
+const persistentPhotos = {
         unitPreview: newPhotos.unitPreview,
         customerPreview: newPhotos.customerPreview,
         paymentProofPreview: newPhotos.paymentProofPreview
@@ -299,7 +356,13 @@ const filteredInventoryProducts = computed(() => {
 
 const tukarTambahPriceDiff = computed(() => {
     const totalOut = (tukarTambahForm.value.outgoing_price || 0) * (tukarTambahForm.value.outgoing_quantity || 1);
-    const totalIn = (tukarTambahForm.value.incoming_cost_price || 0) * (tukarTambahForm.value.incoming_quantity || 1);
+    let totalIn = (tukarTambahForm.value.incoming_cost_price || 0) * (tukarTambahForm.value.incoming_quantity || 1);
+    
+    // Add additional items
+    for (const item of additionalItems.value) {
+        totalIn += (item.buy_price || 0) * (item.quantity || 1);
+    }
+    
     return totalOut - totalIn;
 });
 
@@ -690,6 +753,7 @@ async function submitTukarTambah(pin = null) {
         emit("transaction-complete", transaction);
 
         // Reset form
+        additionalItems.value = [];
         additionalItems.value = [];
         tukarTambahForm.value = {
             customer_name: "",
