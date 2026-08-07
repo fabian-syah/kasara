@@ -619,29 +619,45 @@ async function submitTukarTambah(pin = null) {
         });
 
         const data = response.data.data;
+        const finalItems = [
+            {
+                name: 'OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || selectedOutgoingTukarTambah.value?.name || 'Unit Keluar'),
+                imei: selectedOutgoingTukarTambah.value?.imei || '-',
+                price: tukarTambahForm.value.outgoing_price,
+                condition: selectedOutgoingTukarTambah.value?.condition || 'second',
+                storage: selectedOutgoingTukarTambah.value?.storage,
+                qty: tukarTambahForm.value.outgoing_quantity,
+                is_hp: !!selectedOutgoingTukarTambah.value?.imei
+            },
+            {
+                name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
+                imei: tukarTambahForm.value.incoming_imei || '-',
+                price: -tukarTambahForm.value.incoming_cost_price,
+                condition: tukarTambahForm.value.incoming_condition,
+                storage: tukarTambahForm.value.incoming_storage,
+                qty: tukarTambahForm.value.incoming_quantity,
+                is_hp: isImeiTukarTambah.value
+            }
+        ];
+
+        for (const item of additionalItems.value) {
+            const itemType = props.productTypes.find(t => t.id === item.product_type_id);
+            const itemIsHp = isItemImei(item);
+            finalItems.push({
+                name: 'IN: ' + (itemType?.name || 'Unit Masuk'),
+                imei: itemIsHp ? (item.imeis_raw || '').replace(/\n/g, ', ') || '-' : '-',
+                price: -item.buy_price,
+                condition: item.condition,
+                storage: item.storage,
+                qty: itemIsHp ? Math.max(1, (item.imeis_raw || '').split(/[\n,]/).filter(i => i.trim()).length) : (item.quantity || 1),
+                is_hp: itemIsHp
+            });
+        }
+
         const transaction = {
             id: data.id,
             order_no: data.receipt_id,
-            items: [
-                {
-                    name: 'OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || selectedOutgoingTukarTambah.value?.name || 'Unit Keluar'),
-                    imei: selectedOutgoingTukarTambah.value?.imei || '-',
-                    price: tukarTambahForm.value.outgoing_price,
-                    condition: selectedOutgoingTukarTambah.value?.condition || 'second',
-                    storage: selectedOutgoingTukarTambah.value?.storage,
-                    qty: tukarTambahForm.value.outgoing_quantity,
-                    is_hp: !!selectedOutgoingTukarTambah.value?.imei
-                },
-                {
-                    name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
-                    imei: tukarTambahForm.value.incoming_imei || '-',
-                    price: -tukarTambahForm.value.incoming_cost_price,
-                    condition: tukarTambahForm.value.incoming_condition,
-                    storage: tukarTambahForm.value.incoming_storage,
-                    qty: tukarTambahForm.value.incoming_quantity,
-                    is_hp: isImeiTukarTambah.value
-                }
-            ],
+            items: finalItems,
             original_price: tukarTambahPriceDiff.value,
             grand_total: tukarTambahPriceDiff.value,
             total: tukarTambahPriceDiff.value,
@@ -675,7 +691,6 @@ async function submitTukarTambah(pin = null) {
 
         // Reset form
         additionalItems.value = [];
-        additionalOutgoingItems.value = [];
         tukarTambahForm.value = {
             customer_name: "",
             customer_phone: "",
