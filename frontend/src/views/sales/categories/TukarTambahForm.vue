@@ -68,16 +68,23 @@ const tukarTambahForm = ref({
     incoming_imei: "",
     incoming_quantity: 1,
     incoming_cost_price: 0,
-    outgoing_product_detail_id: null,
-    outgoing_quantity: 1,
-    outgoing_price: 0,
     payment_method_id: null,
     reason: "",
     notes: "",
 });
 
+const outgoingItems = ref([]); // For multiple outgoing items
+
 // Multi-item support: additional incoming items beyond the first one
 const additionalItems = ref([]);
+
+function addOutgoingItem() {
+    // Usually added via selectStockItem
+}
+
+function removeOutgoingItem(index) {
+    outgoingItems.value.splice(index, 1);
+}
 
 function addItem() {
     additionalItems.value.push({
@@ -149,7 +156,6 @@ watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuer
     if (isRestoring.value) return;
     
     
-// Multi-item support: additional incoming items beyond the first one
 const additionalItems = ref([]);
 
 function addItem() {
@@ -214,7 +220,9 @@ const persistentPhotos = {
     localStorage.setItem(storageKey.value, JSON.stringify({
         form: newForm,
         query: newQuery,
-        photos: persistentPhotos
+        photos: persistentPhotos,
+        outgoing: outgoingItems.value,
+        additionalIncoming: additionalItems.value
     }));
 }, { deep: true });
 
@@ -226,6 +234,8 @@ async function restoreDraft() {
             const data = JSON.parse(saved);
             Object.assign(tukarTambahForm.value, data.form);
             stockSearchQuery.value = data.query || "";
+            if (data.outgoing) outgoingItems.value = data.outgoing;
+            if (data.additionalIncoming) additionalItems.value = data.additionalIncoming;
             
             if (data.photos) {
                 tukarTambahPhotos.value.unitPreview = data.photos.unitPreview;
@@ -327,8 +337,7 @@ const filteredTukarTambahStorages = computed(() => {
 });
 
 const selectedOutgoingTukarTambah = computed(() => {
-    if (!tukarTambahForm.value.outgoing_product_detail_id) return null;
-    return inventoryStore.products.find(p => p.id === tukarTambahForm.value.outgoing_product_detail_id);
+    return null; // Deprecated, using outgoingItems array
 });
 
 const filteredInventoryProducts = computed(() => {
@@ -354,8 +363,16 @@ const filteredInventoryProducts = computed(() => {
     });
 });
 
+const totalOutgoingPriceComputed = computed(() => {
+    let totalOut = 0;
+    for (const item of outgoingItems.value) {
+        totalOut += (item.price || 0) * (item.quantity || 1);
+    }
+    return totalOut;
+});
+
 const tukarTambahPriceDiff = computed(() => {
-    const totalOut = (tukarTambahForm.value.outgoing_price || 0) * (tukarTambahForm.value.outgoing_quantity || 1);
+    let totalOut = totalOutgoingPriceComputed.value;
     let totalIn = (tukarTambahForm.value.incoming_cost_price || 0) * (tukarTambahForm.value.incoming_quantity || 1);
     
     // Add additional items
@@ -546,19 +563,25 @@ async function handlePhotoChange(type, event) {
 }
 
 function selectStockItem(item) {
-    tukarTambahForm.value.outgoing_product_detail_id = item.id;
-
-    // Use price from search query if numeric, otherwise fallback to item price
+    let price = 0;
     const cleanQ = stockSearchQuery.value.replace(/\./g, '').trim();
     if (/^\d+$/.test(cleanQ) && cleanQ.length >= 4) {
-        tukarTambahForm.value.outgoing_price = parseInt(cleanQ);
+        price = parseInt(cleanQ);
     } else {
         const selling = parseFloat(item.selling_price || item.price || 0);
         const cost = parseFloat(item.cost_price || 0);
-        tukarTambahForm.value.outgoing_price = selling > 0 ? selling : (cost > 0 ? cost : 0);
+        price = selling > 0 ? selling : (cost > 0 ? cost : 0);
     }
 
-    stockSearchQuery.value = `[${item.product?.brand || '-'}] ${item.product?.name || item.name} - ${item.imei || 'Non-IMEI'}`;
+    outgoingItems.value.push({
+        product_detail_id: item.id,
+        item: item,
+        price: price,
+        quantity: 1,
+        max_quantity: item.stock || item.quantity || 1
+    });
+
+    stockSearchQuery.value = "";
     showStockDropdown.value = false;
 }
 
@@ -569,14 +592,13 @@ function closeStockDropdown() {
 }
 
 async function submitTukarTambah(pin = null) {
-    if (
-        isImeiTukarTambah.value && 
-        selectedOutgoingTukarTambah.value?.imei && 
-        tukarTambahForm.value.incoming_imei &&
-        selectedOutgoingTukarTambah.value.imei.toLowerCase().trim() === tukarTambahForm.value.incoming_imei.toLowerCase().trim()
-    ) {
-        showValidationError("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
-        return;
+    if (isImeiTukarTambah.value && tukarTambahForm.value.incoming_imei) {
+        const incomingImeiLower = tukarTambahForm.value.incoming_imei.toLowerCase().trim();
+        const hasDuplicateImei = outgoingItems.value.some(outItem => outItem.item?.imei && outItem.item.imei.toLowerCase().trim() === incomingImeiLower);
+        if (hasDuplicateImei) {
+            showValidationError("Gagal diproses: IMEI Unit Masuk tidak boleh sama dengan IMEI Unit Keluar.");
+            return;
+        }
     }
 
     if (tukarTambahPriceDiff.value <= 0) {
@@ -584,7 +606,7 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
-    if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || !tukarTambahForm.value.outgoing_product_detail_id || !tukarTambahForm.value.outgoing_price || !tukarTambahForm.value.reason || !tukarTambahForm.value.distributor_id) {
+    if (!tukarTambahForm.value.customer_name || !tukarTambahForm.value.customer_phone || !tukarTambahForm.value.incoming_brand_id || !tukarTambahForm.value.incoming_product_type_id || !tukarTambahForm.value.incoming_storage || !tukarTambahForm.value.incoming_condition || !tukarTambahForm.value.incoming_cost_price || outgoingItems.value.length === 0 || !tukarTambahForm.value.reason || !tukarTambahForm.value.distributor_id) {
         showValidationError("Mohon lengkapi semua data wajib (Customer, Distributor, Barang Masuk, Barang Keluar, Harga Jual, Metode Bayar, & Alasan).");
         return;
     }
@@ -635,9 +657,20 @@ async function submitTukarTambah(pin = null) {
     formData.append('incoming_quantity', tukarTambahForm.value.incoming_quantity);
     formData.append('incoming_cost_price', tukarTambahForm.value.incoming_cost_price);
 
-    formData.append('outgoing_product_detail_id', tukarTambahForm.value.outgoing_product_detail_id);
-    formData.append('outgoing_quantity', tukarTambahForm.value.outgoing_quantity);
-    formData.append('outgoing_price', tukarTambahForm.value.outgoing_price);
+    // Use the first outgoing item for scalar fallback if needed
+    if (outgoingItems.value.length > 0) {
+        formData.append('outgoing_product_detail_id', outgoingItems.value[0].product_detail_id);
+        formData.append('outgoing_quantity', outgoingItems.value[0].quantity);
+        formData.append('outgoing_price', outgoingItems.value[0].price);
+    }
+
+    const allOutgoingItems = outgoingItems.value.map(item => ({
+        product_detail_id: item.product_detail_id,
+        quantity: item.quantity,
+        price: item.price
+    }));
+    formData.append('outgoing_items', JSON.stringify(allOutgoingItems));
+
     formData.append('price_difference', tukarTambahPriceDiff.value);
     formData.append('payment_method_id', splitPayments.value[0]?.method_id || tukarTambahForm.value.payment_method_id || 1);
     formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
@@ -690,26 +723,29 @@ async function submitTukarTambah(pin = null) {
         });
 
         const data = response.data.data;
-        const finalItems = [
-            {
-                name: 'OUT: ' + (selectedOutgoingTukarTambah.value?.product?.name || selectedOutgoingTukarTambah.value?.name || 'Unit Keluar'),
-                imei: selectedOutgoingTukarTambah.value?.imei || '-',
-                price: tukarTambahForm.value.outgoing_price,
-                condition: selectedOutgoingTukarTambah.value?.condition || 'second',
-                storage: selectedOutgoingTukarTambah.value?.storage,
-                qty: tukarTambahForm.value.outgoing_quantity,
-                is_hp: !!selectedOutgoingTukarTambah.value?.imei
-            },
-            {
-                name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
-                imei: tukarTambahForm.value.incoming_imei || '-',
-                price: -tukarTambahForm.value.incoming_cost_price,
-                condition: tukarTambahForm.value.incoming_condition,
-                storage: tukarTambahForm.value.incoming_storage,
-                qty: tukarTambahForm.value.incoming_quantity,
-                is_hp: isImeiTukarTambah.value
-            }
-        ];
+        const finalItems = [];
+
+        for (const outItem of outgoingItems.value) {
+            finalItems.push({
+                name: 'OUT: ' + (outItem.item?.product?.name || outItem.item?.name || 'Unit Keluar'),
+                imei: outItem.item?.imei || '-',
+                price: outItem.price,
+                condition: outItem.item?.condition || 'second',
+                storage: outItem.item?.storage,
+                qty: outItem.quantity,
+                is_hp: !!outItem.item?.imei
+            });
+        }
+
+        finalItems.push({
+            name: 'IN: ' + (selectedTukarTambahType.value?.name || 'Unit Masuk'),
+            imei: tukarTambahForm.value.incoming_imei || '-',
+            price: -tukarTambahForm.value.incoming_cost_price,
+            condition: tukarTambahForm.value.incoming_condition,
+            storage: tukarTambahForm.value.incoming_storage,
+            qty: tukarTambahForm.value.incoming_quantity,
+            is_hp: isImeiTukarTambah.value
+        });
 
         for (const item of additionalItems.value) {
             const itemType = props.productTypes.find(t => t.id === item.product_type_id);
@@ -760,9 +796,8 @@ async function submitTukarTambah(pin = null) {
 
         emit("transaction-complete", transaction);
 
-        // Reset form
         additionalItems.value = [];
-        additionalItems.value = [];
+        outgoingItems.value = [];
         tukarTambahForm.value = {
             customer_name: "",
             customer_phone: "",
@@ -775,9 +810,6 @@ async function submitTukarTambah(pin = null) {
             incoming_imei: "",
             incoming_quantity: 1,
             incoming_cost_price: 0,
-            outgoing_product_detail_id: null,
-            outgoing_quantity: 1,
-            outgoing_price: 0,
             payment_method_id: null,
             reason: "",
             notes: "",
@@ -988,32 +1020,34 @@ async function submitTukarTambah(pin = null) {
                                 </div>
                             </div>
                         </div>
-                        <p v-if="selectedOutgoingTukarTambah"
-                            class="mt-3 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 text-xs font-semibold text-primary-700 dark:text-primary-400">
-                            Unit Terpilih: {{ selectedOutgoingTukarTambah.product?.name ||
-                                selectedOutgoingTukarTambah.name }} ({{
-                                selectedOutgoingTukarTambah.imei || 'Non-IMEI' }})
-                        </p>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">HARGA
-                            BARANG KELUAR / JUAL <span class="text-red-500">*</span></label>
-                        <div class="relative">
-                            <span
-                                class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                            <input v-money:outgoing_price="tukarTambahForm" type="text"
-                                :placeholder="'Contoh: ' + formatNumber(suggestedOutgoingPrice)"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />
-                        </div>
-                    </div>
-
-                    <div v-if="selectedOutgoingTukarTambah && !selectedOutgoingTukarTambah.imei">
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">JUMLAH KELUAR <span class="text-red-500">*</span></label>
-                        <div class="flex items-center gap-4">
-                            <input v-model.number="tukarTambahForm.outgoing_quantity" type="number" min="1" :max="selectedOutgoingTukarTambah.stock || selectedOutgoingTukarTambah.quantity"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
-                            <span class="text-xs font-bold text-text-secondary uppercase">Unit (Maks: {{ selectedOutgoingTukarTambah.stock || selectedOutgoingTukarTambah.quantity }})</span>
+                        <div v-if="outgoingItems.length > 0" class="mt-4 space-y-4">
+                            <div v-for="(outItem, index) in outgoingItems" :key="index" class="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 relative">
+                                <button @click="removeOutgoingItem(index)" type="button" class="absolute top-2 right-2 text-primary-400 hover:text-red-500 transition-colors">
+                                    <X :size="20" />
+                                </button>
+                                <p class="text-xs font-black text-primary-700 dark:text-primary-400 mb-4 pr-6">
+                                    {{ outItem.item?.product?.name || outItem.item?.name }} ({{ outItem.item?.imei || 'Non-IMEI' }})
+                                </p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">HARGA JUAL</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-primary-600/50">Rp</span>
+                                            <input v-money:price="outItem" type="text"
+                                                class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl pl-8 pr-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-sm text-primary-600" />
+                                        </div>
+                                    </div>
+                                    <div v-if="!outItem.item?.imei">
+                                        <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">JUMLAH KELUAR</label>
+                                        <div class="flex items-center gap-2">
+                                            <input v-model.number="outItem.quantity" type="number" min="1" :max="outItem.max_quantity"
+                                                class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl px-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm font-bold" />
+                                            <span class="text-[10px] font-bold text-primary-600/60 uppercase">Maks: {{ outItem.max_quantity }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1243,7 +1277,7 @@ async function submitTukarTambah(pin = null) {
                                 <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
                                     UNIT KELUAR</span>
                                 <p class="text-lg font-bold text-white truncate">
-                                    {{ formatCurrency(tukarTambahForm.outgoing_price * tukarTambahForm.outgoing_quantity) }}
+                                    {{ formatCurrency(totalOutgoingPriceComputed) }}
                                 </p>
                             </div>
                             <div class="text-right bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
