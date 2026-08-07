@@ -991,16 +991,72 @@ async function submitTukarTambah(pin = null) {
                 </div>
             </div>
 
-            <!-- Additional Items Section (DISABLED - uncomment when ready)
+            <!-- Additional Incoming Items Section -->
             <div class="mt-8 space-y-4">
-                <div v-if="additionalItems.length > 0" class="space-y-4 mb-6">
-                    ...
+                <div v-for="(item, index) in additionalItems" :key="index" class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative">
+                    <button @click="removeItem(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+                        <X :size="20" />
+                    </button>
+                    <h5 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-4">UNIT MASUK #{{ index + 2 }}</h5>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Brand</label>
+                            <select v-model="item.brand_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
+                                <option :value="null">Pilih Brand</option>
+                                <option v-for="b in filteredBrands" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Tipe</label>
+                            <select v-model="item.product_type_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2" :disabled="!item.brand_id">
+                                <option :value="null">Pilih Tipe</option>
+                                <option v-for="p in getFilteredTypesForItem(item)" :key="p.id" :value="p.id">{{ p.name }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div v-if="item.product_type_id" class="grid grid-cols-2 gap-4 mb-4">
+                        <div v-if="isItemImei(item)">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Storage</label>
+                            <select v-model="item.storage" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
+                                <option value="">Pilih Storage</option>
+                                <option v-for="s in getCapacitiesForItem(item)" :key="s" :value="s">{{ s }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Kondisi</label>
+                            <select v-model="item.condition" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
+                                <option value="new">New</option>
+                                <option value="second">Second / SCD</option>
+                                <option value="ex_ibox">Ex iBox</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div v-if="item.product_type_id" class="mb-4">
+                        <div v-if="isItemImei(item)">
+                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">IMEI (Pisahkan dengan baris baru)</label>
+                            <textarea v-model="item.imeis_raw" rows="2" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2" placeholder="12345..."></textarea>
+                        </div>
+                        <div v-else class="flex items-center gap-4">
+                            <div class="flex-1">
+                                <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Quantity</label>
+                                <input v-model.number="item.quantity" type="number" min="1" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-if="item.product_type_id">
+                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Harga Modal (Per Unit)</label>
+                        <input v-money:buy_price="item" type="text" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2 font-bold text-primary-600 dark:text-primary-400" />
+                    </div>
                 </div>
-                <button @click="addItem" type="button" class="...">
-                    Tambah Item Lain
+                
+                <button @click="addItem" type="button" class="w-full py-3 border-2 border-dashed border-emerald-400 dark:border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                    <Plus :size="18" /> Tambah Unit Masuk Lain
                 </button>
             </div>
-            -->
 
                         <!-- Additional Outgoing Items Section -->
             <div class="mt-8 space-y-4">
@@ -1035,7 +1091,7 @@ async function submitTukarTambah(pin = null) {
                     </div>
                 </div>
                 
-                <button @click="addOutgoingItem" type="button" class="w-full py-3 border-2 border-dashed border-amber-300 text-amber-600 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-50 transition-colors">
+                <button @click="addOutgoingItem" type="button" class="w-full py-3 border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
                     <Plus :size="18" /> Tambah Unit Keluar Lain
                 </button>
             </div>
