@@ -999,6 +999,22 @@ async function submitTukarTambah(pin = null) {
                     </button>
                     <h5 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-4">UNIT MASUK #{{ index + 2 }}</h5>
                     
+                    <div class="mb-4">
+                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">SUMBER BARANG</label>
+                        <select v-model="item.incoming_source" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2">
+                            <option value="luar_pstore">Luar PStore</option>
+                            <option value="ex_pstore">Ex PStore</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">PILIH DISTRIBUTOR</label>
+                        <select v-model="item.distributor_id" class="w-full border-2 border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 rounded-lg px-3 py-2 font-bold text-primary-600">
+                            <option :value="null">-- PILIH DISTRIBUTOR --</option>
+                            <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                        </select>
+                    </div>
+                    
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Brand</label>
@@ -1058,43 +1074,7 @@ async function submitTukarTambah(pin = null) {
                 </button>
             </div>
 
-                        <!-- Additional Outgoing Items Section -->
-            <div class="mt-8 space-y-4">
-                <div v-for="(outItem, index) in additionalOutgoingItems" :key="index" class="p-4 bg-surface-50 dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative">
-                    <button @click="removeOutgoingItem(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
-                        <X :size="20" />
-                    </button>
-                    <h5 class="text-xs font-bold text-amber-600 mb-4">UNIT KELUAR #{{ index + 2 }}</h5>
-                    
-                    <div class="mb-4">
-                        <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Cari Unit Keluar</label>
-                        <div class="relative">
-                            <input v-model="outItem.searchQuery" type="text" @focus="outItem.showDropdown = true" @blur="setTimeout(() => outItem.showDropdown = false, 200)" placeholder="Cari..." class="w-full border-2 border-surface-200 rounded-lg px-3 py-2" />
-                            <div v-if="outItem.showDropdown" class="absolute z-[100] mt-1 w-full bg-white border-2 border-surface-200 rounded-lg shadow-xl max-h-[200px] overflow-y-auto">
-                                <div v-for="item in filteredAdditionalStock(outItem.searchQuery)" :key="item.id" @mousedown.prevent="selectAdditionalStockItem(index, item)" class="p-3 border-b hover:bg-surface-100 cursor-pointer text-xs">
-                                    [{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }} - {{ item.imei || 'Non-IMEI' }} (Rp {{ item.selling_price || item.price }})
-                                </div>
-                            </div>
-                        </div>
-                        <p v-if="outItem.product" class="mt-2 text-[10px] text-primary-600 font-bold">Terpilih: {{ outItem.product.product?.name || outItem.product.name }}</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Harga Jual</label>
-                            <input v-money:price="outItem" type="text" class="w-full border-2 border-surface-200 rounded-lg px-3 py-2 font-bold text-primary-600" />
-                        </div>
-                        <div v-if="outItem.product && !outItem.product.imei">
-                            <label class="block text-[10px] font-bold text-text-secondary uppercase mb-1">Quantity</label>
-                            <input v-model.number="outItem.quantity" type="number" min="1" :max="outItem.product.stock || outItem.product.quantity" class="w-full border-2 border-surface-200 rounded-lg px-3 py-2" />
-                        </div>
-                    </div>
-                </div>
-                
-                <button @click="addOutgoingItem" type="button" class="w-full py-3 border-2 border-dashed border-amber-400 dark:border-amber-500 text-amber-600 dark:text-amber-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
-                    <Plus :size="18" /> Tambah Unit Keluar Lain
-                </button>
-            </div>
+                        
 
             <!-- 4. ALASAN, PEMBAYARAN & SUMMARY -->
             <div class="mt-8 space-y-6">
@@ -1152,7 +1132,7 @@ async function submitTukarTambah(pin = null) {
                                 <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">TOTAL
                                     UNIT KELUAR</span>
                                 <p class="text-lg font-bold text-white truncate">
-                                    {{ formatCurrency(totalOutgoingPriceComputed) }}
+                                    {{ formatCurrency(tukarTambahForm.outgoing_price * tukarTambahForm.outgoing_quantity) }}
                                 </p>
                             </div>
                             <div class="text-right bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
