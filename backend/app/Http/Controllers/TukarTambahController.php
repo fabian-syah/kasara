@@ -29,18 +29,22 @@ class TukarTambahController extends Controller
             'distributor_id' => 'nullable|exists:distributors,id',
             'incoming_source' => 'required|in:ex_pstore,luar_pstore',
 
-            // Incoming (Barang Masuk)
-            'incoming_product_type_id' => 'required|exists:product_types,id',
+            // Incoming (Barang Masuk) - made nullable to support items JSON
+            'incoming_product_type_id' => 'nullable|exists:product_types,id',
             'incoming_imei' => 'nullable|string|max:25',
             'incoming_quantity' => 'nullable|integer|min:1',
             'incoming_storage' => 'nullable|string|max:20',
             'incoming_condition' => 'nullable|in:new,second,ex_ibox',
-            'incoming_cost_price' => 'required|numeric|min:0',
+            'incoming_cost_price' => 'nullable|numeric|min:0',
 
-            // Outgoing (Barang Keluar)
-            'outgoing_product_detail_id' => 'required|exists:product_details,id',
+            // Outgoing (Barang Keluar) - made nullable to support outgoing_items JSON
+            'outgoing_product_detail_id' => 'nullable|exists:product_details,id',
             'outgoing_quantity' => 'nullable|integer|min:1',
-            'outgoing_price' => 'required|numeric|min:0',
+            'outgoing_price' => 'nullable|numeric|min:0',
+
+            // Multi items
+            'items' => 'nullable|string', // JSON array of incoming
+            'outgoing_items' => 'nullable|string', // JSON array of outgoing
 
             // Financials
             'price_difference' => 'required|numeric',
@@ -132,19 +136,56 @@ class TukarTambahController extends Controller
 
                 $receiptId = TukarTambah::generateReceiptId();
 
+                // Decode incoming and outgoing items
+                $incomingItemsRaw = $request->items ? json_decode($request->items, true) : [];
+                $outgoingItemsRaw = $request->outgoing_items ? json_decode($request->outgoing_items, true) : [];
+
+                // Fallback to scalar inputs if arrays are empty
+                if (empty($incomingItemsRaw) && $request->incoming_product_type_id) {
+                    $incomingItemsRaw[] = [
+                        'product_type_id' => $request->incoming_product_type_id,
+                        'imeis' => $request->incoming_imei ? [$request->incoming_imei] : [],
+                        'storage' => $request->incoming_storage,
+                        'condition' => $request->incoming_condition,
+                        'buy_price' => $request->incoming_cost_price,
+                        'quantity' => $request->incoming_quantity ?? 1,
+                        'distributor_id' => $request->distributor_id,
+                    ];
+                }
+
+                if (empty($outgoingItemsRaw) && $request->outgoing_product_detail_id) {
+                    $outgoingItemsRaw[] = [
+                        'product_detail_id' => $request->outgoing_product_detail_id,
+                        'quantity' => $request->outgoing_quantity ?? 1,
+                        'price' => $request->outgoing_price,
+                    ];
+                }
+
+                // Prepare scalar fallback for database
+                $firstIn = $incomingItemsRaw[0] ?? null;
+                $firstOut = $outgoingItemsRaw[0] ?? null;
+
                 // 2. Create Tukar Tambah record
                 $tukarTambah = TukarTambah::create([
                     'receipt_id' => $receiptId,
                     'customer_name' => $request->customer_name,
                     'customer_phone' => $request->customer_phone,
                     'incoming_source' => $request->incoming_source,
-                    'incoming_product_type_id' => $request->incoming_product_type_id,
-                    'incoming_imei' => $request->incoming_imei,
-                    'incoming_storage' => $request->incoming_storage,
-                    'incoming_condition' => $request->incoming_condition ?? 'new',
-                    'incoming_cost_price' => $request->incoming_cost_price,
-                    'outgoing_product_detail_id' => $request->outgoing_product_detail_id,
-                    'outgoing_price' => $request->outgoing_price,
+                    
+                    // Legacy scalar fallback
+                    'incoming_product_type_id' => $firstIn['product_type_id'] ?? $request->incoming_product_type_id,
+                    'incoming_imei' => $firstIn['imeis'][0] ?? $request->incoming_imei,
+                    'incoming_storage' => $firstIn['storage'] ?? $request->incoming_storage,
+                    'incoming_condition' => $firstIn['condition'] ?? $request->incoming_condition ?? 'new',
+                    'incoming_cost_price' => collect($incomingItemsRaw)->sum(fn($i) => ($i['buy_price'] ?? 0) * ($i['quantity'] ?? 1)),
+                    
+                    'outgoing_product_detail_id' => $firstOut['product_detail_id'] ?? $request->outgoing_product_detail_id,
+                    'outgoing_price' => collect($outgoingItemsRaw)->sum(fn($o) => ($o['price'] ?? 0) * ($o['quantity'] ?? 1)),
+                    
+                    // New JSON columns
+                    'incoming_items' => $incomingItemsRaw,
+                    'outgoing_items' => $outgoingItemsRaw,
+
                     'price_difference' => $request->price_difference,
                     'payment_method_id' => $request->payment_method_id,
                     'split_payments' => $processedSplits,
@@ -156,81 +197,118 @@ class TukarTambahController extends Controller
                     'inventory_user_id' => $inventoryUserId,
                     'distributor_id' => $request->distributor_id,
                     'branch_id' => $branchId,
-                    'incoming_quantity' => $request->incoming_quantity ?? 1,
-                    'outgoing_quantity' => $request->outgoing_quantity ?? 1,
+                    'incoming_quantity' => collect($incomingItemsRaw)->sum('quantity'),
+                    'outgoing_quantity' => collect($outgoingItemsRaw)->sum('quantity'),
                 ]);
-
-                $inQty = $request->incoming_quantity ?? 1;
-                $incomingProductType = ProductType::with('brand')->findOrFail($request->incoming_product_type_id);
-                $isImei = in_array(strtolower($incomingProductType->category), ['imei', 'hp / gadget', 'hp/gadget']);
-
-                $product = Product::firstOrCreate(
-                    ['name' => $incomingProductType->name, 'brand' => $incomingProductType->brand->name],
-                    [
-                        'type' => $isImei ? 'hp' : 'non-hp',
-                        'has_imei' => $isImei,
-                        'is_active' => true,
-                        'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
-                    ]
-                );
 
                 $placementType = $branchId ? 'branch' : ($warehouseId ? 'warehouse' : 'distributor');
                 $placementId = $branchId ?? ($warehouseId ?? $targetUser->distributor_id);
 
-                $imeiExisted = false;
-                $imeiStatus = null;
-                $productDetail = null;
-                if ($isImei) {
-                    $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
-                    if ($existingPd) {
-                        $imeiExisted = true;
-                        $imeiStatus = $existingPd->status;
-                        $existingPd->update([
-                            'product_id' => $product->id,
-                            'user_id' => $inventoryUserId,
-                            'storage' => $request->incoming_storage,
-                            'condition' => $request->incoming_condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->incoming_cost_price,
-                            'selling_price' => $incomingProductType->price ?? 0,
-                            'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'tukar_tambah_id' => $tukarTambah->id,
-                            'notes' => 'Masuk dari Tukar Tambah (Update): ' . $receiptId,
-                        ]);
-                        $productDetail = $existingPd;
+                $imeiExistedAny = false;
+
+                // PROCESS INCOMING ITEMS
+                foreach ($incomingItemsRaw as $inItem) {
+                    $inQty = $inItem['quantity'] ?? 1;
+                    $incomingProductType = ProductType::with('brand')->findOrFail($inItem['product_type_id']);
+                    $isImei = in_array(strtolower($incomingProductType->category), ['imei', 'hp / gadget', 'hp/gadget']);
+                    
+                    $product = Product::firstOrCreate(
+                        ['name' => $incomingProductType->name, 'brand' => $incomingProductType->brand->name],
+                        [
+                            'type' => $isImei ? 'hp' : 'non-hp',
+                            'has_imei' => $isImei,
+                            'is_active' => true,
+                            'sku' => ($isImei ? 'HP-' : 'ACC-') . strtoupper(Str::random(8))
+                        ]
+                    );
+
+                    $distId = $inItem['distributor_id'] ?? $request->distributor_id;
+
+                    if ($isImei) {
+                        $imeis = !empty($inItem['imeis']) ? $inItem['imeis'] : [null]; // fallback if empty
+                        foreach ($imeis as $imei) {
+                            $existingPd = $imei ? ProductDetail::where('imei', $imei)->first() : null;
+                            if ($existingPd) {
+                                $imeiExistedAny = true;
+                                $existingPd->update([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'storage' => $inItem['storage'] ?? null,
+                                    'condition' => $inItem['condition'] ?? 'new',
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $inItem['buy_price'] ?? 0,
+                                    'selling_price' => $incomingProductType->price ?? 0,
+                                    'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                                    'distributor_id' => $distId,
+                                    'tukar_tambah_id' => $tukarTambah->id,
+                                    'notes' => 'Masuk dari Tukar Tambah (Update): ' . $receiptId,
+                                ]);
+                                $pd = $existingPd;
+                            } else {
+                                $pd = ProductDetail::create([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'imei' => $imei,
+                                    'storage' => $inItem['storage'] ?? null,
+                                    'condition' => $inItem['condition'] ?? 'new',
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $inItem['buy_price'] ?? 0,
+                                    'selling_price' => $incomingProductType->price ?? 0,
+                                    'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                                    'distributor_id' => $distId,
+                                    'tukar_tambah_id' => $tukarTambah->id,
+                                    'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
+                                ]);
+                            }
+
+                            // Log Movement
+                            InventoryLog::create([
+                                'product_id' => $product->id,
+                                'branch_id' => $branchId,
+                                'warehouse_id' => $warehouseId,
+                                'user_id' => $inventoryUserId,
+                                'type' => 'in',
+                                'quantity' => 1,
+                                'reference_id' => (string)$pd->id,
+                                'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name . ($imei ? ' (' . $imei . ')' : ''),
+                                'supplier_name' => 'Customer: ' . $request->customer_name,
+                                'distributor_id' => $distId,
+                                'notes' => 'Tukar Tambah IN: ' . $receiptId,
+                            ]);
+                        }
                     } else {
-                        $productDetail = ProductDetail::create([
+                        $inventoryIn = \App\Models\Inventory::firstOrCreate(
+                            [
+                                'product_id' => $product->id,
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'user_id' => $inventoryUserId
+                            ],
+                            ['quantity' => 0]
+                        );
+                        $inventoryIn->increment('quantity', $inQty);
+
+                        // Log Movement
+                        InventoryLog::create([
                             'product_id' => $product->id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
                             'user_id' => $inventoryUserId,
-                            'imei' => $request->incoming_imei,
-                            'storage' => $request->incoming_storage,
-                            'condition' => $request->incoming_condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->incoming_cost_price,
-                            'selling_price' => $incomingProductType->price ?? 0,
-                            'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'tukar_tambah_id' => $tukarTambah->id,
-                            'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
+                            'type' => 'in',
+                            'quantity' => $inQty,
+                            'reference_id' => 'TT IN: ' . $receiptId,
+                            'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name,
+                            'supplier_name' => 'Customer: ' . $request->customer_name,
+                            'distributor_id' => $distId,
+                            'notes' => 'Tukar Tambah IN: ' . $receiptId,
                         ]);
                     }
-                } else {
-                    $inventoryIn = \App\Models\Inventory::firstOrCreate(
-                        [
-                            'product_id' => $product->id,
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'user_id' => $inventoryUserId
-                        ],
-                        ['quantity' => 0]
-                    );
-                    $inventoryIn->increment('quantity', $inQty);
                 }
+
 
                 // 4. Create StockOut record (This represents the "Omset" part)
                 $stockOut = StockOut::create([
@@ -258,67 +336,55 @@ class TukarTambahController extends Controller
                     'split_payments' => $processedSplits
                 ]);
 
-                // Attach the outgoing unit to the StockOut record
-                $outQty = $request->outgoing_quantity ?? 1;
-                $outgoingUnit = ProductDetail::findOrFail($request->outgoing_product_detail_id);
-                
-                if ($outgoingUnit->imei) {
-                    $stockOut->items()->attach($request->outgoing_product_detail_id, [
-                        'selling_price' => $request->outgoing_price,
-                        'item_discount' => 0,
-                    ]);
-                    $outgoingUnit->update([
-                        'status' => 'sold',
-                        'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Tambah: " . $receiptId
-                    ]);
-                } else {
-                    \App\Models\StockOutNonHpItem::create([
-                        'stock_out_id' => $stockOut->id,
+                // PROCESS OUTGOING ITEMS
+                foreach ($outgoingItemsRaw as $outItem) {
+                    $outQty = $outItem['quantity'] ?? 1;
+                    $outgoingUnit = ProductDetail::findOrFail($outItem['product_detail_id']);
+                    
+                    if ($outgoingUnit->imei) {
+                        $stockOut->items()->attach($outItem['product_detail_id'], [
+                            'selling_price' => $outItem['price'],
+                            'item_discount' => 0,
+                        ]);
+                        $outgoingUnit->update([
+                            'status' => 'sold',
+                            'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Tambah: " . $receiptId
+                        ]);
+                    } else {
+                        \App\Models\StockOutNonHpItem::create([
+                            'stock_out_id' => $stockOut->id,
+                            'product_id' => $outgoingUnit->product_id,
+                            'quantity' => $outQty,
+                            'selling_price' => $outItem['price'],
+                            'distributor_id' => $outgoingUnit->distributor_id
+                        ]);
+                        // Decrement from Inventory
+                        $inventoryOut = \App\Models\Inventory::where([
+                            'product_id' => $outgoingUnit->product_id,
+                            'placement_type' => $outgoingUnit->placement_type,
+                            'placement_id' => $outgoingUnit->placement_id,
+                            'user_id' => $inventoryUserId
+                        ])->first();
+                        if ($inventoryOut) $inventoryOut->decrement('quantity', $outQty);
+                    }
+
+                    // Log Movement
+                    InventoryLog::create([
                         'product_id' => $outgoingUnit->product_id,
+                        'branch_id' => $branchId,
+                        'warehouse_id' => $warehouseId,
+                        'user_id' => $inventoryUserId,
+                        'type' => 'out',
                         'quantity' => $outQty,
-                        'selling_price' => $request->outgoing_price,
-                        'distributor_id' => $outgoingUnit->distributor_id
+                        'reference_id' => $receiptId,
+                        'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                        'distributor_id' => $outgoingUnit->distributor_id,
                     ]);
-                    // Decrement from Inventory
-                    $inventoryOut = \App\Models\Inventory::where([
-                        'product_id' => $outgoingUnit->product_id,
-                        'placement_type' => $outgoingUnit->placement_type,
-                        'placement_id' => $outgoingUnit->placement_id,
-                        'user_id' => $inventoryUserId
-                    ])->first();
-                    if ($inventoryOut) $inventoryOut->decrement('quantity', $outQty);
                 }
 
-                // 6. Log Movements
-                InventoryLog::create([
-                    'product_id' => $product->id,
-                    'branch_id' => $branchId,
-                    'warehouse_id' => $warehouseId,
-                    'user_id' => $inventoryUserId,
-                    'type' => 'in',
-                    'quantity' => $inQty,
-                    'reference_id' => $isImei && isset($productDetail) ? (string)$productDetail->id : ('TT IN: ' . $receiptId),
-                    'description' => 'Tukar Tambah (Masuk): ' . $incomingProductType->name . ($request->incoming_imei ? ' (' . $request->incoming_imei . ')' : ''),
-                    'supplier_name' => 'Customer: ' . $request->customer_name,
-                    'distributor_id' => $request->distributor_id,
-                    'notes' => 'Tukar Tambah IN: ' . $receiptId . ($request->notes ? ' | ' . $request->notes : ''),
-                ]);
-
-                InventoryLog::create([
-                    'product_id' => $outgoingUnit->product_id,
-                    'branch_id' => $branchId,
-                    'warehouse_id' => $warehouseId,
-                    'user_id' => $inventoryUserId,
-                    'type' => 'out',
-                    'quantity' => $outQty,
-                    'reference_id' => $receiptId,
-                    'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
-                    'distributor_id' => $outgoingUnit->distributor_id,
-                ]);
-
                 $msg = 'Tukar tambah berhasil diproses.';
-                if ($imeiExisted) {
-                    $msg .= " (Pemberitahuan: IMEI sudah ada di database sebelumnya dengan status: {$imeiStatus})";
+                if ($imeiExistedAny) {
+                    $msg .= " (Pemberitahuan: Beberapa IMEI sudah ada di database sebelumnya, dan datanya telah diupdate.)";
                 }
                 return response()->json([
                     'success' => true,
