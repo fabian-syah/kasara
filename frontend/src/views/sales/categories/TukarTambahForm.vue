@@ -342,7 +342,7 @@ const selectedOutgoingTukarTambah = computed(() => {
 
 const filteredInventoryProducts = computed(() => {
     const q = stockSearchQuery.value.toLowerCase().trim();
-    const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0) && p.status !== 'sold');
+    const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold');
     if (!q) return allProducts;
 
     const cleanQ = q.replace(/\./g, '');
