@@ -11,8 +11,8 @@ class BrandController extends Controller
     {
         $query = Brand::query();
 
-        if ($request->has('search')) {
-            $search = strtolower($request->search);
+        if ($request->filled('search')) {
+            $search = strtolower((string) $request->search);
             $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"])
                 ->orWhereRaw('LOWER(description) LIKE ?', ["%{$search}%"]);
         }
