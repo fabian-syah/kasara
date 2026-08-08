@@ -15,12 +15,30 @@ class Brand extends Model
     protected static function boot()
     {
         parent::boot();
+        
         static::creating(function ($brand) {
-            $brand->slug = Str::slug($brand->name);
+            $brand->slug = self::generateUniqueSlug($brand->name);
         });
+        
         static::updating(function ($brand) {
-            $brand->slug = Str::slug($brand->name);
+            if ($brand->isDirty('name')) {
+                $brand->slug = self::generateUniqueSlug($brand->name, $brand->id);
+            }
         });
+    }
+
+    public static function generateUniqueSlug($name, $ignoreId = 0)
+    {
+        $slug = Str::slug($name);
+        $originalSlug = $slug;
+        $count = 1;
+
+        while (self::where('slug', $slug)->where('id', '!=', $ignoreId)->exists()) {
+            $slug = $originalSlug . '-' . $count;
+            $count++;
+        }
+
+        return $slug;
     }
 
     public function productTypes()
