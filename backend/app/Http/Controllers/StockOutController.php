@@ -880,7 +880,7 @@ class StockOutController extends Controller
                             'stock_out_id' => $stockOut->id,
                             'product_id' => $item['product_id'],
                             'quantity' => $item['quantity'],
-                            'selling_price' => (isset($item['selling_price']) && floatval($item['selling_price']) > 0) ? floatval($item['selling_price']) : (isset($prod) ? floatval($prod->price) : 0),
+                            'selling_price' => isset($item['selling_price']) && is_numeric($item['selling_price']) ? floatval($item['selling_price']) : (isset($prod) ? floatval($prod->price) : 0),
                             'item_discount' => $item['item_discount'] ?? 0,
                             'distributed_discount' => $item['distributed_discount'] ?? 0,
                             'received_quantity' => ($request->category === 'pindah_cabang') ? 0 : $item['quantity'],
