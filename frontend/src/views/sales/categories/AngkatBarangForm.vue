@@ -633,6 +633,7 @@ async function submitTradeIn(pin = null) {
             category: 'angkat_barang',
             customer_name: data.customer_name,
             customer_phone: data.customer_phone,
+            branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
             branch_timezone: authStore.user?.branch?.timezone || 'WIB',
             created_at: new Date().toISOString(),
             date: new Date().toLocaleDateString("id-ID", {

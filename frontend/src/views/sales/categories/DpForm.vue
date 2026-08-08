@@ -414,6 +414,7 @@ async function submitTradeIn(pin = null) {
             customer_name: dpForm.value.customer_name,
             customer_phone: dpForm.value.customer_phone,
             customer_wa: dpForm.value.customer_phone,
+            branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
             branch_timezone: authStore.user?.branch?.timezone || 'WIB',
             created_at: new Date().toISOString(),
             date: new Date().toLocaleDateString("id-ID", {
