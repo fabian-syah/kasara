@@ -1288,13 +1288,13 @@ class StockOutController extends Controller
             // Fallback: If no InventoryLog found but ProductDetail exists (legacy data without logs)
             // Apply fallback for ANY ProductDetail that doesn't have a corresponding InventoryLog
             foreach ($currentDetails as $detail) {
-                // Check if this detail has an InventoryLog (either by reference_id or within a few seconds)
-                $hasLog = $stockInLogs->contains(function ($log) use ($detail, $query) {
-                    return $log->reference_id === (string)$detail->id || 
-                           (str_contains($log->description, "({$query})") && abs($log->created_at->timestamp - $detail->created_at->timestamp) <= 60);
+                // Check if this detail has an InventoryLog specifically for its ORIGINAL registration
+                // (Must be within a few seconds of the ProductDetail's created_at)
+                $hasRegistrationLog = $stockInLogs->contains(function ($log) use ($detail, $query) {
+                    return abs($log->created_at->timestamp - $detail->created_at->timestamp) <= 120; // 2 minute tolerance
                 });
 
-                if (!$hasLog) {
+                if (!$hasRegistrationLog) {
                     // Show the original registration event from ProductDetail
                     // Only skip if the ONLY stock-in event is the barang_masuk itself
                     // (i.e., ProductDetail was created at the same time as barang_masuk)

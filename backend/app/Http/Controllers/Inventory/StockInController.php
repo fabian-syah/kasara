@@ -337,7 +337,7 @@ class StockInController extends Controller
                         ]);
 
                         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-                        $existing->created_at = $logicalNow;
+                        // DO NOT overwrite created_at for existing items to preserve history timeline
                         $existing->updated_at = $logicalNow;
                         $existing->save();
 
