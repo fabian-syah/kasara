@@ -1964,8 +1964,10 @@ class StockOutController extends Controller
             // Deduplicate events with same id + type + sub_type + date
             $seen = [];
             $allEvents = array_filter($allEvents, function ($evt) use (&$seen) {
-                $date = substr($evt['created_at'], 0, 10);
-                $key = $evt['id'] . '|' . $evt['type'] . '|' . ($evt['sub_type'] ?? '') . '|' . $date;
+                // Deduplicate events with same id + type + sub_type, but ONLY if they occurred in the same hour
+                // This prevents hiding same-day valid restocks/restores
+                $dateHour = substr($evt['created_at'], 0, 13); // e.g. "2026-08-06 17"
+                $key = $evt['id'] . '|' . $evt['type'] . '|' . ($evt['sub_type'] ?? '') . '|' . $dateHour;
                 if (isset($seen[$key])) return false;
                 $seen[$key] = true;
                 return true;
