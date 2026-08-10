@@ -2435,19 +2435,40 @@ class StockOutController extends Controller
 
                     Log::info("DEBUG: PHP Log created for accepted HP #{$item->id} in Resi {$stockOut->receipt_id}");
                 } else {
-                    // Rejected: Set to 'returning' (not active stock yet)
+                    // Rejected: Automatically return to sender's active inventory
                     $sender = $stockOut->user;
                     $senderLocationId = $sender->branch_id ?? $sender->warehouse_id ?? $sender->online_shop_id ?? $sender->distributor_id;
                     $senderType = $sender->branch_id ? 'branch' : ($sender->warehouse_id ? 'warehouse' : ($sender->online_shop_id ? 'online_shop' : 'distributor'));
 
                     $item->update([
-                        'status' => 'returning',
+                        'status' => 'available',
                         'placement_type' => $senderType,
                         'placement_id' => $senderLocationId,
                         'user_id' => $sender->id
                     ]);
 
-                    Log::info("DEBUG: HP #{$item->id} marked as returning in Resi {$stockOut->receipt_id}");
+                    // Create log for Return to Sender
+                    InventoryLog::create([
+                        'product_id' => $item->product_id,
+                        'user_id' => $sender->id,
+                        'branch_id' => ($senderType == 'branch') ? $senderLocationId : null,
+                        'warehouse_id' => ($senderType == 'warehouse') ? $senderLocationId : null,
+                        'online_shop_id' => ($senderType == 'online_shop') ? $senderLocationId : null,
+                        'distributor_id' => ($senderType == 'distributor') ? $senderLocationId : null,
+                        'type' => 'in',
+                        'quantity' => 1,
+                        'balance_after' => 1, // Note: real balance would require counting, but 1 is safe for HP logs
+                        'description' => "Pindah Cabang Ditolak (Resi: {$stockOut->receipt_id}) (" . ($item->imei ?? $item->p_code) . ")",
+                        'reference_id' => (string)$item->id,
+                    ]);
+
+                    // Mark pivot as returned so it doesn't appear in failed transfers
+                    DB::table('stock_out_items')
+                        ->where('stock_out_id', $stockOut->id)
+                        ->where('product_detail_id', $item->id)
+                        ->update(['status' => 'returned']);
+
+                    Log::info("DEBUG: HP #{$item->id} automatically returned to sender in Resi {$stockOut->receipt_id}");
                 }
             }
 
@@ -2522,6 +2543,21 @@ class StockOutController extends Controller
                                 ['quantity' => 0]
                             );
                             $senderInv->increment('quantity', $rejectedQty);
+
+                            // Create log for Return to Sender
+                            $locationField = $senderType . '_id';
+                            InventoryLog::create([
+                                'product_id' => $record->product_id,
+                                'type' => 'in',
+                                'quantity' => $rejectedQty,
+                                'balance_after' => $senderInv->quantity,
+                                'description' => "Pindah Cabang Ditolak (Resi: {$stockOut->receipt_id})",
+                                'user_id' => $senderUserId,
+                                $locationField => $senderLocationId
+                            ]);
+                            
+                            // Immediately reset returned_quantity so it doesn't wait for confirmation
+                            $record->update(['returned_quantity' => 0]);
                         }
                     }
                 }
