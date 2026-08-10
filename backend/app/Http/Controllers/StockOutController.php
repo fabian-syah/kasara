@@ -2160,7 +2160,6 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
             if (!empty($distributorIds)) {
-                $q->orWhereIn('distributor_id', $distributorIds);
                 $hasFilter = true;
             }
 
@@ -2297,7 +2296,6 @@ class StockOutController extends Controller
                     $hasFilter = true;
                 }
                 if (!empty($distributorIds)) {
-                    $q->orWhereIn('distributor_id', $distributorIds);
                     $hasFilter = true;
                 }
 
@@ -2846,7 +2844,6 @@ class StockOutController extends Controller
 
                 if (!empty($distributorIds)) {
                     $hasFilter = true;
-                    $q->orWhereIn('distributor_id', $distributorIds);
                 }
 
                 if ($isUnrestricted) {
