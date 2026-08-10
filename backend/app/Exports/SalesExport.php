@@ -282,6 +282,11 @@ class SalesExport
             // Specialized column requested by user
             $inTukarTambah = ($cat === 'tukar_tambah' && $exchangeInfo) ? (float)($exchangeInfo->incoming_cost_price ?? 0) : 0;
 
+            $remainingMethodCaps = [];
+            foreach ($this->paymentMethods as $pm) {
+                $remainingMethodCaps[$pm->name] = (float)($payData[$pm->name] ?? 0);
+            }
+
             // 3. Output logical split rows
             foreach ($allOrderItems as $subIdx => $detail) {
                 $isFirstRow = ($subIdx === 0);
@@ -327,20 +332,30 @@ class SalesExport
                 // Final Aggregation Values - Empty on downstream rows
                 $rowArr['total_penjualan'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : '';
                 
-                // Pisah Payment Methods (Waterfall Allocation)
-                $unpaid = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : 0;
+                // Pisah Payment Methods (Waterfall Allocation per Item)
+                $rowOmset = ($cat !== 'cancel_penjualan' && $detail['type'] === 'outgoing') ? (float)$detail['total_price'] : 0;
+                
                 foreach ($this->paymentMethods as $pm) {
-                    if ($isFirstRow && $cat !== 'cancel_penjualan') {
-                        $pmAmount = (float)($payData[$pm->name] ?? 0);
-                        if ($unpaid <= 0) {
-                            $allocated = 0;
-                        } else {
-                            $allocated = min($unpaid, $pmAmount);
-                            $unpaid -= $allocated;
-                        }
-                        $rowArr['pisah_' . $pm->name] = $allocated;
+                    $pmName = $pm->name;
+                    $availableCap = $remainingMethodCaps[$pmName] ?? 0;
+
+                    if ($rowOmset <= 0 || $availableCap <= 0) {
+                        $allocated = 0;
                     } else {
-                        $rowArr['pisah_' . $pm->name] = '';
+                        // MAX(0, MIN(Sisa Plafon Metode, Sisa Omset Baris Ini))
+                        $allocated = max(0, min($availableCap, $rowOmset));
+                        
+                        // Kurangi sisa plafon metode & sisa omset baris
+                        $remainingMethodCaps[$pmName] -= $allocated;
+                        $rowOmset -= $allocated;
+                    }
+
+                    // Untuk tampilan Excel, jika 0 tampilkan '', kecuali user mau 0. Kita pakai 0 saja agar Excel mudah diSUM.
+                    // Atau kita tetapkan 0 jika ini baris outgoing, selainnya '' agar baris incoming kosong.
+                    if ($detail['type'] === 'outgoing' && $cat !== 'cancel_penjualan') {
+                        $rowArr['pisah_' . $pmName] = $allocated;
+                    } else {
+                        $rowArr['pisah_' . $pmName] = '';
                     }
                 }
 
