@@ -53,7 +53,25 @@ class SalesExport
             if ($this->paymentMethods) {
                 $this->paymentMethods = $this->paymentMethods->reject(function($pm) {
                     return strtolower(trim($pm->name)) === 'in tukar tambah';
-                });
+                })->sort(function($a, $b) {
+                    $order = [
+                        'transfer apple lux' => 1,
+                        'cash toko' => 2,
+                        'tf coka' => 4
+                    ];
+                    
+                    $nameA = strtolower(trim($a->name));
+                    $nameB = strtolower(trim($b->name));
+                    
+                    $valA = $order[$nameA] ?? 3;
+                    $valB = $order[$nameB] ?? 3;
+                    
+                    if ($valA === $valB) {
+                        return strcmp($a->name, $b->name);
+                    }
+                    
+                    return $valA <=> $valB;
+                })->values();
             }
         } catch (\Exception $e) {
             $this->paymentMethods = collect();
@@ -143,6 +161,7 @@ class SalesExport
                     'imei' => $imei,
                     'qty' => 1,
                     'price' => $price,
+                    'total_price' => $price,
                     'discount' => $itemDiscount,
                     'dist' => $dist
                 ];
@@ -160,8 +179,13 @@ class SalesExport
                 $dist = $nItem->distributor?->name ?? $nItem->product?->brand ?? '-';
                 $baseN = (float)($nItem->selling_price ?? 0);
                 $itemDiscount = (float)($nItem->item_discount ?? 0);
-                $pricePerItem = $baseN - $itemDiscount;
-                $totalPrice = $pricePerItem * $qty;
+                
+                // $baseN is the total selling price for this row.
+                $totalPrice = $baseN - $itemDiscount;
+                $pricePerItem = $qty > 0 ? ($baseN / $qty) : 0;
+                $discountPerItem = $qty > 0 ? ($itemDiscount / $qty) : 0;
+                $netPricePerItem = $pricePerItem - $discountPerItem;
+                
                 $sumOutPrices += $totalPrice;
 
                 $allOrderItems[] = [
@@ -169,8 +193,9 @@ class SalesExport
                     'name' => $nName . ($qty > 1 ? " (Qty: $qty)" : ""),
                     'imei' => '-',
                     'qty' => $qty,
-                    'price' => $pricePerItem,
-                    'discount' => $itemDiscount,
+                    'price' => $netPricePerItem,
+                    'total_price' => $totalPrice,
+                    'discount' => $discountPerItem,
                     'dist' => $dist
                 ];
             }
@@ -189,6 +214,7 @@ class SalesExport
                     'imei' => $iImei,
                     'qty' => 1,
                     'price' => $iPrice,
+                    'total_price' => $iPrice,
                     'discount' => 0,
                     'dist' => $dIn
                 ];
@@ -196,7 +222,7 @@ class SalesExport
 
             // Edge case ensure at least one entry
             if (empty($allOrderItems)) {
-                $allOrderItems[] = ['type' => 'none', 'name' => '-', 'imei' => '-', 'qty' => 0, 'price' => 0, 'discount' => 0, 'dist' => '-'];
+                $allOrderItems[] = ['type' => 'none', 'name' => '-', 'imei' => '-', 'qty' => 0, 'price' => 0, 'total_price' => 0, 'discount' => 0, 'dist' => '-'];
             }
 
             // 2. Formulate Header Row Financial Constants
@@ -270,6 +296,7 @@ class SalesExport
                     'imei_keluar' => ($detail['type'] === 'outgoing') ? $detail['imei'] : '',
                     'qty_keluar' => ($detail['type'] === 'outgoing') ? $detail['qty'] : '',
                     'harga_satuan_keluar' => ($detail['type'] === 'outgoing' && $detail['price'] > 0) ? (float)$detail['price'] : '',
+                    'harga_total_keluar' => ($detail['type'] === 'outgoing' && $detail['total_price'] > 0) ? (float)$detail['total_price'] : '',
                     'diskon_satuan_keluar' => ($detail['type'] === 'outgoing' && $detail['discount'] > 0) ? (float)$detail['discount'] : '',
                     'distributor_keluar' => ($detail['type'] === 'outgoing') ? $detail['dist'] : '',
                     
@@ -278,6 +305,7 @@ class SalesExport
                     'imei_masuk' => ($detail['type'] === 'incoming') ? $detail['imei'] : '',
                     'qty_masuk' => ($detail['type'] === 'incoming') ? $detail['qty'] : '',
                     'harga_satuan_masuk' => ($detail['type'] === 'incoming' && $detail['price'] > 0) ? (float)$detail['price'] : '',
+                    'harga_total_masuk' => ($detail['type'] === 'incoming' && $detail['total_price'] > 0) ? (float)$detail['total_price'] : '',
                     'distributor_masuk' => ($detail['type'] === 'incoming') ? $detail['dist'] : '',
                     
                     'in_tukar_tambah' => ($isFirstRow && $inTukarTambah > 0) ? (float)$inTukarTambah : '',
@@ -293,6 +321,24 @@ class SalesExport
 
                 // Final Aggregation Values - Empty on downstream rows
                 $rowArr['total_penjualan'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : '';
+                
+                // Pisah Payment Methods (Waterfall Allocation)
+                $unpaid = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : 0;
+                foreach ($this->paymentMethods as $pm) {
+                    if ($isFirstRow && $cat !== 'cancel_penjualan') {
+                        $pmAmount = (float)($payData[$pm->name] ?? 0);
+                        if ($unpaid <= 0) {
+                            $allocated = 0;
+                        } else {
+                            $allocated = min($unpaid, $pmAmount);
+                            $unpaid -= $allocated;
+                        }
+                        $rowArr['pisah_' . $pm->name] = $allocated;
+                    } else {
+                        $rowArr['pisah_' . $pm->name] = '';
+                    }
+                }
+
                 $rowArr['total_pengeluaran'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPengeluaran : '';
                 $rowArr['status'] = $isFirstRow ? strtoupper($so->status ?? 'LUNAS') : '';
                 
@@ -321,12 +367,14 @@ class SalesExport
             'IMEI',
             'Qty',
             'Harga Satuan',
+            'Harga Total',
             'Diskon Satuan',
             'Distributor',
             'Produk Masuk',
             'IMEI',
             'Qty',
             'Harga Satuan',
+            'Harga Total',
             'Distributor',
             'In Tukar Tambah'
         ];
@@ -337,7 +385,14 @@ class SalesExport
 
         $heads = array_merge($heads, [
             'Diskon Global',
-            'Total Penjualan',
+            'Total Penjualan'
+        ]);
+
+        foreach ($this->paymentMethods as $pm) {
+            $heads[] = 'Pisah ' . $pm->name;
+        }
+
+        $heads = array_merge($heads, [
             'Pengeluaran Refund Angkat Barang Downgrade',
             'Status'
         ]);
