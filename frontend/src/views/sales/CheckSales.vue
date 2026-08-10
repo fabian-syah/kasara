@@ -129,7 +129,7 @@
                         :class="summaryStats.omsetBersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600'">
                         {{ formatCurrency(summaryStats.omsetBersih) }}
                     </p>
-                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Omset - In TT - In DG - (Angkat + Refund)</p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium italic opacity-70">Total Omset - (In TT + In DG + Angkat + Refund)</p>
                 </div>
             </div>
 
