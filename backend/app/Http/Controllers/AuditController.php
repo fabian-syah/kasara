@@ -3652,12 +3652,14 @@ class AuditController extends Controller
                     str_replace("'", "", $row['imei_keluar'] ?? '') . "\u{200B}",
                     $row['qty_keluar'] ?? '',
                     $row['harga_satuan_keluar'] ?? '',
+                    $row['harga_total_keluar'] ?? '',
                     $row['diskon_satuan_keluar'] ?? '',
                     $row['distributor_keluar'] ?? '',
                     $row['produk_masuk'] ?? '',
                     str_replace("'", "", $row['imei_masuk'] ?? '') . "\u{200B}",
                     $row['qty_masuk'] ?? '',
                     $row['harga_satuan_masuk'] ?? '',
+                    $row['harga_total_masuk'] ?? '',
                     $row['distributor_masuk'] ?? '',
                     $row['in_tukar_tambah'] ?? ''
                 ];
@@ -3671,7 +3673,20 @@ class AuditController extends Controller
 
                 $xlsxRow = array_merge($xlsxRow, [
                     ($row['global_discount'] === '') ? '' : (float)($row['global_discount'] ?? 0),
-                    ($row['total_penjualan'] === '') ? '' : (float)($row['total_penjualan'] ?? 0),
+                    ($row['total_penjualan'] === '') ? '' : (float)($row['total_penjualan'] ?? 0)
+                ]);
+
+                if (isset($export)) {
+                    $pmMethods = $export->getPaymentMethods();
+                    if (!empty($pmMethods)) {
+                        foreach ($pmMethods as $pm) {
+                            $val = $row['pisah_' . $pm->name] ?? '';
+                            $xlsxRow[] = ($val === '') ? '' : (float)$val;
+                        }
+                    }
+                }
+
+                $xlsxRow = array_merge($xlsxRow, [
                     ($row['total_pengeluaran'] === '') ? '' : (float)($row['total_pengeluaran'] ?? 0),
                     $row['status'] ?? ''
                 ]);

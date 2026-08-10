@@ -78,6 +78,11 @@ class SalesExport
         }
     }
 
+    public function getPaymentMethods()
+    {
+        return $this->paymentMethods;
+    }
+
     public function title(): string
     {
         return 'Laporan Penjualan';
