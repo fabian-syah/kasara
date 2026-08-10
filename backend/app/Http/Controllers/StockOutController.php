@@ -2175,14 +2175,18 @@ class StockOutController extends Controller
         foreach ($transfers as $transfer) {
             if ($transfer->non_hp_items) {
                 $nonHpItems = is_string($transfer->non_hp_items) ? json_decode($transfer->non_hp_items, true) : $transfer->non_hp_items;
-                $pIds = array_column($nonHpItems, 'product_id');
-                if (!empty($pIds)) {
-                    $products = Product::whereIn('id', $pIds)->pluck('name', 'id');
-                    foreach ($nonHpItems as &$item) {
-                        $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                if (is_array($nonHpItems)) {
+                    $pIds = array_column($nonHpItems, 'product_id');
+                    if (!empty($pIds)) {
+                        $products = \App\Models\Product::whereIn('id', $pIds)->pluck('name', 'id');
+                        foreach ($nonHpItems as &$item) {
+                            $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                        }
                     }
+                    $transfer->non_hp_items = $nonHpItems;
+                } else {
+                    $transfer->non_hp_items = [];
                 }
-                $transfer->non_hp_items = $nonHpItems;
             }
         }
 
@@ -2921,13 +2925,17 @@ class StockOutController extends Controller
         foreach ($transfers as $transfer) {
             if ($transfer->non_hp_items) {
                 $nonHpItems = is_string($transfer->non_hp_items) ? json_decode($transfer->non_hp_items, true) : $transfer->non_hp_items;
-                $pIds = array_column($nonHpItems, 'product_id');
-                if (!empty($pIds)) {
-                    $products = Product::whereIn('id', $pIds)->pluck('name', 'id');
-                    foreach ($nonHpItems as &$item) {
-                        $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                if (is_array($nonHpItems)) {
+                    $pIds = array_column($nonHpItems, 'product_id');
+                    if (!empty($pIds)) {
+                        $products = \App\Models\Product::whereIn('id', $pIds)->pluck('name', 'id');
+                        foreach ($nonHpItems as &$item) {
+                            $item['product_name'] = $products[$item['product_id']] ?? 'Unknown';
+                        }
+                        $transfer->non_hp_items = $nonHpItems;
                     }
-                    $transfer->non_hp_items = $nonHpItems;
+                } else {
+                    $transfer->non_hp_items = [];
                 }
             }
         }
