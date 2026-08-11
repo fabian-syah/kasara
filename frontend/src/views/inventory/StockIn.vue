@@ -546,7 +546,6 @@ function prevStep() {
 
 const showCreateAccountModal = ref(false);
 const newAccountName = ref("");
-const newAccountPin = ref("");
 const isCreatingAccount = ref(false);
 
 // Duplicate Modal State
@@ -585,13 +584,11 @@ async function createInventoryAccount() {
     isCreatingAccount.value = true;
     try {
         await inventoryApi.createAccount({
-            name: newAccountName.value,
-            transaction_pin: newAccountPin.value
+            name: newAccountName.value
         });
         toast.success("Akun inventory berhasil dibuat!");
         showCreateAccountModal.value = false;
         newAccountName.value = "";
-        newAccountPin.value = "";
         fetchInitialData(); // Reload list
     } catch (e) {
         console.error("Create account error:", e);
@@ -1451,8 +1448,8 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- PIN Modal Component -->
-        <PasswordModal :show="showPasswordModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPasswordModal = false"
+        <!-- Password Modal Component -->
+        <PasswordModal :show="showPasswordModal" mode="verify" title="Verifikasi Kata Sandi" @close="showPasswordModal = false"
             @success="handlePinSuccess" />
     </div>
 </template>

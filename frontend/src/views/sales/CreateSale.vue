@@ -128,7 +128,7 @@ const lastTransaction = ref(null);
 const showInitialPinSetup = ref(false);
 const showPasswordModal = ref(false);
 const PasswordModalMode = ref("verify");
-const PasswordModalTitle = ref("Verifikasi PIN");
+const PasswordModalTitle = ref("Verifikasi Kata Sandi");
 const pendingPinCallback = ref(null);
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
@@ -330,7 +330,7 @@ function handleVerifyPin(callback) {
     pendingPinCallback.value = callback;
     showPasswordModal.value = true;
     PasswordModalMode.value = "verify";
-    PasswordModalTitle.value = "Verifikasi PIN Transaksi";
+    PasswordModalTitle.value = "Verifikasi Kata Sandi";
 }
 
 function handlePinSuccess(pin) {

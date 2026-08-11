@@ -20,12 +20,9 @@ const inventoryUsers = ref([]);
 
 const form = ref({
     inventory_user_id: null,
-    transaction_pin: '',
+    password: '',
     reason: ''
 });
-
-const pinDigits = ref(['', '', '', '']);
-const pinInputs = ref([]);
 
 async function fetchInventoryUsers() {
     loadingUsers.value = true;
@@ -46,9 +43,7 @@ async function fetchInventoryUsers() {
         }
         
         inventoryUsers.value = accounts.map(u => ({
-            ...u,
-            pin_enabled: true,
-            transaction_pin_exists: !!u.transaction_pin_exists
+            ...u
         }));
         
         // Auto select creator if present in the list
@@ -80,38 +75,19 @@ const hasSelectedUserPin = computed(() => {
 
 const canSubmitInternal = computed(() => {
     return form.value.inventory_user_id && 
-           (!hasSelectedUserPin.value || form.value.transaction_pin.length === 4) && 
+           (!hasSelectedUserPin.value || form.value.password.length > 0) && 
            form.value.reason.length >= 5;
 });
 
-function handlePinInput(index, event) {
-    const val = event.target.value;
-    if (val && !/^\d+$/.test(val)) {
-        pinDigits.value[index] = "";
-        return;
-    }
-    if (val.length > 1) {
-        pinDigits.value[index] = val.slice(-1);
-    }
-    if (val && index < 3) {
-        pinInputs.value[index + 1].focus();
-    }
-    form.value.transaction_pin = pinDigits.value.join('');
-}
 
-function handlePinKeydown(index, event) {
-    if (event.key === "Backspace" && !pinDigits.value[index] && index > 0) {
-        pinInputs.value[index - 1].focus();
-    }
-}
 
 async function handleSubmit() {
     if (!form.value.inventory_user_id) {
         toast.error("Pilih akun inventory");
         return;
     }
-    if (hasSelectedUserPin.value && form.value.transaction_pin.length < 4) {
-        toast.error("Masukkan 4 digit PIN");
+    if (hasSelectedUserPin.value && !form.value.password) {
+        toast.error("Masukkan kata sandi");
         return;
     }
     if (!form.value.reason || form.value.reason.length < 5) {
@@ -133,17 +109,13 @@ async function handleSubmit() {
 }
 
 function close() {
-    form.value = { inventory_user_id: null, transaction_pin: '', reason: '' };
-    pinDigits.value = ['', '', '', ''];
+    form.value = { inventory_user_id: null, password: '', reason: '' };
     emit("close");
 }
 
 watch(() => props.show, (newVal) => {
     if (newVal) {
         fetchInventoryUsers();
-        nextTick(() => {
-            if (pinInputs.value[0]) pinInputs.value[0].focus();
-        });
     }
 });
 </script>
@@ -189,34 +161,20 @@ watch(() => props.show, (newVal) => {
                                 <option :value="null" class="dark:bg-surface-800">-- Pilih Akun --</option>
                                 <option v-for="user in inventoryUsers" :key="user.id" :value="user.id"
                                     class="dark:bg-surface-800">
-                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{
-                                        user ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
+                                    {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }}
                                 </option>
                             </select>
-
-                            <!-- Show warning ONLY if the user has NO active pin -->
-                            <div v-if="selectedUser && !selectedUser"
-                                class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
-                                <AlertCircle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
-                                <p class="text-[10px] text-amber-500 leading-tight">
-                                    Akun <strong>{{ selectedUser.name }}</strong> belum memiliki PIN. <br>
-                                    Silakan gunakan akun lain atau pasang PIN di menu akun.
-                                </p>
-                            </div>
                         </div>
 
-                        <!-- PIN Input -->
+                        <!-- Password Input -->
                         <div v-if="hasSelectedUserPin">
                             <label
                                 class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
-                                <Lock :size="16" /> PIN Transaksi (4 Digit)
+                                <Lock :size="16" /> Kata Sandi Akun
                             </label>
-                            <div class="flex justify-between gap-3 px-4">
-                                <input v-for="(digit, idx) in 4" :key="idx" :ref="el => pinInputs[idx] = el"
-                                    v-model="pinDigits[idx]" type="password" inputmode="numeric" maxlength="1"
-                                    class="w-full h-14 bg-surface-50 dark:bg-surface-800 border-2 border-surface-100 dark:border-white/5 rounded-2xl text-center text-3xl font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all placeholder:text-text-secondary/20"
-                                    @input="handlePinInput(idx, $event)" @keydown="handlePinKeydown(idx, $event)" />
-                            </div>
+                            <input v-model="form.password" type="password"
+                                class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white"
+                                placeholder="Masukkan kata sandi..." />
                         </div>
 
                         <!-- Reason Input -->

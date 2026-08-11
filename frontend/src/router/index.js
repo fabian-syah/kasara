@@ -380,16 +380,6 @@ const routes = [
                 }
             },
             {
-                path: 'audit/pin-resets',
-                name: 'AuditPinResets',
-                component: () => import('../views/audit/PinResets.vue'),
-                meta: {
-                    title: 'Permintaan Reset PIN',
-                    menu: 'audit_pin_resets',
-                    permissions: ['audit.view']
-                }
-            },
-            {
                 path: 'audit/photo-approvals',
                 name: 'AuditPhotoApprovals',
                 component: Audit,
