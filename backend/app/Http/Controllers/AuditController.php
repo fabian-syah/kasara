@@ -3904,10 +3904,74 @@ class AuditController extends Controller
             $nonHpSheetData[] = ['', '* Produk non HP yang tertera disini khusus yang terjual saja', '', '', '', '', '', ''];
             $nonHpSheetData[] = ['', '** Untuk transaksi barang masuk non HP dari refund dll bisa di lihat di sheet "Penjualan" untuk keterangan lebih lengkapnya', '', '', '', '', '', ''];
 
+            // Build Sheet 4: Distributor (Pivot-like)
+            $distributorSheetData = [];
+            $pmMethods = $export->getPaymentMethods();
+            $pmNames = [];
+            $distHeaders = ['Label Baris'];
+            foreach ($pmMethods as $pm) {
+                $pmNames[] = $pm->name;
+                $distHeaders[] = 'Jumlah dari Pisah ' . $pm->name;
+            }
+            $distributorSheetData[] = $distHeaders;
+
+            $distStats = [];
+            $distTotals = array_fill(0, count($pmNames), 0);
+
+            // Re-use $rows (export collection)
+            foreach ($rows as $row) {
+                $distKeluar = trim($row['distributor_keluar'] ?? '');
+                
+                // Cek apakah baris ini memiliki pembayaran
+                $hasPayment = false;
+                foreach ($pmNames as $pmName) {
+                    $val = $row['pisah_' . $pmName] ?? '';
+                    if (is_numeric($val) && $val > 0) {
+                        $hasPayment = true;
+                        break;
+                    }
+                }
+                
+                if (!$hasPayment) continue;
+
+                if (empty($distKeluar)) {
+                    $distKeluar = 'unknown';
+                }
+
+                if (!isset($distStats[$distKeluar])) {
+                    $distStats[$distKeluar] = array_fill(0, count($pmNames), 0);
+                }
+
+                foreach ($pmNames as $idx => $pmName) {
+                    $val = $row['pisah_' . $pmName] ?? '';
+                    if (is_numeric($val) && $val > 0) {
+                        $distStats[$distKeluar][$idx] += (float)$val;
+                        $distTotals[$idx] += (float)$val;
+                    }
+                }
+            }
+
+            ksort($distStats);
+
+            foreach ($distStats as $distName => $totals) {
+                $distRow = [$distName];
+                foreach ($totals as $val) {
+                    $distRow[] = $val > 0 ? (float)$val : '';
+                }
+                $distributorSheetData[] = $distRow;
+            }
+
+            $footerRow = ['Total Keseluruhan'];
+            foreach ($distTotals as $total) {
+                $footerRow[] = $total > 0 ? (float)$total : '';
+            }
+            $distributorSheetData[] = $footerRow;
+
             return response((string) \App\Utils\SimpleXLSXGen::fromSheets([
                 'Penjualan' => $xlsxData,
                 'HP' => $imeiSheetData,
                 'Non-HP' => $nonHpSheetData,
+                'Distributor' => $distributorSheetData,
             ]), 200, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'Content-Disposition' => "attachment; filename=\"{$filename}\"",
