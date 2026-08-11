@@ -14,22 +14,8 @@ const toast = useToast();
 const inventoryAccounts = ref([]);
 const isLoading = ref(true);
 
-// PIN State
-const showPasswordModal = ref(false);
-const pinModalMode = ref('verify');
-const pinModalTitle = ref('Verifikasi PIN');
-const pinError = ref("");
-const isPinLoading = ref(false);
-const selectedAccountId = ref(null);
-
-const selectedAccount = computed(() => {
-    if (selectedAccountId.value === 'main') return authStore.user || {};
-    return inventoryAccounts.value.find(acc => acc.id === selectedAccountId.value) || {};
-});
-
 // "Buat Akun Inventory Baru" Form State
 const newAccountName = ref("");
-const newAccountPin = ref("");
 const isCreatingAccount = ref(false);
 
 // Edit Account State
@@ -106,12 +92,10 @@ async function createInventoryAccount() {
     isCreatingAccount.value = true;
     try {
         await inventoryApi.createAccount({
-            name: newAccountName.value,
-            password: newAccountPin.value || null
+            name: newAccountName.value
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
-        newAccountPin.value = "";
         
         await fetchAccounts();
     } catch (e) {
@@ -125,102 +109,6 @@ async function createInventoryAccount() {
 
 function cancelCreateAccount() {
     newAccountName.value = "";
-    newAccountPin.value = "";
-}
-
-function handlePinToggle(accountId, isMain = false) {
-    selectedAccountId.value = isMain ? 'main' : accountId;
-    const account = selectedAccount.value;
-    const isEnabled = isMain ? authStore.user : account;
-    const action = isEnabled ? 'Matikan' : 'Aktifkan';
-    const accountName = isMain ? 'Anda' : account.name;
-    
-    if (isEnabled) {
-        pinModalMode.value = 'verify';
-        pinModalTitle.value = `Matikan PIN ${accountName}`;
-        pinError.value = "";
-        showPasswordModal.value = true;
-        return;
-    }
-
-    pinModalMode.value = 'setup';
-    pinModalTitle.value = `${action} PIN ${accountName}`;
-    pinError.value = "";
-    showPasswordModal.value = true;
-}
-
-async function requestPinReset(accountId, isMain = false) {
-    selectedAccountId.value = isMain ? 'main' : accountId;
-    const accountName = isMain ? 'Akun Utama' : selectedAccount.value.name;
-    if (!confirm(`Ajukan reset PIN untuk ${accountName} ke departemen Audit?`)) return;
-    
-    try {
-        if (isMain) {
-            await authApiApi.requestResetPin();
-        } else {
-            await inventoryApi.requestResetPin(accountId);
-        }
-        
-        toast.success("Permintaan reset PIN berhasil diajukan!");
-        
-        if (isMain) {
-            const res = await usersApi.get(authStore.user.id);
-            authStore.updateUserData(res.data.data);
-        } else {
-            await fetchAccounts();
-        }
-    } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal mengajukan reset PIN.");
-    }
-}
-
-async function handlePinSuccess(pin) {
-    isPinLoading.value = true;
-    try {
-        const isMain = selectedAccountId.value === 'main';
-        if (pinModalMode.value === 'setup' && pin !== null) {
-            if (isMain) {
-                await authStore.setPin(pin);
-            } else {
-                const fd = new FormData();
-                if (pin) {
-                    fd.append('password', pin);
-                }
-                fd.append('pin_enabled', 1);
-                await inventoryApi.updateAccount(selectedAccountId.value, fd);
-            }
-            showPasswordModal.value = false;
-            toast.success("PIN berhasil dipasang dan diaktifkan!");
-        } else {
-            // Toggle Logic
-            let newState;
-            if (isMain) {
-                const res = await authStore.togglePin(pin);
-                newState = res.data;
-            } else {
-                const res = await inventoryApi.togglePin(selectedAccountId.value, pin);
-                newState = res.data.data;
-            }
-            showPasswordModal.value = false;
-            toast.success(`PIN berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}!`);
-        }
-        
-        if (isMain) {
-            const res = await usersApi.get(authStore.user.id);
-            authStore.updateUserData(res.data.data);
-        } else {
-            await fetchAccounts();
-        }
-    } catch (error) {
-        console.error("PIN operation failed", error);
-        if (error.response?.status === 422) {
-            pinError.value = error.response.data.message || "PIN salah.";
-        } else {
-            toast.error(error.response?.data?.message || "Operasi PIN gagal.");
-        }
-    } finally {
-        isPinLoading.value = false;
-    }
 }
 
 const accountsByBranch = computed(() => {
@@ -331,12 +219,6 @@ const accountsByBranch = computed(() => {
             </div>
         </div>
     </div>
-
-    <!-- PIN Modal Component -->
-    <PasswordModal :show="showPasswordModal" :mode="pinModalMode" :title="pinModalTitle" 
-        :error="pinError" :loading="isPinLoading"
-        @close="showPasswordModal = false"
-        @success="handlePinSuccess" />
 
     <!-- Edit Account Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm" @click="showEditModal = false">
