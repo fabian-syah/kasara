@@ -6,7 +6,6 @@ import { useToast } from "../../composables/useToast";
 import { 
     Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff
 } from "lucide-vue-next";
-import PasswordModal from "../../components/modals/PasswordModal.vue";
 
 const authStore = useAuthStore();
 const toast = useToast();

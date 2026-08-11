@@ -154,10 +154,6 @@ class UserController extends Controller
             $query->where('is_active', $request->boolean('is_active'));
         }
 
-        if ($request->boolean('needs_reset')) {
-            $query->whereNotNull('pin_reset_requested_at');
-        }
-
         return response()->json([
             'success' => true,
             'data' => $query->latest()->get()
@@ -311,7 +307,7 @@ class UserController extends Controller
         $inputs = $request->all();
         $validated = [];
 
-        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'transaction_pin', 'cover_photo'];
+        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'cover_photo'];
         foreach ($fields as $field) {
             if ($request->has($field)) {
                 $validated[$field] = $inputs[$field];
@@ -383,12 +379,6 @@ class UserController extends Controller
 
         if (isset($validated['full_name'])) {
             $validated['name'] = $validated['full_name'];
-        }
-
-        if ($request->filled('transaction_pin')) {
-            $validated['transaction_pin'] = \Illuminate\Support\Facades\Hash::make($request->transaction_pin);
-            $validated['pin_reset_requested_at'] = null;
-            $validated['pin_enabled'] = true;
         }
 
         $user->update($validated);
@@ -561,29 +551,10 @@ class UserController extends Controller
         $user->pending_photo_inventory = null; 
         $user->save();
 
-        return response()->json(['success' => true, 'message' => 'Perubahan foto profil ditolak.']);
-    }
-
-    public function approvePinReset($id)
-    {
-        $user = User::findOrFail($id);
-        /** @var \App\Models\User $currentUser */
-        $currentUser = Auth::user();
-
-        // Security check
-        if (!$currentUser->hasAnyRole(['super_admin', 'owner', 'audit'])) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        // Clear PIN and request
-        $user->transaction_pin = null;
-        $user->pin_reset_requested_at = null;
-        $user->pin_enabled = false; // Disable until they set a new one
-        $user->save();
-
         return response()->json([
             'success' => true,
-            'message' => "PIN untuk {$user->full_name} berhasil direset. User sekarang dapat membuat PIN baru."
+            'message' => 'Foto berhasil ditolak.',
+            'user' => $user->fresh()
         ]);
     }
 

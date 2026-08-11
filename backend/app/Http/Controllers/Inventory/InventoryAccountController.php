@@ -22,7 +22,7 @@ class InventoryAccountController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:50',
-            'transaction_pin' => 'nullable|string|size:4'
+            'password' => 'nullable|string|min:4'
         ]);
 
         /** @var \App\Models\User $user */
@@ -33,7 +33,7 @@ class InventoryAccountController extends Controller
 
         $username = 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
         $email = $username . '@apex-inventory.com';
-        $password = 'inventory123';
+        $password = $request->password ?: 'inventory123';
 
         DB::beginTransaction();
         try {
@@ -56,8 +56,6 @@ class InventoryAccountController extends Controller
                 'created_by' => $user->id,
                 'is_active' => true,
                 'theme_color' => 'default',
-                'transaction_pin' => $request->transaction_pin ?? '0000',
-                'pin_enabled' => false,
             ]);
 
             $newUser->assignRole($roleName);
@@ -111,9 +109,7 @@ class InventoryAccountController extends Controller
             'online_shop_id' => 'nullable|integer',
             'distributor_id' => 'nullable|integer',
             'photo_inventory' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
-            'photo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
-            'transaction_pin' => 'nullable|string|size:4',
-            'pin_enabled' => 'nullable|boolean'
+            'photo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240'
         ]);
 
         if ($request->has('branch_id'))
@@ -154,14 +150,6 @@ class InventoryAccountController extends Controller
             }
         }
 
-        if ($request->has('transaction_pin')) {
-            $account->transaction_pin = $request->transaction_pin;
-        }
-
-        if ($request->has('pin_enabled')) {
-            $account->pin_enabled = (bool) $request->pin_enabled;
-        }
-
         $account->load(['roles', 'createdBy']);
         $account->save();
 
@@ -174,48 +162,12 @@ class InventoryAccountController extends Controller
 
     public function togglePin(Request $request, $id)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        /** @var \App\Models\User $account */
-        $account = User::where('id', $id)
-            ->where(function ($q) use ($user) {
-                $q->where('created_by', $user->id);
-            })
-            ->firstOrFail();
-
-        if ($account->transaction_pin) {
-            $request->validate(['transaction_pin' => 'required|string']);
-            if (!Hash::check($request->transaction_pin, $account->transaction_pin)) {
-                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
-            }
-        }
-
-        $account->pin_enabled = !$account->pin_enabled;
-        
-        if (!$account->pin_enabled) {
-            $account->transaction_pin = null;
-        }
-        
-        $account->pin_reset_requested_at = null;
-        
-        $account->save();
-
-        return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
+        return response()->json(['success' => false, 'message' => 'Not supported'], 400);
     }
 
-    public function requestResetPin(Request $request, $id)
+    public function requestResetPin($id)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
-
-        $account->pin_reset_requested_at = now();
-        $account->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Permintaan reset PIN telah dicatat.'
-        ]);
+        return response()->json(['success' => true, 'message' => 'Not supported'], 400);
     }
 
     public function getMyInventoryUsers(Request $request)
@@ -287,12 +239,8 @@ class InventoryAccountController extends Controller
             }
         }
 
-        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
-            ->get()
-            ->map(function ($u) {
-                $u->has_pin = !empty($u->transaction_pin);
-                return $u;
-            });
+        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
+            ->get();
 
         return response()->json($inventoryUsers);
     }
