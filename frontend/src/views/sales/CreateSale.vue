@@ -27,7 +27,7 @@ import {
     Wallet,
     CheckSquare
 } from "lucide-vue-next";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 import SaleScreenshot from "../../components/sales/SaleScreenshot.vue";
 
@@ -126,9 +126,9 @@ const showSuccessModal = ref(false);
 const showScreenshotModal = ref(false);
 const lastTransaction = ref(null);
 const showInitialPinSetup = ref(false);
-const showPinModal = ref(false);
-const pinModalMode = ref("verify");
-const pinModalTitle = ref("Verifikasi PIN");
+const showPasswordModal = ref(false);
+const PasswordModalMode = ref("verify");
+const PasswordModalTitle = ref("Verifikasi PIN");
 const pendingPinCallback = ref(null);
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
@@ -328,13 +328,13 @@ function handleTransactionComplete(transaction) {
 
 function handleVerifyPin(callback) {
     pendingPinCallback.value = callback;
-    showPinModal.value = true;
-    pinModalMode.value = "verify";
-    pinModalTitle.value = "Verifikasi PIN Transaksi";
+    showPasswordModal.value = true;
+    PasswordModalMode.value = "verify";
+    PasswordModalTitle.value = "Verifikasi PIN Transaksi";
 }
 
 function handlePinSuccess(pin) {
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     if (pendingPinCallback.value) {
         pendingPinCallback.value(pin);
         pendingPinCallback.value = null;
@@ -581,7 +581,7 @@ watch(transactionCategory, () => {
         </div>
 
         <!-- SHARED MODALS -->
-        <PinModal :show="showPinModal" :title="pinModalTitle" :mode="pinModalMode" @close="showPinModal = false"
+        <PasswordModal :show="showPasswordModal" :title="PasswordModalTitle" :mode="PasswordModalMode" @close="showPasswordModal = false"
             @success="handlePinSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
             :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"

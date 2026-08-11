@@ -28,14 +28,14 @@ trait VerifiesPin
             $targetUser = User::find($targetUserId);
         }
 
-        // Only verify PIN if pin_enabled is explicitly turned on
-        if ($targetUser && $targetUser->pin_enabled) {
-            $pin = $request->transaction_pin;
+        if ($targetUser) {
+            // Check for password or transaction_pin (for transition compatibility)
+            $password = $request->password ?? $request->transaction_pin;
 
-            if (!$pin || !Hash::check($pin, $targetUser->transaction_pin)) {
+            if (!$password || !Hash::check($password, $targetUser->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'PIN transaksi salah atau diperlukan untuk akun ' . $targetUser->name
+                    'message' => 'Kata sandi salah atau diperlukan untuk akun ' . $targetUser->name
                 ], 422);
             }
         }

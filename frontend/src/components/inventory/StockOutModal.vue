@@ -10,7 +10,7 @@ import {
     ChevronLeft, ChevronRight, X, UserCheck, Box, Smartphone,
     Loader2, ScanBarcode, User, ArrowRightLeft, AlertTriangle, RotateCcw, LogOut, Plus, Shield
 } from "lucide-vue-next";
-import PinModal from "../modals/PinModal.vue";
+import PasswordModal from "../modals/PasswordModal.vue";
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -30,7 +30,7 @@ const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 // Copying required refs and functions from Inventory.vue
 const isSubmitting = ref(false);
 const selectedStockOutCategory = ref(null);
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 
 const stockOutForm = ref({
     sub_category: '',
@@ -600,7 +600,7 @@ const canSubmitStockOut = computed(() => {
 
 async function handlePinSuccess(pin) {
     console.log("[DEBUG MODAL] PIN success event received");
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     await submitStockOut(pin);
 }
 
@@ -615,9 +615,9 @@ async function submitStockOut(pin = null) {
     // Check if the selected inventory user requires a PIN
     const target = selectedInventoryUser.value;
     
-    if (target && target.pin_enabled && !pin) {
+    if (target && target && !pin) {
         console.info("[DEBUG MODAL] PIN Required for", target.name);
-        showPinModal.value = true;
+        showPasswordModal.value = true;
         return;
     }
 
@@ -717,7 +717,7 @@ async function submitStockOut(pin = null) {
         // WATCHDOG FOR 422 PIN ERROR
         if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
             console.warn("[DEBUG MODAL] WATCHDOG triggered for error:", errorMsg);
-            showPinModal.value = true;
+            showPasswordModal.value = true;
             toast.error(errorMsg);
         } else {
             toast.error(errorMsg || "Gagal keluar stok");
@@ -1320,7 +1320,7 @@ async function submitStockOut(pin = null) {
         </div>
 
         <!-- PIN Modal Component -->
-        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
+        <PasswordModal :show="showPasswordModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPasswordModal = false"
             @success="handlePinSuccess" />
     </div>
 </template>

@@ -6,7 +6,7 @@ import { useToast } from "../../composables/useToast";
 import { 
     Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff
 } from "lucide-vue-next";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 
 const authStore = useAuthStore();
 const toast = useToast();
@@ -15,7 +15,7 @@ const inventoryAccounts = ref([]);
 const isLoading = ref(true);
 
 // PIN State
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 const pinModalMode = ref('verify');
 const pinModalTitle = ref('Verifikasi PIN');
 const pinError = ref("");
@@ -131,7 +131,7 @@ function cancelCreateAccount() {
 function handlePinToggle(accountId, isMain = false) {
     selectedAccountId.value = isMain ? 'main' : accountId;
     const account = selectedAccount.value;
-    const isEnabled = isMain ? authStore.user?.pin_enabled : account.pin_enabled;
+    const isEnabled = isMain ? authStore.user : account;
     const action = isEnabled ? 'Matikan' : 'Aktifkan';
     const accountName = isMain ? 'Anda' : account.name;
     
@@ -139,14 +139,14 @@ function handlePinToggle(accountId, isMain = false) {
         pinModalMode.value = 'verify';
         pinModalTitle.value = `Matikan PIN ${accountName}`;
         pinError.value = "";
-        showPinModal.value = true;
+        showPasswordModal.value = true;
         return;
     }
 
     pinModalMode.value = 'setup';
     pinModalTitle.value = `${action} PIN ${accountName}`;
     pinError.value = "";
-    showPinModal.value = true;
+    showPasswordModal.value = true;
 }
 
 async function requestPinReset(accountId, isMain = false) {
@@ -187,19 +187,19 @@ async function handlePinSuccess(pin) {
                 fd.append('pin_enabled', 1);
                 await inventoryApi.updateAccount(selectedAccountId.value, fd);
             }
-            showPinModal.value = false;
+            showPasswordModal.value = false;
             toast.success("PIN berhasil dipasang dan diaktifkan!");
         } else {
             // Toggle Logic
             let newState;
             if (isMain) {
                 const res = await authStore.togglePin(pin);
-                newState = res.data.pin_enabled;
+                newState = res.data;
             } else {
                 const res = await inventoryApi.togglePin(selectedAccountId.value, pin);
-                newState = res.data.data.pin_enabled;
+                newState = res.data.data;
             }
-            showPinModal.value = false;
+            showPasswordModal.value = false;
             toast.success(`PIN berhasil ${newState ? 'diaktifkan' : 'dinonaktifkan'}!`);
         }
         
@@ -264,10 +264,6 @@ const accountsByBranch = computed(() => {
                             <label class="label">NAMA AKUN / BAGIAN</label>
                             <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="label">PIN TRANSAKSI (OPSIONAL)</label>
-                            <input v-model="newAccountPin" type="text" maxlength="4" style="-webkit-text-security: disc; -moz-text-security: disc; text-security: disc;" class="input tracking-[0.5em] font-mono" placeholder="••••" autocomplete="off" />
-                        </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
                             <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white px-3 py-2 transition-all">
@@ -282,38 +278,7 @@ const accountsByBranch = computed(() => {
                     </div>
                 </div>
                 
-                <!-- Main Account PIN -->
-                <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
-                    <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
-                        <Shield :size="18" class="text-primary-500" />
-                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Keamanan Akun Utama</h3>
-                    </div>
 
-                    <div class="space-y-4">
-                        <!-- Main PIN Status Card -->
-                        <div class="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl p-4 flex items-center justify-between shadow-inner">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                                    <Key :size="14" />
-                                </div>
-                                <div>
-                                    <p class="text-[9px] font-black text-zinc-400 uppercase">Status PIN ({{ authStore.user?.username }})</p>
-                                    <p class="text-xs font-black uppercase" :class="authStore.user?.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
-                                        {{ authStore.user?.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button @click="requestPinReset('main', true)" type="button" class="text-[10px] font-black uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors mr-2">
-                                    RESET PIN
-                                </button>
-                                <button @click="handlePinToggle('main', true)" type="button" class="text-[10px] font-black uppercase tracking-wider text-primary-500 hover:text-primary-400 transition-colors">
-                                    {{ authStore.user?.pin_enabled ? 'MATIKAN' : 'AKTIFKAN SEKARANG' }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Right Side: Accounts List Grouped by Branch -->
@@ -347,21 +312,12 @@ const accountsByBranch = computed(() => {
                                             <div>
                                                 <p class="text-[10px] font-black text-zinc-800 dark:text-white uppercase">{{ acc.name }}</p>
                                                 <p class="text-[9px] font-black text-zinc-500 uppercase">{{ acc.username }}</p>
-                                                <p class="text-[9px] font-black uppercase mt-0.5" :class="acc.pin_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'">
-                                                    {{ acc.pin_enabled ? 'PIN Aktif' : 'PIN Nonaktif' }}
-                                                </p>
                                             </div>
                                         </div>
 
                                         <div class="flex items-center gap-3">
                                             <button @click="openEditModal(acc)" type="button" class="text-[9px] font-black uppercase tracking-wider text-blue-500 hover:text-blue-400 transition-colors">
                                                 EDIT AKUN
-                                            </button>
-                                            <button @click="requestPinReset(acc.id)" type="button" class="text-[9px] font-black uppercase tracking-wider text-red-500 hover:text-red-400 transition-colors">
-                                                RESET PIN
-                                            </button>
-                                            <button @click="handlePinToggle(acc.id)" type="button" class="text-[9px] font-black uppercase tracking-wider text-primary-500 hover:text-primary-400 transition-colors">
-                                                {{ acc.pin_enabled ? 'MATIKAN' : 'AKTIFKAN' }}
                                             </button>
                                         </div>
                                     </div>
@@ -375,9 +331,9 @@ const accountsByBranch = computed(() => {
     </div>
 
     <!-- PIN Modal Component -->
-    <PinModal :show="showPinModal" :mode="pinModalMode" :title="pinModalTitle" 
+    <PasswordModal :show="showPasswordModal" :mode="pinModalMode" :title="pinModalTitle" 
         :error="pinError" :loading="isPinLoading"
-        @close="showPinModal = false"
+        @close="showPasswordModal = false"
         @success="handlePinSuccess" />
 
     <!-- Edit Account Modal -->

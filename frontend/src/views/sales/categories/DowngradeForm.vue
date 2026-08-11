@@ -495,7 +495,7 @@ async function submitDowngrade(pin = null) {
         return;
     }
 
-    if (!pin && props.selectedAccountObject?.pin_enabled) {
+    if (!pin && props.selectedAccountObject) {
         emit('verify-pin', (verifiedPin) => submitDowngrade(verifiedPin));
         return;
     }

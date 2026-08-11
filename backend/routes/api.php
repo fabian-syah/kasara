@@ -182,14 +182,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/receipt-settings', [ReceiptSettingController::class, 'show']);
     Route::post('/receipt-settings', [ReceiptSettingController::class, 'update']);
 
-    // PIN Management
-    Route::post('/pin/set', [AuthController::class, 'setPin']);
-    Route::post('/pin/update', [AuthController::class, 'updatePin']);
-    Route::post('/pin/toggle', [AuthController::class, 'togglePin']);
-    Route::prefix('pin')->group(function () {
-        Route::post('/verify', [AuthController::class, 'verifyPin']);
-        Route::post('/request-reset', [AuthController::class, 'requestResetPin']);
-    });
+    // PIN Management (Removed as per user request to replace with password)
 
     // ... users, branches, etc ...
     // User Photo Approvals
@@ -243,8 +236,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory/stock-in', [StockInController::class, 'stockIn']);
     Route::post('/inventory/account', [InventoryAccountController::class, 'createAccount']);
     Route::post('/inventory/account/{id}/update', [InventoryAccountController::class, 'updateAccount']);
-    Route::post('/inventory/account/{id}/toggle-pin', [InventoryAccountController::class, 'togglePin']);
-    Route::post('/inventory/account/{id}/request-reset', [InventoryAccountController::class, 'requestResetPin']);
     Route::post('/inventory/account/{id}/approve-photo', [InventoryController::class, 'approvePhoto']);
     Route::post('/inventory/account/{id}/reject-photo', [InventoryController::class, 'rejectPhoto']);
     Route::delete('/inventory/account/{id}', [InventoryAccountController::class, 'destroyAccount']);

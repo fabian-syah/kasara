@@ -256,7 +256,7 @@ async function handleSubmitOrder() {
         return;
     }
 
-    if (props.selectedAccountObject?.pin_enabled) {
+    if (props.selectedAccountObject) {
         emit('verify-pin', (pin) => processPayment(pin));
     } else {
         await processPayment();

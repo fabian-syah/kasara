@@ -627,7 +627,7 @@ async function submitTukarTambah(pin = null) {
         return;
     }
 
-    if (!pin && props.selectedAccountObject?.pin_enabled) {
+    if (!pin && props.selectedAccountObject) {
         emit('verify-pin', (verifiedPin) => submitTukarTambah(verifiedPin));
         return;
     }

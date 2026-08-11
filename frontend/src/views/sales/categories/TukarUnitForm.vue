@@ -477,7 +477,7 @@ async function submitUnitExchange(pin = null) {
         return;
     }
 
-    if (!pin && props.selectedAccountObject?.pin_enabled) {
+    if (!pin && props.selectedAccountObject) {
         emit('verify-pin', (verifiedPin) => submitUnitExchange(verifiedPin));
         return;
     }

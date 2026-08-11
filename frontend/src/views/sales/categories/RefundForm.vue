@@ -377,7 +377,7 @@ async function submitRefund(pin = null) {
         return;
     }
 
-    if (!pin && props.selectedAccountObject?.pin_enabled) {
+    if (!pin && props.selectedAccountObject) {
         emit('verify-pin', (verifiedPin) => submitRefund(verifiedPin));
         return;
     }

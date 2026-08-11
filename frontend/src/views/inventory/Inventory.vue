@@ -459,7 +459,7 @@ const editForm = ref({
   selling_price: 0,
   status: 'available',
   notes: '',
-  pin: '',
+  password: '',
   inventory_user_id: null
 });
 
@@ -501,7 +501,7 @@ async function openEditModal(item) {
     selling_price: item.selling_price || item.price || 0,
     status: item.status || 'available',
     notes: item.notes || '',
-    pin: '',
+    password: '',
     inventory_user_id: null
   };
   
@@ -524,8 +524,8 @@ async function saveInventoryUpdate() {
       toast.error("Silakan pilih akun inventory terlebih dahulu");
       return;
     }
-    if (!editForm.value.pin) {
-      toast.error("Silakan masukkan PIN akun inventory yang dipilih");
+    if (!editForm.value.password) {
+      toast.error("Silakan masukkan Kata Sandi akun inventory yang dipilih");
       return;
     }
   }
@@ -809,7 +809,7 @@ async function fetchMyInventoryUsers() {
 }
 
 function selectAccount(user) {
-  if (!user.pin_enabled) return;
+  if (!user) return;
   editForm.value.inventory_user_id = user.id;
   isAccountDropdownOpen.value = false;
 }
@@ -2019,13 +2019,13 @@ async function exportInventory() {
                 <button v-for="u in myInventoryUsers" :key="u.id" @click="selectAccount(u)"
                   type="button"
                   class="w-full text-left px-4 py-2.5 hover:bg-surface-700 transition-colors flex flex-col gap-0.5 border-b border-surface-700/50 last:border-0"
-                  :disabled="!u.pin_enabled"
-                  :class="{ 'opacity-50 grayscale cursor-not-allowed': !u.pin_enabled, 'bg-emerald-500/10': editForm.inventory_user_id === u.id }">
+                  :disabled="!u"
+                  :class="{ 'opacity-50 grayscale cursor-not-allowed': !u, 'bg-emerald-500/10': editForm.inventory_user_id === u.id }">
                   <span class="text-sm font-bold" :class="editForm.inventory_user_id === u.id ? 'text-emerald-400' : 'text-text-primary'">
                     {{ u.name }} ({{ u.username }})
                   </span>
-                  <span class="text-[10px] uppercase tracking-wider" :class="!u.pin_enabled ? 'text-red-400' : 'text-text-secondary'">
-                    {{ !u.pin_enabled ? 'PIN Belum Aktif - Segera Atur PIN' : 'PIN Aktif' }}
+                  <span class="text-[10px] uppercase tracking-wider text-text-secondary">
+                    Gunakan Akun Ini
                   </span>
                 </button>
                 <div v-if="myInventoryUsers.length === 0" class="px-4 py-6 text-center text-text-secondary text-sm">
@@ -2033,7 +2033,7 @@ async function exportInventory() {
                 </div>
               </div>
             </div>
-            <p class="text-[10px] text-text-secondary mt-1">Hanya akun dengan PIN aktif yang dapat dipilih.</p>
+            <p class="text-[10px] text-text-secondary mt-1">Silakan pilih akun untuk melanjutkan.</p>
           </div>
 
           <div v-if="!isInventoryUser">
@@ -2042,13 +2042,12 @@ async function exportInventory() {
           </div>
 
           <div v-if="isInventoryUser">
-            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun (Wajib)</label>
-            <input v-model="editForm.pin" type="password" maxlength="4" 
-              class="input w-full text-center text-4xl tracking-[1em] font-bold py-6 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
-              placeholder="••••"
-              @input="editForm.pin = editForm.pin.replace(/\D/g, '')" />
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Kata Sandi Akun (Wajib)</label>
+            <input v-model="editForm.password" type="password"
+              class="input w-full text-center text-xl font-bold py-4 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
+              placeholder="••••••••" />
             <p class="text-[10px] text-text-secondary mt-2">
-              Gunakan PIN dari akun inventory yang dipilih di atas.
+              Gunakan kata sandi dari akun inventory yang dipilih di atas.
             </p>
           </div>
         </div>

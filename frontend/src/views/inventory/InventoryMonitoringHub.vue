@@ -5,7 +5,7 @@ import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
     Package,
@@ -164,7 +164,7 @@ const handleLocationTypeChange = () => {
 };
 
 // Modal/Form States (Shared)
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 const pinCallback = ref(null);
 const selectedTransfer = ref(null);
 const isSubmitting = ref(false);
@@ -548,10 +548,10 @@ function closeModal() {
 // --- PIN Verification ---
 function handleVerifyPin(callback) {
     pinCallback.value = callback;
-    showPinModal.value = true;
+    showPasswordModal.value = true;
 }
 function onPinVerified(pin) {
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     if (pinCallback.value) { pinCallback.value(pin); pinCallback.value = null; }
 }
 
@@ -562,7 +562,7 @@ async function submitReceive(verifiedPin = null) {
     const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
 
-    if (!pin && selectedAccount?.pin_enabled) {
+    if (!pin && selectedAccount) {
         handleVerifyPin((vPin) => submitReceive(vPin));
         return;
     }
@@ -1476,7 +1476,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
+        <PasswordModal :show="showPasswordModal" @close="showPasswordModal = false" @success="onPinVerified" />
 
         <!-- Expedition Modal -->
         <div v-if="showExpeditionModal && selectedTransfer" class="modal-backdrop" @click.self="closeExpeditionModal">

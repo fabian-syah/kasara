@@ -40,14 +40,14 @@ async function fetchInventoryUsers() {
                 id: currentUser.id,
                 name: currentUser.name,
                 full_name: currentUser.full_name,
-                pin_enabled: !!currentUser.pin_enabled,
+                pin_enabled: true,
                 transaction_pin_exists: !!currentUser.transaction_pin_exists
             });
         }
         
         inventoryUsers.value = accounts.map(u => ({
             ...u,
-            pin_enabled: !!u.pin_enabled,
+            pin_enabled: true,
             transaction_pin_exists: !!u.transaction_pin_exists
         }));
         
@@ -75,7 +75,7 @@ const selectedUser = computed(() => {
 });
 
 const hasSelectedUserPin = computed(() => {
-    return !!selectedUser.value?.pin_enabled;
+    return !!selectedUser.value;
 });
 
 const canSubmitInternal = computed(() => {
@@ -190,12 +190,12 @@ watch(() => props.show, (newVal) => {
                                 <option v-for="user in inventoryUsers" :key="user.id" :value="user.id"
                                     class="dark:bg-surface-800">
                                     {{ user.name }} {{ user.id === sale?.inventory_user_id ? '(Pembuat)' : '' }} - {{
-                                        user.pin_enabled ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
+                                        user ? 'Sudah Ada PIN' : 'Belum Ada PIN' }}
                                 </option>
                             </select>
 
                             <!-- Show warning ONLY if the user has NO active pin -->
-                            <div v-if="selectedUser && !selectedUser.pin_enabled"
+                            <div v-if="selectedUser && !selectedUser"
                                 class="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex gap-2">
                                 <AlertCircle :size="16" class="text-amber-500 shrink-0 mt-0.5" />
                                 <p class="text-[10px] text-amber-500 leading-tight">

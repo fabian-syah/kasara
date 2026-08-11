@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import {
     Package,
     Loader2,
@@ -41,18 +41,18 @@ const form = ref({
     non_hp_quantities: {} // { id: qty }
 });
 
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 const pinCallback = ref(null);
 const rejectionNotes = ref({}); // { itemId: string }
 const nonHpRejectionNotes = ref({}); // { itemId: string }
 
 function handleVerifyPin(callback) {
     pinCallback.value = callback;
-    showPinModal.value = true;
+    showPasswordModal.value = true;
 }
 
 function onPinVerified(pin) {
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     if (pinCallback.value) {
         pinCallback.value(pin);
         pinCallback.value = null;
@@ -132,7 +132,7 @@ async function submitConfirmation(verifiedPin = null) {
     const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
 
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
-    if (!pin && selectedAccount?.pin_enabled) {
+    if (!pin && selectedAccount) {
         handleVerifyPin((vPin) => submitConfirmation(vPin));
         return;
     }
@@ -486,7 +486,7 @@ onMounted(() => {
     </div>
 
     <!-- PIN Modal -->
-    <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
+    <PasswordModal :show="showPasswordModal" @close="showPasswordModal = false" @success="onPinVerified" />
 </template>
 
 <style scoped>

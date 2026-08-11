@@ -6,7 +6,7 @@ import { useToast } from "../../composables/useToast";
 import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
 // Scanner will be imported dynamically
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -173,7 +173,7 @@ const isScanning = ref(false);
 const scannerContainerId = 'barcode-scanner-container';
 let html5QrCode = null;
 
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 const accountNeedingPin = ref(null);
 const inventoryUsers = ref([]);
 const loadingUsers = ref(false);
@@ -771,7 +771,7 @@ async function fetchInventoryUsers() {
                 id: currentUser.id,
                 name: currentUser.name,
                 full_name: currentUser.full_name,
-                pin_enabled: !!currentUser.pin_enabled
+                pin_enabled: true
             });
         }
 
@@ -780,7 +780,7 @@ async function fetchInventoryUsers() {
             ...u,
             id: Number(u.id),
             // Strictly check if PIN is enabled
-            pin_enabled: Boolean(u.pin_enabled)
+            pin_enabled: true
         }));
 
         inventoryUsers.value = normalizedAccounts;
@@ -805,9 +805,9 @@ function handleStartSubmit() {
     const selectedId = form.value.inventory_user_id;
     const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
 
-    if (target && target.pin_enabled) {
+    if (target && target) {
         accountNeedingPin.value = target;
-        showPinModal.value = true;
+        showPasswordModal.value = true;
     } else {
         submitStockOut();
     }
@@ -815,7 +815,7 @@ function handleStartSubmit() {
 
 function onPinVerified(pin) {
     form.value.transaction_pin = pin;
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     submitStockOut();
 }
 
@@ -872,7 +872,7 @@ async function submitStockOut() {
             const targetId = form.value.inventory_user_id;
             const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
             accountNeedingPin.value = target;
-            showPinModal.value = true;
+            showPasswordModal.value = true;
             toast.error(errorMsg);
 
             // Clear wrong PIN
@@ -1101,7 +1101,7 @@ onMounted(() => {
                     </div>
                     <select v-else v-model="form.inventory_user_id" class="input bg-surface-800">
                         <option v-for="user in inventoryUsers" :key="user.id" :value="user.id">
-                            {{ user.name }} {{ user.pin_enabled ? '(Wajib PIN)' : '' }}
+                            {{ user.name }} {{ user ? '(Wajib PIN)' : '' }}
                         </option>
                     </select>
                 </div>
@@ -1470,7 +1470,7 @@ onMounted(() => {
         </div>
 
         <!-- Modals and Alerts -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
+        <PasswordModal :show="showPasswordModal" :user="accountNeedingPin" @close="showPasswordModal = false" @success="onPinVerified"
             @verified="onPinVerified" />
 
         <!-- Non HP Modal -->
@@ -1547,7 +1547,7 @@ onMounted(() => {
         </div>
 
         <!-- PIN Verification modal -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
+        <PasswordModal :show="showPasswordModal" :user="accountNeedingPin" @close="showPasswordModal = false" @success="onPinVerified"
             @verified="onPinVerified" />
     </div>
 </template>

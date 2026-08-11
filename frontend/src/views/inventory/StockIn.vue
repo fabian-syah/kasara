@@ -26,7 +26,7 @@ import {
     AlertTriangle,
     Shield,
 } from "lucide-vue-next";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import { debounce } from "../../utils/debounce";
 import { parseCurrency, formatNumber } from "../../utils/formatters";
 
@@ -48,7 +48,7 @@ const newDistributorName = ref("");
 const isRestoring = ref(true);
 
 // PIN State
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
 
 const targetUsers = ref([]);
 const selectedInventoryUserPinEnabled = ref(false);
@@ -721,12 +721,12 @@ function selectUserPlacement(user) {
 
     placementLabel.value = user.full_name || user.name;
     selectedInventoryUserId.value = user.id; // Capture Inventory Account ID
-    selectedInventoryUserPinEnabled.value = user.pin_enabled || false;
+    selectedInventoryUserPinEnabled.value = true;
     nextStep();
 }
 
 async function handlePinSuccess(pin) {
-    showPinModal.value = false;
+    showPasswordModal.value = false;
     await submitStockIn(pin);
 }
 
@@ -793,7 +793,7 @@ async function submitStockIn(verifiedPin = null) {
 
     // If the targeted inventory account has PIN enabled and we don't have a verified PIN yet
     if (selectedInventoryUserPinEnabled.value && !pin) {
-        showPinModal.value = true;
+        showPasswordModal.value = true;
         return;
     }
 
@@ -1452,7 +1452,7 @@ onMounted(() => {
         </div>
 
         <!-- PIN Modal Component -->
-        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
+        <PasswordModal :show="showPasswordModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPasswordModal = false"
             @success="handlePinSuccess" />
     </div>
 </template>
