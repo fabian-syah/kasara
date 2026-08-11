@@ -142,7 +142,7 @@ async function acceptReturn() {
         await api.patch(`/inventory/${selectedItem.value.id}/status`, {
             status: 'available',
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: transactionPin.value
+            password: transactionPin.value
         });
         toast.success("Barang berhasil diterima ke gudang");
         closeDetail();
@@ -166,7 +166,7 @@ async function rejectReturn() {
     try {
         await api.patch(`/inventory/${selectedItem.value.id}/reject-return`, {
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: transactionPin.value
+            password: transactionPin.value
         });
         toast.success("Retur ditolak dan barang dikembalikan ke lokasi asal");
         closeDetail();

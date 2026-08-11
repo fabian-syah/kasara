@@ -575,7 +575,7 @@ async function submitReceive(verifiedPin = null) {
             non_hp_items: receiveForm.value.non_hp_quantities,
             non_hp_rejection_notes: receiveForm.value.non_hp_rejection_notes,
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: pin
+            password: pin
         };
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
         toast.success("Transfer berhasil dikonfirmasi!");
@@ -592,7 +592,7 @@ async function submitReturn(verifiedPin = null) {
     isSubmitting.value = true;
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
-            transaction_pin: pin,
+            password: pin,
             inventory_user_id: selectedInventoryAccount.value
         });
         toast.success('Barang telah diterima kembali ke stok.');

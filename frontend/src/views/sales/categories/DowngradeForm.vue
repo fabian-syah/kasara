@@ -505,7 +505,7 @@ async function submitDowngrade(pin = null) {
     if (downgradePhotos.value.unit) formData.append('photo_unit', downgradePhotos.value.unit);
     if (downgradePhotos.value.customer) formData.append('photo_customer', downgradePhotos.value.customer);
     if (downgradePhotos.value.paymentProof) formData.append('payment_proof_image', downgradePhotos.value.paymentProof);
-    if (pin) formData.append('transaction_pin', pin);
+    if (pin) formData.append('password', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);

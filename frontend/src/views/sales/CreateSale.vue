@@ -132,7 +132,6 @@ const PasswordModalTitle = ref("Verifikasi Kata Sandi");
 const pendingPinCallback = ref(null);
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
-const newAccountPin = ref("");
 const loadingCreate = ref(false);
 const loadingStep3Data = ref(false);
 const isDataLoaded = ref(false);
@@ -166,8 +165,7 @@ async function handleCreateAccount() {
     loadingCreate.value = true;
     try {
         const res = await api.post('/inventory/account', {
-            name: newAccountName.value,
-            transaction_pin: newAccountPin.value
+            name: newAccountName.value
         });
 
         if (res.data.success) {
@@ -176,7 +174,6 @@ async function handleCreateAccount() {
             salesAccount.value = res.data.data.name;
             showCreateAccount.value = false;
             newAccountName.value = "";
-            newAccountPin.value = "";
         }
     } catch (e) {
         toast.error(e.response?.data?.message || "Gagal membuat akun inventory.");
@@ -261,9 +258,6 @@ onMounted(async () => {
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;
         if (userData) {
-            if (userData.roles?.some(r => r.name === 'toko_offline') && !userData.transaction_pin) {
-                showInitialPinSetup.value = true;
-            }
             // Try match by ID first if present
             const match = salesAccounts.value.find(acc => acc.id === userData.id || acc.name === userData.name);
             if (match && !salesAccount.value) {

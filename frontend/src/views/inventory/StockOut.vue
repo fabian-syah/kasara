@@ -127,9 +127,8 @@ const form = ref({
     notes: '',
     missing_category: '',
     person_in_charge: '',
-    loss_chronology: '',
     inventory_user_id: null,
-    transaction_pin: '',
+    password: '',
     // Giveaway fields
     giveaway_receiver: '',
     giveaway_phone: '',
@@ -547,7 +546,7 @@ function resetForm() {
         selling_price: null,
         notes: '',
         inventory_user_id: authStore.user?.id || null,
-        transaction_pin: '',
+        password: '',
         giveaway_receiver: '',
         giveaway_phone: '',
         giveaway_address: '',
@@ -814,7 +813,7 @@ function handleStartSubmit() {
 }
 
 function onPinVerified(pin) {
-    form.value.transaction_pin = pin;
+    form.value.password = pin;
     showPasswordModal.value = false;
     submitStockOut();
 }
@@ -876,7 +875,7 @@ async function submitStockOut() {
             toast.error(errorMsg);
 
             // Clear wrong PIN
-            form.value.transaction_pin = '';
+            form.value.password = '';
         } else if (e.response && e.response.status === 422) {
             const msg = e.response.data.message || "Validasi gagal. Mohon periksa kembali data Anda.";
             toast.error(msg);

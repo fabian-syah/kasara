@@ -78,11 +78,6 @@ export const auth = {
     verifyPassword: (password) => api.post('/verify-password', { password }),
     user: () => api.get('/user'),
     refresh: () => api.post('/refresh'),
-    setPin: (pin) => api.post('/pin/set', { transaction_pin: pin }),
-    updatePin: (current_pin, new_pin) => api.post('/pin/update', { current_pin, new_pin }),
-    togglePin: (pin) => api.post('/pin/toggle', { transaction_pin: pin }),
-    verifyPin: (pin) => api.post('/pin/verify', { transaction_pin: pin }),
-    requestResetPin: () => api.post('/pin/request-reset'),
     updateFontSize: (size) => api.post('/settings/font-size', { font_size: size })
 }
 
@@ -119,8 +114,6 @@ export const inventory = {
     lookupPrice: (data) => api.post('/product-prices/lookup', data),
     updateAccount: (id, data) => api.post(`/inventory/account/${id}/update`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
     myAccounts: () => api.get('/inventory/my-accounts'),
-    togglePin: (id, pin) => api.post(`/inventory/account/${id}/toggle-pin`, { transaction_pin: pin }),
-    requestResetPin: (id) => api.post(`/inventory/account/${id}/request-reset`),
     listPendingPhotos: (params) => api.get('/inventory/accounts/pending-photos', { params }),
     approvePhoto: (id) => api.post(`/inventory/account/${id}/approve-photo`),
     rejectPhoto: (id, reason) => api.post(`/inventory/account/${id}/reject-photo`, { reason }),

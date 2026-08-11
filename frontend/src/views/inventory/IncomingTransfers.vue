@@ -145,7 +145,7 @@ async function submitConfirmation(verifiedPin = null) {
             non_hp_items: form.value.non_hp_quantities,
             non_hp_rejection_notes: form.value.non_hp_rejection_notes,
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: pin
+            password: pin
         };
 
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);

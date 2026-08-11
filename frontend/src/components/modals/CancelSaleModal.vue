@@ -38,7 +38,7 @@ async function fetchInventoryUsers() {
                 name: currentUser.name,
                 full_name: currentUser.full_name,
                 pin_enabled: true,
-                transaction_pin_exists: !!currentUser.transaction_pin_exists
+                password_exists: !!currentUser.password_exists
             });
         }
         

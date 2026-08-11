@@ -351,7 +351,7 @@ async function submitTradeIn(pin = null) {
     if (props.selectedAccountObject?.id) {
         formData.append('inventory_user_id', props.selectedAccountObject.id);
     }
-    if (pin) formData.append('transaction_pin', pin);
+    if (pin) formData.append('password', pin);
     formData.append('notes', dpForm.value.notes);
 
     // Send manual product details 

@@ -74,7 +74,7 @@ const handlePinConfirm = async (pinStr) => {
     processingId.value = selectedTransfer.value.id
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
-            transaction_pin: pinStr,
+            password: pinStr,
             inventory_user_id: selectedInventoryAccount.value
         })
         success('Barang telah diterima kembali ke stok.')

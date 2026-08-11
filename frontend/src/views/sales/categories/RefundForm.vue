@@ -387,7 +387,7 @@ async function submitRefund(pin = null) {
     const formData = new FormData();
     if (refundPhotos.value.unit) formData.append('photo_unit', refundPhotos.value.unit);
     if (refundPhotos.value.customer) formData.append('photo_customer', refundPhotos.value.customer);
-    if (pin) formData.append('transaction_pin', pin);
+    if (pin) formData.append('password', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);

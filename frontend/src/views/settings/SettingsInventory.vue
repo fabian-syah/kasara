@@ -107,7 +107,7 @@ async function createInventoryAccount() {
     try {
         await inventoryApi.createAccount({
             name: newAccountName.value,
-            transaction_pin: newAccountPin.value || null
+            password: newAccountPin.value || null
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
@@ -183,7 +183,9 @@ async function handlePinSuccess(pin) {
                 await authStore.setPin(pin);
             } else {
                 const fd = new FormData();
-                fd.append('transaction_pin', pin);
+                if (pin) {
+                    fd.append('password', pin);
+                }
                 fd.append('pin_enabled', 1);
                 await inventoryApi.updateAccount(selectedAccountId.value, fd);
             }

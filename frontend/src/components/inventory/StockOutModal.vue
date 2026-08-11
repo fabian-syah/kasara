@@ -627,7 +627,7 @@ async function submitStockOut(pin = null) {
         formData.append('category', selectedStockOutCategory.value);
         if (pin) {
             console.log("[DEBUG MODAL] Transaction PIN added to formData");
-            formData.append('transaction_pin', pin);
+            formData.append('password', pin);
         }
 
         const hpItems = props.selectedItems.filter(item => !item.type || item.type === 'hp');
