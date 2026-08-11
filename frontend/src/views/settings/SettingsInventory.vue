@@ -15,6 +15,7 @@ const isLoading = ref(true);
 
 // "Buat Akun Inventory Baru" Form State
 const newAccountName = ref("");
+const newAccountUsername = ref("");
 const newAccountPassword = ref("");
 const isCreatingAccount = ref(false);
 
@@ -93,10 +94,12 @@ async function createInventoryAccount() {
     try {
         await inventoryApi.createAccount({
             name: newAccountName.value,
+            username: newAccountUsername.value || undefined,
             password: newAccountPassword.value || 'inventory123'
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
+        newAccountUsername.value = "";
         newAccountPassword.value = "";
         
         await fetchAccounts();
@@ -111,6 +114,7 @@ async function createInventoryAccount() {
 
 function cancelCreateAccount() {
     newAccountName.value = "";
+    newAccountUsername.value = "";
     newAccountPassword.value = "";
 }
 
@@ -153,9 +157,13 @@ const accountsByBranch = computed(() => {
                     </p>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
-                        <div class="space-y-1.5">
+                        <div class="space-y-1.5 sm:col-span-2">
                             <label class="label">NAMA AKUN / BAGIAN</label>
                             <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">USERNAME (Opsional)</label>
+                            <input v-model="newAccountUsername" type="text" class="input" placeholder="Otomatis jika kosong" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">KATA SANDI (Opsional)</label>

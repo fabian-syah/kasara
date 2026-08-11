@@ -22,6 +22,7 @@ class InventoryAccountController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:50',
+            'username' => 'nullable|string|max:50|unique:users,username',
             'password' => 'nullable|string|min:4'
         ]);
 
@@ -31,7 +32,7 @@ class InventoryAccountController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki lokasi fisik untuk membuat akun inventory.'], 403);
         }
 
-        $username = 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
+        $username = $request->username ?: 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
         $email = $username . '@apex-inventory.com';
         $password = $request->password ?: 'inventory123';
 
