@@ -15,6 +15,7 @@ const isLoading = ref(true);
 
 // "Buat Akun Inventory Baru" Form State
 const newAccountName = ref("");
+const newAccountPassword = ref("");
 const isCreatingAccount = ref(false);
 
 // Edit Account State
@@ -91,10 +92,12 @@ async function createInventoryAccount() {
     isCreatingAccount.value = true;
     try {
         await inventoryApi.createAccount({
-            name: newAccountName.value
+            name: newAccountName.value,
+            password: newAccountPassword.value || 'inventory123'
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
+        newAccountPassword.value = "";
         
         await fetchAccounts();
     } catch (e) {
@@ -108,6 +111,7 @@ async function createInventoryAccount() {
 
 function cancelCreateAccount() {
     newAccountName.value = "";
+    newAccountPassword.value = "";
 }
 
 const accountsByBranch = computed(() => {
@@ -152,6 +156,10 @@ const accountsByBranch = computed(() => {
                         <div class="space-y-1.5">
                             <label class="label">NAMA AKUN / BAGIAN</label>
                             <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="label">KATA SANDI (Opsional)</label>
+                            <input v-model="newAccountPassword" type="text" class="input" placeholder="Default: inventory123" autocomplete="off" />
                         </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
