@@ -19,7 +19,10 @@ export default defineConfig({
           'charts': ['chart.js', 'vue-chartjs'],
           'qr-scanner': ['html5-qrcode'],
           'export-tools-v2': ['html-to-image', 'html2canvas', 'jspdf']
-        }
+        },
+        entryFileNames: 'assets/[name]-[hash]-v2.js',
+        chunkFileNames: 'assets/[name]-[hash]-v2.js',
+        assetFileNames: 'assets/[name]-[hash]-v2.[ext]'
       }
     },
     chunkSizeWarningLimit: 1000,
