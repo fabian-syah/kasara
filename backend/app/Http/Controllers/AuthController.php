@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 namespace App\Http\Controllers;
 
@@ -158,6 +158,80 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Password benar.',
+        ]);
+    }
+
+    public function setPin(Request $request)
+    {
+        $user = $request->user();
+        $request->validate(['transaction_pin' => 'required|string|size:4']);
+        $user->transaction_pin = $request->transaction_pin;
+        $user->pin_enabled = true;
+        $user->save();
+        return response()->json(['success' => true, 'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')]);
+    }
+
+    public function updatePin(Request $request)
+    {
+        $user = $request->user();
+        $request->validate([
+            'current_pin' => 'required|string|size:4',
+            'new_pin' => 'required|string|size:4'
+        ]);
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_pin, $user->transaction_pin)) {
+            return response()->json(['success' => false, 'message' => 'PIN saat ini salah.'], 422);
+        }
+        $user->transaction_pin = $request->new_pin;
+        $user->save();
+        return response()->json(['success' => true]);
+    }
+
+    public function togglePin(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->transaction_pin) {
+            $request->validate(['transaction_pin' => 'required|string']);
+            if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+            }
+        }
+
+        $user->pin_enabled = !$user->pin_enabled;
+        
+        if (!$user->pin_enabled) {
+            $user->transaction_pin = null;
+        }
+        
+        $user->pin_reset_requested_at = null;
+        $user->save();
+
+        return response()->json([
+            'success' => true, 
+            'pin_enabled' => $user->pin_enabled,
+            'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')
+        ]);
+    }
+
+    public function verifyPin(Request $request)
+    {
+        $user = $request->user();
+        $request->validate(['transaction_pin' => 'required|string|size:4']);
+        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+            return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+        }
+        return response()->json(['success' => true]);
+    }
+
+    public function requestResetPin(Request $request)
+    {
+        $user = $request->user();
+        $user->pin_reset_requested_at = now();
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Permintaan reset PIN telah dicatat.'
         ]);
     }
 

@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { inventory as inventoryApi, auth as authApiApi, users as usersApi } from "../../api/axios";

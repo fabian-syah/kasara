@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { X, Trash2, User, Lock, AlertCircle, Loader2 } from 'lucide-vue-next';
 import api, { inventory as inventoryApi } from "../../api/axios";

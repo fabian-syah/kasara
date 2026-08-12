@@ -1,4 +1,4 @@
-﻿<script setup>
+<script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
