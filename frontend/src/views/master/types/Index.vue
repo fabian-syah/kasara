@@ -77,15 +77,15 @@ const openEditModal = (type) => {
 
 const openDeleteModal = (id) => {
     typeToDelete.value = id;
-    deletePassword.value = '';
+    deletePin.value = '';
     showDeleteModal.value = true;
 };
 
 const confirmDelete = async () => {
-    if (!deletePassword.value) return;
-    verifyingPassword.value = true;
+    if (!deletePin.value) return;
+    verifyingPin.value = true;
     try {
-        await apiAuth.verifyPassword(deletePassword.value);
+        await apiAuth.verifyPin(deletePin.value);
         await api.delete(typeToDelete.value);
         toast.success('Tipe berhasil dihapus');
         fetchTypes();
@@ -93,12 +93,12 @@ const confirmDelete = async () => {
     } catch (error) {
         console.error(error);
         if (error.response && error.response.status === 422) {
-            toast.error('Password salah!');
+            toast.error('PIN Keamanan salah!');
         } else {
             toast.error('Gagal menghapus tipe');
         }
     } finally {
-        verifyingPassword.value = false;
+        verifyingPin.value = false;
     }
 };
 
@@ -316,12 +316,12 @@ onMounted(() => {
             <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-md p-6 shadow-xl slide-in">
                 <h3 class="text-lg font-bold text-text-primary mb-2">Konfirmasi Hapus</h3>
                 <p class="text-text-secondary text-sm mb-5">
-                    Masukkan password Anda untuk melanjutkan penghapusan tipe ini.
+                    Masukkan PIN Keamanan Anda untuk melanjutkan penghapusan tipe ini.
                 </p>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">Password</label>
-                        <input v-model="deletePassword" type="password" placeholder="Masukkan password anda"
+                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">PIN Keamanan</label>
+                        <input v-model="deletePin" type="password" placeholder="Masukkan PIN keamanan anda" maxlength="4"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
                             @keyup.enter="confirmDelete" />
                     </div>
@@ -330,11 +330,11 @@ onMounted(() => {
                             class="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium text-sm transition-colors">
                             Batal
                         </button>
-                        <button @click="confirmDelete" :disabled="verifyingPassword || !deletePassword"
+                        <button @click="confirmDelete" :disabled="verifyingPin || !deletePin"
                             class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-red-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <RefreshCw v-if="verifyingPassword" class="animate-spin" :size="16" />
+                            <RefreshCw v-if="verifyingPin" class="animate-spin" :size="16" />
                             <Trash2 v-else :size="16" />
-                            <span>{{ verifyingPassword ? 'Memverifikasi...' : 'Hapus' }}</span>
+                            <span>{{ verifyingPin ? 'Memverifikasi...' : 'Hapus' }}</span>
                         </button>
                     </div>
                 </div>

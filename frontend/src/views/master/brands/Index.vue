@@ -84,25 +84,27 @@ const handleDelete = async (id) => {
     }
 };
 
-// --- Delete with Password Confirmation ---
+// --- Delete with PIN Confirmation ---
 const showDeleteModal = ref(false);
-const deletePassword = ref('');
+const deletePin = ref('');
 const brandToDelete = ref(null);
-const verifyingPassword = ref(false);
+const verifyingPin = ref(false);
 
-const openDeleteModal = (brandId) => {
-    brandToDelete.value = brandId;
-    deletePassword.value = '';
+// Debounce search for performance
+let searchTimeout = null;
+
+const openDeleteModal = (id) => {
+    brandToDelete.value = id;
+    deletePin.value = '';
     showDeleteModal.value = true;
 };
 
 const confirmDelete = async () => {
-    if (!deletePassword.value) return;
-
-    verifyingPassword.value = true;
+    if (!deletePin.value) return;
+    verifyingPin.value = true;
     try {
-        // 1. Verify Password
-        await apiAuth.verifyPassword(deletePassword.value);
+        // 1. Verify PIN
+        await apiAuth.verifyPin(deletePin.value);
 
         // 2. Delete Brand if password valid
         await api.delete(brandToDelete.value);
@@ -113,12 +115,12 @@ const confirmDelete = async () => {
     } catch (error) {
         console.error(error);
         if (error.response && error.response.status === 422) {
-            toast.error('Password salah!');
+            toast.error('PIN Keamanan salah!');
         } else {
-            toast.error('Gagal menghapus merek');
+            toast.error('Gagal menghapus merk');
         }
     } finally {
-        verifyingPassword.value = false;
+        verifyingPin.value = false;
     }
 };
 
@@ -257,15 +259,14 @@ onMounted(fetchData);
             class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in">
             <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-md p-6 shadow-xl slide-in">
                 <h3 class="text-xl font-bold text-text-primary mb-2">Konfirmasi Hapus</h3>
-                <p class="text-text-secondary mb-6">
-                    Tindakan ini tidak dapat dibatalkan. Masukkan password Anda untuk melanjutkan penghapusan merek ini.
+                <p class="text-text-secondary text-sm mb-5">
+                    Masukkan PIN Keamanan Anda untuk melanjutkan penghapusan merk ini.
                 </p>
-
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">Password</label>
-                        <input v-model="deletePassword" type="password" placeholder="Masukkan password anda"
-                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
+                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">PIN Keamanan</label>
+                        <input v-model="deletePin" type="password" placeholder="Masukkan PIN keamanan anda" maxlength="4"
+                            class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
                             @keyup.enter="confirmDelete" />
                     </div>
 
@@ -274,11 +275,11 @@ onMounted(fetchData);
                             class="px-4 py-2 bg-surface-700 hover:bg-surface-600 text-text-primary rounded-xl font-medium transition-colors">
                             Batal
                         </button>
-                        <button @click="confirmDelete" :disabled="verifyingPassword || !deletePassword"
-                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-red-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <RefreshCw v-if="verifyingPassword" class="animate-spin" :size="18" />
-                            <Trash2 v-else :size="18" />
-                            <span>{{ verifyingPassword ? 'Memverifikasi...' : 'Hapus Permanen' }}</span>
+                        <button @click="confirmDelete" :disabled="verifyingPin || !deletePin"
+                            class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-red-500/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <RefreshCw v-if="verifyingPin" class="animate-spin" :size="16" />
+                            <Trash2 v-else :size="16" />
+                            <span>{{ verifyingPin ? 'Memverifikasi...' : 'Hapus' }}</span>
                         </button>
                     </div>
                 </div>
