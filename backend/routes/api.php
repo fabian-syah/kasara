@@ -158,6 +158,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/verify-password', [AuthController::class, 'verifyPassword']);
+    Route::post('/verify-pin', [AuthController::class, 'verifyPin']);
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/settings/font-size', [AuthController::class, 'updateFontSize']);
     
