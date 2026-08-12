@@ -104,7 +104,8 @@ class InventoryAccountController extends Controller
         $request->validate([
             'name' => 'nullable|string|max:50',
             'username' => 'nullable|string|max:50|unique:users,username,' . $id,
-            'password' => 'nullable|string|min:6',
+            'transaction_pin' => 'nullable|string|size:4',
+            'remove_pin' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
             'branch_id' => 'nullable|integer',
             'warehouse_id' => 'nullable|integer',
@@ -132,9 +133,12 @@ class InventoryAccountController extends Controller
             $account->username = $request->username;
         }
 
-        if ($request->has('password') && !empty($request->password)) {
-            $account->password = Hash::make($request->password);
-            $account->password_changed_at = now();
+        if ($request->has('transaction_pin') && !empty($request->transaction_pin)) {
+            $account->transaction_pin = Hash::make($request->transaction_pin);
+            $account->pin_enabled = true;
+        } elseif ($request->has('remove_pin') && $request->remove_pin == 'true') {
+            $account->transaction_pin = null;
+            $account->pin_enabled = false;
         }
 
         $account->phone = $request->phone;
@@ -241,7 +245,7 @@ class InventoryAccountController extends Controller
             }
         }
 
-        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
+        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id', 'pin_enabled')
             ->get();
 
         return response()->json($inventoryUsers);

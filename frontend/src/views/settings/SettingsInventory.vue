@@ -27,8 +27,9 @@ const editAccountData = ref({
     name: "",
     username: "",
     // password: "",
-        transaction_pin: "",
-    // password_confirmation: ""
+    transaction_pin: "",
+    pin_confirmation: "",
+    remove_pin: false
 });
 const isUpdatingAccount = ref(false);
 
@@ -39,15 +40,16 @@ function openEditModal(acc) {
         username: acc.username,
         // password: "",
         transaction_pin: "",
-        // password_confirmation: ""
+        pin_confirmation: "",
+        remove_pin: false
     };
     showPassword.value = false;
     showEditModal.value = true;
 }
 
 async function submitEditAccount() {
-    if (editAccountData.value.password && editAccountData.value.password !== editAccountData.value.password_confirmation) {
-        toast.error("Password baru dan konfirmasi password tidak cocok!");
+    if (editAccountData.value.transaction_pin && editAccountData.value.transaction_pin !== editAccountData.value.pin_confirmation) {
+        toast.error("PIN baru dan konfirmasi PIN tidak cocok!");
         return;
     }
     
@@ -56,8 +58,10 @@ async function submitEditAccount() {
         const payload = new FormData();
         payload.append('name', editAccountData.value.name);
         payload.append('username', editAccountData.value.username);
-        if (editAccountData.value.password) {
-            payload.append('password', editAccountData.value.password);
+        if (editAccountData.value.transaction_pin) {
+            payload.append('transaction_pin', editAccountData.value.transaction_pin);
+        } else if (editAccountData.value.remove_pin) {
+            payload.append('remove_pin', 'true');
         }
         
         await inventoryApi.updateAccount(editAccountData.value.id, payload);
@@ -169,8 +173,8 @@ const accountsByBranch = computed(() => {
                             <input v-model="newAccountUsername" type="text" class="input" placeholder="Otomatis jika kosong" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
-                            <label class="label">KATA SANDI (Opsional)</label>
-                            <input v-model="newAccountPassword" type="text" class="input" placeholder="Default: inventory123" autocomplete="off" />
+                            <label class="label">PIN TRANSAKSI (Opsional)</label>
+                            <input v-model="newAccountPassword" type="text" class="input" placeholder="Default: 0000" maxlength="4" autocomplete="off" />
                         </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
@@ -252,20 +256,24 @@ const accountsByBranch = computed(() => {
                     <input v-model="editAccountData.username" type="text" class="input" placeholder="Username" />
                 </div>
                 <div>
-                    <label class="label">PASSWORD BARU (Opsional)</label>
+                    <label class="label">PIN BARU (Opsional)</label>
                     <div class="relative">
-                        <input v-model="editAccountData.password" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Kosongkan jika tidak diubah" />
+                        <input v-model="editAccountData.transaction_pin" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Kosongkan jika tidak diubah" maxlength="4" />
                         <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
                             <Eye v-if="!showPassword" :size="16" />
                             <EyeOff v-else :size="16" />
                         </button>
                     </div>
                 </div>
-                <div v-if="editAccountData.password">
-                    <label class="label">KONFIRMASI PASSWORD BARU</label>
+                <div v-if="editAccountData.transaction_pin">
+                    <label class="label">KONFIRMASI PIN BARU</label>
                     <div class="relative">
-                        <input v-model="editAccountData.password_confirmation" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Ulangi password baru" />
+                        <input v-model="editAccountData.pin_confirmation" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Ulangi PIN baru" maxlength="4" />
                     </div>
+                </div>
+                <div v-if="!editAccountData.transaction_pin" class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="removePin" v-model="editAccountData.remove_pin" class="rounded border-zinc-300 text-primary-500 focus:ring-primary-500" />
+                    <label for="removePin" class="text-xs text-zinc-600 dark:text-zinc-400 font-semibold cursor-pointer">Hapus PIN saat ini (Akun tidak akan ditagih PIN)</label>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-6">

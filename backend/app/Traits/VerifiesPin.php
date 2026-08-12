@@ -28,12 +28,9 @@ trait VerifiesPin
             $targetUser = User::find($targetUserId);
         }
 
-            // Must have PIN enabled and set
+            // Jika belum memasang PIN, biarkan saja langsung sukses tanpa PIN
             if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'Akun ' . $targetUser->name . ' belum memasang/mengaktifkan PIN.'
-                ], 403);
+                return null;
             }
 
             // Verify PIN

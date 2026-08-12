@@ -718,7 +718,7 @@ function selectUserPlacement(user) {
 
     placementLabel.value = user.full_name || user.name;
     selectedInventoryUserId.value = user.id; // Capture Inventory Account ID
-    selectedInventoryUserPinEnabled.value = true;
+    selectedInventoryUserPinEnabled.value = !!user.pin_enabled;
     nextStep();
 }
 
