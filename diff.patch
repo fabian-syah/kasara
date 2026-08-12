@@ -1,0 +1,340 @@
+﻿commit 2fbc9aa6f449c380b1c96e5c5d5637e42a045ff7
+Author: fabian-syah <fabian.syah@example.com>
+Date:   Wed Aug 12 02:16:48 2026 +0700
+
+    feat: implement inventory user management with CRUD operations and role-based access control
+
+diff --git a/backend/app/Http/Controllers/AuthController.php b/backend/app/Http/Controllers/AuthController.php
+index 85b09343..43e0d1ad 100644
+--- a/backend/app/Http/Controllers/AuthController.php
++++ b/backend/app/Http/Controllers/AuthController.php
+@@ -161,84 +161,6 @@ public function verifyPassword(Request $request)
+         ]);
+     }
+ 
+-    public function setPin(Request $request)
+-    {
+-        $user = $request->user();
+-        $request->validate(['transaction_pin' => 'required|string|size:4']);
+-        $user->transaction_pin = $request->transaction_pin; // Hashed automatically by model cast
+-        $user->pin_enabled = true;
+-        $user->save();
+-        return response()->json(['success' => true, 'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')]);
+-    }
+-
+-    public function updatePin(Request $request)
+-    {
+-        $user = $request->user();
+-        $request->validate([
+-            'current_pin' => 'required|string|size:4',
+-            'new_pin' => 'required|string|size:4'
+-        ]);
+-        if (!\Illuminate\Support\Facades\Hash::check($request->current_pin, $user->transaction_pin)) {
+-            return response()->json(['success' => false, 'message' => 'PIN saat ini salah.'], 422);
+-        }
+-        $user->transaction_pin = $request->new_pin;
+-        $user->save();
+-        return response()->json(['success' => true]);
+-    }
+-
+-    public function togglePin(Request $request)
+-    {
+-        $user = $request->user();
+-
+-        // Verification is MANDATORY if PIN exists
+-        if ($user->transaction_pin) {
+-            $request->validate(['transaction_pin' => 'required|string']);
+-            if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+-                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+-            }
+-        }
+-
+-        // Toggle state
+-        $user->pin_enabled = !$user->pin_enabled;
+-        
+-        // If turning OFF, DELETE it as requested
+-        if (!$user->pin_enabled) {
+-            $user->transaction_pin = null;
+-        }
+-        
+-        // Clear reset request
+-        $user->pin_reset_requested_at = null;
+-        $user->save();
+-
+-        return response()->json([
+-            'success' => true, 
+-            'pin_enabled' => $user->pin_enabled,
+-            'user' => $user->load('branch', 'roles', 'warehouse', 'onlineShop', 'placements')
+-        ]);
+-    }
+-
+-    public function verifyPin(Request $request)
+-    {
+-        $user = $request->user();
+-        $request->validate(['transaction_pin' => 'required|string|size:4']);
+-        if (!\Illuminate\Support\Facades\Hash::check($request->transaction_pin, $user->transaction_pin)) {
+-            return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+-        }
+-        return response()->json(['success' => true]);
+-    }
+-
+-    public function requestResetPin(Request $request)
+-    {
+-        $user = $request->user();
+-        $user->pin_reset_requested_at = now();
+-        $user->save();
+-
+-        return response()->json([
+-            'success' => true,
+-            'message' => 'Permintaan reset PIN telah dicatat.'
+-        ]);
+-    }
+-
+     public function updateFontSize(Request $request)
+     {
+         $request->validate([
+diff --git a/backend/app/Http/Controllers/Inventory/InventoryAccountController.php b/backend/app/Http/Controllers/Inventory/InventoryAccountController.php
+index d1213da9..c5c06cdc 100644
+--- a/backend/app/Http/Controllers/Inventory/InventoryAccountController.php
++++ b/backend/app/Http/Controllers/Inventory/InventoryAccountController.php
+@@ -22,7 +22,7 @@ public function createAccount(Request $request)
+ 
+         $request->validate([
+             'name' => 'required|string|max:50',
+-            'transaction_pin' => 'nullable|string|size:4'
++            'password' => 'nullable|string|min:4'
+         ]);
+ 
+         /** @var \App\Models\User $user */
+@@ -33,7 +33,7 @@ public function createAccount(Request $request)
+ 
+         $username = 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
+         $email = $username . '@apex-inventory.com';
+-        $password = 'inventory123';
++        $password = $request->password ?: 'inventory123';
+ 
+         DB::beginTransaction();
+         try {
+@@ -56,8 +56,6 @@ public function createAccount(Request $request)
+                 'created_by' => $user->id,
+                 'is_active' => true,
+                 'theme_color' => 'default',
+-                'transaction_pin' => $request->transaction_pin ?? '0000',
+-                'pin_enabled' => false,
+             ]);
+ 
+             $newUser->assignRole($roleName);
+@@ -111,9 +109,7 @@ public function updateAccount(Request $request, $id)
+             'online_shop_id' => 'nullable|integer',
+             'distributor_id' => 'nullable|integer',
+             'photo_inventory' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
+-            'photo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240',
+-            'transaction_pin' => 'nullable|string|size:4',
+-            'pin_enabled' => 'nullable|boolean'
++            'photo' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:10240'
+         ]);
+ 
+         if ($request->has('branch_id'))
+@@ -154,14 +150,6 @@ public function updateAccount(Request $request, $id)
+             }
+         }
+ 
+-        if ($request->has('transaction_pin')) {
+-            $account->transaction_pin = $request->transaction_pin;
+-        }
+-
+-        if ($request->has('pin_enabled')) {
+-            $account->pin_enabled = (bool) $request->pin_enabled;
+-        }
+-
+         $account->load(['roles', 'createdBy']);
+         $account->save();
+ 
+@@ -174,48 +162,12 @@ public function updateAccount(Request $request, $id)
+ 
+     public function togglePin(Request $request, $id)
+     {
+-        /** @var \App\Models\User $user */
+-        $user = Auth::user();
+-        /** @var \App\Models\User $account */
+-        $account = User::where('id', $id)
+-            ->where(function ($q) use ($user) {
+-                $q->where('created_by', $user->id);
+-            })
+-            ->firstOrFail();
+-
+-        if ($account->transaction_pin) {
+-            $request->validate(['transaction_pin' => 'required|string']);
+-            if (!Hash::check($request->transaction_pin, $account->transaction_pin)) {
+-                return response()->json(['success' => false, 'message' => 'PIN salah.'], 422);
+-            }
+-        }
+-
+-        $account->pin_enabled = !$account->pin_enabled;
+-        
+-        if (!$account->pin_enabled) {
+-            $account->transaction_pin = null;
+-        }
+-        
+-        $account->pin_reset_requested_at = null;
+-        
+-        $account->save();
+-
+-        return response()->json(['success' => true, 'data' => $account->load(['roles', 'createdBy'])]);
++        return response()->json(['success' => false, 'message' => 'Not supported'], 400);
+     }
+ 
+-    public function requestResetPin(Request $request, $id)
++    public function requestResetPin($id)
+     {
+-        /** @var \App\Models\User $user */
+-        $user = Auth::user();
+-        $account = User::where('id', $id)->where('created_by', $user->id)->firstOrFail();
+-
+-        $account->pin_reset_requested_at = now();
+-        $account->save();
+-
+-        return response()->json([
+-            'success' => true,
+-            'message' => 'Permintaan reset PIN telah dicatat.'
+-        ]);
++        return response()->json(['success' => true, 'message' => 'Not supported'], 400);
+     }
+ 
+     public function getMyInventoryUsers(Request $request)
+@@ -287,12 +239,8 @@ public function getMyInventoryUsers(Request $request)
+             }
+         }
+ 
+-        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'pin_enabled', 'transaction_pin', 'pin_reset_requested_at', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
+-            ->get()
+-            ->map(function ($u) {
+-                $u->has_pin = !empty($u->transaction_pin);
+-                return $u;
+-            });
++        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id')
++            ->get();
+ 
+         return response()->json($inventoryUsers);
+     }
+diff --git a/backend/app/Http/Controllers/InventoryController.php b/backend/app/Http/Controllers/InventoryController.php
+index f7f19a7e..4474bd35 100644
+--- a/backend/app/Http/Controllers/InventoryController.php
++++ b/backend/app/Http/Controllers/InventoryController.php
+@@ -584,14 +584,15 @@ public function update(Request $request, $id)
+                 }
+             }
+ 
+-            // Must have PIN enabled and set
+-            if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
+-                return response()->json(['message' => 'Akun ' . $targetUser->name . ' belum memasang/mengaktifkan PIN.'], 403);
++            // Verify Password using trait (it checks $request->password or $request->transaction_pin)
++            $verifyRequest = clone $request;
++            if ($request->has('pin')) {
++                $verifyRequest->merge(['password' => $request->pin]);
+             }
+-
+-            // Verify PIN
+-            if (!$request->pin || !Hash::check($request->pin, $targetUser->transaction_pin)) {
+-                return response()->json(['message' => 'PIN Keamanan salah'], 422);
++            
++            $passwordError = $this->verifyPin($verifyRequest, $targetUser->id);
++            if ($passwordError) {
++                return response()->json(['message' => 'Verifikasi Kata Sandi gagal.'], 422);
+             }
+ 
+             // Check if current price is 0
+diff --git a/backend/app/Http/Controllers/UserController.php b/backend/app/Http/Controllers/UserController.php
+index 5b160d7a..305c3394 100644
+--- a/backend/app/Http/Controllers/UserController.php
++++ b/backend/app/Http/Controllers/UserController.php
+@@ -154,10 +154,6 @@ public function index(Request $request)
+             $query->where('is_active', $request->boolean('is_active'));
+         }
+ 
+-        if ($request->boolean('needs_reset')) {
+-            $query->whereNotNull('pin_reset_requested_at');
+-        }
+-
+         return response()->json([
+             'success' => true,
+             'data' => $query->latest()->get()
+@@ -311,7 +307,7 @@ public function update(Request $request, $id)
+         $inputs = $request->all();
+         $validated = [];
+ 
+-        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'transaction_pin', 'cover_photo'];
++        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'cover_photo'];
+         foreach ($fields as $field) {
+             if ($request->has($field)) {
+                 $validated[$field] = $inputs[$field];
+@@ -385,12 +381,6 @@ public function update(Request $request, $id)
+             $validated['name'] = $validated['full_name'];
+         }
+ 
+-        if ($request->filled('transaction_pin')) {
+-            $validated['transaction_pin'] = \Illuminate\Support\Facades\Hash::make($request->transaction_pin);
+-            $validated['pin_reset_requested_at'] = null;
+-            $validated['pin_enabled'] = true;
+-        }
+-
+         $user->update($validated);
+ 
+         if (isset($validated['role'])) {
+@@ -561,29 +551,10 @@ public function rejectPhoto($id)
+         $user->pending_photo_inventory = null; 
+         $user->save();
+ 
+-        return response()->json(['success' => true, 'message' => 'Perubahan foto profil ditolak.']);
+-    }
+-
+-    public function approvePinReset($id)
+-    {
+-        $user = User::findOrFail($id);
+-        /** @var \App\Models\User $currentUser */
+-        $currentUser = Auth::user();
+-
+-        // Security check
+-        if (!$currentUser->hasAnyRole(['super_admin', 'owner', 'audit'])) {
+-            return response()->json(['message' => 'Unauthorized'], 403);
+-        }
+-
+-        // Clear PIN and request
+-        $user->transaction_pin = null;
+-        $user->pin_reset_requested_at = null;
+-        $user->pin_enabled = false; // Disable until they set a new one
+-        $user->save();
+-
+         return response()->json([
+             'success' => true,
+-            'message' => "PIN untuk {$user->full_name} berhasil direset. User sekarang dapat membuat PIN baru."
++            'message' => 'Foto berhasil ditolak.',
++            'user' => $user->fresh()
+         ]);
+     }
+ 
+diff --git a/backend/routes/api.php b/backend/routes/api.php
+index fcd35295..302c7f87 100644
+--- a/backend/routes/api.php
++++ b/backend/routes/api.php
+@@ -189,7 +189,7 @@
+     Route::get('/users/pending-photos', [UserController::class, 'pendingPhotos']);
+     Route::post('/users/{id}/approve-photo', [UserController::class, 'approvePhoto']);
+     Route::post('/users/{id}/reject-photo', [UserController::class, 'rejectPhoto']);
+-    Route::post('/users/{id}/approve-pin-reset', [UserController::class, 'approvePinReset']);
++
+ 
+     // Direct POST/PUT for updates (Fix for 422 & 405 issues with file uploads)
+     Route::match(['post', 'put'], '/users/{user}', [UserController::class, 'update']);
+diff --git a/frontend/src/views/settings/SettingsInventory.vue b/frontend/src/views/settings/SettingsInventory.vue
+index 2878c19b..93b38efa 100644
+--- a/frontend/src/views/settings/SettingsInventory.vue
++++ b/frontend/src/views/settings/SettingsInventory.vue
+@@ -6,7 +6,6 @@ import { useToast } from "../../composables/useToast";
+ import { 
+     Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff
+ } from "lucide-vue-next";
+-import PasswordModal from "../../components/modals/PasswordModal.vue";
+ 
+ const authStore = useAuthStore();
+ const toast = useToast();

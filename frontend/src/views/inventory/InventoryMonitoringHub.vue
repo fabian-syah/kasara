@@ -5,7 +5,7 @@ import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
-import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
     Package,
@@ -164,7 +164,7 @@ const handleLocationTypeChange = () => {
 };
 
 // Modal/Form States (Shared)
-const showPasswordModal = ref(false);
+const showPinModal = ref(false);
 const pinCallback = ref(null);
 const selectedTransfer = ref(null);
 const isSubmitting = ref(false);
@@ -548,10 +548,10 @@ function closeModal() {
 // --- PIN Verification ---
 function handleVerifyPin(callback) {
     pinCallback.value = callback;
-    showPasswordModal.value = true;
+    showPinModal.value = true;
 }
 function onPinVerified(pin) {
-    showPasswordModal.value = false;
+    showPinModal.value = false;
     if (pinCallback.value) { pinCallback.value(pin); pinCallback.value = null; }
 }
 
@@ -1476,7 +1476,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <PasswordModal :show="showPasswordModal" @close="showPasswordModal = false" @success="onPinVerified" />
+        <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
 
         <!-- Expedition Modal -->
         <div v-if="showExpeditionModal && selectedTransfer" class="modal-backdrop" @click.self="closeExpeditionModal">

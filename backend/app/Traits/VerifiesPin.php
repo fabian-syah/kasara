@@ -28,7 +28,24 @@ trait VerifiesPin
             $targetUser = User::find($targetUserId);
         }
 
-        if ($targetUser) {
+            // Must have PIN enabled and set
+            if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Akun ' . $targetUser->name . ' belum memasang/mengaktifkan PIN.'
+                ], 403);
+            }
+
+            // Verify PIN
+            $pin = $request->transaction_pin ?? $request->pin;
+            if (!$pin || !Hash::check($pin, $targetUser->transaction_pin)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PIN Keamanan salah atau diperlukan untuk akun ' . $targetUser->name
+                ], 422);
+            }
+            
+            /*
             // Check for password or transaction_pin (for transition compatibility)
             $password = $request->password ?? $request->transaction_pin;
 
@@ -38,7 +55,7 @@ trait VerifiesPin
                     'message' => 'Kata sandi salah atau diperlukan untuk akun ' . $targetUser->name
                 ], 422);
             }
-        }
+            */
 
         return null; // Success
     }

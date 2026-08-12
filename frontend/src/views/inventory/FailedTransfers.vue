@@ -20,7 +20,7 @@ import {
 import api from '../../api/axios'
 import { useToast } from '../../composables/useToast'
 import { useAuthStore } from '../../store/auth'
-import PasswordModal from '../../components/modals/PasswordModal.vue'
+import PinModal from '../../components/modals/PinModal.vue'
 
 const authStore = useAuthStore()
 const { success, error: toastError } = useToast()
@@ -30,7 +30,7 @@ const loading = ref(true)
 const searchQuery = ref('')
 const processingId = ref(null)
 
-const showPasswordModal = ref(false)
+const showPinModal = ref(false)
 const selectedTransfer = ref(null)
 
 // Inventory Accounts
@@ -65,7 +65,7 @@ const fetchFailedTransfers = async () => {
 
 const confirmReturn = (transfer) => {
     selectedTransfer.value = transfer
-    showPasswordModal.value = true
+    showPinModal.value = true
 }
 
 const handlePinConfirm = async (pinStr) => {
@@ -79,7 +79,7 @@ const handlePinConfirm = async (pinStr) => {
         })
         success('Barang telah diterima kembali ke stok.')
         fetchFailedTransfers()
-        showPasswordModal.value = false
+        showPinModal.value = false
         selectedTransfer.value = null
     } catch (err) {
         console.error('Failed to confirm return:', err)
@@ -303,13 +303,13 @@ onMounted(() => {
     </div>
 
     <!-- PIN Modal -->
-    <PasswordModal 
-        v-if="showPasswordModal"
-        :show="showPasswordModal"
+    <PinModal 
+        v-if="showPinModal"
+        :show="showPinModal"
         title="Verifikasi PIN"
         description="Masukkan PIN untuk memproses pengembalian barang ke stok Anda."
         :processing="processingId !== null"
-        @close="showPasswordModal = false"
+        @close="showPinModal = false"
         @success="handlePinConfirm"
     />
 </template>

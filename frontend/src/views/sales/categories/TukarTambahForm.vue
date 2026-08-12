@@ -638,7 +638,8 @@ async function submitTukarTambah(pin = null) {
     if (tukarTambahPhotos.value.unit) formData.append('photo_unit', tukarTambahPhotos.value.unit);
     if (tukarTambahPhotos.value.customer) formData.append('photo_customer', tukarTambahPhotos.value.customer);
     if (tukarTambahPhotos.value.paymentProof) formData.append('payment_proof_image', tukarTambahPhotos.value.paymentProof);
-    if (pin) formData.append('password', pin);
+    // if (pin) formData.append('password', pin);
+      if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);

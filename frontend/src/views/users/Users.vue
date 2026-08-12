@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch } from "vue";
 import { ROLE_LABELS, ROLES } from "../../utils/permissions";
 import { formatDate } from "../../utils/formatters";
@@ -115,7 +115,7 @@ const auditAccessibleDistributorIds = computed(() => {
     Number(p.model_id));
 });
 
-// Filtered data for modal form — audit only sees their assigned locations
+// Filtered data for modal form â€” audit only sees their assigned locations
 const availableBranches = computed(() => {
   if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
   if (auditAccessibleBranchIds.value.length === 0) return [];
@@ -200,7 +200,8 @@ const form = ref({
   selected_branches: [], // For Audit/Leader
   selected_online_shops: [], // For Audit/Leader
   selected_warehouses: [], // For Audit/Leader
-  selected_distributors: [], // For Audit/Leader
+  selected_distributors: [],
+    transaction_pin: "", // For Audit/Leader
 });
 
 const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
@@ -224,6 +225,7 @@ function resetForm() {
     selected_online_shops: [],
     selected_warehouses: [],
     selected_distributors: [],
+    transaction_pin: "",
   };
   showPassword.value = false;
 }
@@ -419,7 +421,7 @@ const filteredUsers = computed(() => {
     result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
   }
 
-  // Branch Filter — for sub-accounts without branch_id, match via their parent's branch
+  // Branch Filter â€” for sub-accounts without branch_id, match via their parent's branch
   if (selectedBranch.value) {
     result = result.filter(u => {
       if (!u) return false;
@@ -676,7 +678,7 @@ function getUserRoleName(user) {
         <p class="text-text-secondary mt-1">Kelola pengguna dan hak akses</p>
         <div
           class="mt-3 text-[11px] bg-blue-600/10 text-blue-400 p-3 rounded-xl flex items-start gap-3 border border-blue-500/20 shadow-sm leading-relaxed max-w-xl">
-          <span class="shrink-0 mt-0.5">💡</span>
+          <span class="shrink-0 mt-0.5">ðŸ’¡</span>
           <p>
             <strong>Tip:</strong> Klik pada foto profil di tabel untuk mengubah atau menambahkan foto pengguna. Hal ini
             berlaku untuk akun login maupun akun inventory.
@@ -814,6 +816,11 @@ function getUserRoleName(user) {
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
                         Login / Main
                       </span>
+                    </div>
+
+                                        <div v-if="user.pin_reset_requested_at" class="flex items-center gap-1.5 mt-1 animate-pulse">
+                      <span class="flex h-2 w-2 rounded-full bg-red-500"></span>
+                      <p class="text-[10px] font-bold text-red-500 uppercase">Butuh Reset PIN</p>
                     </div>
 
                     <p class="text-xs text-text-secondary font-mono mb-1">{{ user.username }}</p>
@@ -1079,12 +1086,37 @@ function getUserRoleName(user) {
               <label class="label">Password {{ editingUser ? '(Optional)' : '' }}</label>
               <div class="relative">
                 <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="input pr-10"
-                  placeholder="••••••••" :required="!editingUser" />
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" :required="!editingUser" />
                 <button type="button" @click="showPassword = !showPassword"
                   class="absolute right-3 top-2.5 text-text-secondary hover:text-text-primary">
                   <Eye v-if="!showPassword" :size="18" />
                   <EyeOff v-else :size="18" />
                 </button>
+              </div>
+            </div>
+
+                        <!-- Transaction PIN Reset -->
+            <div v-if="editingUser" class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+              <div class="flex items-center gap-2 text-amber-500">
+                <Shield :size="18" />
+                <h4 class="text-sm font-bold uppercase tracking-wider">PIN Transaksi</h4>
+              </div>
+
+              <div v-if="editingUser.pin_reset_requested_at"
+                class="flex items-start gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                <AlertCircle class="text-red-500 shrink-0 mt-0.5" :size="16" />
+                <p class="text-[11px] text-red-400 leading-tight">
+                  User ini meminta reset PIN pada {{ formatDate(editingUser.pin_reset_requested_at) }}.
+                  Masukkan PIN baru di bawah untuk mereset.
+                </p>
+              </div>
+
+              <div>
+                <label class="label">PIN Baru (4 Digit)</label>
+                <input v-model="form.transaction_pin" type="text" maxlength="4" class="input font-mono"
+                  placeholder="Abaikan jika tidak ingin merubah PIN"
+                  @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" />
+                <p class="text-[10px] text-text-secondary mt-1">Sifatnya opsional, digunakan jika user lupa PIN.</p>
               </div>
             </div>
 
@@ -1307,3 +1339,4 @@ function getUserRoleName(user) {
   }
 }
 </style>
+

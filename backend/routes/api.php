@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -189,6 +189,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/pending-photos', [UserController::class, 'pendingPhotos']);
     Route::post('/users/{id}/approve-photo', [UserController::class, 'approvePhoto']);
     Route::post('/users/{id}/reject-photo', [UserController::class, 'rejectPhoto']);
+    Route::post('/users/{id}/approve-pin-reset', [UserController::class, 'approvePinReset']);
 
 
     // Direct POST/PUT for updates (Fix for 422 & 405 issues with file uploads)
@@ -341,3 +342,4 @@ Route::middleware('auth:sanctum')->group(function () {
     // WhatsApp GDrive Share (Livewire style)
     Route::match(['get', 'post'], '/receipts/{id}/share-wa', [\App\Http\Controllers\WhatsAppShareController::class, 'share']);
 });
+

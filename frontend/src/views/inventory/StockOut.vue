@@ -6,7 +6,7 @@ import { useToast } from "../../composables/useToast";
 import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
 // Scanner will be imported dynamically
-import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -172,7 +172,7 @@ const isScanning = ref(false);
 const scannerContainerId = 'barcode-scanner-container';
 let html5QrCode = null;
 
-const showPasswordModal = ref(false);
+const showPinModal = ref(false);
 const accountNeedingPin = ref(null);
 const inventoryUsers = ref([]);
 const loadingUsers = ref(false);
@@ -806,7 +806,7 @@ function handleStartSubmit() {
 
     if (target && target) {
         accountNeedingPin.value = target;
-        showPasswordModal.value = true;
+        showPinModal.value = true;
     } else {
         submitStockOut();
     }
@@ -814,7 +814,7 @@ function handleStartSubmit() {
 
 function onPinVerified(pin) {
     form.value.password = pin;
-    showPasswordModal.value = false;
+    showPinModal.value = false;
     submitStockOut();
 }
 
@@ -871,7 +871,7 @@ async function submitStockOut() {
             const targetId = form.value.inventory_user_id;
             const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
             accountNeedingPin.value = target;
-            showPasswordModal.value = true;
+            showPinModal.value = true;
             toast.error(errorMsg);
 
             // Clear wrong PIN
@@ -1469,7 +1469,7 @@ onMounted(() => {
         </div>
 
         <!-- Modals and Alerts -->
-        <PasswordModal :show="showPasswordModal" :user="accountNeedingPin" @close="showPasswordModal = false" @success="onPinVerified"
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
             @verified="onPinVerified" />
 
         <!-- Non HP Modal -->
@@ -1546,7 +1546,7 @@ onMounted(() => {
         </div>
 
         <!-- PIN Verification modal -->
-        <PasswordModal :show="showPasswordModal" :user="accountNeedingPin" @close="showPasswordModal = false" @success="onPinVerified"
+        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
             @verified="onPinVerified" />
     </div>
 </template>

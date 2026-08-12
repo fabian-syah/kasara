@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { inventory as inventoryApi, auth as authApiApi, users as usersApi } from "../../api/axios";
@@ -26,8 +26,9 @@ const editAccountData = ref({
     id: null,
     name: "",
     username: "",
-    password: "",
-    password_confirmation: ""
+    // password: "",
+        transaction_pin: "",
+    // password_confirmation: ""
 });
 const isUpdatingAccount = ref(false);
 
@@ -36,8 +37,9 @@ function openEditModal(acc) {
         id: acc.id,
         name: acc.name,
         username: acc.username,
-        password: "",
-        password_confirmation: ""
+        // password: "",
+        transaction_pin: "",
+        // password_confirmation: ""
     };
     showPassword.value = false;
     showEditModal.value = true;
@@ -95,7 +97,8 @@ async function createInventoryAccount() {
         await inventoryApi.createAccount({
             name: newAccountName.value,
             username: newAccountUsername.value || undefined,
-            password: newAccountPassword.value || 'inventory123'
+            // password: newAccountPassword.value || 'inventory123',
+            transaction_pin: newAccountPassword.value || '0000'
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
@@ -304,3 +307,4 @@ const accountsByBranch = computed(() => {
     }
 }
 </style>
+

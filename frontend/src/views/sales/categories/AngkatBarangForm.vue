@@ -508,7 +508,8 @@ async function submitTradeIn(pin = null) {
     const formData = new FormData();
     if (tradeInPhotos.value.unit) formData.append('photo_unit', tradeInPhotos.value.unit);
     if (tradeInPhotos.value.customer) formData.append('photo_customer', tradeInPhotos.value.customer);
-    if (pin) formData.append('password', pin);
+    // if (pin) formData.append('password', pin);
+      if (pin) formData.append('transaction_pin', pin);
 
     if (props.selectedAccountObject?.id) formData.append('inventory_user_id', props.selectedAccountObject.id);
     if (props.salesAccount) formData.append('sales_account', props.salesAccount);

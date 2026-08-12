@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { X, Trash2, User, Lock, AlertCircle, Loader2 } from 'lucide-vue-next';
 import api, { inventory as inventoryApi } from "../../api/axios";
@@ -20,7 +20,7 @@ const inventoryUsers = ref([]);
 
 const form = ref({
     inventory_user_id: null,
-    password: '',
+    transaction_pin: '',
     reason: ''
 });
 
@@ -38,7 +38,7 @@ async function fetchInventoryUsers() {
                 name: currentUser.name,
                 full_name: currentUser.full_name,
                 pin_enabled: true,
-                password_exists: !!currentUser.password_exists
+                pin_enabled: !!currentUser.pin_enabled
             });
         }
         
@@ -75,7 +75,7 @@ const hasSelectedUserPin = computed(() => {
 
 const canSubmitInternal = computed(() => {
     return form.value.inventory_user_id && 
-           (!hasSelectedUserPin.value || form.value.password.length > 0) && 
+           (!hasSelectedUserPin.value || form.value.transaction_pin.length > 0) && 
            form.value.reason.length >= 5;
 });
 
@@ -86,7 +86,7 @@ async function handleSubmit() {
         toast.error("Pilih akun inventory");
         return;
     }
-    if (hasSelectedUserPin.value && !form.value.password) {
+    if (hasSelectedUserPin.value && !form.value.transaction_pin) {
         toast.error("Masukkan kata sandi");
         return;
     }
@@ -109,7 +109,7 @@ async function handleSubmit() {
 }
 
 function close() {
-    form.value = { inventory_user_id: null, password: '', reason: '' };
+    form.value = { inventory_user_id: null, transaction_pin: '', reason: '' };
     emit("close");
 }
 
@@ -166,7 +166,7 @@ watch(() => props.show, (newVal) => {
                             </select>
                         </div>
 
-                        <!-- Password Input -->
+                        <!-- PIN Input -->
                         <div v-if="hasSelectedUserPin">
                             <label
                                 class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
@@ -199,3 +199,4 @@ watch(() => props.show, (newVal) => {
         </div>
     </Teleport>
 </template>
+

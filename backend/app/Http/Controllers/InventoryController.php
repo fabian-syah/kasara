@@ -584,6 +584,17 @@ class InventoryController extends Controller
                 }
             }
 
+            // Must have PIN enabled and set
+            if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
+                return response()->json(['message' => 'Akun ' . $targetUser->name . ' belum memasang/mengaktifkan PIN.'], 403);
+            }
+
+            // Verify PIN
+            if (!$request->pin || !Hash::check($request->pin, $targetUser->transaction_pin)) {
+                return response()->json(['message' => 'PIN Keamanan salah'], 422);
+            }
+
+            /*
             // Verify Password using trait (it checks $request->password or $request->transaction_pin)
             $verifyRequest = clone $request;
             if ($request->has('pin')) {
@@ -594,6 +605,7 @@ class InventoryController extends Controller
             if ($passwordError) {
                 return response()->json(['message' => 'Verifikasi Kata Sandi gagal.'], 422);
             }
+            */
 
             // Check if current price is 0
             $currentPrice = ($type === 'hp')

@@ -30,7 +30,7 @@ import {
     AlertTriangle,
     Shield,
 } from "lucide-vue-next";
-import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 const auditWarehouseId = ref(null);
 
 // Transfer destination state
@@ -62,7 +62,7 @@ const newDistributorName = ref("");
 const isRestoring = ref(true);
 
 // PIN State
-const showPasswordModal = ref(false);
+const showPinModal = ref(false);
 
 const targetUsers = ref([]);
 const selectedInventoryUserPinEnabled = ref(false);
@@ -808,7 +808,7 @@ function selectUserPlacement(user) {
 }
 
 async function handlePinSuccess(pin) {
-    showPasswordModal.value = false;
+    showPinModal.value = false;
     await submitStockIn(pin);
 }
 
@@ -875,7 +875,7 @@ async function submitStockIn(verifiedPin = null) {
 
     // If the targeted inventory account has PIN enabled and we don't have a verified PIN yet
     if (selectedInventoryUserPinEnabled.value && !pin) {
-        showPasswordModal.value = true;
+        showPinModal.value = true;
         return;
     }
 
@@ -1509,7 +1509,7 @@ onMounted(() => {
         </div>
 
         <!-- Password Modal Component -->
-        <PasswordModal :show="showPasswordModal" mode="verify" title="Verifikasi Kata Sandi" @close="showPasswordModal = false"
+        <PinModal :show="showPinModal" mode="verify" title="Verifikasi Kata Sandi" @close="showPinModal = false"
             @success="handlePinSuccess" />
     </div>
 

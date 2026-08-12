@@ -3,7 +3,7 @@ import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
-import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import {
     Package,
     Loader2,
@@ -41,18 +41,18 @@ const form = ref({
     non_hp_quantities: {} // { id: qty }
 });
 
-const showPasswordModal = ref(false);
+const showPinModal = ref(false);
 const pinCallback = ref(null);
 const rejectionNotes = ref({}); // { itemId: string }
 const nonHpRejectionNotes = ref({}); // { itemId: string }
 
 function handleVerifyPin(callback) {
     pinCallback.value = callback;
-    showPasswordModal.value = true;
+    showPinModal.value = true;
 }
 
 function onPinVerified(pin) {
-    showPasswordModal.value = false;
+    showPinModal.value = false;
     if (pinCallback.value) {
         pinCallback.value(pin);
         pinCallback.value = null;
@@ -486,7 +486,7 @@ onMounted(() => {
     </div>
 
     <!-- PIN Modal -->
-    <PasswordModal :show="showPasswordModal" @close="showPasswordModal = false" @success="onPinVerified" />
+    <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
 </template>
 
 <style scoped>

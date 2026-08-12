@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Inventory;
 
@@ -23,7 +23,8 @@ class InventoryAccountController extends Controller
         $request->validate([
             'name' => 'required|string|max:50',
             'username' => 'nullable|string|max:50|unique:users,username',
-            'password' => 'nullable|string|min:4'
+            // 'password' => 'nullable|string|min:4',
+            'transaction_pin' => 'nullable|string|size:4'
         ]);
 
         /** @var \App\Models\User $user */
@@ -271,3 +272,4 @@ class InventoryAccountController extends Controller
         return response()->json(['message' => 'Akun berhasil dihapus permanen.', 'status' => 'deleted']);
     }
 }
+
