@@ -81,6 +81,7 @@ function isProcessing(userId) {
 }
 
 const isAudit = computed(() => authStore.userRole === 'audit');
+const isSuperAdmin = computed(() => authStore.userRole === 'super_admin');
 const isLeader = computed(() => authStore.userRole === 'leader');
 const isReadOnlyAccess = computed(() => isLeader.value);
 const currentUser = computed(() => authStore.user);
@@ -1120,7 +1121,7 @@ function getUserRoleName(user) {
               </div>
             </div>
 
-            <div v-if="!(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <div v-if="isSuperAdmin || !(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required>
