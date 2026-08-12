@@ -524,8 +524,8 @@ async function saveInventoryUpdate() {
       toast.error("Silakan pilih akun inventory terlebih dahulu");
       return;
     }
-    if (!editForm.value.password) {
-      toast.error("Silakan masukkan Kata Sandi akun inventory yang dipilih");
+    if (isInventoryUser && !editForm.value.transaction_pin) {
+      toast.error("Silakan masukkan PIN Keamanan akun inventory yang dipilih");
       return;
     }
   }
@@ -2042,12 +2042,12 @@ async function exportInventory() {
           </div>
 
           <div v-if="isInventoryUser">
-            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Kata Sandi Akun (Wajib)</label>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">PIN Keamanan Akun (Wajib)</label>
             <input v-model="editForm.transaction_pin" type="password"
               class="input w-full text-center text-xl font-bold py-4 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
               placeholder="••••••••" />
             <p class="text-[10px] text-text-secondary mt-2">
-              Gunakan kata sandi dari akun inventory yang dipilih di atas.
+              Gunakan PIN Keamanan dari akun inventory yang dipilih di atas.
             </p>
           </div>
         </div>

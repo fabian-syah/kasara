@@ -1509,7 +1509,7 @@ onMounted(() => {
         </div>
 
         <!-- Password Modal Component -->
-        <PinModal :show="showPinModal" mode="verify" title="Verifikasi Kata Sandi" @close="showPinModal = false"
+        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Keamanan" @close="showPinModal = false"
             @success="handlePinSuccess" />
     </div>
 

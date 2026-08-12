@@ -7,8 +7,8 @@ const authStore = useAuthStore();
 
 const props = defineProps({
     show: Boolean,
-    title: { type: String, default: "Verifikasi Kata Sandi" },
-    description: { type: String, default: "Masukkan kata sandi akun Anda untuk melanjutkan." },
+    title: { type: String, default: "Verifikasi PIN Keamanan" },
+    description: { type: String, default: "Masukkan PIN keamanan akun Anda untuk melanjutkan." },
     user: { type: Object, default: null },
     loading: { type: Boolean, default: false },
     error: { type: String, default: "" }
@@ -85,7 +85,7 @@ onMounted(() => {
                             ref="inputRef"
                             v-model="password"
                             type="password"
-                            placeholder="Kata Sandi..."
+                            placeholder="PIN Keamanan..."
                             autocomplete="new-password"
                             class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl px-4 text-center text-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/50"
                         />

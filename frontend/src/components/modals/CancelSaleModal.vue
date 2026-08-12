@@ -87,7 +87,7 @@ async function handleSubmit() {
         return;
     }
     if (hasSelectedUserPin.value && !form.value.transaction_pin) {
-        toast.error("Masukkan kata sandi");
+        toast.error("Masukkan PIN keamanan");
         return;
     }
     if (!form.value.reason || form.value.reason.length < 5) {
@@ -170,11 +170,11 @@ watch(() => props.show, (newVal) => {
                         <div v-if="hasSelectedUserPin">
                             <label
                                 class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
-                                <Lock :size="16" /> Kata Sandi Akun
+                                <Lock :size="16" /> PIN Keamanan Akun
                             </label>
-                            <input v-model="form.password" type="password"
+                            <input v-model="form.transaction_pin" type="password"
                                 class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white"
-                                placeholder="Masukkan kata sandi..." />
+                                placeholder="Masukkan PIN keamanan..." />
                         </div>
 
                         <!-- Reason Input -->
