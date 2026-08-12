@@ -459,7 +459,7 @@ const editForm = ref({
   selling_price: 0,
   status: 'available',
   notes: '',
-  password: '',
+  transaction_pin: '',
   inventory_user_id: null
 });
 
@@ -501,7 +501,7 @@ async function openEditModal(item) {
     selling_price: item.selling_price || item.price || 0,
     status: item.status || 'available',
     notes: item.notes || '',
-    password: '',
+    transaction_pin: '',
     inventory_user_id: null
   };
   
@@ -2043,7 +2043,7 @@ async function exportInventory() {
 
           <div v-if="isInventoryUser">
             <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Kata Sandi Akun (Wajib)</label>
-            <input v-model="editForm.password" type="password"
+            <input v-model="editForm.transaction_pin" type="password"
               class="input w-full text-center text-xl font-bold py-4 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
               placeholder="••••••••" />
             <p class="text-[10px] text-text-secondary mt-2">
