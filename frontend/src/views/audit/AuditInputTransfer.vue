@@ -889,7 +889,7 @@ async function submitStockIn(verifiedPin = null) {
             placement_type: placementType.value,
             placement_id: placementId.value,
             inventory_user_id: selectedInventoryUserId.value,
-            password: pin,
+            transaction_pin: pin,
         };
 
         if (itemType.value === 'hp') {
