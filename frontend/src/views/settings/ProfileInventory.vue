@@ -16,22 +16,22 @@ const mainAccountName = computed(() => {
 // Form state
 const formData = ref({
     username: user.value?.username || '',
-    password: '',
-    password_confirmation: ''
+    transaction_pin: '',
+    pin_confirmation: ''
 });
 
 const isEditing = ref(false);
 const isLoading = ref(false);
-const showPassword = ref(false);
-const showConfirmPassword = ref(false);
+const showPin = ref(false);
+const showConfirmPin = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
 
 const toggleEdit = () => {
     if (!isEditing.value) {
         formData.value.username = user.value?.username || '';
-        formData.value.password = '';
-        formData.value.password_confirmation = '';
+        formData.value.transaction_pin = '';
+        formData.value.pin_confirmation = '';
         successMessage.value = '';
         errorMessage.value = '';
     }
@@ -42,8 +42,8 @@ const handleSave = async () => {
     successMessage.value = '';
     errorMessage.value = '';
 
-    if (formData.value.password && formData.value.password !== formData.value.password_confirmation) {
-        errorMessage.value = 'Konfirmasi password tidak cocok.';
+    if (formData.value.transaction_pin && formData.value.transaction_pin !== formData.value.pin_confirmation) {
+        errorMessage.value = 'Konfirmasi PIN tidak cocok.';
         return;
     }
 
@@ -52,13 +52,13 @@ const handleSave = async () => {
         const payload = new FormData();
         payload.append('username', formData.value.username);
         
-        if (formData.value.password) {
-            if (formData.value.password.length < 6) {
-                errorMessage.value = 'Password minimal 6 karakter.';
+        if (formData.value.transaction_pin) {
+            if (formData.value.transaction_pin.length !== 4) {
+                errorMessage.value = 'PIN harus 4 digit angka.';
                 isLoading.value = false;
                 return;
             }
-            payload.append('password', formData.value.password);
+            payload.append('transaction_pin', formData.value.transaction_pin);
         }
 
         const response = await axios.post(`/inventory/account/${user.value.id}/update`, payload);
@@ -131,7 +131,7 @@ const handleSave = async () => {
                     
                     <div class="shrink-0 mt-2 sm:mt-4 w-full sm:w-auto">
                         <button v-if="!isEditing" @click="toggleEdit" class="w-full sm:w-auto px-6 py-3.5 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-black transition-all shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                            Ubah Username & Password
+                            Ubah Username & PIN Keamanan
                         </button>
                         <div v-else class="flex gap-3 w-full">
                             <button @click="toggleEdit" class="flex-1 sm:flex-none px-5 py-3.5 bg-surface-100 hover:bg-surface-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-text-secondary rounded-2xl font-bold transition-all">
@@ -185,7 +185,7 @@ const handleSave = async () => {
                         </div>
                     </div>
 
-                    <!-- Edit Password Section -->
+                    <!-- Edit PIN Section -->
                     <div v-if="isEditing" class="md:col-span-2 bg-surface-50 dark:bg-surface-800/80 p-6 sm:p-8 rounded-[1.5rem] border-2 border-primary-200 dark:border-primary-800/50 ring-4 ring-primary-500/5 relative overflow-hidden animate-fade-in shadow-sm">
                         <div class="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
                         
@@ -194,30 +194,30 @@ const handleSave = async () => {
                                 <Key :size="20" stroke-width="2.5" />
                             </div>
                             <div>
-                                <h3 class="font-black text-lg">Keamanan Password</h3>
-                                <p class="text-xs font-medium text-text-secondary mt-0.5">Biarkan kosong jika tidak ingin mengubah password</p>
+                                <h3 class="font-black text-lg">Keamanan PIN</h3>
+                                <p class="text-xs font-medium text-text-secondary mt-0.5">Biarkan kosong jika tidak ingin mengubah PIN</p>
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 relative z-10">
-                            <!-- Password Baru -->
+                            <!-- PIN Baru -->
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">Password Baru</label>
+                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">PIN Baru</label>
                                 <div class="relative group/input">
-                                    <input :type="showPassword ? 'text' : 'password'" v-model="formData.password" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••••••" />
-                                    <button @click="showPassword = !showPassword" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
-                                        <Eye v-if="!showPassword" :size="18" stroke-width="2.5" />
+                                    <input :type="showPin ? 'text' : 'password'" v-model="formData.transaction_pin" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••" maxlength="4" />
+                                    <button @click="showPin = !showPin" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
+                                        <Eye v-if="!showPin" :size="18" stroke-width="2.5" />
                                         <EyeOff v-else :size="18" stroke-width="2.5" />
                                     </button>
                                 </div>
                             </div>
-                            <!-- Konfirmasi Password -->
+                            <!-- Konfirmasi PIN -->
                             <div>
-                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">Ulangi Password</label>
+                                <label class="block text-[11px] font-black uppercase tracking-widest text-text-secondary mb-2">Ulangi PIN</label>
                                 <div class="relative group/input">
-                                    <input :type="showConfirmPassword ? 'text' : 'password'" v-model="formData.password_confirmation" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••••••" />
-                                    <button @click="showConfirmPassword = !showConfirmPassword" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
-                                        <Eye v-if="!showConfirmPassword" :size="18" stroke-width="2.5" />
+                                    <input :type="showConfirmPin ? 'text' : 'password'" v-model="formData.pin_confirmation" class="w-full bg-white dark:bg-surface-900 border-2 border-surface-200 dark:border-surface-700 rounded-xl px-5 py-3.5 pr-12 text-text-primary font-medium focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 outline-none transition-all placeholder:text-surface-400" placeholder="••••" maxlength="4" />
+                                    <button @click="showConfirmPin = !showConfirmPin" type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors p-1 bg-white dark:bg-surface-900 rounded-lg">
+                                        <Eye v-if="!showConfirmPin" :size="18" stroke-width="2.5" />
                                         <EyeOff v-else :size="18" stroke-width="2.5" />
                                     </button>
                                 </div>
@@ -234,7 +234,7 @@ const handleSave = async () => {
                     <div>
                         <h3 class="text-text-primary font-black text-sm mb-1">Keamanan Akun Inventory</h3>
                         <p class="text-text-secondary text-xs sm:text-sm font-medium leading-relaxed">
-                            Anda memiliki kendali penuh atas password Anda sendiri. Jaga kerahasiaannya. Jika Anda lupa password, Anda dapat meminta <strong class="text-text-primary">{{ mainAccountName }}</strong> untuk meresetnya dari panel utama.
+                            Anda memiliki kendali penuh atas PIN keamanan Anda sendiri. Jaga kerahasiaannya. Jika Anda lupa PIN, Anda dapat meminta <strong class="text-text-primary">{{ mainAccountName }}</strong> untuk meresetnya dari panel utama.
                         </p>
                     </div>
                 </div>

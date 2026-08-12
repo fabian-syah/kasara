@@ -281,7 +281,7 @@ async function processPayment(pin = null) {
             formData.append('inventory_user_id', props.selectedAccountObject.id);
         }
         if (pin) {
-            formData.append('password', pin);
+            formData.append('transaction_pin', pin);
         }
 
         formData.append('notes', customerForm.value.notes);
