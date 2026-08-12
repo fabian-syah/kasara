@@ -18,7 +18,7 @@ export default defineConfig({
           'vendor': ['vue', 'vue-router', 'pinia', 'axios'],
           'charts': ['chart.js', 'vue-chartjs'],
           'qr-scanner': ['html5-qrcode'],
-          'export-tools': ['html-to-image', 'html2canvas', 'jspdf']
+          'export-tools-v2': ['html-to-image', 'html2canvas', 'jspdf']
         }
       }
     },
