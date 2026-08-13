@@ -84,11 +84,11 @@ class WhatsAppShareController extends Controller
                 'drive_link' => $driveLink
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Share Error: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp Share Error: ' . $e->getMessage() . ' at line ' . $e->getLine());
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage() . ' at line ' . $e->getLine()
             ], 500);
         }
     }
@@ -200,9 +200,9 @@ class WhatsAppShareController extends Controller
             }
 
             return null;
-        } catch (\Exception $e) {
-            Log::error("GDrive Generation Failed for ID {$id}: " . $e->getMessage());
-            return null;
+        } catch (\Throwable $e) {
+            Log::error("GDrive Generation Failed for ID {$id}: " . $e->getMessage() . " at line " . $e->getLine());
+            throw $e;
         }
     }
 
