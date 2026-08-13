@@ -44,6 +44,11 @@ trait VerifiesPin
         // The targeted inventory account ID is usually passed in the request as inventory_user_id.
         $targetUserId = $inventoryUserId ?? $request->inventory_user_id;
 
+        // Skip password verification for Penjualan Store via akun inventory
+        if ($request->category === 'penjualan_store' && $targetUserId != $user->id) {
+            return null;
+        }
+
         if (!$targetUserId) {
             return response()->json([
                 'success' => false,
