@@ -329,15 +329,9 @@ function handleVerifyPin(callback) {
             callback('skipped');
         }
     } else {
-        const isOwnAccount = salesAccountId.value === authStore.user?.id || (!salesAccountId.value && salesAccount.value === authStore.user?.name);
-        
-        if (transactionCategory.value === 'penjualan_store' && !isOwnAccount) {
-            callback('skipped');
-        } else {
-            passwordModalMode.value = 'password';
-            pendingPasswordCallback.value = callback;
-            showPasswordModal.value = true;
-        }
+        passwordModalMode.value = 'password';
+        pendingPasswordCallback.value = callback;
+        showPasswordModal.value = true;
     }
 }
 
