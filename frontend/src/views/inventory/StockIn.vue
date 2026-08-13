@@ -26,7 +26,7 @@ import {
     AlertTriangle,
     Shield,
 } from "lucide-vue-next";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import { debounce } from "../../utils/debounce";
 import { parseCurrency, formatNumber } from "../../utils/formatters";
 
@@ -47,8 +47,8 @@ const isManualDistributor = ref(false);
 const newDistributorName = ref("");
 const isRestoring = ref(true);
 
-// PIN State
-const showPinModal = ref(false);
+// Password State
+const showPasswordModal = ref(false);
 
 const targetUsers = ref([]);
 const selectedInventoryUserPinEnabled = ref(false);
@@ -551,6 +551,7 @@ const isCreatingAccount = ref(false);
 // Duplicate Modal State
 const showDuplicateModal = ref(false);
 const duplicateDetails = ref({ success: 0, fail: 0, items: [] });
+const passwordModalMode = ref('password');
 
 function closeDuplicateModal() {
     showDuplicateModal.value = false;
@@ -722,12 +723,12 @@ function selectUserPlacement(user) {
     nextStep();
 }
 
-async function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    await submitStockIn(pin);
+async function handlePasswordSuccess(password) {
+    showPasswordModal.value = false;
+    await submitStockIn(password);
 }
 
-async function submitStockIn(verifiedPin = null) {
+async function submitStockIn(verifiedPassword = null) {
     // Validate fields and show exact error toast!
     if (itemType.value === 'hp') {
         if (hpItems.value.length === 0) {
@@ -785,13 +786,21 @@ async function submitStockIn(verifiedPin = null) {
         }
     }
 
-    // Use either the provided verifiedPin or the local pin state
-    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
+    // Use either the provided verifiedPassword or the local password state
+    const password = typeof verifiedPassword === 'string' ? verifiedPassword : null;
 
-    // If the targeted inventory account has PIN enabled and we don't have a verified PIN yet
-    if (selectedInventoryUserPinEnabled.value && !pin) {
-        showPinModal.value = true;
-        return;
+    if (!password) {
+        if (authStore.hasRole('inventory')) {
+            if (selectedInventoryUserPinEnabled.value) {
+                passwordModalMode.value = 'pin';
+                showPasswordModal.value = true;
+                return;
+            }
+        } else if (selectedInventoryUserPinEnabled.value) {
+            passwordModalMode.value = 'password';
+            showPasswordModal.value = true;
+            return;
+        }
     }
 
     isSubmitting.value = true;
@@ -804,7 +813,7 @@ async function submitStockIn(verifiedPin = null) {
             placement_type: placementType.value,
             placement_id: placementId.value,
             inventory_user_id: selectedInventoryUserId.value,
-            transaction_pin: pin,
+            password: password,
         };
 
         if (itemType.value === 'hp') {
@@ -1449,8 +1458,8 @@ onMounted(() => {
         </div>
 
         <!-- Password Modal Component -->
-        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Keamanan" @close="showPinModal = false"
-            @success="handlePinSuccess" />
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+            @success="handlePasswordSuccess" />
     </div>
 </template>
 

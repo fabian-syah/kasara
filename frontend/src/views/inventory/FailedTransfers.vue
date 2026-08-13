@@ -20,7 +20,7 @@ import {
 import api from '../../api/axios'
 import { useToast } from '../../composables/useToast'
 import { useAuthStore } from '../../store/auth'
-import PinModal from '../../components/modals/PinModal.vue'
+import PasswordModal from '../../components/modals/PasswordModal.vue'
 
 const authStore = useAuthStore()
 const { success, error: toastError } = useToast()
@@ -30,8 +30,10 @@ const loading = ref(true)
 const searchQuery = ref('')
 const processingId = ref(null)
 
-const showPinModal = ref(false)
+const showPasswordModal = ref(false)
+const passwordModalMode = ref('password')
 const selectedTransfer = ref(null)
+const pendingPasswordCallback = ref(null)
 
 // Inventory Accounts
 const inventoryAccounts = ref([])
@@ -63,23 +65,46 @@ const fetchFailedTransfers = async () => {
     }
 }
 
-const confirmReturn = (transfer) => {
-    selectedTransfer.value = transfer
-    showPinModal.value = true
+function handleVerifyPassword(callback) {
+    if (authStore.hasRole('inventory')) {
+        if (authStore.user?.pin_enabled) {
+            passwordModalMode.value = 'pin';
+            pendingPasswordCallback.value = callback;
+            showPasswordModal.value = true;
+        } else {
+            callback('skipped');
+        }
+    } else {
+        passwordModalMode.value = 'password';
+        pendingPasswordCallback.value = callback
+        showPasswordModal.value = true
+    }
 }
 
-const handlePinConfirm = async (pinStr) => {
+function onPasswordVerified(password) {
+    showPasswordModal.value = false
+    if (pendingPasswordCallback.value) {
+        pendingPasswordCallback.value(password)
+        pendingPasswordCallback.value = null
+    }
+}
+
+const confirmReturn = (transfer) => {
+    selectedTransfer.value = transfer
+    handleVerifyPassword((password) => handlePinConfirm(password))
+}
+
+const handlePinConfirm = async (password) => {
     if (!selectedTransfer.value) return
     
     processingId.value = selectedTransfer.value.id
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
-            transaction_pin: pinStr,
+            transaction_pin: password,
             inventory_user_id: selectedInventoryAccount.value
         })
         success('Barang telah diterima kembali ke stok.')
         fetchFailedTransfers()
-        showPinModal.value = false
         selectedTransfer.value = null
     } catch (err) {
         console.error('Failed to confirm return:', err)
@@ -302,15 +327,13 @@ onMounted(() => {
         </div>
     </div>
 
-    <!-- PIN Modal -->
-    <PinModal 
-        v-if="showPinModal"
-        :show="showPinModal"
-        title="Verifikasi PIN"
-        description="Masukkan PIN untuk memproses pengembalian barang ke stok Anda."
-        :processing="processingId !== null"
-        @close="showPinModal = false"
-        @success="handlePinConfirm"
+    <!-- Password Verification Modal -->
+    <PasswordModal 
+        v-if="showPasswordModal"
+        :show="showPasswordModal"
+        :mode="passwordModalMode"
+        @close="showPasswordModal = false"
+        @success="onPasswordVerified"
     />
 </template>
 

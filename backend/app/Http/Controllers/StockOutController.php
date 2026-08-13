@@ -380,7 +380,8 @@ class StockOutController extends Controller
             $rules['payment_proof_image'] = 'nullable|image|max:20480';
 
             // Only require PIN if user has it enabled
-            $rules['transaction_pin'] = 'nullable|string|max:10';
+            $rules['transaction_pin'] = 'nullable|string|max:100';
+            $rules['password'] = 'nullable|string';
         }
 
         // Shopee: Per-item validation (Specific to bulk stock out if used)
@@ -2988,7 +2989,8 @@ class StockOutController extends Controller
         $request->validate([
             'reason' => 'nullable|string|max:500',
             'inventory_user_id' => 'required|exists:users,id',
-            'transaction_pin' => 'nullable|string'
+            'transaction_pin' => 'nullable|string',
+            'password' => 'nullable|string'
         ]);
 
         // PIN Verification using Trait

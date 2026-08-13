@@ -27,7 +27,7 @@ import {
     Wallet,
     CheckSquare
 } from "lucide-vue-next";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 import SaleScreenshot from "../../components/sales/SaleScreenshot.vue";
 
@@ -126,10 +126,9 @@ const showSuccessModal = ref(false);
 const showScreenshotModal = ref(false);
 const lastTransaction = ref(null);
 const showInitialPinSetup = ref(false);
-const showPinModal = ref(false);
-const PinModalMode = ref("verify");
-const PinModalTitle = ref("Verifikasi PIN Keamanan");
-const pendingPinCallback = ref(null);
+const showPasswordModal = ref(false);
+const passwordModalMode = ref('password');
+const pendingPasswordCallback = ref(null);
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
 const loadingCreate = ref(false);
@@ -321,17 +320,26 @@ function handleTransactionComplete(transaction) {
 }
 
 function handleVerifyPin(callback) {
-    pendingPinCallback.value = callback;
-    showPinModal.value = true;
-    PinModalMode.value = "verify";
-    PinModalTitle.value = "Verifikasi PIN Keamanan";
+    if (authStore.hasRole('inventory')) {
+        if (authStore.user?.pin_enabled) {
+            passwordModalMode.value = 'pin';
+            pendingPasswordCallback.value = callback;
+            showPasswordModal.value = true;
+        } else {
+            callback('skipped');
+        }
+    } else {
+        passwordModalMode.value = 'password';
+        pendingPasswordCallback.value = callback;
+        showPasswordModal.value = true;
+    }
 }
 
-function handlePinSuccess(pin) {
-    showPinModal.value = false;
-    if (pendingPinCallback.value) {
-        pendingPinCallback.value(pin);
-        pendingPinCallback.value = null;
+function handlePasswordSuccess(password) {
+    showPasswordModal.value = false;
+    if (pendingPasswordCallback.value) {
+        pendingPasswordCallback.value(password);
+        pendingPasswordCallback.value = null;
     }
 }
 
@@ -575,8 +583,8 @@ watch(transactionCategory, () => {
         </div>
 
         <!-- SHARED MODALS -->
-        <PinModal :show="showPinModal" :title="PinModalTitle" :mode="PinModalMode" @close="showPinModal = false"
-            @success="handlePinSuccess" />
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+            @success="handlePasswordSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
             :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
             @close="closeSuccessModal"

@@ -3,7 +3,8 @@ import { ref, onMounted, computed, watch } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
+import { useAuthStore } from "../../store/auth";
 import {
     Package,
     Loader2,
@@ -27,6 +28,7 @@ import {
 
 const toast = useToast();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // State
 const isLoading = ref(true);
@@ -41,21 +43,33 @@ const form = ref({
     non_hp_quantities: {} // { id: qty }
 });
 
-const showPinModal = ref(false);
-const pinCallback = ref(null);
+const showPasswordModal = ref(false);
+const passwordModalMode = ref('password');
+const passwordCallback = ref(null);
 const rejectionNotes = ref({}); // { itemId: string }
 const nonHpRejectionNotes = ref({}); // { itemId: string }
 
-function handleVerifyPin(callback) {
-    pinCallback.value = callback;
-    showPinModal.value = true;
+function handleVerifyPassword(callback) {
+    if (authStore.hasRole('inventory')) {
+        if (authStore.user?.pin_enabled) {
+            passwordModalMode.value = 'pin';
+            passwordCallback.value = callback;
+            showPasswordModal.value = true;
+        } else {
+            callback('skipped');
+        }
+    } else {
+        passwordModalMode.value = 'password';
+        passwordCallback.value = callback;
+        showPasswordModal.value = true;
+    }
 }
 
-function onPinVerified(pin) {
-    showPinModal.value = false;
-    if (pinCallback.value) {
-        pinCallback.value(pin);
-        pinCallback.value = null;
+function onPasswordVerified(password) {
+    showPasswordModal.value = false;
+    if (passwordCallback.value) {
+        passwordCallback.value(password);
+        passwordCallback.value = null;
     }
 }
 
@@ -129,11 +143,11 @@ function closeModal() {
 async function submitConfirmation(verifiedPin = null) {
     if (!selectedTransfer.value) return;
 
-    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
+    const password = typeof verifiedPin === 'string' ? verifiedPin : null;
 
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
-    if (!pin && selectedAccount) {
-        handleVerifyPin((vPin) => submitConfirmation(vPin));
+    if (!password && selectedAccount && !authStore.hasRole('inventory')) {
+        handleVerifyPassword((vPin) => submitConfirmation(vPin));
         return;
     }
 
@@ -145,7 +159,7 @@ async function submitConfirmation(verifiedPin = null) {
             non_hp_items: form.value.non_hp_quantities,
             non_hp_rejection_notes: form.value.non_hp_rejection_notes,
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: pin
+            password: password
         };
 
         const response = await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
@@ -485,8 +499,8 @@ onMounted(() => {
         </div>
     </div>
 
-    <!-- PIN Modal -->
-    <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
+    <!-- Password Modal -->
+    <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false" @success="onPasswordVerified" />
 </template>
 
 <style scoped>

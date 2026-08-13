@@ -6,7 +6,7 @@ import { useToast } from "../../composables/useToast";
 import api, { inventory as inventoryApi, branches as branchesApi, warehouses as warehousesApi, onlineShops as onlineShopsApi, distributors as distributorsApi, products as productsApi } from "../../api/axios";
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
 // Scanner will be imported dynamically
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -128,7 +128,7 @@ const form = ref({
     missing_category: '',
     person_in_charge: '',
     inventory_user_id: null,
-    transaction_pin: '',
+    password: '',
     // Giveaway fields
     giveaway_receiver: '',
     giveaway_phone: '',
@@ -172,8 +172,9 @@ const isScanning = ref(false);
 const scannerContainerId = 'barcode-scanner-container';
 let html5QrCode = null;
 
-const showPinModal = ref(false);
-const accountNeedingPin = ref(null);
+const showPasswordModal = ref(false);
+const passwordModalMode = ref('password');
+const accountNeedingPassword = ref(null);
 const inventoryUsers = ref([]);
 const loadingUsers = ref(false);
 
@@ -546,7 +547,7 @@ function resetForm() {
         selling_price: null,
         notes: '',
         inventory_user_id: authStore.user?.id || null,
-        transaction_pin: '',
+        password: '',
         giveaway_receiver: '',
         giveaway_phone: '',
         giveaway_address: '',
@@ -801,20 +802,31 @@ async function fetchInventoryUsers() {
 function handleStartSubmit() {
     if (!canSubmit.value) return;
 
-    const selectedId = form.value.inventory_user_id;
-    const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
-
-    if (target && target) {
-        accountNeedingPin.value = target;
-        showPinModal.value = true;
+    if (authStore.hasRole('inventory')) {
+        if (authStore.user?.pin_enabled) {
+            passwordModalMode.value = 'pin';
+            accountNeedingPassword.value = authStore.user;
+            showPasswordModal.value = true;
+        } else {
+            submitStockOut();
+        }
     } else {
-        submitStockOut();
+        const selectedId = form.value.inventory_user_id;
+        const target = inventoryUsers.value.find(u => Number(u.id) === Number(selectedId));
+
+        if (target) {
+            passwordModalMode.value = 'password';
+            accountNeedingPassword.value = target;
+            showPasswordModal.value = true;
+        } else {
+            submitStockOut();
+        }
     }
 }
 
-function onPinVerified(pin) {
-    form.value.transaction_pin = pin;
-    showPinModal.value = false;
+function onPasswordVerified(password) {
+    form.value.password = password;
+    showPasswordModal.value = false;
     submitStockOut();
 }
 
@@ -862,20 +874,21 @@ async function submitStockOut() {
 
 
     } catch (e) {
-        console.error("[DEBUG PIN] Caught Exception in submitStockOut:", e);
+        console.error("[DEBUG PASSWORD] Caught Exception in submitStockOut:", e);
         const errorMsg = e.response?.data?.message || "";
-        console.error("[DEBUG PIN] Backend Error Message:", errorMsg);
+        console.error("[DEBUG PASSWORD] Backend Error Message:", errorMsg);
 
-        if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
-            console.warn("[DEBUG PIN] WATCHDOG: Backend rejected due to PIN. Forcing PIN Modal.");
+        if (e.response?.status === 422 && (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('pin'))) {
+            console.warn("[DEBUG SECURITY] WATCHDOG: Backend rejected due to Password/PIN. Forcing Security Modal.");
             const targetId = form.value.inventory_user_id;
             const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
-            accountNeedingPin.value = target;
-            showPinModal.value = true;
+            accountNeedingPassword.value = target;
+            passwordModalMode.value = authStore.hasRole('inventory') ? 'pin' : 'password';
+            showPasswordModal.value = true;
             toast.error(errorMsg);
 
-            // Clear wrong PIN
-            form.value.transaction_pin = '';
+            // Clear wrong password
+            form.value.password = '';
         } else if (e.response && e.response.status === 422) {
             const msg = e.response.data.message || "Validasi gagal. Mohon periksa kembali data Anda.";
             toast.error(msg);
@@ -1469,8 +1482,9 @@ onMounted(() => {
         </div>
 
         <!-- Modals and Alerts -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
-            @verified="onPinVerified" />
+        <!-- Security Password/PIN Modal -->
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" :user="accountNeedingPassword" @close="showPasswordModal = false"
+            @success="onPasswordVerified" />
 
         <!-- Non HP Modal -->
         <div v-if="showNonHpModal" class="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4">
@@ -1545,9 +1559,9 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- PIN Verification modal -->
-        <PinModal :show="showPinModal" :user="accountNeedingPin" @close="showPinModal = false" @success="onPinVerified"
-            @verified="onPinVerified" />
+        <!-- Security Password Modal -->
+        <PasswordModal :show="showPasswordModal" @close="showPasswordModal = false"
+            @success="onPasswordVerified" />
     </div>
 </template>
 

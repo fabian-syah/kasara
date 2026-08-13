@@ -75,8 +75,8 @@ export default api
 export const auth = {
     login: (credentials) => api.post('/login', credentials),
     logout: () => api.post('/logout'),
-    // verifyPassword: (password) => api.post('/verify-password', { password }),
-    verifyPin: (transaction_pin) => api.post('/verify-pin', { transaction_pin }),
+    verifyPassword: (password) => api.post('/verify-password', { password }),
+    verifyPin: (transaction_pin) => api.post('/verify-pin', { password: transaction_pin }),
     user: () => api.get('/user'),
     refresh: () => api.post('/refresh'),
     updateFontSize: (size) => api.post('/settings/font-size', { font_size: size })

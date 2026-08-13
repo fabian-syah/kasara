@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Hash;
 trait VerifiesPin
 {
     /**
-     * Verify transaction PIN for either the logged-in user or a specific inventory account.
+     * Verify transaction password for the logged-in user.
      *
      * @param Request $request
      * @param int|null $inventoryUserId
@@ -18,41 +18,56 @@ trait VerifiesPin
      */
     protected function verifyPin(Request $request, $inventoryUserId = null)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
-        
-        // Target can be a specific inventory account or the current user
-        $targetUserId = $inventoryUserId ?: $request->inventory_user_id ?: $user->id;
-        
-        $targetUser = null;
-        if (is_numeric($targetUserId)) {
-            $targetUser = User::find($targetUserId);
-        }
 
-            // Jika belum memasang PIN, biarkan saja langsung sukses tanpa PIN
-            if (!$targetUser->pin_enabled || !$targetUser->transaction_pin) {
+        // If the logged-in user has the 'inventory' role, they use their PIN.
+        if ($user && $user->hasRole('inventory')) {
+            // If they don't have a PIN enabled, bypass
+            if (!$user->pin_enabled) {
                 return null;
             }
 
             // Verify PIN
-            $pin = $request->transaction_pin ?? $request->pin;
-            if (!$pin || !Hash::check($pin, $targetUser->transaction_pin)) {
+            $pin = $request->transaction_pin ?? $request->pin ?? $request->password;
+            if (!$pin || !Hash::check($pin, $user->transaction_pin)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'PIN Keamanan salah atau diperlukan untuk akun ' . $targetUser->name
+                    'message' => 'PIN Keamanan salah atau diperlukan untuk melanjutkan.'
                 ], 422);
             }
-            
-            /*
-            // Check for password or transaction_pin (for transition compatibility)
-            $password = $request->password ?? $request->transaction_pin;
 
-            if (!$password || !Hash::check($password, $targetUser->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Kata sandi salah atau diperlukan untuk akun ' . $targetUser->name
-                ], 422);
-            }
-            */
+            return null; // Success
+        }
+
+        // If the logged-in user is NOT 'inventory', they must provide the password of the targeted inventory account.
+        // The targeted inventory account ID is usually passed in the request as inventory_user_id.
+        $targetUserId = $inventoryUserId ?? $request->inventory_user_id;
+
+        if (!$targetUserId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Inventory tujuan tidak ditemukan.'
+            ], 422);
+        }
+
+        $targetUser = User::find($targetUserId);
+        if (!$targetUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun Inventory tujuan tidak valid.'
+            ], 422);
+        }
+
+        // Verify Password of the target inventory user
+        $password = $request->password ?? $request->transaction_pin ?? $request->pin;
+
+        if (!$password || !Hash::check($password, $targetUser->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password Akun Inventory salah atau diperlukan untuk melanjutkan.'
+            ], 422);
+        }
 
         return null; // Success
     }

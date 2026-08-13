@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, nextTick, watch, computed } from "vue";
 import { Lock, AlertCircle } from "lucide-vue-next";
 import { useAuthStore } from "../../store/auth";
 
@@ -7,8 +7,9 @@ const authStore = useAuthStore();
 
 const props = defineProps({
     show: Boolean,
-    title: { type: String, default: "Verifikasi PIN Keamanan" },
-    description: { type: String, default: "Masukkan PIN keamanan akun Anda untuk melanjutkan." },
+    mode: { type: String, default: "password" }, // 'pin' or 'password'
+    title: { type: String, default: "" },
+    description: { type: String, default: "" },
     user: { type: Object, default: null },
     loading: { type: Boolean, default: false },
     error: { type: String, default: "" }
@@ -16,33 +17,49 @@ const props = defineProps({
 
 const emit = defineEmits(["close", "success", "verified", "error"]);
 
-const password = ref("");
+const inputVal = ref("");
 const inputRef = ref(null);
 const localLoading = ref(false);
 
-function handleSubmit() {
-    if (!password.value) return;
+const modalTitle = computed(() => {
+    if (props.title) return props.title;
+    return props.mode === 'pin' ? 'Verifikasi PIN' : 'Verifikasi Password';
+});
 
-    emit("success", password.value);
-    emit("verified", password.value);
-    resetPassword();
+const modalDescription = computed(() => {
+    if (props.description) return props.description;
+    return props.mode === 'pin' 
+        ? 'Masukkan PIN Keamanan Anda untuk melanjutkan.' 
+        : 'Masukkan Password Login untuk melanjutkan.';
+});
+
+const inputPlaceholder = computed(() => {
+    return props.mode === 'pin' ? 'PIN Keamanan...' : 'Password Login...';
+});
+
+function handleSubmit() {
+    if (!inputVal.value) return;
+
+    emit("success", inputVal.value);
+    emit("verified", inputVal.value);
+    resetInput();
 }
 
 watch(() => props.error, (newVal) => {
     if (newVal) {
-        resetPassword();
+        resetInput();
     }
 });
 
-function resetPassword() {
-    password.value = "";
+function resetInput() {
+    inputVal.value = "";
     nextTick(() => {
         if (inputRef.value) inputRef.value.focus();
     });
 }
 
 function close() {
-    resetPassword();
+    resetInput();
     emit("close");
 }
 
@@ -72,21 +89,22 @@ onMounted(() => {
                         <Lock :size="32" stroke-width="2.5" />
                     </div>
 
-                    <h3 class="text-2xl font-black text-text-primary mb-2">{{ title }}</h3>
+                    <h3 class="text-2xl font-black text-text-primary mb-2">{{ modalTitle }}</h3>
                     <p v-if="user" class="text-sm font-bold text-emerald-500 mb-2">
                         Akun: {{ user.name || user.full_name }}
                     </p>
                     <p class="text-text-secondary text-sm mb-6 leading-relaxed px-4">
-                        {{ description }}
+                        {{ modalDescription }}
                     </p>
 
                     <form @submit.prevent="handleSubmit" class="mb-6 px-4">
                         <input
                             ref="inputRef"
-                            v-model="password"
+                            v-model="inputVal"
                             type="password"
-                            placeholder="PIN Keamanan..."
+                            :placeholder="inputPlaceholder"
                             autocomplete="new-password"
+                            :maxlength="mode === 'pin' ? 4 : 255"
                             class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl px-4 text-center text-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/50"
                         />
                         <button type="submit" class="hidden">Submit</button>

@@ -5,7 +5,7 @@ import axios from "axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "../../store/auth";
-import PinModal from "../../components/modals/PinModal.vue";
+import PasswordModal from "../../components/modals/PasswordModal.vue";
 import TransferReceiptModal from "../../components/modals/TransferReceiptModal.vue";
 import {
     Package,
@@ -164,8 +164,9 @@ const handleLocationTypeChange = () => {
 };
 
 // Modal/Form States (Shared)
-const showPinModal = ref(false);
-const pinCallback = ref(null);
+const showPasswordModal = ref(false);
+const passwordModalMode = ref('password');
+const passwordCallback = ref(null);
 const selectedTransfer = ref(null);
 const isSubmitting = ref(false);
 
@@ -545,25 +546,36 @@ function closeModal() {
     selectedTransfer.value = null;
 }
 
-// --- PIN Verification ---
-function handleVerifyPin(callback) {
-    pinCallback.value = callback;
-    showPinModal.value = true;
+// --- Password Verification ---
+function handleVerifyPassword(callback) {
+    if (authStore.hasRole('inventory')) {
+        if (authStore.user?.pin_enabled) {
+            passwordModalMode.value = 'pin';
+            passwordCallback.value = callback;
+            showPasswordModal.value = true;
+        } else {
+            callback('skipped');
+        }
+    } else {
+        passwordModalMode.value = 'password';
+        passwordCallback.value = callback;
+        showPasswordModal.value = true;
+    }
 }
-function onPinVerified(pin) {
-    showPinModal.value = false;
-    if (pinCallback.value) { pinCallback.value(pin); pinCallback.value = null; }
+function onPasswordVerified(password) {
+    showPasswordModal.value = false;
+    if (passwordCallback.value) { passwordCallback.value(password); passwordCallback.value = null; }
 }
 
 // --- Submit Actions ---
 
 async function submitReceive(verifiedPin = null) {
     if (!selectedTransfer.value) return;
-    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
+    const password = typeof verifiedPin === 'string' ? verifiedPin : null;
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
 
-    if (!pin && selectedAccount) {
-        handleVerifyPin((vPin) => submitReceive(vPin));
+    if (!password && selectedAccount && !authStore.hasRole('inventory')) {
+        handleVerifyPassword((vPin) => submitReceive(vPin));
         return;
     }
 
@@ -575,7 +587,7 @@ async function submitReceive(verifiedPin = null) {
             non_hp_items: receiveForm.value.non_hp_quantities,
             non_hp_rejection_notes: receiveForm.value.non_hp_rejection_notes,
             inventory_user_id: selectedInventoryAccount.value,
-            transaction_pin: pin
+            password: password
         };
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm`, payload);
         toast.success("Transfer berhasil dikonfirmasi!");
@@ -587,12 +599,18 @@ async function submitReceive(verifiedPin = null) {
 
 async function submitReturn(verifiedPin = null) {
     if (!selectedTransfer.value) return;
-    const pin = typeof verifiedPin === 'string' ? verifiedPin : null;
+    const password = typeof verifiedPin === 'string' ? verifiedPin : null;
+    const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
+
+    if (!password && selectedAccount && !authStore.hasRole('inventory')) {
+        handleVerifyPassword((vPin) => submitReturn(vPin));
+        return;
+    }
 
     isSubmitting.value = true;
     try {
         await api.post(`/transfers/${selectedTransfer.value.id}/confirm-return`, {
-            transaction_pin: pin,
+            password: password,
             inventory_user_id: selectedInventoryAccount.value
         });
         toast.success('Barang telah diterima kembali ke stok.');
@@ -1476,7 +1494,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <PinModal :show="showPinModal" @close="showPinModal = false" @success="onPinVerified" />
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false" @success="onPasswordVerified" />
 
         <!-- Expedition Modal -->
         <div v-if="showExpeditionModal && selectedTransfer" class="modal-backdrop" @click.self="closeExpeditionModal">

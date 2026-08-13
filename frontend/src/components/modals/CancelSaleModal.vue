@@ -20,7 +20,7 @@ const inventoryUsers = ref([]);
 
 const form = ref({
     inventory_user_id: null,
-    transaction_pin: '',
+    password: '',
     reason: ''
 });
 
@@ -69,13 +69,27 @@ const selectedUser = computed(() => {
     return inventoryUsers.value.find(u => u.id === form.value.inventory_user_id);
 });
 
-const hasSelectedUserPin = computed(() => {
-    return !!selectedUser.value;
+const needsVerification = computed(() => {
+    if (!selectedUser.value) return false;
+    if (authStore.hasRole('inventory')) {
+        return !!selectedUser.value.pin_enabled;
+    }
+    return true;
+});
+
+const verificationLabel = computed(() => {
+    if (authStore.hasRole('inventory')) return 'PIN Transaksi';
+    return 'Password Login';
+});
+
+const verificationPlaceholder = computed(() => {
+    if (authStore.hasRole('inventory')) return 'Masukkan 4 Digit PIN...';
+    return 'Masukkan Password Login Anda...';
 });
 
 const canSubmitInternal = computed(() => {
     return form.value.inventory_user_id && 
-           (!hasSelectedUserPin.value || form.value.transaction_pin.length > 0) && 
+           (!needsVerification.value || form.value.password.length > 0) && 
            form.value.reason.length >= 5;
 });
 
@@ -86,8 +100,8 @@ async function handleSubmit() {
         toast.error("Pilih akun inventory");
         return;
     }
-    if (hasSelectedUserPin.value && !form.value.transaction_pin) {
-        toast.error("Masukkan PIN keamanan");
+    if (needsVerification.value && !form.value.password) {
+        toast.error(`Masukkan ${verificationLabel.value}`);
         return;
     }
     if (!form.value.reason || form.value.reason.length < 5) {
@@ -109,7 +123,7 @@ async function handleSubmit() {
 }
 
 function close() {
-    form.value = { inventory_user_id: null, transaction_pin: '', reason: '' };
+    form.value = { inventory_user_id: null, password: '', reason: '' };
     emit("close");
 }
 
@@ -166,15 +180,16 @@ watch(() => props.show, (newVal) => {
                             </select>
                         </div>
 
-                        <!-- PIN Input -->
-                        <div v-if="hasSelectedUserPin">
+                        <!-- Verification Input -->
+                        <div v-if="needsVerification">
                             <label
                                 class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
-                                <Lock :size="16" /> PIN Keamanan Akun
+                                <Lock :size="16" /> {{ verificationLabel }}
                             </label>
-                            <input v-model="form.transaction_pin" type="password"
+                            <input v-model="form.password" :type="authStore.hasRole('inventory') ? 'text' : 'password'"
+                                :maxlength="authStore.hasRole('inventory') ? 4 : undefined"
                                 class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white"
-                                placeholder="Masukkan PIN keamanan..." />
+                                :placeholder="verificationPlaceholder" />
                         </div>
 
                         <!-- Reason Input -->
