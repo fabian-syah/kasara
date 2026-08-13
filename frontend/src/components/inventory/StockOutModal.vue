@@ -10,7 +10,7 @@ import {
     ChevronLeft, ChevronRight, X, UserCheck, Box, Smartphone,
     Loader2, ScanBarcode, User, ArrowRightLeft, AlertTriangle, RotateCcw, LogOut, Plus, Shield
 } from "lucide-vue-next";
-import PinModal from "../modals/PinModal.vue";
+import PasswordModal from "../modals/PasswordModal.vue";
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -30,7 +30,8 @@ const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 // Copying required refs and functions from Inventory.vue
 const isSubmitting = ref(false);
 const selectedStockOutCategory = ref(null);
-const showPinModal = ref(false);
+const showPasswordModal = ref(false);
+const passwordModalMode = ref('password');
 
 const stockOutForm = ref({
     sub_category: '',
@@ -598,10 +599,10 @@ const canSubmitStockOut = computed(() => {
     }
 });
 
-async function handlePinSuccess(pin) {
-    console.log("[DEBUG MODAL] PIN success event received");
-    showPinModal.value = false;
-    await submitStockOut(pin);
+async function handlePinSuccess(passwordOrPin) {
+    console.log("[DEBUG MODAL] Password/PIN success event received");
+    showPasswordModal.value = false;
+    await submitStockOut(passwordOrPin);
 }
 
 async function submitStockOut(pin = null) {
@@ -612,12 +613,21 @@ async function submitStockOut(pin = null) {
         return;
     }
 
-    // Check if the selected inventory user requires a PIN
-    const target = selectedInventoryUser.value;
-    if (target && target.pin_enabled && !pin) {
-        console.info("[DEBUG MODAL] PIN Required for", target.name);
-        showPinModal.value = true;
-        return;
+    if (!pin) {
+        if (authStore.hasRole('inventory')) {
+            if (authStore.user?.pin_enabled) {
+                passwordModalMode.value = 'pin';
+                showPasswordModal.value = true;
+                return;
+            }
+        } else {
+            const target = selectedInventoryUser.value;
+            if (target) {
+                passwordModalMode.value = 'password';
+                showPasswordModal.value = true;
+                return;
+            }
+        }
     }
 
     isSubmitting.value = true;
@@ -713,10 +723,10 @@ async function submitStockOut(pin = null) {
         const errorMsg = e.response?.data?.message || "";
         console.error("[DEBUG MODAL] Error message from server:", errorMsg);
 
-        // WATCHDOG FOR 422 PIN ERROR
-        if (e.response?.status === 422 && errorMsg.toLowerCase().includes('pin')) {
+        if (e.response?.status === 422 && (errorMsg.toLowerCase().includes('pin') || errorMsg.toLowerCase().includes('password'))) {
             console.warn("[DEBUG MODAL] WATCHDOG triggered for error:", errorMsg);
-            showPinModal.value = true;
+            passwordModalMode.value = authStore.hasRole('inventory') ? 'pin' : 'password';
+            showPasswordModal.value = true;
             toast.error(errorMsg);
         } else {
             toast.error(errorMsg || "Gagal keluar stok");
@@ -1318,8 +1328,8 @@ async function submitStockOut(pin = null) {
             </div>
         </div>
 
-        <!-- PIN Modal Component -->
-        <PinModal :show="showPinModal" mode="verify" title="Verifikasi PIN Transaksi" @close="showPinModal = false"
+        <!-- Password Modal Component -->
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
             @success="handlePinSuccess" />
     </div>
 </template>
