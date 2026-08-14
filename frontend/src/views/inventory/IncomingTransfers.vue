@@ -152,6 +152,10 @@ async function submitConfirmation(verifiedPin = null) {
 
     const selectedAccount = inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
     if (!password && selectedAccount && !authStore.hasRole('inventory')) {
+        if (!selectedAccount.has_password) {
+            toast.error(`Akun Inventory (${selectedAccount.name}) belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.`);
+            return;
+        }
         handleVerifyPassword((vPin) => submitConfirmation(vPin));
         return;
     }
@@ -507,7 +511,7 @@ onMounted(() => {
     <!-- Password Modal -->
     <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode"
         :title="'Verifikasi Akun Inventory'"
-        :description="'Masukkan Password Akun Inventory (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan.'"
+        :description="'Masukkan PASSWORD LOGIN Akun Inventory (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)'"
         :user="selectedAccountObject"
         @close="showPasswordModal = false" @success="onPasswordVerified" />
     <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false" @success="onPasswordVerified" />

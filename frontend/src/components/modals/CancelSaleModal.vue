@@ -100,6 +100,10 @@ async function handleSubmit() {
         toast.error("Pilih akun inventory");
         return;
     }
+    if (!authStore.hasRole('inventory') && selectedUser.value && !selectedUser.value.has_password) {
+        toast.error(`Akun Inventory (${selectedUser.value.name}) belum memasang password. Wajib atur password terlebih dahulu.`);
+        return;
+    }
     if (needsVerification.value && !form.value.password) {
         toast.error(`Masukkan ${verificationLabel.value}`);
         return;
@@ -186,7 +190,15 @@ watch(() => props.show, (newVal) => {
                                 class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2 font-mono uppercase tracking-wider">
                                 <Lock :size="16" /> {{ verificationLabel }}
                             </label>
-                            <input v-model="form.password" :type="authStore.hasRole('inventory') ? 'text' : 'password'"
+                            
+                            <!-- Missing Password Alert -->
+                            <div v-if="!authStore.hasRole('inventory') && selectedUser && !selectedUser.has_password" 
+                                 class="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-sm font-medium mb-3 flex items-start gap-2">
+                                 <AlertCircle :size="16" class="mt-0.5 shrink-0" />
+                                 <span>Akun ini belum memiliki password. Transaksi tidak dapat dilanjutkan sebelum password diatur.</span>
+                            </div>
+
+                            <input v-else v-model="form.password" :type="authStore.hasRole('inventory') ? 'text' : 'password'"
                                 :maxlength="authStore.hasRole('inventory') ? 4 : undefined"
                                 class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-gray-900 dark:text-white"
                                 :placeholder="verificationPlaceholder" />

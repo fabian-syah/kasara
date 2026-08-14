@@ -330,6 +330,11 @@ function handleVerifyPin(callback) {
             callback('skipped');
         }
     } else {
+        const acc = selectedAccountObject.value;
+        if (acc && !acc.has_password) {
+            toast.error(`Akun Inventory (${acc.name}) belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu.`);
+            return;
+        }
         passwordModalMode.value = 'password';
         pendingPasswordCallback.value = callback;
         showPasswordModal.value = true;
@@ -586,7 +591,7 @@ watch(transactionCategory, () => {
         <!-- SHARED MODALS -->
         <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" 
             :title="'Verifikasi Akun Inventory'"
-            :description="'Masukkan Password Akun Inventory (' + salesAccount + ') untuk melanjutkan.'"
+            :description="'Masukkan PASSWORD LOGIN Akun Inventory (' + salesAccount + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)'"
             :user="selectedAccountObject"
             @close="showPasswordModal = false"
             @success="handlePasswordSuccess" />

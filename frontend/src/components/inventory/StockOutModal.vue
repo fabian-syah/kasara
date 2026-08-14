@@ -623,6 +623,10 @@ async function submitStockOut(pin = null) {
         } else {
             const target = selectedInventoryUser.value;
             if (target) {
+                if (!target.has_password) {
+                    toast.error(`Akun Inventory (${target.name}) belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.`);
+                    return;
+                }
                 passwordModalMode.value = 'password';
                 showPasswordModal.value = true;
                 return;
@@ -1331,7 +1335,7 @@ async function submitStockOut(pin = null) {
         <!-- Password Modal Component -->
         <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" 
             :title="passwordModalMode === 'password' ? 'Verifikasi Akun Inventory' : undefined"
-            :description="passwordModalMode === 'password' ? ('Masukkan Password Akun Inventory (' + (selectedInventoryUser?.name || '') + ') untuk melanjutkan.') : undefined"
+            :description="passwordModalMode === 'password' ? ('Masukkan PASSWORD LOGIN Akun Inventory (' + (selectedInventoryUser?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)') : undefined"
             :user="selectedInventoryUser"
             @close="showPasswordModal = false"
             @success="handlePinSuccess" />

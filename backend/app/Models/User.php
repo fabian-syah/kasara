@@ -62,11 +62,17 @@ class User extends Authenticatable
 
     protected $appends = [
         'transaction_pin_exists',
+        'has_password',
     ];
 
     public function getTransactionPinExistsAttribute()
     {
         return !empty($this->transaction_pin);
+    }
+
+    public function getHasPasswordAttribute()
+    {
+        return !empty($this->password);
     }
 
     // Relasi ke Cabang
