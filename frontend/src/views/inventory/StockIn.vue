@@ -789,19 +789,10 @@ async function submitStockIn(verifiedPassword = null) {
     // Use either the provided verifiedPassword or the local password state
     const password = typeof verifiedPassword === 'string' ? verifiedPassword : null;
 
-    if (!password) {
-        if (authStore.hasRole('inventory')) {
-            if (selectedInventoryUserPinEnabled.value) {
-                passwordModalMode.value = 'pin';
-                showPasswordModal.value = true;
-                return;
-            }
-        } else if (selectedInventoryUserPinEnabled.value) {
-            passwordModalMode.value = 'password';
-            showPasswordModal.value = true;
-            return;
-        }
-    }
+    // Password/PIN bypassed for Stock In
+    // if (!password) {
+    //     ...
+    // }
 
     isSubmitting.value = true;
     try {
@@ -812,8 +803,8 @@ async function submitStockIn(verifiedPassword = null) {
             type: itemType.value,
             placement_type: placementType.value,
             placement_id: placementId.value,
-            inventory_user_id: selectedInventoryUserId.value,
-            password: password,
+            inventory_user_id: selectedInventoryUserId.value
+            // password: password,
         };
 
         if (itemType.value === 'hp') {

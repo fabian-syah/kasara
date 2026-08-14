@@ -94,9 +94,9 @@ class StockInController extends Controller
 
         $targetUser = User::find($ownerUserId);
 
-        $pinError = $this->verifyPin($request, $ownerUserId);
-        if ($pinError)
-            return $pinError;
+        // $pinError = $this->verifyPin($request, $ownerUserId);
+        // if ($pinError)
+        //     return $pinError;
 
         DB::beginTransaction();
 
