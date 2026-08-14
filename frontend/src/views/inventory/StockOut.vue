@@ -7,6 +7,7 @@ import api, { inventory as inventoryApi, branches as branchesApi, warehouses as 
 import { formatCurrency, parseCurrency } from "../../utils/formatters";
 // Scanner will be imported dynamically
 import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -30,7 +31,8 @@ import {
     Archive,
     Upload,
     Warehouse,
-    XCircle
+    XCircle,
+    User
 } from "lucide-vue-next";
 
 const toast = useToast();
@@ -127,6 +129,7 @@ const form = ref({
     notes: '',
     missing_category: '',
     person_in_charge: '',
+    loss_chronology: '',
     inventory_user_id: null,
     password: '',
     // Giveaway fields
@@ -151,8 +154,6 @@ const form = ref({
     ba_social_media: '',
     ba_notes: '',
 });
-
-// sellingPriceDisplay and newNonHpItemSellingPriceDisplay computed properties removed in favor of v-money sync syntax
 
 // Region State
 const provinces = ref([]);
@@ -193,7 +194,6 @@ async function fetchInventory() {
 async function fetchBranches() {
     try {
         const response = await branchesApi.list({ ignore_scope: 1, all: 1 });
-        console.log("DEBUG BRANCHES RESPONSE:", response.data);
         branches.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat cabang", e);
@@ -203,7 +203,6 @@ async function fetchBranches() {
 async function fetchWarehouses() {
     try {
         const response = await warehousesApi.list({ ignore_scope: 1, all: 1 });
-        console.log("DEBUG WAREHOUSES RESPONSE:", response.data);
         warehouses.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat gudang", e);
@@ -213,7 +212,6 @@ async function fetchWarehouses() {
 async function fetchOnlineShops() {
     try {
         const response = await onlineShopsApi.list({ ignore_scope: 1, all: 1 });
-        console.log("DEBUG ONLINE SHOPS RESPONSE:", response.data);
         onlineShops.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat online shop", e);
@@ -223,7 +221,6 @@ async function fetchOnlineShops() {
 async function fetchDistributors() {
     try {
         const response = await distributorsApi.list({ ignore_scope: 1, all: 1 });
-        console.log("DEBUG DISTRIBUTORS RESPONSE:", response.data);
         distributors.value = response.data.data || response.data;
     } catch (e) {
         console.error("Gagal memuat distributor", e);
@@ -306,18 +303,6 @@ async function restoreDraft() {
 watch(() => authStore.user?.id, (newId) => {
     if (newId) restoreDraft();
 }, { immediate: true });
-
-onMounted(() => {
-    setTimeout(() => {
-        if (isRestoring.value && !authStore.user?.id) isRestoring.value = false;
-    }, 2000);
-    
-    fetchInventory();
-    fetchBranches();
-    fetchCurrentBranch();
-    // fetchProvinces(); // MOVED TO LAZY LOAD
-    fetchInventoryUsers();
-});
 
 function addNonHpItem() {
     if (!newNonHpItem.value.product_id) return;
@@ -489,8 +474,6 @@ function toggleSelect(item) {
 function isSelected(item) {
     return selectedItems.value.some(i => i.id === item.id);
 }
-
-// Removed redundant formatCurrency; using imported one from utils/formatters instead
 
 async function openStockOutForm() {
     if (selectedItems.value.length === 0) {
@@ -775,11 +758,10 @@ async function fetchInventoryUsers() {
             });
         }
 
-        // Normalize all accounts to have boolean pin_enabled and ensured types
+        // Normalize all accounts
         const normalizedAccounts = accounts.map(u => ({
             ...u,
             id: Number(u.id),
-            // Strictly check if PIN is enabled
             pin_enabled: true
         }));
 
@@ -787,7 +769,6 @@ async function fetchInventoryUsers() {
 
         // Auto select if currently null OR invalid
         if ((!form.value.inventory_user_id || !inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) && inventoryUsers.value.length > 0) {
-            // Priority: existing form.inventory_user_id if valid, otherwise first in list
             if (!inventoryUsers.value.some(u => u.id === form.value.inventory_user_id)) {
                 form.value.inventory_user_id = inventoryUsers.value[0].id;
             }
@@ -824,7 +805,7 @@ function handleStartSubmit() {
     }
 }
 
-function onPasswordVerified(password) {
+function handlePasswordSuccess(password) {
     form.value.password = password;
     showPasswordModal.value = false;
     submitStockOut();
@@ -874,12 +855,8 @@ async function submitStockOut() {
 
 
     } catch (e) {
-        console.error("[DEBUG PASSWORD] Caught Exception in submitStockOut:", e);
         const errorMsg = e.response?.data?.message || "";
-        console.error("[DEBUG PASSWORD] Backend Error Message:", errorMsg);
-
         if (e.response?.status === 422 && (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('pin'))) {
-            console.warn("[DEBUG SECURITY] WATCHDOG: Backend rejected due to Password/PIN. Forcing Security Modal.");
             const targetId = form.value.inventory_user_id;
             const target = inventoryUsers.value.find(u => Number(u.id) === Number(targetId)) || authStore.user;
             accountNeedingPassword.value = target;
@@ -887,7 +864,6 @@ async function submitStockOut() {
             showPasswordModal.value = true;
             toast.error(errorMsg);
 
-            // Clear wrong password
             form.value.password = '';
         } else if (e.response && e.response.status === 422) {
             const msg = e.response.data.message || "Validasi gagal. Mohon periksa kembali data Anda.";
@@ -897,7 +873,6 @@ async function submitStockOut() {
         }
     } finally {
         isSubmitting.value = false;
-        console.log("[DEBUG PIN] submitStockOut finished");
     }
 }
 
@@ -909,20 +884,14 @@ onMounted(() => {
     fetchInventoryUsers();
 
     if (window.Echo) {
-        // Listen for new stock coming in
         window.Echo.channel('inventory')
             .listen('.StockInEvent', (e) => {
                 const product = e.product;
-                // Add to list if it's available (StockInEvent implies it is available initially)
-                // Check if already exists to avoid duplicate
                 if (inventoryItems.value.find(i => i.id === product.id)) return;
-
-                // Add to top
                 inventoryItems.value.unshift(product);
                 toast.success('Stok baru tersedia!');
             });
 
-        // Listen for stock going out
         window.Echo.channel('stock-out')
             .listen('.StockOutEvent', (e) => {
                 const out = e.stockOut;
@@ -956,17 +925,14 @@ onMounted(() => {
         </div>
 
         <div v-if="!showForm" class="space-y-6">
-            <!-- Header Bar -->
             <div class="card mb-4">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <!-- Search -->
                     <div class="relative flex-1 max-w-md">
                         <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" :size="18" />
                         <input v-model="searchQuery" type="text" placeholder="Pencarian Stok dengan IMEI"
                             class="input pl-10" />
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex items-center gap-2">
                         <button @click="fetchInventory" class="btn btn-secondary h-10 px-4 rounded-xl">
                             <Loader2 v-if="isLoading" :size="16" class="animate-spin mr-2" />
@@ -976,7 +942,6 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Stats -->
             <div class="mb-4 flex items-center justify-between">
                 <p class="text-text-primary font-medium">
                     Total Stok <span class="text-primary-500 font-bold">{{ filteredItems.length }}</span> Unit
@@ -986,7 +951,6 @@ onMounted(() => {
                 </p>
             </div>
 
-            <!-- Table -->
             <div class="card p-0 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full">
@@ -1452,7 +1416,6 @@ onMounted(() => {
                         </button>
                     </div>
 
-                    <!-- List Selected Non-HP -->
                     <div v-if="selectedNonHpItems.length > 0" class="space-y-2">
                         <div v-for="(item, idx) in selectedNonHpItems" :key="idx"
                             class="flex items-center justify-between bg-surface-700 p-3 rounded-xl">
@@ -1482,9 +1445,10 @@ onMounted(() => {
         </div>
 
         <!-- Modals and Alerts -->
-        <!-- Security Password/PIN Modal -->
-        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" :user="accountNeedingPassword" @close="showPasswordModal = false"
-            @success="onPasswordVerified" />
+        <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" :user="accountNeedingPassword" @close="showPasswordModal = false"
+            @success="handlePasswordSuccess" />
+        <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" :user="accountNeedingPassword" @close="showPasswordModal = false"
+            @success="handlePasswordSuccess" />
 
         <!-- Non HP Modal -->
         <div v-if="showNonHpModal" class="fixed inset-0 bg-black/80 z-[120] flex items-center justify-center p-4">

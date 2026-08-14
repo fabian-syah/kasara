@@ -122,7 +122,7 @@ onMounted(() => {
                 class="relative w-full max-w-sm bg-white dark:bg-surface-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-800"></div>
 
-                <div class="p-8 text-center">
+                <div class="p-6 sm:p-8 text-center">
                     <div
                         class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-6 font-black font-mono">
                         <Lock :size="32" stroke-width="2.5" />
@@ -136,10 +136,10 @@ onMounted(() => {
                         {{ description }}
                     </p>
 
-                    <div class="flex justify-center gap-3 mb-4">
+                    <div class="flex justify-center gap-2 sm:gap-3 mb-4">
                         <input v-for="(digit, idx) in 4" :key="idx" :ref="el => inputs[idx] = el" v-model="pin[idx]"
                             type="password" inputmode="numeric" maxlength="1" autocomplete="new-password"
-                            class="w-14 h-16 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl text-center text-3xl font-black text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/30"
+                            class="w-12 h-14 sm:w-14 sm:h-16 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl text-center text-2xl sm:text-3xl font-black text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/30"
                             @input="handleInput(idx, $event)" @keydown="handleKeydown(idx, $event)" />
                     </div>
 

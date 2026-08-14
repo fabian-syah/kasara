@@ -28,6 +28,7 @@ import {
     CheckSquare
 } from "lucide-vue-next";
 import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 import SaleScreenshot from "../../components/sales/SaleScreenshot.vue";
 
@@ -583,7 +584,9 @@ watch(transactionCategory, () => {
         </div>
 
         <!-- SHARED MODALS -->
-        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+        <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+            @success="handlePasswordSuccess" />
+        <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false"
             @success="handlePasswordSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
             :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"

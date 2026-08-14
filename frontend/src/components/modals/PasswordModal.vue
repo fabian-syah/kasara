@@ -83,7 +83,7 @@ onMounted(() => {
                 class="relative w-full max-w-sm bg-white dark:bg-surface-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-800"></div>
 
-                <div class="p-8 text-center">
+                <div class="p-6 sm:p-8 text-center">
                     <div
                         class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-6 font-black font-mono">
                         <Lock :size="32" stroke-width="2.5" />

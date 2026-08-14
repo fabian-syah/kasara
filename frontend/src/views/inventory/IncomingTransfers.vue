@@ -4,6 +4,7 @@ import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useRouter } from "vue-router";
 import PasswordModal from "../../components/modals/PasswordModal.vue";
+import PinModal from "../../components/modals/PinModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
     Package,
@@ -500,7 +501,8 @@ onMounted(() => {
     </div>
 
     <!-- Password Modal -->
-    <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false" @success="onPasswordVerified" />
+    <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false" @success="onPasswordVerified" />
+    <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false" @success="onPasswordVerified" />
 </template>
 
 <style scoped>

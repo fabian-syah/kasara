@@ -400,10 +400,10 @@ class InventoryController extends Controller
             $targetUser = \App\Models\User::find($request->inventory_user_id);
         }
 
-        // PIN Verification using Trait
-        $pinError = $this->verifyPin($request);
-        if ($pinError)
-            return $pinError;
+        // PIN Verification removed per new rule
+        // $pinError = $this->verifyPin($request);
+        // if ($pinError)
+        //     return $pinError;
 
         $item = ProductDetail::findOrFail($id);
         $oldStatus = $item->status;
@@ -458,9 +458,10 @@ class InventoryController extends Controller
             'transaction_pin' => 'nullable|string|size:4',
         ]);
 
-        $pinError = $this->verifyPin($request);
-        if ($pinError)
-            return $pinError;
+        // PIN Verification removed per new rule
+        // $pinError = $this->verifyPin($request);
+        // if ($pinError)
+        //     return $pinError;
 
         return DB::transaction(function () use ($request, $id) {
             $item = ProductDetail::findOrFail($id);
@@ -594,8 +595,8 @@ class InventoryController extends Controller
                 return response()->json(['message' => 'PIN Keamanan salah'], 422);
             }
 
+            // Verify Password using trait removed per new rule
             /*
-            // Verify Password using trait (it checks $request->password or $request->transaction_pin)
             $verifyRequest = clone $request;
             if ($request->has('pin')) {
                 $verifyRequest->merge(['password' => $request->pin]);

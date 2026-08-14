@@ -109,9 +109,9 @@ class FailedTransferController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Verify PIN against confirming user (current user or selected inventory account)
-        $pinError = $this->verifyPin($request, $request->inventory_user_id);
-        if ($pinError) return $pinError;
+        // Verify PIN removed per new rule
+        // $pinError = $this->verifyPin($request, $request->inventory_user_id);
+        // if ($pinError) return $pinError;
 
         $confirmingUserId = $user->id;
         if ($request->has('inventory_user_id') && $request->inventory_user_id) {
