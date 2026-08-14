@@ -4,11 +4,14 @@ import { X, Trash2, User, Lock, AlertCircle, Loader2 } from 'lucide-vue-next';
 import api, { inventory as inventoryApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useAuthStore } from "../../store/auth";
+import PasswordModal from "./PasswordModal.vue";
 
 const props = defineProps({
     show: Boolean,
     sale: Object // The stock out record to cancel
 });
+
+const showPasswordAlert = ref(false);
 
 const emit = defineEmits(["close", "success"]);
 
@@ -101,7 +104,7 @@ async function handleSubmit() {
         return;
     }
     if (!authStore.hasRole('inventory') && selectedUser.value && !selectedUser.value.has_password) {
-        toast.error(`Akun Inventory (${selectedUser.value.name}) belum memasang password. Wajib atur password terlebih dahulu.`);
+        showPasswordAlert.value = true;
         return;
     }
     if (needsVerification.value && !form.value.password) {
@@ -224,6 +227,13 @@ watch(() => props.show, (newVal) => {
                 </div>
             </div>
         </div>
+        
+        <!-- Password Modal Alert -->
+        <PasswordModal v-if="showPasswordAlert" :show="showPasswordAlert" mode="alert"
+            title="Akses Ditolak"
+            :description="'Akun Inventory (' + (selectedUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.'"
+            :user="selectedUser"
+            @close="showPasswordAlert = false" />
     </Teleport>
 </template>
 

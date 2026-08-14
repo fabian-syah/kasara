@@ -87,19 +87,21 @@ onMounted(() => {
 
                 <div class="p-6 sm:p-8 text-center">
                     <div
-                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 text-emerald-500 mb-6 font-black font-mono">
-                        <Lock :size="32" stroke-width="2.5" />
+                        class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 font-black font-mono"
+                        :class="mode === 'alert' ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'">
+                        <Lock v-if="mode !== 'alert'" :size="32" stroke-width="2.5" />
+                        <AlertCircle v-else :size="32" stroke-width="2.5" />
                     </div>
 
                     <h3 class="text-2xl font-black text-text-primary mb-2">{{ modalTitle }}</h3>
-                    <p v-if="user" class="text-sm font-bold text-emerald-500 mb-2">
+                    <p v-if="user" class="text-sm font-bold text-emerald-500 mb-2" :class="mode === 'alert' ? 'text-rose-500' : 'text-emerald-500'">
                         Akun: {{ user.name || user.full_name }}
                     </p>
-                    <p class="text-text-secondary text-sm mb-6 leading-relaxed px-4">
+                    <p class="text-text-secondary text-sm mb-6 leading-relaxed px-4" :class="mode === 'alert' ? 'text-rose-400 font-bold' : ''">
                         {{ modalDescription }}
                     </p>
 
-                    <form @submit.prevent="handleSubmit" class="mb-6 px-4 flex flex-col gap-4">
+                    <form v-if="mode !== 'alert'" @submit.prevent="handleSubmit" class="mb-6 px-4 flex flex-col gap-4">
                         <div class="relative">
                             <input
                                 ref="inputRef"
@@ -133,9 +135,14 @@ onMounted(() => {
                         <div class="w-2 h-2 bg-primary-500 rounded-full animate-bounce"></div>
                     </div>
 
-                    <button @click="close" type="button"
+                    <button v-if="mode !== 'alert'" @click="close" type="button"
                         class="text-text-secondary/60 hover:text-text-primary text-sm font-bold transition-colors">
                         Batal
+                    </button>
+                    
+                    <button v-if="mode === 'alert'" @click="close" type="button"
+                        class="w-full py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+                        Tutup
                     </button>
                 </div>
             </div>
