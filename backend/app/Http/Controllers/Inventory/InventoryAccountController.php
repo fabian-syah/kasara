@@ -137,6 +137,8 @@ class InventoryAccountController extends Controller
         if ($request->filled('password')) {
             $account->password = Hash::make($request->password);
             $account->password_changed_at = now();
+            // Revoke all existing tokens so the user is forced to re-login
+            $account->tokens()->delete();
         }
 
         if ($request->has('transaction_pin') && !empty($request->transaction_pin)) {
