@@ -40,32 +40,14 @@ trait VerifiesPin
             return null; // Success
         }
 
-        // If the logged-in user is NOT 'inventory', they must provide the password of the targeted inventory account.
-        // The targeted inventory account ID is usually passed in the request as inventory_user_id.
-        $targetUserId = $inventoryUserId ?? $request->inventory_user_id;
-
-        if (!$targetUserId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun Inventory tujuan tidak ditemukan.'
-            ], 422);
-        }
-
-        $targetUser = User::find($targetUserId);
-        if (!$targetUser) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun Inventory tujuan tidak valid.'
-            ], 422);
-        }
-
-        // Verify Password of the target inventory user
+        // If the logged-in user is NOT 'inventory', they must provide THEIR OWN password (e.g., Toko Offline password).
+        // Verify Password of the logged-in user
         $password = $request->password ?? $request->transaction_pin ?? $request->pin;
 
-        if (!$password || !Hash::check($password, $targetUser->password)) {
+        if (!$password || !Hash::check($password, $user->password)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Password Akun Inventory salah atau diperlukan untuk melanjutkan.'
+                'message' => 'Password salah atau diperlukan untuk melanjutkan.'
             ], 422);
         }
 
