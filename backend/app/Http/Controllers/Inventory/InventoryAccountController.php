@@ -23,7 +23,7 @@ class InventoryAccountController extends Controller
         $request->validate([
             'name' => 'required|string|max:50',
             'username' => 'nullable|string|max:50|unique:users,username',
-            // 'password' => 'nullable|string|min:4',
+            'password' => 'nullable|string|min:4',
             'transaction_pin' => 'nullable|string|size:4'
         ]);
 
@@ -104,6 +104,7 @@ class InventoryAccountController extends Controller
         $request->validate([
             'name' => 'nullable|string|max:50',
             'username' => 'nullable|string|max:50|unique:users,username,' . $id,
+            'password' => 'nullable|string|min:4',
             'transaction_pin' => 'nullable|string|size:4',
             'remove_pin' => 'nullable|string',
             'phone' => 'nullable|string|max:20',
@@ -131,6 +132,11 @@ class InventoryAccountController extends Controller
 
         if ($request->has('username')) {
             $account->username = $request->username;
+        }
+
+        if ($request->filled('password')) {
+            $account->password = Hash::make($request->password);
+            $account->password_changed_at = now();
         }
 
         if ($request->has('transaction_pin') && !empty($request->transaction_pin)) {

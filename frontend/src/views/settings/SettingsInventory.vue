@@ -16,6 +16,7 @@ const isLoading = ref(true);
 // "Buat Akun Inventory Baru" Form State
 const newAccountName = ref("");
 const newAccountUsername = ref("");
+const newAccountPin = ref("");
 const newAccountPassword = ref("");
 const isCreatingAccount = ref(false);
 
@@ -26,24 +27,26 @@ const editAccountData = ref({
     id: null,
     name: "",
     username: "",
-    // password: "",
+    password: "",
     transaction_pin: "",
     pin_confirmation: "",
     remove_pin: false
 });
 const isUpdatingAccount = ref(false);
+const showPasswordLogin = ref(false);
 
 function openEditModal(acc) {
     editAccountData.value = {
         id: acc.id,
         name: acc.name,
         username: acc.username,
-        // password: "",
+        password: "",
         transaction_pin: "",
         pin_confirmation: "",
         remove_pin: false
     };
     showPassword.value = false;
+    showPasswordLogin.value = false;
     showEditModal.value = true;
 }
 
@@ -58,6 +61,9 @@ async function submitEditAccount() {
         const payload = new FormData();
         payload.append('name', editAccountData.value.name);
         payload.append('username', editAccountData.value.username);
+        if (editAccountData.value.password) {
+            payload.append('password', editAccountData.value.password);
+        }
         if (editAccountData.value.transaction_pin) {
             payload.append('transaction_pin', editAccountData.value.transaction_pin);
         } else if (editAccountData.value.remove_pin) {
@@ -101,12 +107,13 @@ async function createInventoryAccount() {
         await inventoryApi.createAccount({
             name: newAccountName.value,
             username: newAccountUsername.value || undefined,
-            // password: newAccountPassword.value || 'inventory123',
-            transaction_pin: newAccountPassword.value || '0000'
+            password: newAccountPassword.value || 'inventory123',
+            transaction_pin: newAccountPin.value || '0000'
         });
         toast.success("Akun inventory baru berhasil dibuat!");
         newAccountName.value = "";
         newAccountUsername.value = "";
+        newAccountPin.value = "";
         newAccountPassword.value = "";
         
         await fetchAccounts();
@@ -122,6 +129,7 @@ async function createInventoryAccount() {
 function cancelCreateAccount() {
     newAccountName.value = "";
     newAccountUsername.value = "";
+    newAccountPin.value = "";
     newAccountPassword.value = "";
 }
 
@@ -174,7 +182,11 @@ const accountsByBranch = computed(() => {
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">PIN TRANSAKSI (Opsional)</label>
-                            <input v-model="newAccountPassword" type="text" class="input" placeholder="Default: 0000" maxlength="4" autocomplete="off" />
+                            <input v-model="newAccountPin" type="text" class="input" placeholder="Default: 0000" maxlength="4" autocomplete="off" />
+                        </div>
+                        <div class="space-y-1.5 sm:col-span-2">
+                            <label class="label">PASSWORD LOGIN (Opsional)</label>
+                            <input v-model="newAccountPassword" type="text" class="input" placeholder="Default: inventory123" autocomplete="off" />
                         </div>
                         
                         <div class="sm:col-span-2 flex items-center justify-end gap-3 pt-2">
@@ -269,6 +281,16 @@ const accountsByBranch = computed(() => {
                     <label class="label">KONFIRMASI PIN BARU</label>
                     <div class="relative">
                         <input v-model="editAccountData.pin_confirmation" :type="showPassword ? 'text' : 'password'" class="input pr-10" placeholder="Ulangi PIN baru" maxlength="4" />
+                    </div>
+                </div>
+                <div>
+                    <label class="label">PASSWORD BARU (Opsional)</label>
+                    <div class="relative">
+                        <input v-model="editAccountData.password" :type="showPasswordLogin ? 'text' : 'password'" class="input pr-10" placeholder="Kosongkan jika tidak diubah" />
+                        <button type="button" @click="showPasswordLogin = !showPasswordLogin" class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                            <Eye v-if="!showPasswordLogin" :size="16" />
+                            <EyeOff v-else :size="16" />
+                        </button>
                     </div>
                 </div>
                 <div v-if="!editAccountData.transaction_pin" class="flex items-center gap-2 mt-2">
