@@ -1112,37 +1112,7 @@ function getUserRoleName(user) {
               </div>
             </div>
 
-                        <!-- Transaction PIN Reset -->
-            <div v-if="editingUser" class="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-              <div class="flex items-center gap-2 text-amber-500">
-                <Shield :size="18" />
-                <h4 class="text-sm font-bold uppercase tracking-wider">PIN Transaksi</h4>
-              </div>
-
-              <div v-if="editingUser.pin_reset_requested_at"
-                class="flex items-start gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                <AlertCircle class="text-red-500 shrink-0 mt-0.5" :size="16" />
-                <p class="text-[11px] text-red-400 leading-tight">
-                  User ini meminta reset PIN pada {{ formatDate(editingUser.pin_reset_requested_at) }}.
-                  Masukkan PIN baru di bawah untuk mereset.
-                </p>
-              </div>
-
-              <div>
-                <label class="label">PIN Baru (4 Digit)</label>
-                <input v-model="form.transaction_pin" type="text" maxlength="4" class="input font-mono"
-                  placeholder="Abaikan jika tidak ingin merubah PIN"
-                  @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" :disabled="form.remove_pin" />
-                <p class="text-[10px] text-text-secondary mt-1">Sifatnya opsional, digunakan jika user lupa PIN.</p>
-              </div>
-              
-              <div class="flex items-center gap-2 mt-3 cursor-pointer select-none">
-                <input type="checkbox" id="remove_pin" v-model="form.remove_pin" class="rounded border-surface-700 bg-surface-800 text-red-500 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                <label for="remove_pin" class="text-sm font-bold text-red-500 cursor-pointer uppercase tracking-wider">Hapus PIN (Reset Total)</label>
-              </div>
-            </div>
-
-            <div v-if="isSuperAdmin || !(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                        <div v-if="isSuperAdmin || !(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label class="label">Role</label>
                 <select v-model="form.role" class="input" required :disabled="!isSuperAdmin && !!editingUser">
