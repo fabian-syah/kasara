@@ -2993,11 +2993,23 @@ class StockOutController extends Controller
             'password' => 'nullable|string'
         ]);
 
-        // PIN Verification using Trait
-        // This trait handles checking if the user has a PIN, 
-        // and if it matches. It also handles generic permission checks.
-        $pinError = $this->verifyPin($request, $request->inventory_user_id);
-        if ($pinError) return $pinError;
+        // Custom strict password verification for Cancel Sale
+        $invUser = \App\Models\User::find($request->inventory_user_id);
+        if (!$invUser) {
+            return response()->json(['success' => false, 'message' => 'Akun inventory tidak ditemukan'], 422);
+        }
+        if (!$invUser->has_password) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Akun Inventory ' . $invUser->name . ' belum memasang password. Silakan atur password terlebih dahulu.'
+            ], 422);
+        }
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $invUser->password)) {
+            return response()->json([
+                'success' => false, 
+                'message' => 'Password akun inventory salah'
+            ], 422);
+        }
 
         DB::beginTransaction();
         try {
