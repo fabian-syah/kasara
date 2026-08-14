@@ -415,9 +415,9 @@ const filteredUsers = computed(() => {
   // Account Type Filter
   if (selectedAccountType.value) {
     if (selectedAccountType.value === 'main') {
-      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory') && !subAccountIds.value.has(u.id));
+      result = result.filter(u => u && !u.roles?.some(r => r.name === 'inventory'));
     } else if (selectedAccountType.value === 'inventory') {
-      result = result.filter(u => u && (u.roles?.some(r => r.name === 'inventory') || subAccountIds.value.has(u.id)));
+      result = result.filter(u => u && u.roles?.some(r => r.name === 'inventory'));
     }
   }
 
