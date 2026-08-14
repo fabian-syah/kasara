@@ -1084,10 +1084,10 @@ function getUserRoleName(user) {
 
             <!-- Password -->
             <div>
-              <label class="label">Password {{ editingUser ? '(Optional)' : '' }}</label>
+              <label class="label">Password</label>
               <div class="relative">
                 <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="input pr-10"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" :required="!editingUser" />
+                  placeholder="********" required />
                 <button type="button" @click="showPassword = !showPassword"
                   class="absolute right-3 top-2.5 text-text-secondary hover:text-text-primary">
                   <Eye v-if="!showPassword" :size="18" />
