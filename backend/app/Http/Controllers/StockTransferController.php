@@ -89,7 +89,7 @@ class StockTransferController extends Controller
             'accepted_items' => 'array', // List of IMEI IDs
             'non_hp_quantities' => 'array', // Map: [ non_hp_item_id => quantity_received ]
             'inventory_user_id' => 'sometimes|nullable|exists:users,id',
-            'transaction_pin' => 'nullable|string|max:10',
+            'transaction_pin' => 'nullable|string',
         ]);
 
         // PIN Verification using Trait

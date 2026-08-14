@@ -62,7 +62,7 @@ class UnitExchangeController extends Controller
             'notes' => 'nullable|string',
             'photo_unit' => 'required|image|max:20480',
             'photo_customer' => 'nullable|image|max:20480',
-            'transaction_pin' => 'nullable|string|max:10',
+            'transaction_pin' => 'nullable|string',
             'inventory_user_id' => 'nullable|exists:users,id',
             'split_payments' => 'nullable',
             'payment_method_id' => 'nullable|exists:payment_methods,id',

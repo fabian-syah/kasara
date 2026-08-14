@@ -391,7 +391,7 @@ class InventoryController extends Controller
         $request->validate([
             'status' => 'required|in:available,sold,returned,deleted,out',
             'inventory_user_id' => 'nullable|exists:users,id',
-            'transaction_pin' => 'nullable|string|size:4',
+            'transaction_pin' => 'nullable|string',
         ]);
 
         /** @var \App\Models\User $targetUser */
@@ -455,7 +455,7 @@ class InventoryController extends Controller
         $request->validate([
             'rejection_reason' => 'nullable|string|max:500',
             'inventory_user_id' => 'nullable|exists:users,id',
-            'transaction_pin' => 'nullable|string|size:4',
+            'transaction_pin' => 'nullable|string',
         ]);
 
         // PIN Verification removed per new rule

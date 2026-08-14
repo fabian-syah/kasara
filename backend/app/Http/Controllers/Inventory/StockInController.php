@@ -32,7 +32,7 @@ class StockInController extends Controller
                 'distributor_id' => 'nullable|exists:distributors,id',
                 'new_distributor_name' => 'nullable|string|max:255',
                 'type' => 'required|in:hp,non-hp,HP,NON-HP',
-                'transaction_pin' => 'nullable|string|min:4|max:6',
+                'transaction_pin' => 'nullable|string',
                 'placement_type' => 'required|in:branch,warehouse,online_shop,distributor',
                 'placement_id' => 'required|integer',
                 'inventory_user_id' => 'nullable|integer|exists:users,id',

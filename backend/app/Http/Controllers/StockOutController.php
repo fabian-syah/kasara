@@ -344,7 +344,7 @@ class StockOutController extends Controller
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:50',
             'customer_wa' => 'nullable|string|max:50',
-            'transaction_pin' => 'nullable|string|max:10',
+            'transaction_pin' => 'nullable|string',
             'return_destination_id' => 'required_if:category,retur|nullable|exists:warehouses,id',
             'proof_image' => 'nullable|image|max:20480', // Max 20MB
             'split_payments' => 'nullable|string', // JSON string from frontend
@@ -380,7 +380,7 @@ class StockOutController extends Controller
             $rules['payment_proof_image'] = 'nullable|image|max:20480';
 
             // Only require PIN if user has it enabled
-            $rules['transaction_pin'] = 'nullable|string|max:100';
+            $rules['transaction_pin'] = 'nullable|string';
             $rules['password'] = 'nullable|string';
         }
 
@@ -2335,7 +2335,7 @@ class StockOutController extends Controller
             'non_hp_items' => 'nullable|array', // List of Accepted Quantities
             'non_hp_rejection_notes' => 'nullable|array', // { nonHpItemId: note }
             'inventory_user_id' => 'sometimes|nullable|exists:users,id',
-            'transaction_pin' => 'nullable|string|size:4'
+            'transaction_pin' => 'nullable|string'
         ]);
 
         // PIN Verification using Trait
