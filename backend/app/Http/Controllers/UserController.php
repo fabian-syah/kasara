@@ -294,9 +294,12 @@ class UserController extends Controller
 
         // Audit role restriction on update
         if ($currentUser->hasRole('audit')) {
-            $forbiddenRolesToAssign = ['super_admin', 'audit', 'analist', 'admin_produk', 'toko_offline'];
-            if ($request->role && in_array($request->role, $forbiddenRolesToAssign)) {
-                return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah role ke role ini.'], 403);
+            // Audit cannot change the role at all
+            if ($request->has('role')) {
+                $currentRole = $user->roles->first() ? $user->roles->first()->name : null;
+                if ($request->role !== $currentRole) {
+                    return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah Role.'], 403);
+                }
             }
 
             $forbiddenRolesToEdit = ['super_admin', 'audit', 'analist', 'admin_produk'];
