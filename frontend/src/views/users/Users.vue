@@ -860,7 +860,7 @@ function getUserRoleName(user) {
                 <span v-else class="text-xs text-text-secondary italic">No Role</span>
               </td>
               <td class="px-6 py-4">
-                <span v-if="user.created_by && typeof user.created_by === 'object'" class="text-sm font-medium text-blue-500 dark:text-blue-400">
+                <span v-if="user.created_by && user.created_by.full_name" class="text-sm font-medium text-blue-500 dark:text-blue-400">
                   {{ user.created_by.full_name }}
                 </span>
                 <span v-else class="text-xs text-text-secondary italic">-</span>
@@ -995,7 +995,7 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </div>
-              <div v-if="user.created_by && typeof user.created_by === 'object'" class="mt-1 flex items-center gap-1">
+              <div v-if="user.created_by && user.created_by.full_name" class="mt-1 flex items-center gap-1">
                 <span class="text-[10px] text-text-secondary">Milik:</span>
                 <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{
                   user.created_by.full_name
