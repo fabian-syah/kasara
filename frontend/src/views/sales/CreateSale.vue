@@ -322,13 +322,7 @@ function handleTransactionComplete(transaction) {
 
 function handleVerifyPin(callback) {
     if (authStore.hasRole('inventory')) {
-        if (authStore.user?.pin_enabled) {
-            passwordModalMode.value = 'pin';
-            pendingPasswordCallback.value = callback;
-            showPasswordModal.value = true;
-        } else {
-            callback('skipped');
-        }
+        callback('skipped');
     } else {
         const acc = selectedAccountObject.value;
         if (acc && !acc.has_password) {

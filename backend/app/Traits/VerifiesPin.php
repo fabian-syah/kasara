@@ -34,20 +34,7 @@ trait VerifiesPin
 
         // 1. If the logged-in user has the 'inventory' role
         if ($isInventoryRole) {
-            // If they don't have a PIN enabled, bypass
-            if (!$user->pin_enabled) {
-                return null;
-            }
-
-            // Verify PIN
-            $pin = $request->transaction_pin ?? $request->pin ?? $request->password;
-            if (!$pin || !Hash::check($pin, $user->transaction_pin)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'PIN Keamanan salah atau diperlukan untuk melanjutkan.'
-                ], 422);
-            }
-
+            // Bypass PIN/password completely for inventory role
             return null; // Success
         }
 

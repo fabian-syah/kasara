@@ -506,6 +506,8 @@ function openEditModal(user) {
     address: user.address,
     is_active: !!user.is_active,
     password: "",
+    transaction_pin: "",
+    remove_pin: false,
     selected_branches: branchPlacements,
     selected_online_shops: onlineShopPlacements,
     selected_warehouses: warehousePlacements,
@@ -1101,7 +1103,7 @@ function getUserRoleName(user) {
               <label class="label">Password</label>
               <div class="relative">
                 <input v-model="form.password" :type="showPassword ? 'text' : 'password'" class="input pr-10"
-                  placeholder="********" required />
+                  :placeholder="editingUser ? 'Kosongkan jika tidak ingin mengubah password' : '********'" :required="!editingUser" />
                 <button type="button" @click="showPassword = !showPassword"
                   class="absolute right-3 top-2.5 text-text-secondary hover:text-text-primary">
                   <Eye v-if="!showPassword" :size="18" />
@@ -1130,8 +1132,13 @@ function getUserRoleName(user) {
                 <label class="label">PIN Baru (4 Digit)</label>
                 <input v-model="form.transaction_pin" type="text" maxlength="4" class="input font-mono"
                   placeholder="Abaikan jika tidak ingin merubah PIN"
-                  @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" />
+                  @input="form.transaction_pin = form.transaction_pin.replace(/\D/g, '')" :disabled="form.remove_pin" />
                 <p class="text-[10px] text-text-secondary mt-1">Sifatnya opsional, digunakan jika user lupa PIN.</p>
+              </div>
+              
+              <div class="flex items-center gap-2 mt-3 cursor-pointer select-none">
+                <input type="checkbox" id="remove_pin" v-model="form.remove_pin" class="rounded border-surface-700 bg-surface-800 text-red-500 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                <label for="remove_pin" class="text-sm font-bold text-red-500 cursor-pointer uppercase tracking-wider">Hapus PIN (Reset Total)</label>
               </div>
             </div>
 

@@ -312,7 +312,7 @@ class UserController extends Controller
         $inputs = $request->all();
         $validated = [];
 
-        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'transaction_pin', 'cover_photo'];
+        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'cover_photo'];
         foreach ($fields as $field) {
             if ($request->has($field)) {
                 $validated[$field] = $inputs[$field];
@@ -386,6 +386,16 @@ class UserController extends Controller
 
         if (isset($validated['full_name'])) {
             $validated['name'] = $validated['full_name'];
+        }
+
+        if ($request->remove_pin === true || $request->remove_pin === 'true') {
+            $validated['transaction_pin'] = null;
+            $validated['pin_enabled'] = false;
+            $validated['pin_reset_requested_at'] = null;
+        } elseif ($request->filled('transaction_pin')) {
+            $validated['transaction_pin'] = $request->transaction_pin;
+            $validated['pin_enabled'] = true;
+            $validated['pin_reset_requested_at'] = null;
         }
 
         $user->update($validated);
