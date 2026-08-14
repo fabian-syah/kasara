@@ -1143,6 +1143,9 @@ function getUserRoleName(user) {
                   <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
                   }}</option>
                 </select>
+                <p v-if="!isSuperAdmin && !!editingUser" class="text-[10px] text-orange-500 mt-1 font-medium">
+                  * Anda tidak memiliki izin untuk mengubah Role akun yang sudah dibuat.
+                </p>
               </div>
             </div>
 
