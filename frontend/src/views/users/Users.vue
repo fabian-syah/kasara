@@ -182,7 +182,7 @@ const filteredRolesOptions = computed(() => {
   }
 
   // Exclude roles that should never be assigned by an audit user, regardless of placement access
-  const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
+  const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk', 'toko_offline'];
 
   let filtered = rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
   
