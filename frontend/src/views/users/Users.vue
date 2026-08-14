@@ -773,6 +773,8 @@ function getUserRoleName(user) {
               </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Role
               </th>
+              <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">Pembuat
+              </th>
               <th class="text-left py-4 px-6 text-text-secondary font-medium text-sm uppercase tracking-wider">
                 Penempatan
               </th>
@@ -788,7 +790,7 @@ function getUserRoleName(user) {
           </thead>
           <tbody class="divide-y divide-surface-700/50">
             <tr v-if="paginatedUsers.length === 0">
-              <td colspan="6" class="text-center py-20 text-text-secondary">
+              <td colspan="7" class="text-center py-20 text-text-secondary">
                 <div class="flex flex-col items-center gap-4">
                     <Users class="opacity-20" :size="48" />
                     <p class="font-medium tracking-wide">Tidak ada user ditemukan</p>
@@ -847,13 +849,6 @@ function getUserRoleName(user) {
                         {{ child.full_name }}
                       </span>
                     </div>
-                    <div v-if="user.created_by_user" class="flex items-center gap-1 mt-1.5">
-                      <span class="text-[10px] text-text-secondary">Milik Akun:</span>
-                      <span
-                        class="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium border border-blue-500/20">
-                        {{ user.created_by_user.full_name }}
-                      </span>
-                    </div>
                   </div>
                 </div>
               </td>
@@ -863,6 +858,12 @@ function getUserRoleName(user) {
                   {{ getUserRoleName(user) }}
                 </span>
                 <span v-else class="text-xs text-text-secondary italic">No Role</span>
+              </td>
+              <td class="px-6 py-4">
+                <span v-if="user.created_by && typeof user.created_by === 'object'" class="text-sm font-medium text-blue-500 dark:text-blue-400">
+                  {{ user.created_by.full_name }}
+                </span>
+                <span v-else class="text-xs text-text-secondary italic">-</span>
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2">
@@ -994,10 +995,10 @@ function getUserRoleName(user) {
                   </span>
                 </div>
               </div>
-              <div v-if="user.created_by_user" class="mt-1 flex items-center gap-1">
+              <div v-if="user.created_by && typeof user.created_by === 'object'" class="mt-1 flex items-center gap-1">
                 <span class="text-[10px] text-text-secondary">Milik:</span>
                 <span class="text-[10px] font-medium text-blue-600 dark:text-blue-400">{{
-                  user.created_by_user.full_name
+                  user.created_by.full_name
                 }}</span>
               </div>
             </div>

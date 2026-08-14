@@ -216,6 +216,7 @@ class UserController extends Controller
                 'distributor_id' => $distributorId,
                 'is_active' => $request->is_active ?? true,
                 'theme_color' => 'default',
+                'created_by' => $currentUser->id,
             ]);
 
             if ($request->role) {
