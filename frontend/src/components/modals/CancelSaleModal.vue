@@ -79,12 +79,12 @@ const needsVerification = computed(() => {
 
 const verificationLabel = computed(() => {
     if (authStore.hasRole('inventory')) return 'PIN Transaksi';
-    return 'Password Login';
+    return `Password Akun Inventory (${selectedUser.value?.name || ''})`;
 });
 
 const verificationPlaceholder = computed(() => {
     if (authStore.hasRole('inventory')) return 'Masukkan 4 Digit PIN...';
-    return 'Masukkan Password Login Anda...';
+    return 'Masukkan Password Akun Inventory...';
 });
 
 const canSubmitInternal = computed(() => {

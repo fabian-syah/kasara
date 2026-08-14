@@ -91,6 +91,10 @@ async function fetchInventoryAccounts() {
     }
 }
 
+const selectedAccountObject = computed(() => {
+    return inventoryAccounts.value.find(acc => acc.id === selectedInventoryAccount.value);
+});
+
 // Fetch pending transfers
 async function fetchPending() {
     isLoading.value = true;
@@ -501,7 +505,11 @@ onMounted(() => {
     </div>
 
     <!-- Password Modal -->
-    <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false" @success="onPasswordVerified" />
+    <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode"
+        :title="'Verifikasi Akun Inventory'"
+        :description="'Masukkan Password Akun Inventory (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan.'"
+        :user="selectedAccountObject"
+        @close="showPasswordModal = false" @success="onPasswordVerified" />
     <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false" @success="onPasswordVerified" />
 </template>
 

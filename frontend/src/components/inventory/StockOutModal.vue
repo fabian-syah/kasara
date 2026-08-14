@@ -1329,7 +1329,11 @@ async function submitStockOut(pin = null) {
         </div>
 
         <!-- Password Modal Component -->
-        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+        <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" 
+            :title="passwordModalMode === 'password' ? 'Verifikasi Akun Inventory' : undefined"
+            :description="passwordModalMode === 'password' ? ('Masukkan Password Akun Inventory (' + (selectedInventoryUser?.name || '') + ') untuk melanjutkan.') : undefined"
+            :user="selectedInventoryUser"
+            @close="showPasswordModal = false"
             @success="handlePinSuccess" />
     </div>
 </template>

@@ -322,14 +322,23 @@ function handleTransactionComplete(transaction) {
 
 function handleVerifyPin(callback) {
     if (authStore.hasRole('inventory')) {
+        // "transaksi penjualan via akun inventory gak butuh masukin password"
+        const salesCategories = ['penjualan_store', 'shopee', 'orderan_online', 'penjualan_offline', 'dp', 'pelunasan_dp'];
+        if (salesCategories.includes(transactionCategory.value)) {
+            callback('skipped');
+            return;
+        }
+
         if (authStore.user?.pin_enabled) {
             passwordModalMode.value = 'pin';
             pendingPasswordCallback.value = callback;
             showPasswordModal.value = true;
         } else {
-            callback('skipped');
+            toast.error("Anda belum memasang PIN Keamanan. Silakan atur PIN Anda di Pengaturan Profil.");
+            // Do not call callback
         }
     } else {
+        // Here we just show the password modal, backend will check if password exists
         passwordModalMode.value = 'password';
         pendingPasswordCallback.value = callback;
         showPasswordModal.value = true;
@@ -584,7 +593,11 @@ watch(transactionCategory, () => {
         </div>
 
         <!-- SHARED MODALS -->
-        <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" @close="showPasswordModal = false"
+        <PasswordModal v-if="passwordModalMode === 'password'" :show="showPasswordModal" :mode="passwordModalMode" 
+            :title="'Verifikasi Akun Inventory'"
+            :description="'Masukkan Password Akun Inventory (' + salesAccount + ') untuk melanjutkan.'"
+            :user="selectedAccountObject"
+            @close="showPasswordModal = false"
             @success="handlePasswordSuccess" />
         <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false"
             @success="handlePasswordSuccess" />
