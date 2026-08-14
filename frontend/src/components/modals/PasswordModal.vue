@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, computed } from "vue";
-import { Lock, AlertCircle } from "lucide-vue-next";
+import { Lock, AlertCircle, Eye, EyeOff } from "lucide-vue-next";
 import { useAuthStore } from "../../store/auth";
 
 const authStore = useAuthStore();
@@ -20,6 +20,7 @@ const emit = defineEmits(["close", "success", "verified", "error"]);
 const inputVal = ref("");
 const inputRef = ref(null);
 const localLoading = ref(false);
+const showPassword = ref(false);
 
 const modalTitle = computed(() => {
     if (props.title) return props.title;
@@ -53,6 +54,7 @@ watch(() => props.error, (newVal) => {
 
 function resetInput() {
     inputVal.value = "";
+    showPassword.value = false;
     nextTick(() => {
         if (inputRef.value) inputRef.value.focus();
     });
@@ -98,15 +100,21 @@ onMounted(() => {
                     </p>
 
                     <form @submit.prevent="handleSubmit" class="mb-6 px-4 flex flex-col gap-4">
-                        <input
-                            ref="inputRef"
-                            v-model="inputVal"
-                            type="password"
-                            :placeholder="inputPlaceholder"
-                            autocomplete="new-password"
-                            :maxlength="mode === 'pin' ? 4 : 255"
-                            class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl px-4 text-center text-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/50"
-                        />
+                        <div class="relative">
+                            <input
+                                ref="inputRef"
+                                v-model="inputVal"
+                                :type="showPassword ? 'text' : 'password'"
+                                :placeholder="inputPlaceholder"
+                                autocomplete="new-password"
+                                :maxlength="mode === 'pin' ? 4 : 255"
+                                class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl px-4 pr-12 text-center text-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/50"
+                            />
+                            <button type="button" @click="showPassword = !showPassword" class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                                <Eye v-if="!showPassword" :size="20" />
+                                <EyeOff v-else :size="20" />
+                            </button>
+                        </div>
                         <button type="submit" :disabled="!inputVal || loading || localLoading"
                             class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             Lanjutkan
