@@ -294,12 +294,13 @@ class UserController extends Controller
 
         // Audit role restriction on update
         if ($currentUser->hasRole('audit')) {
-            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk', 'toko_offline'];
-            if ($request->role && in_array($request->role, $forbiddenRoles)) {
+            $forbiddenRolesToAssign = ['super_admin', 'audit', 'analist', 'admin_produk', 'toko_offline'];
+            if ($request->role && in_array($request->role, $forbiddenRolesToAssign)) {
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk mengubah role ke role ini.'], 403);
             }
 
-            if ($user->hasAnyRole($forbiddenRoles)) {
+            $forbiddenRolesToEdit = ['super_admin', 'audit', 'analist', 'admin_produk'];
+            if ($user->hasAnyRole($forbiddenRolesToEdit)) {
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk mengedit user ini.'], 403);
             }
         }
@@ -440,7 +441,7 @@ class UserController extends Controller
 
         // Audit role: can only delete users within their accessible placements, not forbidden roles
         if ($currentUser->hasRole('audit')) {
-            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk', 'toko_offline'];
+            $forbiddenRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
             if ($user->hasAnyRole($forbiddenRoles)) {
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk menghapus user ini.'], 403);
             }
