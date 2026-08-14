@@ -34,12 +34,6 @@ trait VerifiesPin
 
         // 1. If the logged-in user has the 'inventory' role
         if ($isInventoryRole) {
-            // "transaksi penjualan via akun inventory gak butuh masukin password"
-            $salesCategories = ['penjualan_store', 'shopee', 'orderan_online', 'penjualan_offline', 'dp', 'pelunasan_dp'];
-            if ($request->category && in_array($request->category, $salesCategories)) {
-                return null; // Skip verification for sales transactions
-            }
-
             // If they don't have a PIN enabled, bypass
             if (!$user->pin_enabled) {
                 return null;
