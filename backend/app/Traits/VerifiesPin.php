@@ -56,7 +56,7 @@ trait VerifiesPin
         if ($inventoryUserId && $inventoryUserId != $user->id) {
             $inventoryUser = \App\Models\User::find($inventoryUserId);
             if ($inventoryUser) {
-                if (empty($inventoryUser->password)) {
+                if (!$inventoryUser->has_password) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Akun Inventory ' . $inventoryUser->name . ' belum memasang password. Silakan atur password terlebih dahulu.'

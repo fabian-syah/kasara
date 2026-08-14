@@ -72,6 +72,9 @@ class User extends Authenticatable
 
     public function getHasPasswordAttribute()
     {
+        if ($this->roles && $this->roles->contains('name', 'inventory')) {
+            return $this->password_changed_at !== null;
+        }
         return !empty($this->password);
     }
 
