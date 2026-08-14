@@ -251,7 +251,7 @@ class InventoryAccountController extends Controller
             }
         }
 
-        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id', 'pin_enabled')
+        $inventoryUsers = $query->select('id', 'name', 'full_name', 'username', 'code_id', 'created_by', 'photo', 'photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id', 'pin_enabled', 'password')
             ->get();
 
         return response()->json($inventoryUsers);

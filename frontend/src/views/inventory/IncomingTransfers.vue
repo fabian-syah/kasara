@@ -60,6 +60,11 @@ function handleVerifyPassword(callback) {
             callback('skipped');
         }
     } else {
+        const acc = selectedAccountObject.value;
+        if (acc && !acc.has_password) {
+            toast.error(`Akun Inventory (${acc.name}) belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.`);
+            return;
+        }
         passwordModalMode.value = 'password';
         passwordCallback.value = callback;
         showPasswordModal.value = true;
