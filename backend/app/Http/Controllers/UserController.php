@@ -259,7 +259,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')
+                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy')
             ], 201);
 
         } catch (\Exception $e) {
@@ -430,7 +430,7 @@ class UserController extends Controller
                 'photo_status' => $photoStatus,
                 'db_status' => 'Checked ID: ' . $id
             ],
-            'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements')
+            'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy')
         ]);
     }
 
