@@ -97,7 +97,7 @@ onMounted(() => {
                         {{ modalDescription }}
                     </p>
 
-                    <form @submit.prevent="handleSubmit" class="mb-6 px-4">
+                    <form @submit.prevent="handleSubmit" class="mb-6 px-4 flex flex-col gap-4">
                         <input
                             ref="inputRef"
                             v-model="inputVal"
@@ -107,7 +107,10 @@ onMounted(() => {
                             :maxlength="mode === 'pin' ? 4 : 255"
                             class="w-full h-14 bg-surface-50 dark:bg-white/5 border border-surface-200 dark:border-white/10 rounded-2xl px-4 text-center text-xl font-bold text-text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all placeholder:text-text-secondary/50"
                         />
-                        <button type="submit" class="hidden">Submit</button>
+                        <button type="submit" :disabled="!inputVal || loading || localLoading"
+                            class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            Lanjutkan
+                        </button>
                     </form>
 
                     <div v-if="error"
