@@ -169,12 +169,14 @@ const filteredRolesOptions = computed(() => {
 
   // Roles that an audit user can assign based on their own placements
   if (hasBranchAccess) {
-    ['security', 'leader'].forEach(r => allowedRoles.add(r));
+    ['security', 'leader', 'toko_offline'].forEach(r => allowedRoles.add(r));
   }
   if (hasWarehouseAccess) {
     ['gudang'].forEach(r => allowedRoles.add(r));
   }
-  // hasOnlineAccess no longer adds toko_online
+  if (hasOnlineAccess) {
+    ['toko_online'].forEach(r => allowedRoles.add(r));
+  }
   if (hasDistributorAccess) {
     ['distributor'].forEach(r => allowedRoles.add(r));
   }
@@ -182,7 +184,18 @@ const filteredRolesOptions = computed(() => {
   // Exclude roles that should never be assigned by an audit user, regardless of placement access
   const alwaysExcludedRoles = ['super_admin', 'audit', 'analist', 'admin_produk'];
 
-  return rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
+  let filtered = rolesList.filter(r => allowedRoles.has(r.value) && !alwaysExcludedRoles.includes(r.value));
+  
+  if (editingUser.value && form.value.role) {
+    if (!filtered.find(r => r.value === form.value.role)) {
+      const currentRoleObj = rolesList.find(r => r.value === form.value.role);
+      if (currentRoleObj) {
+        filtered.push(currentRoleObj);
+      }
+    }
+  }
+
+  return filtered;
 });
 
 // Form
@@ -1124,7 +1137,7 @@ function getUserRoleName(user) {
             <div v-if="isSuperAdmin || !(editingUser && form.role === 'inventory')" class="grid grid-cols-1 md:grid-cols-1 gap-4">
               <div>
                 <label class="label">Role</label>
-                <select v-model="form.role" class="input" required>
+                <select v-model="form.role" class="input" required :disabled="!isSuperAdmin && !!editingUser">
                   <option value="">Pilih Role</option>
                   <option v-for="role in filteredRolesOptions" :key="role.value" :value="role.value">{{ role.label
                   }}</option>
