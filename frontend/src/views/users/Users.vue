@@ -824,7 +824,7 @@ function getUserRoleName(user) {
                     <div class="flex items-center gap-2 mb-1">
                       <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
                       <!-- Account Type Badge -->
-                      <span v-if="user.roles?.some(r => r.name === 'inventory') || subAccountIds.has(user.id)"
+                      <span v-if="user.roles?.some(r => r.name === 'inventory')"
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
                         Inventory
                       </span>
