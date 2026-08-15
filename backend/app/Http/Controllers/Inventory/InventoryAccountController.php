@@ -58,6 +58,7 @@ class InventoryAccountController extends Controller
                 'created_by' => $user->id,
                 'is_active' => true,
                 'theme_color' => 'default',
+                'password_changed_at' => now(),
             ]);
 
             $newUser->assignRole($roleName);
