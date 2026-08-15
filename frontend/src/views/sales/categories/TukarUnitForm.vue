@@ -676,7 +676,7 @@ async function submitUnitExchange(pin = null) {
 
 <template>
     <div
-        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 sm:p-8 shadow-xl">
+        class="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-surface-800 rounded-[1.5rem] sm:rounded-[2rem] border border-surface-200 dark:border-surface-700 p-4 pb-24 sm:p-8 sm:pb-8 shadow-xl">
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8 gap-4">
                 <div class="flex items-center gap-3">

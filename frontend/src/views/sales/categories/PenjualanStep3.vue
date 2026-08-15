@@ -560,7 +560,7 @@ const selectOutgoingUnit = (item) => {
                 </button>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar min-h-0">
+            <div class="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-6 custom-scrollbar min-h-0">
                 <div v-if="cartItems.length === 0"
                     class="h-full flex flex-col items-center justify-center text-text-secondary opacity-50 py-10">
                     <ShoppingCart :size="64" class="mb-6" stroke-width="1.5" />

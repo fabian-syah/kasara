@@ -843,7 +843,7 @@ async function submitTukarTambah(pin = null) {
 
 <template>
     <div
-        class="flex-1 overflow-y-auto custom-scrollbar bg-white/70 dark:bg-surface-800/70 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-surface-600/30 p-5 sm:p-10 shadow-2xl relative">
+        class="flex-1 overflow-y-auto custom-scrollbar bg-white/70 dark:bg-surface-800/70 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-surface-600/30 p-5 pb-24 sm:p-10 sm:pb-10 shadow-2xl relative">
         <div class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8 gap-4">
                 <div class="flex items-center gap-3">
