@@ -378,8 +378,11 @@ class UserController extends Controller
         if ($request->filled('password')) {
             $validated['password'] = \Illuminate\Support\Facades\Hash::make($request->password);
             $validated['password_changed_at'] = now();
-            // Revoke all existing tokens so the user is forced to re-login
-            $user->tokens()->delete();
+            // Hanya hapus token jika user mengedit password DIRI SENDIRI
+            // Jika admin/orang lain yang edit, jangan paksa logout user tersebut
+            if ($currentUser->id === $user->id) {
+                $user->tokens()->delete();
+            }
         } else {
             unset($validated['password']);
         }

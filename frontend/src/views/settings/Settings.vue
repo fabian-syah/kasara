@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useRouter } from "vue-router";
 import { 
     User, Camera, Lock, Save, Loader2, Mail, Phone, MapPin, 
     Edit2, Download, Info, Building2
@@ -11,6 +12,7 @@ import { formatDate } from "../../utils/formatters";
 
 const authStore = useAuthStore();
 const toast = useToast();
+const router = useRouter();
 
 const user = ref({});
 const isLoading = ref(false);
@@ -228,8 +230,9 @@ async function handlePhotoChange(event) {
 
 async function saveProfile() {
     isSaving.value = true;
+    const isChangingPassword = !!form.value.new_password;
     try {
-        if (form.value.new_password) {
+        if (isChangingPassword) {
             if (form.value.new_password !== form.value.confirm_password) {
                 toast.error("Password baru dan konfirmasi tidak cocok!");
                 isSaving.value = false;
@@ -245,13 +248,22 @@ async function saveProfile() {
         formData.append("phone", form.value.phone || "");
         formData.append("address", form.value.address || "");
         
-        if (form.value.new_password) {
+        if (isChangingPassword) {
             formData.append("password", form.value.new_password);
         }
 
         const res = await usersApi.updateProfile(user.value.id, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
+
+        if (isChangingPassword) {
+            // Backend menghapus semua token saat password diubah sendiri.
+            // Harus logout dan minta user login ulang dengan password baru.
+            toast.success("Password berhasil diubah! Silakan login kembali dengan password baru.");
+            await authStore.logout();
+            router.push("/login");
+            return;
+        }
 
         toast.success("Profil berhasil diperbarui!");
 
