@@ -88,14 +88,15 @@ function removeOutgoingItem(index) {
 
 function addItem() {
     additionalItems.value.push({
+        incoming_source: tukarTambahForm.value.incoming_source,
+        distributor_id: tukarTambahForm.value.distributor_id,
         brand_id: null,
         product_type_id: null,
         storage: "",
-        condition: "",
+        condition: "second",
         imeis_raw: "",
         quantity: 1,
         buy_price: 0,
-        distributor_id: tukarTambahForm.value.distributor_id,
     });
 }
 
@@ -152,11 +153,11 @@ const storageKey = computed(() => {
     return `temp_tukar_tambah_form_${userId}${acc}`;
 });
 
-watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos], ([newForm, newQuery, newPhotos]) => {
+watch([tukarTambahForm, stockSearchQuery, tukarTambahPhotos, additionalItems, outgoingItems], ([newForm, newQuery, newPhotos]) => {
     if (isRestoring.value) return;
     
     
-const additionalItems = ref([]);
+
 
 function addItem() {
     additionalItems.value.push({
