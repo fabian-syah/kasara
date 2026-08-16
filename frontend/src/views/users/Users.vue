@@ -828,7 +828,7 @@ function getUserRoleName(user) {
                       <!-- Account Type Badge -->
                       <span v-if="user.roles?.some(r => r.name === 'inventory')"
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
-                        Inventory
+                        CS
                       </span>
                       <span v-else
                         class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
@@ -978,7 +978,7 @@ function getUserRoleName(user) {
                 <p class="font-bold text-text-primary text-base">{{ user.full_name }}</p>
                 <span v-if="user.roles?.some(r => r.name === 'inventory')"
                   class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20">
-                  INV
+                  CS
                 </span>
                 <span v-else
                   class="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
