@@ -259,7 +259,7 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy')
+                'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy', 'createdUsers')
             ], 201);
 
         } catch (\Exception $e) {
@@ -274,7 +274,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         // Simple auth check for now
-        return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor')]);
+        return response()->json(['success' => true, 'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy', 'createdUsers')]);
     }
 
     public function update(Request $request, $id)
@@ -449,7 +449,7 @@ class UserController extends Controller
                 'photo_status' => $photoStatus,
                 'db_status' => 'Checked ID: ' . $id
             ],
-            'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy')
+            'data' => $user->load('roles', 'branch', 'warehouse', 'onlineShop', 'distributor', 'placements', 'createdBy', 'createdUsers')
         ]);
     }
 
