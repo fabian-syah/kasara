@@ -798,7 +798,7 @@ const currentLocalRank = computed(() => {
             <thead>
               <tr class="text-[10px] text-text-secondary uppercase tracking-widest font-black">
                 <th class="pb-6 w-16">Rank</th>
-                <th class="pb-6">Akun Inventory</th>
+                <th class="pb-6">Akun CS</th>
                 <th class="pb-6 text-center">Unit Terjual</th>
                 <th class="pb-6 text-center">Total Omset</th>
                 <th class="pb-6 text-center">Omset Bersih</th>
@@ -850,7 +850,7 @@ const currentLocalRank = computed(() => {
               </tr>
               <tr v-if="!ranking?.leaderboard || ranking.leaderboard.length === 0">
                 <td colspan="4" class="py-8 text-center text-text-secondary italic">
-                  Belum ada data penjualan akun inventory hari ini
+                  Belum ada data penjualan akun CS hari ini
                 </td>
               </tr>
             </tbody>

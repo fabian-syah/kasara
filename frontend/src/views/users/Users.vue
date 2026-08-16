@@ -697,7 +697,7 @@ function getUserRoleName(user) {
           <span class="shrink-0 mt-0.5">ðŸ’¡</span>
           <p>
             <strong>Tip:</strong> Klik pada foto profil di tabel untuk mengubah atau menambahkan foto pengguna. Hal ini
-            berlaku untuk akun login maupun akun inventory.
+            berlaku untuk akun login maupun akun CS.
           </p>
         </div>
       </div>
@@ -744,7 +744,7 @@ function getUserRoleName(user) {
                     class="flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     :class="selectedAccountType === 'inventory' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
               <Shield :size="14" />
-              <span>Akun Inventory</span>
+              <span>Akun CS</span>
             </button>
           </div>
 
@@ -922,7 +922,7 @@ function getUserRoleName(user) {
       <!-- Pagination Footer -->
       <div class="px-6 py-4 flex items-center justify-between border-t border-surface-700/50 bg-surface-900/10">
         <div class="text-xs text-text-secondary">
-          Menampilkan <span class="text-text-primary font-bold">{{ ((currentPage - 1) * itemsPerPage) + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }}</span> dari <span class="text-text-primary font-bold">{{ filteredUsers.length }}</span> {{ selectedAccountType === 'main' ? 'Akun Login' : 'Akun Inventory' }}
+          Menampilkan <span class="text-text-primary font-bold">{{ ((currentPage - 1) * itemsPerPage) + 1 }}-{{ Math.min(currentPage * itemsPerPage, filteredUsers.length) }}</span> dari <span class="text-text-primary font-bold">{{ filteredUsers.length }}</span> {{ selectedAccountType === 'main' ? 'Akun Login' : 'Akun CS' }}
         </div>
         <div class="flex items-center gap-1.5">
           <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
@@ -989,7 +989,7 @@ function getUserRoleName(user) {
 
               <!-- Mobile Relationship -->
               <div v-if="user.created_users?.length" class="mt-1">
-                <p class="text-[10px] text-text-secondary">Akun Inventory:</p>
+                <p class="text-[10px] text-text-secondary">Akun CS:</p>
                 <div class="flex flex-wrap gap-1 mt-0.5">
                   <span v-for="child in user.created_users" :key="child.id"
                     class="text-[10px] bg-surface-700 px-1.5 rounded text-text-primary border border-surface-600">

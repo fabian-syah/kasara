@@ -34,7 +34,7 @@ async function fetchInventoryAccounts() {
     inventoryAccounts.value = res.data || [];
   } catch (error) {
     console.error('Failed to fetch inventory accounts:', error);
-    toast.error('Gagal memuat daftar akun inventory.');
+    toast.error('Gagal memuat daftar akun CS.');
   }
 }
 
@@ -129,7 +129,7 @@ const onScanSuccess = async (decodedText) => {
 
 function handleScan() {
   if (!selectedAccount.value) {
-    toast.error('Pilih Akun Inventory (Staff) terlebih dahulu!');
+    toast.error('Pilih Akun CS (Staff) terlebih dahulu!');
     return;
   }
 
@@ -176,14 +176,14 @@ function handleScan() {
 
         <h1 class="text-3xl font-bold text-text-primary mb-2 text-center">Security Scan Area</h1>
         <p class="text-text-secondary text-center mb-10 max-w-md">
-          Pilih akun inventory Anda dan scan QR Code resi untuk memvalidasi barang keluar.
+          Pilih akun CS Anda dan scan QR Code resi untuk memvalidasi barang keluar.
         </p>
 
         <!-- Step 1: Select Inventory Account -->
         <div class="w-full max-w-md mb-8">
           <label class="flex items-center gap-2 text-sm font-semibold text-text-primary mb-2">
             <User :size="16" class="text-primary-500" />
-            Pilih Staff Inventory
+            Pilih Staff CS
           </label>
           <div class="relative">
             <select v-model="selectedAccount"
@@ -211,7 +211,7 @@ function handleScan() {
           <div v-if="!selectedAccount"
             class="absolute inset-0 z-40 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
             <User class="w-12 h-12 mb-3" color="white" />
-            <p class="font-medium text-sm" style="color: white !important;">Pilih Staff Inventory terlebih dahulu untuk mulai scan.</p>
+            <p class="font-medium text-sm" style="color: white !important;">Pilih Staff CS terlebih dahulu untuk mulai scan.</p>
           </div>
 
           <!-- Error State inside Box -->
@@ -253,7 +253,7 @@ function handleScan() {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
               </path>
             </svg>
-            Harap pilih staff inventory sebelum melakukan scan.
+            Harap pilih staff CS sebelum melakukan scan.
           </div>
         </div>
 

@@ -133,7 +133,7 @@ function closeDetail() {
 async function acceptReturn() {
     if (!selectedItem.value) return;
     if (!selectedInventoryAccount.value) {
-        toast.error("Pilih akun inventory terlebih dahulu");
+        toast.error("Pilih akun CS terlebih dahulu");
         return;
     }
 
@@ -157,7 +157,7 @@ async function acceptReturn() {
 async function rejectReturn() {
     if (!selectedItem.value) return;
     if (!selectedInventoryAccount.value) {
-        toast.error("Pilih akun inventory terlebih dahulu");
+        toast.error("Pilih akun CS terlebih dahulu");
         return;
     }
     if (!confirm('Tolak retur ini dan kembalikan barang ke lokasi asal?')) return;
@@ -516,7 +516,7 @@ onMounted(() => {
                         </h4>
                         <select v-model="selectedInventoryAccount"
                             class="w-full bg-surface-800 border border-surface-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm">
-                            <option value="" disabled>Pilih Akun Inventory</option>
+                            <option value="" disabled>Pilih Akun CS</option>
                             <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                 {{ acc.full_name || acc.name }} {{ acc.code_id ? `(${acc.code_id})` : '' }}
                             </option>

@@ -587,7 +587,7 @@ async function createInventoryAccount() {
         await inventoryApi.createAccount({
             name: newAccountName.value
         });
-        toast.success("Akun inventory berhasil dibuat!");
+        toast.success("Akun CS berhasil dibuat!");
         showCreateAccountModal.value = false;
         newAccountName.value = "";
         fetchInitialData(); // Reload list
@@ -679,7 +679,7 @@ async function updateInventoryAccount() {
 
 async function deleteInventoryAccount(user, event) {
     event.stopPropagation();
-    if (!confirm(`Hapus akun inventory "${user.full_name || user.name}"?`)) return;
+    if (!confirm(`Hapus akun CS "${user.full_name || user.name}"?`)) return;
 
     try {
         await inventoryApi.deleteAccount(user.id);
@@ -1005,7 +1005,7 @@ onMounted(() => {
                 <div v-else-if="targetUsers.length === 0" class="text-center py-10">
                     <div
                         class="bg-red-500/10 border border-red-500/20 text-red-500 p-6 rounded-2xl max-w-lg mx-auto">
-                        <h3 class="font-bold text-lg mb-2">Belum Ada Akun Inventory</h3>
+                        <h3 class="font-bold text-lg mb-2">Belum Ada Akun CS</h3>
                         <p class="text-sm opacity-80">Anda belum memiliki akun khusus inventory untuk cabang/lokasi ini.
                             Silakan buat terlebih dahulu melalui menu **Pengaturan Profil** Anda.</p>
                     </div>
@@ -1077,7 +1077,7 @@ onMounted(() => {
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                 <div
                     class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95">
-                    <h3 class="text-lg md:text-xl font-bold text-white mb-4">Edit Akun Inventory</h3>
+                    <h3 class="text-lg md:text-xl font-bold text-white mb-4">Edit Akun CS</h3>
 
                     <div class="space-y-6">
                         <!-- Photo Upload -->

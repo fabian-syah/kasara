@@ -13,7 +13,7 @@ const toast = useToast();
 const inventoryAccounts = ref([]);
 const isLoading = ref(true);
 
-// "Buat Akun Inventory Baru" Form State
+// "Buat Akun CS Baru" Form State
 const newAccountName = ref("");
 const newAccountUsername = ref("");
 const newAccountPassword = ref("");
@@ -54,7 +54,7 @@ async function submitEditAccount() {
         }
         
         await inventoryApi.updateAccount(editAccountData.value.id, payload);
-        toast.success("Akun inventory berhasil diupdate!");
+        toast.success("Akun CS berhasil diupdate!");
         showEditModal.value = false;
         await fetchAccounts();
     } catch (e) {
@@ -92,7 +92,7 @@ async function createInventoryAccount() {
             username: newAccountUsername.value || undefined,
             password: newAccountPassword.value || 'inventory123'
         });
-        toast.success("Akun inventory baru berhasil dibuat!");
+        toast.success("Akun CS baru berhasil dibuat!");
         newAccountName.value = "";
         newAccountUsername.value = "";
         newAccountPassword.value = "";
@@ -127,7 +127,7 @@ const accountsByBranch = computed(() => {
 <template>
     <div class="space-y-6 animate-in pb-24">
         <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-wider">Pengaturan Akun Inventory</h1>
+            <h1 class="text-2xl font-black text-zinc-900 dark:text-white uppercase tracking-wider">Pengaturan Akun CS</h1>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -140,7 +140,7 @@ const accountsByBranch = computed(() => {
                             <div class="p-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg">
                                 <FileText :size="16" />
                             </div>
-                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Buat Akun Inventory Baru</h3>
+                            <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Buat Akun CS Baru</h3>
                         </div>
                         <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">
                             FITUR SPESIAL
@@ -186,14 +186,14 @@ const accountsByBranch = computed(() => {
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
                     <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
                         <User :size="18" class="text-primary-500" />
-                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Daftar Akun Inventory</h3>
+                        <h3 class="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-wider">Daftar Akun CS</h3>
                     </div>
 
                     <div v-if="isLoading" class="flex justify-center p-8">
                         <Loader2 class="animate-spin text-primary-500" :size="24" />
                     </div>
                     <div v-else-if="Object.keys(accountsByBranch).length === 0" class="text-xs text-zinc-500 font-bold p-4 bg-zinc-50 dark:bg-zinc-950 rounded-xl border border-zinc-200 dark:border-zinc-800 text-center">
-                        Belum ada akun staff inventory.
+                        Belum ada akun staff CS.
                     </div>
                     <div v-else class="space-y-6">
                         <div v-for="(accounts, branchName) in accountsByBranch" :key="branchName">
@@ -233,7 +233,7 @@ const accountsByBranch = computed(() => {
     <!-- Edit Account Modal -->
     <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm" @click="showEditModal = false">
         <div class="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-zinc-200 dark:border-zinc-800" @click.stop>
-            <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase mb-4 tracking-wider">Edit Akun Inventory</h3>
+            <h3 class="text-sm font-black text-zinc-900 dark:text-white uppercase mb-4 tracking-wider">Edit Akun CS</h3>
             <div class="space-y-4">
                 <div>
                     <label class="label">NAMA AKUN</label>

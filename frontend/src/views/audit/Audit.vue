@@ -285,7 +285,7 @@ async function handleRejectPhoto(item) {
                             <div>
                                 <h4 class="font-bold text-text-primary leading-none">{{ item.full_name || item.name }}</h4>
                                 <p class="text-[10px] text-text-secondary uppercase tracking-wider mt-1.5 font-bold">
-                                    {{ item.type === 'user' ? (item.roles?.[0]?.name || 'Staff') : 'Akun Inventory' }}
+                                    {{ item.type === 'user' ? (item.roles?.[0]?.name || 'Staff') : 'Akun CS' }}
                                 </p>
                             </div>
                         </div>

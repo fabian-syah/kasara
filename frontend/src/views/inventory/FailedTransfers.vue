@@ -307,7 +307,7 @@ onMounted(() => {
                             </div>
                             <select v-model="selectedInventoryAccount"
                                 class="w-full bg-surface-900 border-2 border-surface-700 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 appearance-none shadow-lg">
-                                <option value="" disabled>Pilih Akun Inventory...</option>
+                                <option value="" disabled>Pilih Akun CS...</option>
                                 <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                     {{ acc.full_name }} ({{ acc.code_id }})
                                 </option>

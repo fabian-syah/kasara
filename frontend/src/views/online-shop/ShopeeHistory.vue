@@ -287,7 +287,7 @@ onMounted(() => {
                         <!-- Inventory User -->
                         <div v-if="item.inventory_user" class="flex items-center gap-1 text-xs text-text-secondary">
                             <User :size="12" class="text-primary-400" />
-                            <span>Akun Inventory: <strong class="text-white">{{ item.inventory_user.full_name ||
+                            <span>Akun CS: <strong class="text-white">{{ item.inventory_user.full_name ||
                                 item.inventory_user.name }}</strong></span>
                         </div>
 

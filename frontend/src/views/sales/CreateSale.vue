@@ -169,14 +169,14 @@ async function handleCreateAccount() {
         });
 
         if (res.data.success) {
-            toast.success("Akun inventory berhasil dibuat!");
+            toast.success("Akun CS berhasil dibuat!");
             await refreshAccounts();
             salesAccount.value = res.data.data.name;
             showCreateAccount.value = false;
             newAccountName.value = "";
         }
     } catch (e) {
-        toast.error(e.response?.data?.message || "Gagal membuat akun inventory.");
+        toast.error(e.response?.data?.message || "Gagal membuat akun CS.");
     } finally {
         loadingCreate.value = false;
     }
@@ -423,14 +423,14 @@ watch(transactionCategory, () => {
                             class="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-8 ring-primary-500/5">
                             <Shield class="text-primary-600" :size="40" stroke-width="2.5" />
                         </div>
-                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">Pilih Akun Inventory</h2>
-                        <p class="text-text-secondary text-center mb-10 font-medium">Silakan pilih akun inventory yang
+                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">Pilih Akun CS</h2>
+                        <p class="text-text-secondary text-center mb-10 font-medium">Silakan pilih akun CS yang
                             bertugas untuk transaksi ini.</p>
 
                         <div class="space-y-4">
                             <div class="flex items-center justify-between px-1">
                                 <label class="block text-xs font-black text-text-secondary uppercase tracking-widest">
-                                    Daftar Akun Inventory
+                                    Daftar Akun CS
                                 </label>
                             </div>
 
@@ -585,8 +585,8 @@ watch(transactionCategory, () => {
 
         <!-- SHARED MODALS -->
         <PasswordModal v-if="passwordModalMode === 'password' || passwordModalMode === 'alert'" :show="showPasswordModal" :mode="passwordModalMode"
-            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun Inventory'"
-            :description="passwordModalMode === 'alert' ? ('Akun Inventory (' + (selectedAccountObject?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : ('Masukkan PASSWORD LOGIN Akun Inventory (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
+            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun CS'"
+            :description="passwordModalMode === 'alert' ? ('Akun CS (' + (selectedAccountObject?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : ('Masukkan PASSWORD LOGIN Akun CS (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
             :user="selectedAccountObject"
             @close="showPasswordModal = false"
             @success="handlePasswordSuccess" />

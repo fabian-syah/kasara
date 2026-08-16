@@ -368,7 +368,7 @@ onMounted(() => {
                         <div class="grid grid-cols-1 gap-4">
                             <select v-model="selectedInventoryAccount"
                                 class="w-full bg-surface-900/80 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-xl">
-                                <option value="" disabled>Pilih Akun Inventory...</option>
+                                <option value="" disabled>Pilih Akun CS...</option>
                                 <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                     {{ acc.full_name }} — ({{ acc.code_id }})
                                 </option>
@@ -513,8 +513,8 @@ onMounted(() => {
 
     <!-- Password Modal -->
     <PasswordModal v-if="passwordModalMode === 'password' || passwordModalMode === 'alert'" :show="showPasswordModal" :mode="passwordModalMode"
-        :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun Inventory'"
-        :description="passwordModalMode === 'alert' ? ('Akun Inventory (' + (selectedAccountObject?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : ('Masukkan PASSWORD LOGIN Akun Inventory (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
+        :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun CS'"
+        :description="passwordModalMode === 'alert' ? ('Akun CS (' + (selectedAccountObject?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : ('Masukkan PASSWORD LOGIN Akun CS (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
         :user="selectedAccountObject"
         @close="showPasswordModal = false" @success="onPasswordVerified" />
     <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false" @success="onPasswordVerified" />

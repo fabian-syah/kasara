@@ -521,11 +521,11 @@ async function saveInventoryUpdate() {
 
   if (isInventoryUser.value) {
     if (!editForm.value.inventory_user_id) {
-      toast.error("Silakan pilih akun inventory terlebih dahulu");
+      toast.error("Silakan pilih akun CS terlebih dahulu");
       return;
     }
     if (isInventoryUser && !editForm.value.transaction_pin) {
-      toast.error("Silakan masukkan PIN Keamanan akun inventory yang dipilih");
+      toast.error("Silakan masukkan PIN Keamanan akun CS yang dipilih");
       return;
     }
   }
@@ -815,9 +815,9 @@ function selectAccount(user) {
 }
 
 const selectedAccountLabel = computed(() => {
-  if (!editForm.value.inventory_user_id) return '-- Pilih Akun Inventory --';
+  if (!editForm.value.inventory_user_id) return '-- Pilih Akun CS --';
   const user = myInventoryUsers.value.find(u => u.id === editForm.value.inventory_user_id);
-  return user ? `${user.name} (${user.username})` : '-- Pilih Akun Inventory --';
+  return user ? `${user.name} (${user.username})` : '-- Pilih Akun CS --';
 });
 
 const filteredProducts = computed(() => {
@@ -2003,7 +2003,7 @@ async function exportInventory() {
           </div>
 
           <div v-if="isInventoryUser" class="relative">
-            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun Inventory (Wajib)</label>
+            <label class="block text-xs font-bold text-text-secondary uppercase mb-1">Pilih Akun CS (Wajib)</label>
             <button @click="isAccountDropdownOpen = !isAccountDropdownOpen" type="button"
               class="input w-full border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between text-left transition-all hover:bg-emerald-500/10"
               :class="{ 'ring-2 ring-emerald-500/50 border-emerald-500': isAccountDropdownOpen }">
@@ -2029,7 +2029,7 @@ async function exportInventory() {
                   </span>
                 </button>
                 <div v-if="myInventoryUsers.length === 0" class="px-4 py-6 text-center text-text-secondary text-sm">
-                  Tidak ada akun inventory ditemukan
+                  Tidak ada akun CS ditemukan
                 </div>
               </div>
             </div>
@@ -2047,7 +2047,7 @@ async function exportInventory() {
               class="input w-full text-center text-xl font-bold py-4 bg-surface-800 border-emerald-500/20 focus:border-emerald-500" 
               placeholder="••••••••" />
             <p class="text-[10px] text-text-secondary mt-2">
-              Gunakan PIN Keamanan dari akun inventory yang dipilih di atas.
+              Gunakan PIN Keamanan dari akun CS yang dipilih di atas.
             </p>
           </div>
         </div>

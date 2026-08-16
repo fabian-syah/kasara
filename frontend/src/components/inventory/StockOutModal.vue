@@ -785,7 +785,7 @@ async function submitStockOut(pin = null) {
                         <div class="bg-surface-800 p-6 rounded-2xl inline-block mb-3 border border-surface-700">
                             <UserCheck :size="32" class="text-surface-500" />
                         </div>
-                        <p>Tidak ada akun inventory ditemukan.</p>
+                        <p>Tidak ada akun CS ditemukan.</p>
                     </div>
 
                     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -835,7 +835,7 @@ async function submitStockOut(pin = null) {
                                 <User v-else :size="16" class="text-text-secondary" />
                             </div>
                             <div v-if="selectedInventoryUser">
-                                <p class="text-xs text-text-secondary uppercase">Akun Inventory</p>
+                                <p class="text-xs text-text-secondary uppercase">Akun CS</p>
                                 <p class="font-bold text-text-primary text-sm">{{ selectedInventoryUser.full_name ||
                                     selectedInventoryUser.name }}</p>
                             </div>
@@ -1335,8 +1335,8 @@ async function submitStockOut(pin = null) {
 
         <!-- Password Modal Component -->
         <PasswordModal :show="showPasswordModal" :mode="passwordModalMode" 
-            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : (passwordModalMode === 'password' ? 'Verifikasi Akun Inventory' : undefined)"
-            :description="passwordModalMode === 'alert' ? ('Akun Inventory (' + (selectedInventoryUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : (passwordModalMode === 'password' ? ('Masukkan PASSWORD LOGIN Akun Inventory (' + (selectedInventoryUser?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)') : undefined)"
+            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : (passwordModalMode === 'password' ? 'Verifikasi Akun CS' : undefined)"
+            :description="passwordModalMode === 'alert' ? ('Akun CS (' + (selectedInventoryUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : (passwordModalMode === 'password' ? ('Masukkan PASSWORD LOGIN Akun CS (' + (selectedInventoryUser?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)') : undefined)"
             :user="selectedInventoryUser"
             @close="showPasswordModal = false"
             @success="handlePinSuccess" />

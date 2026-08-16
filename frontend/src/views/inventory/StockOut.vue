@@ -774,7 +774,7 @@ async function fetchInventoryUsers() {
             }
         }
     } catch (e) {
-        toast.error("Gagal memuat daftar akun inventory");
+        toast.error("Gagal memuat daftar akun CS");
     } finally {
         loadingUsers.value = false;
     }
@@ -1067,7 +1067,7 @@ onMounted(() => {
                     </button>
                 </div>
 
-                <!-- Akun Inventory Selection -->
+                <!-- Akun CS Selection -->
                 <div class="space-y-4 mb-6">
                     <label class="label mb-0 flex items-center gap-2">
                         <User :size="16" class="text-primary-500" /> Akun Penanggung Jawab *

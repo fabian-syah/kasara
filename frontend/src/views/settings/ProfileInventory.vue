@@ -90,7 +90,7 @@ const handleSave = async () => {
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-2xl sm:text-3xl font-black text-text-primary tracking-tight">Pengaturan Pribadi</h1>
-                <p class="text-text-secondary text-sm font-medium mt-1.5">Kelola informasi dan keamanan akun inventory Anda</p>
+                <p class="text-text-secondary text-sm font-medium mt-1.5">Kelola informasi dan keamanan akun CS Anda</p>
             </div>
         </div>
 
@@ -122,7 +122,7 @@ const handleSave = async () => {
                             <UserCircle :size="14" />
                             {{ userRole }}
                         </div>
-                        <h2 class="text-3xl sm:text-4xl font-black text-text-primary tracking-tight truncate w-full">{{ user?.name || 'Akun Inventory' }}</h2>
+                        <h2 class="text-3xl sm:text-4xl font-black text-text-primary tracking-tight truncate w-full">{{ user?.name || 'Akun CS' }}</h2>
                         <div class="flex items-center justify-center sm:justify-start gap-2 mt-3 text-text-secondary font-medium">
                             <Building2 :size="16" class="text-primary-500" />
                             <span class="truncate">{{ user?.branch?.name || user?.warehouse?.name || user?.online_shop?.name || 'Semua Lokasi' }}</span>
@@ -232,7 +232,7 @@ const handleSave = async () => {
                         <Key :size="20" stroke-width="2.5" />
                     </div>
                     <div>
-                        <h3 class="text-text-primary font-black text-sm mb-1">Keamanan Akun Inventory</h3>
+                        <h3 class="text-text-primary font-black text-sm mb-1">Keamanan Akun CS</h3>
                         <p class="text-text-secondary text-xs sm:text-sm font-medium leading-relaxed">
                             Anda memiliki kendali penuh atas PIN keamanan Anda sendiri. Jaga kerahasiaannya. Jika Anda lupa PIN, Anda dapat meminta <strong class="text-text-primary">{{ mainAccountName }}</strong> untuk meresetnya dari panel utama.
                         </p>

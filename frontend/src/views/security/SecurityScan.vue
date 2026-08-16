@@ -300,7 +300,7 @@ onMounted(() => {
                         </div>
                         <div>
                             <span class="block text-[10px] text-text-secondary uppercase tracking-wider mb-0.5">Security
-                                & Staff Inventory</span>
+                                & Staff CS</span>
                             <span class="text-sm font-bold text-text-primary block">Sec: {{
                                 alreadyCheckedData.security_name }}</span>
                             <span class="text-sm text-text-secondary block">Inv: {{

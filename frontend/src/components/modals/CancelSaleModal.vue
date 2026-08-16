@@ -61,7 +61,7 @@ async function fetchInventoryUsers() {
             form.value.inventory_user_id = inventoryUsers.value[0].id;
         }
     } catch (e) {
-        toast.error("Gagal memuat daftar akun inventory");
+        toast.error("Gagal memuat daftar akun CS");
     } finally {
         loadingUsers.value = false;
     }
@@ -78,11 +78,11 @@ const needsVerification = computed(() => {
 });
 
 const verificationLabel = computed(() => {
-    return `Password Akun Inventory (${selectedUser.value?.name || ''})`;
+    return `Password Akun CS (${selectedUser.value?.name || ''})`;
 });
 
 const verificationPlaceholder = computed(() => {
-    return 'Masukkan Password Akun Inventory...';
+    return 'Masukkan Password Akun CS...';
 });
 
 const canSubmitInternal = computed(() => {
@@ -95,7 +95,7 @@ const canSubmitInternal = computed(() => {
 
 async function handleSubmit() {
     if (!form.value.inventory_user_id) {
-        toast.error("Pilih akun inventory");
+        toast.error("Pilih akun CS");
         return;
     }
     if (!authStore.hasRole('inventory') && selectedUser.value && !selectedUser.value.has_password) {
@@ -167,7 +167,7 @@ watch(() => props.show, (newVal) => {
                         <!-- Inventory User Selection -->
                         <div>
                             <label class="block text-sm font-bold text-text-secondary mb-2 flex items-center gap-2">
-                                <User :size="16" /> Akun Inventory Penanggung Jawab
+                                <User :size="16" /> Akun CS Penanggung Jawab
                             </label>
                             <div v-if="loadingUsers" class="flex items-center gap-2 py-3 text-text-secondary text-sm">
                                 <Loader2 :size="16" class="animate-spin" /> Memuat daftar akun...
@@ -225,7 +225,7 @@ watch(() => props.show, (newVal) => {
         <!-- Password Modal Alert -->
         <PasswordModal v-if="showPasswordAlert" :show="showPasswordAlert" mode="alert"
             title="Akses Ditolak"
-            :description="'Akun Inventory (' + (selectedUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.'"
+            :description="'Akun CS (' + (selectedUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.'"
             :user="selectedUser"
             @close="showPasswordAlert = false" />
     </Teleport>

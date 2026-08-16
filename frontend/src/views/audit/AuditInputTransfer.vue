@@ -671,7 +671,7 @@ async function createInventoryAccount() {
         await inventoryApi.createAccount({
             name: newAccountName.value
         });
-        toast.success("Akun inventory berhasil dibuat!");
+        toast.success("Akun CS berhasil dibuat!");
         showCreateAccountModal.value = false;
         newAccountName.value = "";
         fetchInitialData(); // Reload list
@@ -763,7 +763,7 @@ async function updateInventoryAccount() {
 
 async function deleteInventoryAccount(user, event) {
     event.stopPropagation();
-    if (!confirm(`Hapus akun inventory "${user.full_name || user.name}"?`)) return;
+    if (!confirm(`Hapus akun CS "${user.full_name || user.name}"?`)) return;
 
     try {
         await inventoryApi.deleteAccount(user.id);

@@ -318,7 +318,7 @@
                                             </div>
                                             <div v-else-if="String(item.transaction_pin) === '9090'"
                                                 class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
-                                                <User :size="12" stroke-width="2.5" /> Akun Inventory
+                                                <User :size="12" stroke-width="2.5" /> Akun CS
                                             </div>
                                             <div v-else-if="item.transaction_pin"
                                                 class="px-2.5 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg text-[10px] font-bold italic uppercase tracking-wider border border-surface-200 dark:border-surface-700">
@@ -460,7 +460,7 @@
                                         <div class="flex flex-col gap-1">
                                             <span v-if="String(item.transaction_pin) === '9090'"
                                                 class="text-xs font-bold text-primary-500">
-                                                Akun Inventory
+                                                Akun CS
                                             </span>
                                             <span v-if="item.notes" class="text-xs text-text-primary leading-tight"
                                                 :title="item.notes">{{ item.notes }}</span>
