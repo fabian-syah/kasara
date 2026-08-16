@@ -669,7 +669,8 @@ async function submitTukarTambah(pin = null) {
     const allOutgoingItems = outgoingItems.value.map(item => ({
         product_detail_id: item.product_detail_id,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        is_hp: !!(item.item?.imei || item.item?.product?.has_imei || item.item?.type === 'hp' || item.item?.product?.type === 'hp')
     }));
     formData.append('outgoing_items', JSON.stringify(allOutgoingItems));
 

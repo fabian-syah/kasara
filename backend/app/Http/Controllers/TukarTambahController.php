@@ -339,9 +339,11 @@ class TukarTambahController extends Controller
                 // PROCESS OUTGOING ITEMS
                 foreach ($outgoingItemsRaw as $outItem) {
                     $outQty = $outItem['quantity'] ?? 1;
-                    $outgoingUnit = ProductDetail::findOrFail($outItem['product_detail_id']);
+                    $isHp = isset($outItem['is_hp']) ? $outItem['is_hp'] : true;
                     
-                    if ($outgoingUnit->imei) {
+                    if ($isHp) {
+                        $outgoingUnit = ProductDetail::findOrFail($outItem['product_detail_id']);
+                        
                         $stockOut->items()->attach($outItem['product_detail_id'], [
                             'selling_price' => $outItem['price'],
                             'item_discount' => 0,
@@ -350,36 +352,46 @@ class TukarTambahController extends Controller
                             'status' => 'sold',
                             'notes' => ($outgoingUnit->notes ? $outgoingUnit->notes . "\n" : "") . "Keluar melalui Tukar Tambah: " . $receiptId
                         ]);
+
+                        // Log Movement
+                        InventoryLog::create([
+                            'product_id' => $outgoingUnit->product_id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'user_id' => $inventoryUserId,
+                            'type' => 'out',
+                            'quantity' => $outQty,
+                            'reference_id' => $receiptId,
+                            'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
+                            'distributor_id' => $outgoingUnit->distributor_id,
+                        ]);
                     } else {
+                        $inventoryOut = \App\Models\Inventory::with('product')->findOrFail($outItem['product_detail_id']);
+                        
                         \App\Models\StockOutNonHpItem::create([
                             'stock_out_id' => $stockOut->id,
-                            'product_id' => $outgoingUnit->product_id,
+                            'product_id' => $inventoryOut->product_id,
                             'quantity' => $outQty,
                             'selling_price' => $outItem['price'],
-                            'distributor_id' => $outgoingUnit->distributor_id
+                            'distributor_id' => $inventoryOut->distributor_id
                         ]);
+                        
                         // Decrement from Inventory
-                        $inventoryOut = \App\Models\Inventory::where([
-                            'product_id' => $outgoingUnit->product_id,
-                            'placement_type' => $outgoingUnit->placement_type,
-                            'placement_id' => $outgoingUnit->placement_id,
-                            'user_id' => $inventoryUserId
-                        ])->first();
-                        if ($inventoryOut) $inventoryOut->decrement('quantity', $outQty);
-                    }
+                        $inventoryOut->decrement('quantity', $outQty);
 
-                    // Log Movement
-                    InventoryLog::create([
-                        'product_id' => $outgoingUnit->product_id,
-                        'branch_id' => $branchId,
-                        'warehouse_id' => $warehouseId,
-                        'user_id' => $inventoryUserId,
-                        'type' => 'out',
-                        'quantity' => $outQty,
-                        'reference_id' => $receiptId,
-                        'description' => 'Tukar Tambah (Keluar): ' . ($outgoingUnit->product->name ?? 'Unknown') . ($outgoingUnit->imei ? ' (' . $outgoingUnit->imei . ')' : ''),
-                        'distributor_id' => $outgoingUnit->distributor_id,
-                    ]);
+                        // Log Movement
+                        InventoryLog::create([
+                            'product_id' => $inventoryOut->product_id,
+                            'branch_id' => $branchId,
+                            'warehouse_id' => $warehouseId,
+                            'user_id' => $inventoryUserId,
+                            'type' => 'out',
+                            'quantity' => $outQty,
+                            'reference_id' => $receiptId,
+                            'description' => 'Tukar Tambah (Keluar): ' . ($inventoryOut->product->name ?? 'Unknown'),
+                            'distributor_id' => $inventoryOut->distributor_id,
+                        ]);
+                    }
                 }
 
                 $msg = 'Tukar tambah berhasil diproses.';
