@@ -60,6 +60,35 @@ function continueToPayment() {
     currentStep.value = 2;
 }
 
+function getDpItemInfo(dp) {
+    let brand = "-";
+    let type = "-";
+    let gb = "-";
+    
+    if (dp.items && dp.items.length > 0) {
+        const firstItem = dp.items[0];
+        brand = firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || "-";
+        type = firstItem.product?.name || firstItem.name || "-";
+        gb = firstItem.storage || "-";
+    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
+        const firstItem = dp.nonHpDetails[0];
+        type = firstItem.product?.name || firstItem.name || "-";
+    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
+        const firstItem = dp.non_hp_details[0];
+        type = firstItem.product?.name || firstItem.name || "-";
+    }
+
+    let dpDate = dp.created_at;
+    if (dpDate) {
+        const d = new Date(dpDate);
+        dpDate = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    } else {
+        dpDate = "-";
+    }
+
+    return { brand, type, gb, dpDate };
+}
+
 // Map the selected DP to a "mock" cart for PaymentStep
 const paymentCartTotal = computed(() => {
     if (!selectedDp.value) return 0;
@@ -169,7 +198,7 @@ function handleTransactionComplete(transactionData) {
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div v-for="dp in filteredDps" :key="dp.id" 
                     @click="selectDp(dp)"
-                    class="p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col gap-2"
+                    class="p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col gap-2 relative overflow-hidden"
                     :class="selectedDp?.id === dp.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10' : 'border-surface-200 dark:border-surface-700 hover:border-primary-300 bg-surface-50 dark:bg-surface-900'">
                     
                     <div class="flex justify-between items-start">
@@ -180,6 +209,14 @@ function handleTransactionComplete(transactionData) {
                         <span class="text-xs font-black bg-amber-500/10 text-amber-600 px-2 py-1 rounded">
                             {{ dp.receipt_id }}
                         </span>
+                    </div>
+
+                    <!-- Additional Details -->
+                    <div class="flex flex-col mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 text-xs text-text-secondary space-y-1">
+                        <div class="flex justify-between"><span class="font-bold">Tanggal DP:</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).dpDate }}</span></div>
+                        <div class="flex justify-between"><span class="font-bold">Brand:</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).brand }}</span></div>
+                        <div class="flex justify-between"><span class="font-bold">Tipe:</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).type }}</span></div>
+                        <div class="flex justify-between"><span class="font-bold">Penyimpanan (GB):</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).gb }}</span></div>
                     </div>
 
                     <div class="flex flex-col mt-2 pt-2 border-t border-surface-200 dark:border-surface-700">
