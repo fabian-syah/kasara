@@ -1,10 +1,13 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import api from "../../../api/axios";
 import { formatCurrency } from "../../../utils/formatters";
 import { ArrowLeft, CheckCircle, Search, Loader2, ArrowRight } from "lucide-vue-next";
 import { useAuthStore } from "../../../store/auth";
+import { useCartStore } from "../../../store/cart";
+import { useInventoryStore } from "../../../store/inventory";
 import PaymentStep from "./PaymentStep.vue";
+import PenjualanStep3 from "./PenjualanStep3.vue";
 
 const props = defineProps({
     transactionCategory: String,
@@ -15,12 +18,14 @@ const props = defineProps({
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
+const cartStore = useCartStore();
+const inventoryStore = useInventoryStore();
 
 const activeDps = ref([]);
 const isLoadingDps = ref(false);
 const searchQuery = ref("");
 const selectedDp = ref(null);
-const currentStep = ref(1); // 1 = Select DP, 2 = Payment
+const currentStep = ref(1); // 1 = Select DP, 2 = Select Items, 3 = Payment
 
 onMounted(async () => {
     fetchActiveDps();
@@ -55,11 +60,6 @@ function selectDp(dp) {
     selectedDp.value = dp;
 }
 
-function continueToPayment() {
-    if (!selectedDp.value) return;
-    currentStep.value = 2;
-}
-
 function getDpItemInfo(dp) {
     let brand = "-";
     let type = "-";
@@ -89,85 +89,45 @@ function getDpItemInfo(dp) {
     return { brand, type, gb, dpDate };
 }
 
-// Map the selected DP to a "mock" cart for PaymentStep
-const paymentCartTotal = computed(() => {
+// DP amount already paid
+const dpAmount = computed(() => {
     if (!selectedDp.value) return 0;
-    // For Pelunasan DP, we calculate the remaining balance
-    const totalSellingPrice = Number(selectedDp.value.selling_price || 0);
-    const dpPaid = Number(selectedDp.value.dp_amount || 0);
-    return Math.max(0, totalSellingPrice - dpPaid);
+    return Number(selectedDp.value.dp_amount || 0);
 });
 
-// Mock Cart Store for PaymentStep
-import { useCartStore } from "../../../store/cart";
-const cartStore = useCartStore();
-
-function handleProceedToPayment() {
-    // Clear current cart and add the DP items
+function handleProceedToItemSelection() {
+    if (!selectedDp.value) return;
+    // Clear cart before item selection
     cartStore.clearCart();
-    
-    // Add a single "Pelunasan DP" item to the cart so PaymentStep shows it correctly
-    // Since the actual HP was already deducted, this is just for the Receipt/UI
-    const remainingBalance = paymentCartTotal.value;
-    
-    let brand = "-";
-    let type = "-";
-    let gb = "-";
-    
-    if (selectedDp.value.items && selectedDp.value.items.length > 0) {
-        const firstItem = selectedDp.value.items[0];
-        brand = firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || "-";
-        type = firstItem.product?.name || firstItem.name || "-";
-        gb = firstItem.storage || "-";
-    } else if (selectedDp.value.nonHpDetails && selectedDp.value.nonHpDetails.length > 0) {
-        const firstItem = selectedDp.value.nonHpDetails[0];
-        type = firstItem.product?.name || firstItem.name || "-";
-    }
-
-    let dpDate = selectedDp.value.created_at;
-    if (dpDate) {
-        const d = new Date(dpDate);
-        dpDate = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    } else {
-        dpDate = "-";
-    }
-    
-    const mockItem = {
-        id: 'pelunasan_' + selectedDp.value.id,
-        name: `Pelunasan Nota: ${selectedDp.value.receipt_id}`,
-        price: remainingBalance,
-        quantity: 1,
-        is_hp: false,
-        discount: 0,
-        dp_info: {
-            customer_name: selectedDp.value.customer_name,
-            dp_date: dpDate,
-            brand: brand,
-            type: type,
-            gb: gb,
-            dp_amount: selectedDp.value.dp_amount
-        }
-    };
-    
-    cartStore.addItem(mockItem);
     currentStep.value = 2;
 }
 
+function handleItemsNext() {
+    // User finished selecting items, proceed to payment
+    currentStep.value = 3;
+}
+
+function handleItemsPrev() {
+    // Go back to DP selection
+    currentStep.value = 1;
+}
+
 function handleTransactionComplete(transactionData) {
-    // Inject parent_dp_id before emitting
+    // Inject parent_dp_id and DP info before emitting
     const enrichedData = {
         ...transactionData,
-        parent_dp_id: selectedDp.value.id
+        parent_dp_id: selectedDp.value.id,
+        dp_deduction: dpAmount.value,
+        original_dp_receipt: selectedDp.value.receipt_id
     };
     
-    // Override the API call from PaymentStep if needed, but wait!
-    // PaymentStep makes the API call itself. We need to pass parent_dp_id to PaymentStep.
     emit('transaction-complete', enrichedData);
 }
 
 </script>
 
 <template>
+    <!-- STEP 1: SELECT DP NOTA -->
     <div v-if="currentStep === 1" class="w-full flex flex-col gap-4 sm:gap-8 items-start relative min-h-0">
         <!-- Header -->
         <div class="w-full flex items-center justify-between bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm mb-2">
@@ -177,7 +137,7 @@ function handleTransactionComplete(transactionData) {
                 </button>
                 <div class="flex flex-col">
                     <h3 class="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight leading-none">Pelunasan DP</h3>
-                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Pilih Nota DP Customer</p>
+                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Step 1 — Pilih Nota DP Customer</p>
                 </div>
             </div>
         </div>
@@ -237,19 +197,58 @@ function handleTransactionComplete(transactionData) {
             </div>
 
             <div class="mt-4 flex justify-end">
-                <button @click="handleProceedToPayment" :disabled="!selectedDp"
+                <button @click="handleProceedToItemSelection" :disabled="!selectedDp"
                     class="px-8 py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center gap-2">
-                    Lanjutkan Pelunasan <ArrowRight :size="20" />
+                    Pilih Unit / Item <ArrowRight :size="20" />
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- STEP 2: PAYMENT -->
-    <div v-else-if="currentStep === 2" class="w-full flex-1 flex flex-col min-h-0 relative">
+    <!-- STEP 2: SELECT ITEMS (Like Penjualan Store) -->
+    <div v-else-if="currentStep === 2" class="w-full flex flex-col gap-4 min-h-0">
+        <!-- DP Info Banner -->
+        <div class="w-full bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex flex-col gap-1">
+                <p class="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Pelunasan Nota DP: {{ selectedDp?.receipt_id }}</p>
+                <p class="text-sm font-bold text-amber-600 dark:text-amber-500">
+                    {{ selectedDp?.customer_name }} — DP Dibayar: <span class="font-black">{{ formatCurrency(dpAmount) }}</span>
+                </p>
+            </div>
+            <div class="flex flex-col items-end">
+                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Sisa Lunas</p>
+                <p class="text-xl font-black text-red-500">{{ formatCurrency((selectedDp?.selling_price || 0) - dpAmount) }}</p>
+            </div>
+        </div>
+
+        <!-- Reuse PenjualanStep3 for item selection -->
+        <PenjualanStep3 
+            transactionCategory="pelunasan_dp"
+            :availablePaymentMethods="availablePaymentMethods" 
+            @prev="handleItemsPrev" 
+            @next="handleItemsNext" />
+    </div>
+
+    <!-- STEP 3: PAYMENT -->
+    <div v-else-if="currentStep === 3" class="w-full flex-1 flex flex-col min-h-0 relative">
+        <!-- DP Deduction Info -->
+        <div class="w-full bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div class="flex flex-col gap-1">
+                <p class="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Pelunasan Nota: {{ selectedDp?.receipt_id }}</p>
+                <p class="text-sm font-bold text-emerald-600">{{ selectedDp?.customer_name }}</p>
+            </div>
+            <div class="flex flex-col items-end">
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">DP Sudah Dibayar</p>
+                <p class="text-xl font-black text-emerald-600">- {{ formatCurrency(dpAmount) }}</p>
+            </div>
+        </div>
+
         <PaymentStep :availablePaymentMethods="availablePaymentMethods"
             transactionCategory="pelunasan_dp" :salesAccount="salesAccount"
-            :selectedAccountObject="selectedAccountObject" @prev="currentStep = 1"
+            :selectedAccountObject="selectedAccountObject" 
+            :dpDeduction="dpAmount"
+            :parentDpId="selectedDp?.id"
+            @prev="currentStep = 2"
             @transaction-complete="handleTransactionComplete" @verify-pin="$emit('verify-pin', $event)" />
     </div>
 </template>

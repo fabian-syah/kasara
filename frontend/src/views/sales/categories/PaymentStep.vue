@@ -24,7 +24,9 @@ const props = defineProps({
     availablePaymentMethods: Array,
     transactionCategory: String,
     salesAccount: String,
-    selectedAccountObject: Object
+    selectedAccountObject: Object,
+    dpDeduction: { type: Number, default: 0 },
+    parentDpId: { type: [Number, String], default: null }
 });
 
 const emit = defineEmits(["prev", "transaction-complete", "verify-pin"]);
@@ -53,6 +55,14 @@ const paymentProofImagePreview = ref(null);
 
 const cartItems = computed(() => cartStore.items);
 const cartTotal = computed(() => cartStore.total);
+
+// For pelunasan_dp: effective total = cart total - DP already paid
+const effectiveTotal = computed(() => {
+    if (props.dpDeduction > 0) {
+        return Math.max(0, cartTotal.value - props.dpDeduction);
+    }
+    return cartTotal.value;
+});
 
 const switchToPercentage = () => {
     if (cartStore.discountType === 'percentage') return;
@@ -97,7 +107,7 @@ const missingFields = computed(() => {
     if (!isCashOnly.value && !paymentProofImage.value) fields.push("Foto Bukti Pembayaran");
 
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
-    if (totalPaid < cartTotal.value && props.transactionCategory !== 'dp') {
+    if (totalPaid < effectiveTotal.value && props.transactionCategory !== 'dp') {
         fields.push("Pembayaran Kurang");
     }
 
@@ -112,7 +122,7 @@ const isFormValid = computed(() => missingFields.value.length === 0);
 
 const changeAmount = computed(() => {
     const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
-    return totalPaid - cartTotal.value;
+    return totalPaid - effectiveTotal.value;
 });
 
 const isCashPayment = computed(() => {
@@ -169,7 +179,7 @@ function parseNumber(s) {
 
 function addSplitPayment() {
     const totalPaidSoFar = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
-    const remainingAmount = Math.max(0, cartTotal.value - totalPaidSoFar);
+    const remainingAmount = Math.max(0, effectiveTotal.value - totalPaidSoFar);
 
     splitPayments.value.push({
         method_id: props.availablePaymentMethods[0]?.id || null,
@@ -274,6 +284,14 @@ async function processPayment(pin = null) {
         const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
         formData.append('paid_amount', totalPaid);
         formData.append('selling_price', Number(cartStore.total || 0));
+
+        // Pelunasan DP: send parent_dp_id and dp_amount
+        if (props.parentDpId) {
+            formData.append('parent_dp_id', props.parentDpId);
+        }
+        if (props.dpDeduction > 0) {
+            formData.append('dp_deduction', props.dpDeduction);
+        }
 
         formData.append('customer_name', customerForm.value.customer_name);
         formData.append('customer_wa', customerForm.value.customer_phone);
@@ -593,14 +611,7 @@ async function processPayment(pin = null) {
                                 </p>
                                 <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price) }} / unit
                                 </p>
-                                <div v-if="item.dp_info" class="mt-2 text-xs text-text-secondary bg-surface-100 dark:bg-surface-800 p-3 rounded-xl space-y-1">
-                                    <div class="flex justify-between"><span class="font-bold">Nama Customer:</span> <span class="font-bold text-text-primary">{{ item.dp_info.customer_name }}</span></div>
-                                    <div class="flex justify-between"><span class="font-bold">Tanggal DP:</span> <span class="font-bold text-text-primary">{{ item.dp_info.dp_date }}</span></div>
-                                    <div class="flex justify-between"><span class="font-bold">Brand:</span> <span class="font-bold text-text-primary">{{ item.dp_info.brand }}</span></div>
-                                    <div class="flex justify-between"><span class="font-bold">Tipe:</span> <span class="font-bold text-text-primary">{{ item.dp_info.type }}</span></div>
-                                    <div class="flex justify-between"><span class="font-bold">Penyimpanan (GB):</span> <span class="font-bold text-text-primary">{{ item.dp_info.gb }}</span></div>
-                                    <div class="flex justify-between"><span class="font-bold text-emerald-600">Nominal DP:</span> <span class="font-black text-emerald-600">{{ formatCurrency(item.dp_info.dp_amount) }}</span></div>
-                                </div>
+                                <p v-if="item.imei" class="text-xs font-mono font-bold text-text-secondary bg-surface-100 dark:bg-surface-800 px-2 py-1 rounded w-fit">{{ item.imei }}</p>
                             </div>
                         </div>
                         <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price * item.quantity) }}
@@ -633,8 +644,19 @@ async function processPayment(pin = null) {
                         class="text-text-secondary text-[10px] sm:text-xs font-black uppercase tracking-widest mb-2 sm:mb-3">
                         TOTAL TAGIHAN</p>
                     <p class="text-3xl sm:text-5xl font-black text-primary-600 tracking-tight">{{
-                        formatCurrency(cartTotal)
+                        formatCurrency(effectiveTotal)
                         }}</p>
+                    <!-- DP Deduction breakdown -->
+                    <div v-if="dpDeduction > 0" class="mt-4 space-y-1">
+                        <div class="flex justify-between text-xs font-bold text-text-secondary px-2">
+                            <span>Subtotal Item</span>
+                            <span>{{ formatCurrency(cartTotal) }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs font-bold text-emerald-600 px-2">
+                            <span>DP Sudah Dibayar</span>
+                            <span>- {{ formatCurrency(dpDeduction) }}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="space-y-8">

@@ -326,12 +326,12 @@ const selectOutgoingUnit = (item) => {
                     <ArrowLeft :size="28" stroke-width="3" />
                 </button>
                 <div class="flex flex-col">
-                    <h3 class="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight leading-none">Penjualan Store</h3>
-                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Pilih Item & Masukkan ke Keranjang</p>
+                    <h3 class="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight leading-none">{{ transactionCategory === 'pelunasan_dp' ? 'Pelunasan DP' : 'Penjualan Store' }}</h3>
+                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">{{ transactionCategory === 'pelunasan_dp' ? 'Step 2 — Pilih Unit / Item dari Stok' : 'Pilih Item & Masukkan ke Keranjang' }}</p>
                 </div>
             </div>
             <div class="hidden sm:flex items-center gap-2 px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-xs font-black uppercase tracking-widest">
-                TRANSAKSI LANGSUNG
+                {{ transactionCategory === 'pelunasan_dp' ? 'VALIDASI STOK' : 'TRANSAKSI LANGSUNG' }}
             </div>
             <!-- Mobile Cart Toggle -->
             <button @click="showMobileCart = true" class="lg:hidden relative p-3 bg-primary-600 text-white rounded-xl shadow-lg active:scale-95">
