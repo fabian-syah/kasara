@@ -81,13 +81,43 @@ function handleProceedToPayment() {
     // Since the actual HP was already deducted, this is just for the Receipt/UI
     const remainingBalance = paymentCartTotal.value;
     
+    let brand = "-";
+    let type = "-";
+    let gb = "-";
+    
+    if (selectedDp.value.items && selectedDp.value.items.length > 0) {
+        const firstItem = selectedDp.value.items[0];
+        brand = firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || "-";
+        type = firstItem.product?.name || firstItem.name || "-";
+        gb = firstItem.storage || "-";
+    } else if (selectedDp.value.nonHpDetails && selectedDp.value.nonHpDetails.length > 0) {
+        const firstItem = selectedDp.value.nonHpDetails[0];
+        type = firstItem.product?.name || firstItem.name || "-";
+    }
+
+    let dpDate = selectedDp.value.created_at;
+    if (dpDate) {
+        const d = new Date(dpDate);
+        dpDate = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    } else {
+        dpDate = "-";
+    }
+    
     const mockItem = {
         id: 'pelunasan_' + selectedDp.value.id,
         name: `Pelunasan Nota: ${selectedDp.value.receipt_id}`,
         price: remainingBalance,
         quantity: 1,
         is_hp: false,
-        discount: 0
+        discount: 0,
+        dp_info: {
+            customer_name: selectedDp.value.customer_name,
+            dp_date: dpDate,
+            brand: brand,
+            type: type,
+            gb: gb,
+            dp_amount: selectedDp.value.dp_amount
+        }
     };
     
     cartStore.addItem(mockItem);

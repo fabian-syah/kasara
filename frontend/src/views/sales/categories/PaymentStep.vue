@@ -593,6 +593,14 @@ async function processPayment(pin = null) {
                                 </p>
                                 <p class="text-sm font-bold text-text-secondary">{{ formatCurrency(item.price) }} / unit
                                 </p>
+                                <div v-if="item.dp_info" class="mt-2 text-xs text-text-secondary bg-surface-100 dark:bg-surface-800 p-3 rounded-xl space-y-1">
+                                    <div class="flex justify-between"><span class="font-bold">Nama Customer:</span> <span class="font-bold text-text-primary">{{ item.dp_info.customer_name }}</span></div>
+                                    <div class="flex justify-between"><span class="font-bold">Tanggal DP:</span> <span class="font-bold text-text-primary">{{ item.dp_info.dp_date }}</span></div>
+                                    <div class="flex justify-between"><span class="font-bold">Brand:</span> <span class="font-bold text-text-primary">{{ item.dp_info.brand }}</span></div>
+                                    <div class="flex justify-between"><span class="font-bold">Tipe:</span> <span class="font-bold text-text-primary">{{ item.dp_info.type }}</span></div>
+                                    <div class="flex justify-between"><span class="font-bold">Penyimpanan (GB):</span> <span class="font-bold text-text-primary">{{ item.dp_info.gb }}</span></div>
+                                    <div class="flex justify-between"><span class="font-bold text-emerald-600">Nominal DP:</span> <span class="font-black text-emerald-600">{{ formatCurrency(item.dp_info.dp_amount) }}</span></div>
+                                </div>
                             </div>
                         </div>
                         <p class="font-black text-xl text-primary-600">{{ formatCurrency(item.price * item.quantity) }}
