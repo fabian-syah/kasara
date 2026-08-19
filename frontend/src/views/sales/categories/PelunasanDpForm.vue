@@ -27,27 +27,8 @@ const currentStep = ref(1); // 1 = Select DP, 2 = Form Pelunasan
 const fetchActiveDps = async () => {
     isLoadingDps.value = true;
     try {
-        const response = await api.get('/audit/sales', {
-            params: {
-                category: 'dp',
-                status: 'dp'
-            }
-        });
-        
-        let fetchedDps = [];
-        if (response.data && response.data.daily_sales) {
-            fetchedDps = response.data.daily_sales.data || response.data.daily_sales || [];
-        } else if (response.data && Array.isArray(response.data)) {
-            fetchedDps = response.data;
-        } else {
-            fetchedDps = response.data.data || [];
-        }
-        
-        console.log("FETCHED DPS EXTRACTED:", fetchedDps);
-        
-        // Backend sudah melakukan filter berdasarkan params category: 'dp', 
-        // jadi kita tidak perlu memfilternya lagi di frontend yang malah membuat datanya kosong.
-        activeDps.value = fetchedDps;
+        const response = await api.get('/stock-outs/active-dps');
+        activeDps.value = response.data.data || response.data || [];
     } catch (error) {
         console.error("Gagal mengambil data DP aktif:", error);
     } finally {
