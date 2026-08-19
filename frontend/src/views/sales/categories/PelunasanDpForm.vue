@@ -49,8 +49,9 @@ const fetchActiveDps = async () => {
         
         console.log("FETCHED DPS EXTRACTED:", fetchedDps);
         
-        // Filter kembali khusus DP
-        activeDps.value = fetchedDps.filter(dp => dp.category === 'dp' || dp.transaction_category === 'dp');
+        // Backend sudah melakukan filter berdasarkan params category: 'dp', 
+        // jadi kita tidak perlu memfilternya lagi di frontend yang malah membuat datanya kosong.
+        activeDps.value = fetchedDps;
     } catch (error) {
         console.error("Gagal mengambil data DP aktif:", error);
     } finally {
