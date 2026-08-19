@@ -24,6 +24,49 @@ const searchQuery = ref("");
 const selectedDp = ref(null);
 const currentStep = ref(1); // 1 = Select DP, 2 = Form Pelunasan
 
+const fetchActiveDps = async () => {
+    isLoadingDps.value = true;
+    try {
+        const response = await api.get('/transactions', {
+            params: {
+                transaction_category: 'dp',
+                payment_status: 'dp' // assuming partial payment is 'dp'
+            }
+        });
+        
+        let fetchedDps = [];
+        if (response.data && response.data.data) {
+            fetchedDps = response.data.data;
+        } else if (response.data && Array.isArray(response.data)) {
+            fetchedDps = response.data;
+        }
+        
+        // Fallback filter if API returns more than we want
+        activeDps.value = fetchedDps.filter(t => t.transaction_category === 'dp');
+    } catch (error) {
+        console.error("Gagal mengambil data DP aktif:", error);
+        // Fallback to fetch from /audit/sales if /transactions fails
+        try {
+            const fallbackResponse = await api.get('/audit/sales', { params: { category: 'dp' } });
+            let fallbackDps = [];
+            if (fallbackResponse.data && fallbackResponse.data.data) {
+                fallbackDps = fallbackResponse.data.data;
+            } else if (fallbackResponse.data && Array.isArray(fallbackResponse.data)) {
+                fallbackDps = fallbackResponse.data;
+            }
+            activeDps.value = fallbackDps.filter(t => t.transaction_category === 'dp' || t.category === 'dp');
+        } catch(fallbackError) {
+            console.error("Gagal mengambil data DP dari audit/sales:", fallbackError);
+        }
+    } finally {
+        isLoadingDps.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchActiveDps();
+});
+
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
 const outgoingItem = ref(null);
