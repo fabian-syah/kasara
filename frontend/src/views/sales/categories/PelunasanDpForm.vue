@@ -41,6 +41,8 @@ const customerForm = ref({
 const splitPayments = ref([]);
 const proofImage = ref(null);
 const proofImagePreview = ref(null);
+const customerProofImage = ref(null);
+const customerProofImagePreview = ref(null);
 const paymentProofImage = ref(null);
 const paymentProofImagePreview = ref(null);
 
@@ -238,6 +240,7 @@ async function handlePhotoChange(type, event) {
     if (file) {
         try {
             if (type === 'proofImage') isCompressing.value = true;
+            if (type === 'customerProofImage') isCompressing.value = true;
             if (type === 'paymentProofImage') isCompressingPayment.value = true;
             
             const compressedFile = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.8 });
@@ -247,6 +250,9 @@ async function handlePhotoChange(type, event) {
                 if (type === 'proofImage') {
                     proofImage.value = compressedFile;
                     proofImagePreview.value = e.target.result;
+                } else if (type === 'customerProofImage') {
+                    customerProofImage.value = compressedFile;
+                    customerProofImagePreview.value = e.target.result;
                 } else {
                     paymentProofImage.value = compressedFile;
                     paymentProofImagePreview.value = e.target.result;
@@ -257,7 +263,7 @@ async function handlePhotoChange(type, event) {
             console.error("Compression failed:", error);
             alert("Gagal mengompres gambar. Silakan coba lagi.");
         } finally {
-            if (type === 'proofImage') isCompressing.value = false;
+            if (type === 'proofImage' || type === 'customerProofImage') isCompressing.value = false;
             if (type === 'paymentProofImage') isCompressingPayment.value = false;
         }
     }
@@ -276,6 +282,11 @@ async function handleSubmit(pin = null) {
 
     if (!proofImage.value) {
         alert("Foto unit wajib diupload.");
+        return;
+    }
+
+    if (!customerProofImage.value) {
+        alert("Foto customer wajib diupload.");
         return;
     }
 
@@ -341,6 +352,7 @@ async function handleSubmit(pin = null) {
         }))));
 
         if (proofImage.value) formData.append('proof_image', proofImage.value);
+        if (customerProofImage.value) formData.append('customer_proof_image', customerProofImage.value);
         if (paymentProofImage.value) formData.append('payment_proof_image', paymentProofImage.value);
 
         const response = await api.post('/stock-outs', formData, {
@@ -400,6 +412,7 @@ async function handleSubmit(pin = null) {
             inventory_account_name: props.salesAccount,
             proof_images: [
                 proofImagePreview.value,
+                customerProofImagePreview.value,
                 paymentProofImagePreview.value
             ].filter(Boolean),
             parent_dp_id: selectedDp.value.id,
@@ -476,10 +489,6 @@ async function handleSubmit(pin = null) {
 
                     <div class="flex flex-col mt-2 pt-2 border-t border-surface-200 dark:border-surface-700">
                         <div class="flex justify-between text-xs mb-1">
-                            <span class="text-text-secondary font-bold">Total Harga</span>
-                            <span class="font-black">{{ formatCurrency(dp.selling_price) }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs mb-1">
                             <span class="text-text-secondary font-bold">DP Dibayar</span>
                             <span class="font-black text-emerald-600">{{ formatCurrency(dp.dp_amount) }}</span>
                         </div>
@@ -535,7 +544,7 @@ async function handleSubmit(pin = null) {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <!-- BARANG MASUK (DP DATA) -->
                 <div class="space-y-6">
                     <h4 class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
@@ -558,10 +567,6 @@ async function handleSubmit(pin = null) {
                         </div>
                         
                         <div class="mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800/50">
-                            <div class="flex justify-between text-sm mb-1">
-                                <span class="text-emerald-700 dark:text-emerald-400 font-bold">Estimasi Harga</span>
-                                <span class="font-black text-emerald-900 dark:text-emerald-300">{{ formatCurrency(selectedDp?.selling_price) }}</span>
-                            </div>
                             <div class="flex justify-between text-base">
                                 <span class="text-emerald-800 dark:text-emerald-400 font-black uppercase tracking-widest">DP DIBAYAR</span>
                                 <span class="font-black text-emerald-600">- {{ formatCurrency(dpAmount) }}</span>
@@ -632,50 +637,79 @@ async function handleSubmit(pin = null) {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
+            <!-- FOTO UPLOADS -->
+            <div class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
+                <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <Camera :size="18" /> DOKUMENTASI & BUKTI
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <!-- FOTO UNIT -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-                        <div>
-                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO UNIT KELUAR <span class="text-red-500">*</span></label>
-                            <div @click="$refs.unitProofInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
-                                <template v-if="isCompressing">
-                                    <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
-                                    <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
-                                </template>
-                                <template v-else-if="proofImagePreview">
-                                    <img :src="proofImagePreview" class="w-full h-full object-cover" />
-                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <Camera class="text-white w-6 h-6" />
-                                    </div>
-                                </template>
-                                <template v-else>
-                                    <Plus :size="24" class="text-text-secondary mb-1" />
-                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload Unit</span>
-                                </template>
-                            </div>
-                            <input type="file" ref="unitProofInput" @change="e => handlePhotoChange('proofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO UNIT KELUAR <span class="text-red-500">*</span></label>
+                        <div @click="$refs.unitProofInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <template v-if="isCompressing">
+                                <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                            </template>
+                            <template v-else-if="proofImagePreview">
+                                <img :src="proofImagePreview" class="w-full h-full object-cover" />
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Camera class="text-white w-6 h-6" />
+                                </div>
+                            </template>
+                            <template v-else>
+                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload Unit</span>
+                            </template>
                         </div>
-                        
-                        <div v-if="!isCashOnly && sisaBayar > 0">
-                            <label class="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-2 text-center">BUKTI TRANSFER <span class="text-red-500">*</span></label>
-                            <div @click="$refs.paymentProofInput.click()" class="relative border-2 border-dashed border-amber-300 dark:border-amber-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all overflow-hidden group">
-                                <template v-if="isCompressingPayment">
-                                    <Loader2 class="w-8 h-8 text-amber-600 animate-spin" />
-                                    <span class="text-[10px] font-black text-amber-600 uppercase mt-2">Memproses...</span>
-                                </template>
-                                <template v-else-if="paymentProofImagePreview">
-                                    <img :src="paymentProofImagePreview" class="w-full h-full object-cover" />
-                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                        <Camera class="text-white w-6 h-6" />
-                                    </div>
-                                </template>
-                                <template v-else>
-                                    <Plus :size="24" class="text-amber-500 mb-1" />
-                                    <span class="text-[9px] font-black text-amber-600 uppercase">Upload Bukti TF</span>
-                                </template>
-                            </div>
-                            <input type="file" ref="paymentProofInput" @change="e => handlePhotoChange('paymentProofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                        <input type="file" ref="unitProofInput" @change="e => handlePhotoChange('proofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                    </div>
+
+                    <!-- FOTO CUSTOMER -->
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO CUSTOMER <span class="text-red-500">*</span></label>
+                        <div @click="$refs.customerProofInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                            <template v-if="isCompressing">
+                                <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                            </template>
+                            <template v-else-if="customerProofImagePreview">
+                                <img :src="customerProofImagePreview" class="w-full h-full object-cover" />
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Camera class="text-white w-6 h-6" />
+                                </div>
+                            </template>
+                            <template v-else>
+                                <Plus :size="24" class="text-text-secondary mb-1" />
+                                <span class="text-[9px] font-black text-text-secondary uppercase">Upload Customer</span>
+                            </template>
                         </div>
+                        <input type="file" ref="customerProofInput" @change="e => handlePhotoChange('customerProofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                    </div>
+                    
+                    <!-- BUKTI TRANSFER -->
+                    <div v-if="!isCashOnly && sisaBayar > 0">
+                        <label class="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-2 text-center">BUKTI TRANSFER <span class="text-red-500">*</span></label>
+                        <div @click="$refs.paymentProofInput.click()" class="relative border-2 border-dashed border-amber-300 dark:border-amber-600 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all overflow-hidden group">
+                            <template v-if="isCompressingPayment">
+                                <Loader2 class="w-8 h-8 text-amber-600 animate-spin" />
+                                <span class="text-[10px] font-black text-amber-600 uppercase mt-2">Memproses...</span>
+                            </template>
+                            <template v-else-if="paymentProofImagePreview">
+                                <img :src="paymentProofImagePreview" class="w-full h-full object-cover" />
+                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Camera class="text-white w-6 h-6" />
+                                </div>
+                            </template>
+                            <template v-else>
+                                <Plus :size="24" class="text-amber-500 mb-1" />
+                                <span class="text-[9px] font-black text-amber-600 uppercase">Upload Bukti TF</span>
+                            </template>
+                        </div>
+                        <input type="file" ref="paymentProofInput" @change="e => handlePhotoChange('paymentProofImage', e)" accept="image/*" class="hidden" capture="environment" />
                     </div>
                 </div>
             </div>
