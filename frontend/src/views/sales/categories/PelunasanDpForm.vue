@@ -30,10 +30,15 @@ const fetchActiveDps = async () => {
         const today = new Date();
         const endDate = today.toISOString().split('T')[0];
         
+        // Ambil data 6 bulan terakhir agar loading tidak berat
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        const startDate = sixMonthsAgo.toISOString().split('T')[0];
+        
         const response = await api.get('/audit/sales', {
             params: {
                 category: 'dp',
-                start_date: '2023-01-01',
+                start_date: startDate,
                 end_date: endDate
             }
         });
