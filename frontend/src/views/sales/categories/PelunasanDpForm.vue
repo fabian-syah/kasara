@@ -39,17 +39,18 @@ const fetchActiveDps = async () => {
         });
         
         let fetchedDps = [];
-        if (response.data && response.data.data) {
-            fetchedDps = response.data.data;
+        if (response.data && response.data.daily_sales) {
+            fetchedDps = response.data.daily_sales.data || response.data.daily_sales || [];
         } else if (response.data && Array.isArray(response.data)) {
             fetchedDps = response.data;
         } else {
-            fetchedDps = response.data || [];
+            fetchedDps = response.data.data || [];
         }
         
-        console.log("ALL SALES FROM BACKEND:", fetchedDps);
-        // Temporarily do NOT filter, to see if anything shows up and what the properties are!
-        activeDps.value = fetchedDps; // .filter(dp => dp.category === 'dp' || dp.transaction_category === 'dp');
+        console.log("FETCHED DPS EXTRACTED:", fetchedDps);
+        
+        // Filter kembali khusus DP
+        activeDps.value = fetchedDps.filter(dp => dp.category === 'dp' || dp.transaction_category === 'dp');
     } catch (error) {
         console.error("Gagal mengambil data DP aktif:", error);
     } finally {
