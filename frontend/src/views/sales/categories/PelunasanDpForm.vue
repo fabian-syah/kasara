@@ -24,6 +24,12 @@ const searchQuery = ref("");
 const selectedDp = ref(null);
 const currentStep = ref(1); // 1 = Select DP, 2 = Form Pelunasan
 
+const customerForm = ref({
+    customer_name: "",
+    customer_phone: "",
+    notes: ""
+});
+
 const fetchActiveDps = async () => {
     isLoadingDps.value = true;
     try {
