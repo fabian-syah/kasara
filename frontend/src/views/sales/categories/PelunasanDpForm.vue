@@ -11,7 +11,11 @@ const props = defineProps({
     transactionCategory: String,
     availablePaymentMethods: Array,
     salesAccount: String,
-    selectedAccountObject: Object
+    selectedAccountObject: Object,
+    brands: Array,
+    productTypes: Array,
+    productPrices: Array,
+    distributors: Array
 });
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
