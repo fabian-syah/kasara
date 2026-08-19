@@ -2,12 +2,10 @@
 import { ref, computed, onMounted, watch } from "vue";
 import api from "../../../api/axios";
 import { formatCurrency } from "../../../utils/formatters";
-import { ArrowLeft, CheckCircle, Search, Loader2, ArrowRight } from "lucide-vue-next";
+import { ArrowLeft, CheckCircle, Search, Loader2, ArrowRight, User, ShoppingCart, Trash2, Camera, X, Save, AlertCircle, Plus, ChevronDown } from "lucide-vue-next";
 import { useAuthStore } from "../../../store/auth";
-import { useCartStore } from "../../../store/cart";
 import { useInventoryStore } from "../../../store/inventory";
-import PaymentStep from "./PaymentStep.vue";
-import PenjualanStep3 from "./PenjualanStep3.vue";
+import { compressImage } from "../../../utils/imageCompressor";
 
 const props = defineProps({
     transactionCategory: String,
@@ -18,14 +16,33 @@ const props = defineProps({
 
 const emit = defineEmits(["back", "transaction-complete", "verify-pin"]);
 const authStore = useAuthStore();
-const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
 
 const activeDps = ref([]);
 const isLoadingDps = ref(false);
 const searchQuery = ref("");
 const selectedDp = ref(null);
-const currentStep = ref(1); // 1 = Select DP, 2 = Select Items, 3 = Payment
+const currentStep = ref(1); // 1 = Select DP, 2 = Form Pelunasan
+
+const stockSearchQuery = ref("");
+const showStockDropdown = ref(false);
+const outgoingItem = ref(null);
+
+const isSubmitting = ref(false);
+const isCompressing = ref(false);
+const isCompressingPayment = ref(false);
+
+const customerForm = ref({
+    customer_name: "",
+    customer_phone: "",
+    notes: "",
+});
+
+const splitPayments = ref([]);
+const proofImage = ref(null);
+const proofImagePreview = ref(null);
+const paymentProofImage = ref(null);
+const paymentProofImagePreview = ref(null);
 
 onMounted(async () => {
     fetchActiveDps();
@@ -89,47 +106,326 @@ function getDpItemInfo(dp) {
     return { brand, type, gb, dpDate };
 }
 
-// DP amount already paid
 const dpAmount = computed(() => {
     if (!selectedDp.value) return 0;
     return Number(selectedDp.value.dp_amount || 0);
 });
 
-function handleProceedToItemSelection() {
+function handleProceedToForm() {
     if (!selectedDp.value) return;
-    // Clear cart before item selection
-    cartStore.clearCart();
+    
+    // Auto-fill customer data
+    customerForm.value.customer_name = selectedDp.value.customer_name || "";
+    customerForm.value.customer_phone = selectedDp.value.customer_phone || "";
+    customerForm.value.notes = "Pelunasan DP Nota: " + selectedDp.value.receipt_id;
+    
+    addSplitPayment();
     currentStep.value = 2;
 }
 
-function handleItemsNext() {
-    // User finished selecting items, proceed to payment
-    currentStep.value = 3;
-}
+// -- FORM PELUNASAN LOGIC --
 
-function handleItemsPrev() {
-    // Go back to DP selection
-    currentStep.value = 1;
-}
+const filteredInventoryProducts = computed(() => {
+    const q = stockSearchQuery.value.toLowerCase().trim();
+    const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold');
+    if (!q) return allProducts;
 
-function handleTransactionComplete(transactionData) {
-    // Inject parent_dp_id and DP info before emitting
-    const enrichedData = {
-        ...transactionData,
-        parent_dp_id: selectedDp.value.id,
-        dp_deduction: dpAmount.value,
-        original_dp_receipt: selectedDp.value.receipt_id
+    const cleanQ = q.replace(/\./g, '');
+    const isNumeric = /^\d+$/.test(cleanQ);
+
+    return allProducts.filter(p => {
+        const name = (p.product?.name || p.name || '').toLowerCase();
+        const brand = (p.product?.brand || p.brand || '').toLowerCase();
+        const imei = (p.imei || '').toLowerCase();
+
+        const matchesText = name.includes(q) || brand.includes(q) || imei.includes(q);
+        if (isNumeric && cleanQ.length >= 4) {
+            const cost = p.cost_price?.toString() || '';
+            const selling = p.selling_price?.toString() || '';
+            return matchesText || cost.startsWith(cleanQ) || selling.startsWith(cleanQ);
+        }
+        return matchesText;
+    });
+});
+
+function selectStockItem(item) {
+    let price = 0;
+    const selling = parseFloat(item.selling_price || item.price || 0);
+    const cost = parseFloat(item.cost_price || 0);
+    price = selling > 0 ? selling : (cost > 0 ? cost : 0);
+
+    outgoingItem.value = {
+        product_detail_id: item.id,
+        item: item,
+        price: price,
+        quantity: 1,
+        max_quantity: item.stock || item.quantity || 1
     };
+
+    stockSearchQuery.value = "";
+    showStockDropdown.value = false;
     
-    emit('transaction-complete', enrichedData);
+    recalculateSplitPayments();
 }
 
+function removeOutgoingItem() {
+    outgoingItem.value = null;
+    recalculateSplitPayments();
+}
+
+function closeStockDropdown() {
+    setTimeout(() => {
+        showStockDropdown.value = false;
+    }, 200);
+}
+
+// Financials
+const totalOutgoingPriceComputed = computed(() => {
+    if (!outgoingItem.value) return 0;
+    return (outgoingItem.value.price || 0) * (outgoingItem.value.quantity || 1);
+});
+
+const sisaBayar = computed(() => {
+    const totalOut = totalOutgoingPriceComputed.value;
+    const diff = totalOut - dpAmount.value;
+    return Math.max(0, diff); // If DP is more than price, user doesn't pay more. (Should we handle downgrade?)
+});
+
+const isCashOnly = computed(() => {
+    return splitPayments.value.every(p => {
+        const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
+        if (method) {
+            const name = method.name.toLowerCase();
+            return name.includes('cash') || name.includes('tunai');
+        }
+        return false;
+    });
+});
+
+function addSplitPayment() {
+    if (splitPayments.value.length === 0) {
+        splitPayments.value.push({
+            method_id: props.availablePaymentMethods[0]?.id || null,
+            amount: sisaBayar.value
+        });
+    } else {
+        splitPayments.value.push({
+            method_id: props.availablePaymentMethods[0]?.id || null,
+            amount: 0
+        });
+    }
+}
+
+function removeSplitPayment(index) {
+    if (splitPayments.value.length > 1) {
+        splitPayments.value.splice(index, 1);
+    }
+}
+
+function recalculateSplitPayments() {
+    if (splitPayments.value.length === 1) {
+        splitPayments.value[0].amount = sisaBayar.value;
+    }
+}
+
+watch(sisaBayar, () => {
+    recalculateSplitPayments();
+});
+
+// Photos
+async function handlePhotoChange(type, event) {
+    const file = event.target.files[0];
+    if (file) {
+        try {
+            if (type === 'proofImage') isCompressing.value = true;
+            if (type === 'paymentProofImage') isCompressingPayment.value = true;
+            
+            const compressedFile = await compressImage(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.8 });
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (type === 'proofImage') {
+                    proofImage.value = compressedFile;
+                    proofImagePreview.value = e.target.result;
+                } else {
+                    paymentProofImage.value = compressedFile;
+                    paymentProofImagePreview.value = e.target.result;
+                }
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error("Compression failed:", error);
+            alert("Gagal mengompres gambar. Silakan coba lagi.");
+        } finally {
+            if (type === 'proofImage') isCompressing.value = false;
+            if (type === 'paymentProofImage') isCompressingPayment.value = false;
+        }
+    }
+}
+
+async function handleSubmit(pin = null) {
+    if (!outgoingItem.value) {
+        alert("Silakan pilih unit/item barang keluar.");
+        return;
+    }
+    
+    if (!customerForm.value.customer_name || !customerForm.value.customer_phone) {
+        alert("Nama dan No WhatsApp customer wajib diisi.");
+        return;
+    }
+
+    if (!proofImage.value) {
+        alert("Foto unit wajib diupload.");
+        return;
+    }
+
+    if (!isCashOnly.value && sisaBayar.value > 0 && !paymentProofImage.value) {
+        alert("Foto bukti pembayaran transfer wajib diupload untuk metode non-tunai.");
+        return;
+    }
+
+    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+    if (totalSplit !== sisaBayar.value) {
+        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan sisa bayar (${formatCurrency(sisaBayar.value)}).`);
+        return;
+    }
+
+    if (!pin && props.selectedAccountObject) {
+        emit('verify-pin', (verifiedPin) => handleSubmit(verifiedPin));
+        return;
+    }
+
+    isSubmitting.value = true;
+    try {
+        const formData = new FormData();
+        formData.append('category', 'pelunasan_dp');
+        formData.append('sales_account', props.salesAccount);
+        
+        formData.append('parent_dp_id', selectedDp.value.id);
+        formData.append('dp_deduction', dpAmount.value);
+        
+        formData.append('paid_amount', totalSplit);
+        formData.append('selling_price', totalOutgoingPriceComputed.value);
+
+        formData.append('customer_name', customerForm.value.customer_name);
+        formData.append('customer_wa', customerForm.value.customer_phone);
+        formData.append('notes', customerForm.value.notes);
+
+        if (props.selectedAccountObject?.id) {
+            formData.append('inventory_user_id', props.selectedAccountObject.id);
+        }
+        if (pin) formData.append('transaction_pin', pin);
+
+        // Outgoing items
+        const item = outgoingItem.value;
+        if (item.item?.imei) {
+            formData.append('product_detail_ids[]', item.product_detail_id);
+            formData.append(`hp_items_meta[${item.product_detail_id}][selling_price]`, Number(item.price || 0));
+            formData.append(`hp_items_meta[${item.product_detail_id}][item_discount]`, 0);
+            formData.append(`hp_items_meta[${item.product_detail_id}][distributed_discount]`, 0);
+        } else {
+            formData.append(`non_hp_items[0][product_id]`, item.item?.product_id || item.product_detail_id);
+            formData.append(`non_hp_items[0][quantity]`, item.quantity);
+            formData.append(`non_hp_items[0][selling_price]`, Number(item.price || 0));
+            formData.append(`non_hp_items[0][item_discount]`, 0);
+            formData.append(`non_hp_items[0][distributed_discount]`, 0);
+        }
+
+        formData.append('global_discount_value', 0);
+        formData.append('global_discount_type', 'fixed');
+        formData.append('total_discount', 0);
+
+        formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
+            payment_method_id: p.method_id,
+            amount: p.amount
+        }))));
+
+        if (proofImage.value) formData.append('proof_image', proofImage.value);
+        if (paymentProofImage.value) formData.append('payment_proof_image', paymentProofImage.value);
+
+        const response = await api.post('/stock-outs', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        const data = response.data.data || response.data;
+        
+        let cashAmount = 0;
+        let transferAmount = 0;
+        splitPayments.value.forEach(p => {
+            const method = props.availablePaymentMethods.find(m => m.id === p.method_id);
+            if (method) {
+                const name = method.name.toLowerCase();
+                if (name.includes('cash') || name.includes('tunai')) cashAmount += Number(p.amount || 0);
+                else transferAmount += Number(p.amount || 0);
+            }
+        });
+
+        const transactionData = {
+            id: data.id,
+            order_no: data.receipt_id || "TRX-" + Date.now(),
+            items: [
+                {
+                    name: item.item?.product?.name || item.item?.name,
+                    imei: item.item?.imei || '-',
+                    price: item.price,
+                    condition: item.item?.condition || 'second',
+                    storage: item.item?.storage || '-',
+                    qty: item.quantity,
+                    is_hp: !!item.item?.imei
+                }
+            ],
+            original_price: totalOutgoingPriceComputed.value,
+            total_discount: 0,
+            grand_total: totalOutgoingPriceComputed.value,
+            total: totalOutgoingPriceComputed.value,
+            paid: totalSplit,
+            change: totalSplit - sisaBayar.value,
+            cash: cashAmount,
+            transfer: transferAmount,
+            split_payments_data: splitPayments.value.map(p => ({
+                method_name: props.availablePaymentMethods.find(m => m.id === p.method_id)?.name || 'Unknown',
+                amount: p.amount
+            })),
+            payment_method_name: props.availablePaymentMethods.find(m => m.id === splitPayments.value[0]?.method_id)?.name || '-',
+            category: 'pelunasan_dp',
+            customer_name: customerForm.value.customer_name,
+            customer_phone: customerForm.value.customer_phone,
+            notes: customerForm.value.notes,
+            branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
+            branch_timezone: props.selectedAccountObject?.branch?.timezone || authStore.user?.branch?.timezone || 'WIB',
+            created_at: new Date().toISOString(),
+            date: new Date().toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: new Date().toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
+            sales_name: props.salesAccount,
+            inventory_account_name: props.salesAccount,
+            proof_images: [
+                proofImagePreview.value,
+                paymentProofImagePreview.value
+            ].filter(Boolean),
+            parent_dp_id: selectedDp.value.id,
+            dp_deduction: dpAmount.value,
+            original_dp_receipt: selectedDp.value.receipt_id
+        };
+
+        emit('transaction-complete', transactionData);
+
+    } catch (error) {
+        console.error("Pelunasan failed", error);
+        let msg = "Gagal memproses pelunasan DP";
+        if (error.response) {
+            if (error.response.status === 413) msg = "File terlalu besar.";
+            else if (error.response.data?.message) msg = error.response.data.message;
+        }
+        alert(msg);
+    } finally {
+        isSubmitting.value = false;
+    }
+}
 </script>
 
 <template>
     <!-- STEP 1: SELECT DP NOTA -->
     <div v-if="currentStep === 1" class="w-full flex flex-col gap-4 sm:gap-8 items-start relative min-h-0">
-        <!-- Header -->
         <div class="w-full flex items-center justify-between bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm mb-2">
             <div class="flex items-center gap-3">
                 <button @click="emit('back')" class="p-2 -ml-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full text-primary-600 transition-colors">
@@ -137,7 +433,7 @@ function handleTransactionComplete(transactionData) {
                 </button>
                 <div class="flex flex-col">
                     <h3 class="text-lg sm:text-xl font-black text-text-primary uppercase tracking-tight leading-none">Pelunasan DP</h3>
-                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Step 1 — Pilih Nota DP Customer</p>
+                    <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Pilih Nota DP Customer</p>
                 </div>
             </div>
         </div>
@@ -171,7 +467,6 @@ function handleTransactionComplete(transactionData) {
                         </span>
                     </div>
 
-                    <!-- Additional Details -->
                     <div class="flex flex-col mt-2 pt-2 border-t border-surface-200 dark:border-surface-700 text-xs text-text-secondary space-y-1">
                         <div class="flex justify-between"><span class="font-bold">Tanggal DP:</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).dpDate }}</span></div>
                         <div class="flex justify-between"><span class="font-bold">Brand:</span> <span class="font-bold text-text-primary">{{ getDpItemInfo(dp).brand }}</span></div>
@@ -197,58 +492,284 @@ function handleTransactionComplete(transactionData) {
             </div>
 
             <div class="mt-4 flex justify-end">
-                <button @click="handleProceedToItemSelection" :disabled="!selectedDp"
+                <button @click="handleProceedToForm" :disabled="!selectedDp"
                     class="px-8 py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center gap-2">
-                    Pilih Unit / Item <ArrowRight :size="20" />
+                    Lanjut Pelunasan <ArrowRight :size="20" />
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- STEP 2: SELECT ITEMS (Like Penjualan Store) -->
-    <div v-else-if="currentStep === 2" class="w-full flex flex-col gap-4 min-h-0">
-        <!-- DP Info Banner -->
-        <div class="w-full bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="flex flex-col gap-1">
-                <p class="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">Pelunasan Nota DP: {{ selectedDp?.receipt_id }}</p>
-                <p class="text-sm font-bold text-amber-600 dark:text-amber-500">
-                    {{ selectedDp?.customer_name }} — DP Dibayar: <span class="font-black">{{ formatCurrency(dpAmount) }}</span>
-                </p>
+    <!-- STEP 2: FORM PELUNASAN (Like Tukar Tambah) -->
+    <div v-else-if="currentStep === 2" class="flex-1 overflow-y-auto custom-scrollbar bg-white/70 dark:bg-surface-800/70 backdrop-blur-2xl rounded-[2rem] border border-white/50 dark:border-surface-600/30 p-5 pb-24 sm:p-10 sm:pb-10 shadow-2xl relative">
+        <div class="max-w-4xl mx-auto">
+            <div class="flex items-center justify-between mb-8 gap-4">
+                <div class="flex items-center gap-3">
+                    <button @click="currentStep = 1" class="p-2 -ml-2 hover:bg-surface-100 dark:hover:bg-surface-700 rounded-full text-primary-600 transition-colors">
+                        <ArrowLeft :size="28" stroke-width="3" />
+                    </button>
+                    <div class="flex flex-col">
+                        <h3 class="text-lg sm:text-2xl font-black text-text-primary uppercase tracking-tight leading-none">Form Pelunasan DP</h3>
+                        <p class="text-[10px] font-bold text-text-secondary uppercase tracking-widest mt-1">Selesaikan Transaksi Customer</p>
+                    </div>
+                </div>
+                <div class="hidden xs:block px-4 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    PELUNASAN
+                </div>
             </div>
-            <div class="flex flex-col items-end">
-                <p class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Sisa Lunas</p>
-                <p class="text-xl font-black text-red-500">{{ formatCurrency((selectedDp?.selling_price || 0) - dpAmount) }}</p>
+
+            <!-- DATA CUSTOMER -->
+            <div class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl mb-8 border border-surface-100 dark:border-surface-700">
+                <h4 class="text-sm font-black text-primary-600 uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <User :size="18" /> DATA CUSTOMER
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NAMA CUSTOMER <span class="text-red-500">*</span></label>
+                        <input v-model="customerForm.customer_name" type="text" placeholder="Nama lengkap..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">NO WHATSAPP <span class="text-red-500">*</span></label>
+                        <input v-model="customerForm.customer_phone" type="text" placeholder="08xxx..." class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- BARANG MASUK (DP DATA) -->
+                <div class="space-y-6">
+                    <h4 class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
+                        [1] BARANG MASUK (DATA NOTA DP)
+                    </h4>
+                    
+                    <div class="bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-5 flex flex-col gap-3">
+                        <div class="flex justify-between items-center border-b border-emerald-200 dark:border-emerald-800/50 pb-2 mb-2">
+                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-500 uppercase">NOTA: {{ selectedDp?.receipt_id }}</span>
+                            <span class="text-[10px] font-bold text-emerald-600">{{ getDpItemInfo(selectedDp).dpDate }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between text-xs">
+                            <span class="text-emerald-700 dark:text-emerald-400 font-bold">Model/Tipe</span>
+                            <span class="font-black text-emerald-900 dark:text-emerald-300 text-right">{{ getDpItemInfo(selectedDp).brand }} - {{ getDpItemInfo(selectedDp).type }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-emerald-700 dark:text-emerald-400 font-bold">Kapasitas</span>
+                            <span class="font-black text-emerald-900 dark:text-emerald-300 text-right">{{ getDpItemInfo(selectedDp).gb }}</span>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800/50">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-emerald-700 dark:text-emerald-400 font-bold">Estimasi Harga</span>
+                                <span class="font-black text-emerald-900 dark:text-emerald-300">{{ formatCurrency(selectedDp?.selling_price) }}</span>
+                            </div>
+                            <div class="flex justify-between text-base">
+                                <span class="text-emerald-800 dark:text-emerald-400 font-black uppercase tracking-widest">DP DIBAYAR</span>
+                                <span class="font-black text-emerald-600">- {{ formatCurrency(dpAmount) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BARANG KELUAR (STOK TOKO) -->
+                <div class="space-y-6">
+                    <h4 class="text-sm font-black text-amber-600 uppercase tracking-widest border-b border-amber-100 dark:border-amber-900/30 pb-2">
+                        [2] BARANG KELUAR (PILIH STOK TOKO)
+                    </h4>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CARI & PILIH UNIT KELUAR <span class="text-red-500">*</span></label>
+                        <div class="relative">
+                            <input v-model="stockSearchQuery" type="text"
+                                @focus="showStockDropdown = true"
+                                @blur="closeStockDropdown"
+                                placeholder="Ketik Nama, Brand, IMEI, atau Harga..."
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
+                            
+                            <div v-if="showStockDropdown" class="absolute z-[100] mt-1 w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
+                                <div v-if="filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">
+                                    Tidak ada stok ditemukan...
+                                </div>
+                                <div v-for="item in filteredInventoryProducts" :key="item.id"
+                                    @mousedown.prevent="selectStockItem(item)"
+                                    class="p-4 border-b border-surface-100 dark:border-surface-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 cursor-pointer transition-colors">
+                                    <div class="flex justify-between items-start mb-1">
+                                        <span class="font-black text-sm text-text-primary">[{{ item.product?.brand || '-' }}] {{ item.product?.name || item.name }}</span>
+                                        <span class="text-[10px] font-black px-2 py-0.5 bg-surface-200 dark:bg-surface-700 rounded text-text-secondary uppercase">{{ item.condition || 'SCD' }}</span>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] text-text-secondary font-bold">
+                                        <span>{{ item.imei ? 'IMEI: ' + item.imei : 'Stok: ' + (item.stock || item.quantity) }}</span>
+                                        <span class="text-primary-600">Jual: {{ formatCurrency(item.selling_price || item.price) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="outgoingItem" class="mt-4 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 relative">
+                            <button @click="removeOutgoingItem" type="button" class="absolute top-2 right-2 text-primary-400 hover:text-red-500 transition-colors">
+                                <X :size="20" />
+                            </button>
+                            <p class="text-xs font-black text-primary-700 dark:text-primary-400 mb-4 pr-6">
+                                {{ outgoingItem.item?.product?.name || outgoingItem.item?.name }} ({{ outgoingItem.item?.imei || 'Non-IMEI' }})
+                            </p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">HARGA JUAL</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-primary-600/50">Rp</span>
+                                        <input v-money:price="outgoingItem" type="text"
+                                            class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl pl-8 pr-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-sm text-primary-600" />
+                                    </div>
+                                </div>
+                                <div v-if="!outgoingItem.item?.imei">
+                                    <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">JUMLAH KELUAR</label>
+                                    <div class="flex items-center gap-2">
+                                        <input v-model.number="outgoingItem.quantity" type="number" min="1" :max="outgoingItem.max_quantity"
+                                            class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl px-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm font-bold" />
+                                        <span class="text-[10px] font-bold text-primary-600/60 uppercase">Maks: {{ outgoingItem.max_quantity }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FOTO UNIT -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 text-center">FOTO UNIT KELUAR <span class="text-red-500">*</span></label>
+                            <div @click="$refs.unitProofInput.click()" class="relative border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-800 transition-all overflow-hidden group">
+                                <template v-if="isCompressing">
+                                    <Loader2 class="w-8 h-8 text-primary-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-text-secondary uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="proofImagePreview">
+                                    <img :src="proofImagePreview" class="w-full h-full object-cover" />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <Camera class="text-white w-6 h-6" />
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <Plus :size="24" class="text-text-secondary mb-1" />
+                                    <span class="text-[9px] font-black text-text-secondary uppercase">Upload Unit</span>
+                                </template>
+                            </div>
+                            <input type="file" ref="unitProofInput" @change="e => handlePhotoChange('proofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                        </div>
+                        
+                        <div v-if="!isCashOnly && sisaBayar > 0">
+                            <label class="block text-xs font-bold text-amber-600 uppercase tracking-widest mb-2 text-center">BUKTI TRANSFER <span class="text-red-500">*</span></label>
+                            <div @click="$refs.paymentProofInput.click()" class="relative border-2 border-dashed border-amber-300 dark:border-amber-600 rounded-xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all overflow-hidden group">
+                                <template v-if="isCompressingPayment">
+                                    <Loader2 class="w-8 h-8 text-amber-600 animate-spin" />
+                                    <span class="text-[10px] font-black text-amber-600 uppercase mt-2">Memproses...</span>
+                                </template>
+                                <template v-else-if="paymentProofImagePreview">
+                                    <img :src="paymentProofImagePreview" class="w-full h-full object-cover" />
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                        <Camera class="text-white w-6 h-6" />
+                                    </div>
+                                </template>
+                                <template v-else>
+                                    <Plus :size="24" class="text-amber-500 mb-1" />
+                                    <span class="text-[9px] font-black text-amber-600 uppercase">Upload Bukti TF</span>
+                                </template>
+                            </div>
+                            <input type="file" ref="paymentProofInput" @change="e => handlePhotoChange('paymentProofImage', e)" accept="image/*" class="hidden" capture="environment" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PEMBAYARAN & RINGKASAN -->
+            <div class="mt-8 space-y-6">
+                <h4 class="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-emerald-600 uppercase tracking-[0.15em] border-b border-surface-200 dark:border-surface-700 pb-3 mb-6">
+                    PEMBAYARAN & RINGKASAN
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">CATATAN TAMBAHAN</label>
+                            <textarea v-model="customerForm.notes" rows="3"
+                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
+                                placeholder="Catatan transaksi..."></textarea>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest">METODE PEMBAYARAN <span class="text-red-500">*</span></label>
+                                <button @click="addSplitPayment" type="button" class="text-xs font-bold text-primary-500 hover:text-primary-600 flex items-center gap-1 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg transition-all active:scale-95">
+                                    <Plus :size="12" stroke-width="3" /> Split Bayar
+                                </button>
+                            </div>
+                            <div class="space-y-3">
+                                <div v-for="(payment, index) in splitPayments" :key="index" class="p-4 bg-white dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative flex flex-col gap-2">
+                                    <button v-if="splitPayments.length > 1" @click="removeSplitPayment(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                                        <X :size="16" />
+                                    </button>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Metode</label>
+                                            <select v-model="payment.method_id" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-surface-50 dark:bg-surface-900 text-xs font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
+                                                <option v-for="method in availablePaymentMethods" :key="method.id" :value="method.id">{{ method.name }}</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">Nominal</label>
+                                            <div class="relative">
+                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-[11px] font-black">Rp</span>
+                                                <input v-money:amount="payment" type="text" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-lg px-3 py-2 bg-surface-50 dark:bg-surface-900 text-xs font-black text-text-primary focus:outline-none focus:border-primary-500 transition-all pl-8" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial summary card -->
+                    <div class="relative overflow-hidden p-8 sm:p-10 bg-gradient-to-br from-emerald-500 via-teal-500 to-primary-600 rounded-[2.5rem] shadow-2xl shadow-emerald-500/30 text-center transform transition-all hover:-translate-y-1 hover:shadow-emerald-500/40">
+                        <div class="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+                        <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/20 blur-3xl rounded-full pointer-events-none"></div>
+                        <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-black/10 blur-3xl rounded-full pointer-events-none"></div>
+                        
+                        <div class="relative z-10">
+                            <div class="grid grid-cols-2 gap-4 mb-8">
+                                <div class="text-left bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
+                                    <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">HARGA UNIT KELUAR</span>
+                                    <p class="text-lg font-bold text-white truncate">{{ formatCurrency(totalOutgoingPriceComputed) }}</p>
+                                </div>
+                                <div class="text-right bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
+                                    <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">DP DIBAYAR</span>
+                                    <p class="text-lg font-bold text-white truncate">- {{ formatCurrency(dpAmount) }}</p>
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t border-white/20">
+                                <span class="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] block mb-2">SISA PELUNASAN</span>
+                                <p class="text-4xl sm:text-5xl font-black text-white px-2 py-1 leading-none">{{ formatCurrency(sisaBayar) }}</p>
+                            </div>
+                            
+                            <div v-if="sisaBayar === 0" class="mt-6 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full inline-flex items-center gap-2 text-xs text-white font-black uppercase tracking-widest border border-white/30">
+                                <CheckCircle :size="16" /> LUNAS
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="mt-12 pt-8 border-t border-surface-100 dark:border-surface-700 flex flex-col sm:flex-row gap-4">
+                <button @click="currentStep = 1"
+                    class="flex-1 py-4 sm:py-5 bg-surface-100 dark:bg-surface-800 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 dark:hover:bg-surface-700 transition-all active:scale-[0.98] border border-surface-200 dark:border-surface-700">
+                    Kembali Ganti DP
+                </button>
+                <button @click="handleSubmit()" :disabled="isSubmitting"
+                    class="flex-[2] py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-primary-600 hover:from-emerald-400 hover:to-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-[0.1em] shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50 hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3">
+                    <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                    <template v-else>
+                        <Save :size="24" /> Selesaikan Pelunasan
+                    </template>
+                </button>
             </div>
         </div>
-
-        <!-- Reuse PenjualanStep3 for item selection -->
-        <PenjualanStep3 
-            transactionCategory="pelunasan_dp"
-            :availablePaymentMethods="availablePaymentMethods" 
-            @prev="handleItemsPrev" 
-            @next="handleItemsNext" />
-    </div>
-
-    <!-- STEP 3: PAYMENT -->
-    <div v-else-if="currentStep === 3" class="w-full flex-1 flex flex-col min-h-0 relative">
-        <!-- DP Deduction Info -->
-        <div class="w-full bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-            <div class="flex flex-col gap-1">
-                <p class="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">Pelunasan Nota: {{ selectedDp?.receipt_id }}</p>
-                <p class="text-sm font-bold text-emerald-600">{{ selectedDp?.customer_name }}</p>
-            </div>
-            <div class="flex flex-col items-end">
-                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">DP Sudah Dibayar</p>
-                <p class="text-xl font-black text-emerald-600">- {{ formatCurrency(dpAmount) }}</p>
-            </div>
-        </div>
-
-        <PaymentStep :availablePaymentMethods="availablePaymentMethods"
-            transactionCategory="pelunasan_dp" :salesAccount="salesAccount"
-            :selectedAccountObject="selectedAccountObject" 
-            :dpDeduction="dpAmount"
-            :parentDpId="selectedDp?.id"
-            @prev="currentStep = 2"
-            @transaction-complete="handleTransactionComplete" @verify-pin="$emit('verify-pin', $event)" />
     </div>
 </template>
