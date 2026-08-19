@@ -89,13 +89,13 @@ function selectDp(dp) {
     if (dp.items && dp.items.length > 0) {
         const firstItem = dp.items[0];
         if (firstItem.product) {
-            incomingItem.value.brand_id = firstItem.product.brand_id || null;
-            incomingItem.value.product_type_id = firstItem.product.id || null;
+            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
+            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
         } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id === firstItem.product_id);
+            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
             if (p) {
-                incomingItem.value.brand_id = p.brand_id || null;
-                incomingItem.value.product_type_id = p.id || null;
+                incomingItem.value.brand_id = Number(p.brand_id) || null;
+                incomingItem.value.product_type_id = Number(p.id) || null;
             }
         }
         incomingItem.value.storage = firstItem.storage || "";
@@ -103,26 +103,26 @@ function selectDp(dp) {
     } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
         const firstItem = dp.nonHpDetails[0];
         if (firstItem.product) {
-            incomingItem.value.brand_id = firstItem.product.brand_id || null;
-            incomingItem.value.product_type_id = firstItem.product.id || null;
+            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
+            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
         } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id === firstItem.product_id);
+            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
             if (p) {
-                incomingItem.value.brand_id = p.brand_id || null;
-                incomingItem.value.product_type_id = p.id || null;
+                incomingItem.value.brand_id = Number(p.brand_id) || null;
+                incomingItem.value.product_type_id = Number(p.id) || null;
             }
         }
         incomingItem.value.cost_price = firstItem.selling_price || 0;
     } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
         const firstItem = dp.non_hp_details[0];
         if (firstItem.product) {
-            incomingItem.value.brand_id = firstItem.product.brand_id || null;
-            incomingItem.value.product_type_id = firstItem.product.id || null;
+            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
+            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
         } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id === firstItem.product_id);
+            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
             if (p) {
-                incomingItem.value.brand_id = p.brand_id || null;
-                incomingItem.value.product_type_id = p.id || null;
+                incomingItem.value.brand_id = Number(p.brand_id) || null;
+                incomingItem.value.product_type_id = Number(p.id) || null;
             }
         }
         incomingItem.value.cost_price = firstItem.selling_price || 0;
