@@ -27,8 +27,29 @@ const currentStep = ref(1); // 1 = Select DP, 2 = Form Pelunasan
 const fetchActiveDps = async () => {
     isLoadingDps.value = true;
     try {
-        const response = await api.get('/stock-outs/active-dps');
-        activeDps.value = response.data.data || response.data || [];
+        const today = new Date();
+        const endDate = today.toISOString().split('T')[0];
+        
+        const response = await api.get('/audit/sales', {
+            params: {
+                category: 'dp',
+                start_date: '2023-01-01',
+                end_date: endDate
+            }
+        });
+        
+        let fetchedDps = [];
+        if (response.data && response.data.data) {
+            fetchedDps = response.data.data;
+        } else if (response.data && Array.isArray(response.data)) {
+            fetchedDps = response.data;
+        } else {
+            fetchedDps = response.data || [];
+        }
+        
+        console.log("ALL SALES FROM BACKEND:", fetchedDps);
+        // Temporarily do NOT filter, to see if anything shows up and what the properties are!
+        activeDps.value = fetchedDps; // .filter(dp => dp.category === 'dp' || dp.transaction_category === 'dp');
     } catch (error) {
         console.error("Gagal mengambil data DP aktif:", error);
     } finally {
