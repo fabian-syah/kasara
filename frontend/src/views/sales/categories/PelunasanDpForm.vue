@@ -34,100 +34,146 @@ const isCompressingPayment = ref(false);
 
 const incomingItem = ref({ incoming_source: 'luar_pstore', distributor_id: null, brand_id: null, product_type_id: null, storage: '', condition: 'second', imei: '', quantity: 1, cost_price: 0 });
 
-function getFilteredBrandsForItem(item) { const defaultBrands = props.brands || []; if (!item.distributor_id) return defaultBrands; const dist = (props.distributors || []).find(d => d.id === item.distributor_id); if (!dist || !dist.allowed_brands) return defaultBrands; try { const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands; if (!Array.isArray(allowedIds)) return defaultBrands; const numericIds = allowedIds.map(id => Number(id)); return defaultBrands.filter(b => numericIds.includes(Number(b.id))); } catch { return defaultBrands; } }
-
-function getFilteredTypesForItem(item) { if (!item.brand_id) return []; return (props.productTypes || []).filter(t => t.brand_id === item.brand_id); }
-
-function getCapacitiesForItem(item) { if (!item.product_type_id) return []; const set = new Set(); const type = (props.productTypes || []).find(t => t.id === item.product_type_id); if (type?.storage) { type.storage.split(/[,]/).forEach(s => { const clean = s.trim(); if (clean) set.add(clean); }); } const prices = (props.productPrices || []).filter(p => p.product_type_id === item.product_type_id); prices.forEach(p => { if (p.storage) set.add(p.storage); }); return Array.from(set).sort(); }
-
-const customerForm = ref({
-    customer_name: "",
-    customer_phone: "",
-    notes: "",
-});
-
-const splitPayments = ref([]);
-const proofImage = ref(null);
-const proofImagePreview = ref(null);
-const customerProofImage = ref(null);
-const customerProofImagePreview = ref(null);
-const paymentProofImage = ref(null);
-const paymentProofImagePreview = ref(null);
-
-onMounted(async () => {
-    fetchActiveDps();
-});
-
-async function fetchActiveDps() {
-    try {
-        isLoadingDps.value = true;
-        const response = await api.get('/stock-outs/active-dps');
-        activeDps.value = response.data.data || [];
-    } catch (error) {
-        console.error("Gagal mengambil data DP", error);
-    } finally {
-        isLoadingDps.value = false;
-    }
+function getFilteredBrandsForItem(item) { 
+    const defaultBrands = props.brands || []; 
+    if (!item.distributor_id) return defaultBrands; 
+    const dist = (props.distributors || []).find(d => d.id == item.distributor_id); 
+    if (!dist || !dist.allowed_brands) return defaultBrands; 
+    try { 
+        const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands; 
+        if (!Array.isArray(allowedIds)) return defaultBrands; 
+        const numericIds = allowedIds.map(id => Number(id)); 
+        return defaultBrands.filter(b => numericIds.includes(Number(b.id))); 
+    } catch { 
+        return defaultBrands; 
+    } 
 }
 
-const filteredDps = computed(() => {
-    let dps = activeDps.value;
-    if (searchQuery.value) {
-        const q = searchQuery.value.toLowerCase();
-        dps = dps.filter(dp => 
-            (dp.receipt_id && dp.receipt_id.toLowerCase().includes(q)) ||
-            (dp.customer_name && dp.customer_name.toLowerCase().includes(q)) ||
-            (dp.customer_phone && dp.customer_phone.toLowerCase().includes(q))
-        );
+function getFilteredTypesForItem(item) { 
+    if (!item.brand_id) return []; 
+    return (props.productTypes || []).filter(t => t.brand_id == item.brand_id); 
+}
+
+function getCapacitiesForItem(item) { 
+    if (!item.product_type_id) return []; 
+    const set = new Set(); 
+    const type = (props.productTypes || []).find(t => t.id == item.product_type_id); 
+    if (type?.storage) { 
+        type.storage.split(/[,]/).forEach(s => { 
+            const clean = s.trim(); 
+            if (clean) set.add(clean); 
+        }); 
+    } 
+    const prices = (props.productPrices || []).filter(p => p.product_type_id == item.product_type_id); 
+    prices.forEach(p => { 
+        if (p.storage) set.add(p.storage); 
+    }); 
+    return Array.from(set).sort(); 
+}
+
+function autoFillIncomingItemFromDp(dp) {
+    if (!dp) return;
+    
+    let firstItem = null;
+    if (dp.items && dp.items.length > 0) {
+        firstItem = dp.items[0];
+    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
+        firstItem = dp.nonHpDetails[0];
+    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
+        firstItem = dp.non_hp_details[0];
     }
-    return dps;
-});
+    
+    if (!firstItem) return;
+
+    // Cost price: remaining balance or DP amount or item selling price
+    const remainingBalance = (Number(dp.total_price || dp.grand_total || 0) - Number(dp.dp_amount || 0));
+    incomingItem.value.cost_price = remainingBalance > 0 ? remainingBalance : (firstItem.selling_price || dp.dp_amount || 0);
+
+    // Storage
+    const storageStr = (firstItem.storage || firstItem.gb || "").toString().trim();
+    if (storageStr) {
+        incomingItem.value.storage = storageStr;
+    }
+
+    // Determine Brand ID & Product Type ID
+    let brandId = null;
+    let typeId = null;
+
+    // Direct object relation
+    if (firstItem.product) {
+        brandId = firstItem.product.brand_id || firstItem.product.brand?.id || null;
+        typeId = firstItem.product.id || null;
+    }
+    
+    // Direct product_id match
+    if (!typeId && firstItem.product_id && props.productTypes) {
+        const found = props.productTypes.find(pt => pt.id == firstItem.product_id);
+        if (found) {
+            typeId = found.id;
+            brandId = found.brand_id;
+        }
+    }
+
+    // Name-based matching for Brand
+    const rawBrandName = (firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || firstItem.brand_name || "").toString().trim().toLowerCase();
+    
+    if (!brandId && rawBrandName && props.brands) {
+        const cleanRawBrand = rawBrandName.replace(/[™®]/g, '').trim();
+        const foundB = props.brands.find(b => {
+            const bName = b.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
+            return bName === cleanRawBrand || cleanRawBrand.includes(bName) || bName.includes(cleanRawBrand);
+        });
+        if (foundB) {
+            brandId = foundB.id;
+        }
+    }
+
+    // Name-based matching for Product Type
+    const rawTypeName = (firstItem.product?.name || firstItem.name || firstItem.type || firstItem.product_name || "").toString().trim().toLowerCase();
+    
+    if (!typeId && rawTypeName && props.productTypes) {
+        const cleanRawType = rawTypeName.replace(/[™®]/g, '').trim();
+        
+        const candidateTypes = brandId 
+            ? props.productTypes.filter(pt => pt.brand_id == brandId) 
+            : props.productTypes;
+            
+        let foundT = candidateTypes.find(pt => {
+            const ptName = pt.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
+            return ptName === cleanRawType;
+        });
+
+        if (!foundT) {
+            foundT = candidateTypes.find(pt => {
+                const ptName = pt.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
+                return ptName.includes(cleanRawType) || cleanRawType.includes(ptName);
+            });
+        }
+
+        if (foundT) {
+            typeId = foundT.id;
+            if (!brandId) brandId = foundT.brand_id;
+        }
+    }
+
+    if (brandId) incomingItem.value.brand_id = Number(brandId);
+    if (typeId) incomingItem.value.product_type_id = Number(typeId);
+}
 
 function selectDp(dp) {
     selectedDp.value = dp;
-    
-    if (dp.items && dp.items.length > 0) {
-        const firstItem = dp.items[0];
-        if (firstItem.product) {
-            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
-            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
-        } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
-            if (p) {
-                incomingItem.value.brand_id = Number(p.brand_id) || null;
-                incomingItem.value.product_type_id = Number(p.id) || null;
-            }
-        }
-        incomingItem.value.storage = firstItem.storage || "";
-        incomingItem.value.cost_price = firstItem.selling_price || 0;
-    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
-        const firstItem = dp.nonHpDetails[0];
-        if (firstItem.product) {
-            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
-            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
-        } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
-            if (p) {
-                incomingItem.value.brand_id = Number(p.brand_id) || null;
-                incomingItem.value.product_type_id = Number(p.id) || null;
-            }
-        }
-        incomingItem.value.cost_price = firstItem.selling_price || 0;
-    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
-        const firstItem = dp.non_hp_details[0];
-        if (firstItem.product) {
-            incomingItem.value.brand_id = Number(firstItem.product.brand_id) || null;
-            incomingItem.value.product_type_id = Number(firstItem.product.id) || null;
-        } else if (firstItem.product_id) {
-            const p = props.productTypes?.find(pt => pt.id == firstItem.product_id);
-            if (p) {
-                incomingItem.value.brand_id = Number(p.brand_id) || null;
-                incomingItem.value.product_type_id = Number(p.id) || null;
-            }
-        }
-        incomingItem.value.cost_price = firstItem.selling_price || 0;
-    }
+    autoFillIncomingItemFromDp(dp);
 }
+
+watch(
+    [() => selectedDp.value, () => props.brands, () => props.productTypes],
+    ([newDp]) => {
+        if (newDp) {
+            autoFillIncomingItemFromDp(newDp);
+        }
+    },
+    { immediate: true, deep: true }
+);
 
 function getDpItemInfo(dp) {
     let brand = "-";
@@ -170,6 +216,8 @@ function handleProceedToForm() {
     customerForm.value.customer_name = selectedDp.value.customer_name || "";
     customerForm.value.customer_phone = selectedDp.value.customer_phone || "";
     customerForm.value.notes = "Pelunasan DP Nota: " + selectedDp.value.receipt_id;
+    
+    autoFillIncomingItemFromDp(selectedDp.value);
     
     addSplitPayment();
     currentStep.value = 2;
