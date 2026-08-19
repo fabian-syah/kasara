@@ -85,6 +85,27 @@ const filteredDps = computed(() => {
 
 function selectDp(dp) {
     selectedDp.value = dp;
+    
+    if (dp.items && dp.items.length > 0) {
+        const firstItem = dp.items[0];
+        if (firstItem.product) {
+            incomingItem.value.brand_id = firstItem.product.brand_id || null;
+            incomingItem.value.product_type_id = firstItem.product.id || null;
+        }
+        incomingItem.value.storage = firstItem.storage || "";
+    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
+        const firstItem = dp.nonHpDetails[0];
+        if (firstItem.product) {
+            incomingItem.value.brand_id = firstItem.product.brand_id || null;
+            incomingItem.value.product_type_id = firstItem.product.id || null;
+        }
+    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
+        const firstItem = dp.non_hp_details[0];
+        if (firstItem.product) {
+            incomingItem.value.brand_id = firstItem.product.brand_id || null;
+            incomingItem.value.product_type_id = firstItem.product.id || null;
+        }
+    }
 }
 
 function getDpItemInfo(dp) {
@@ -584,7 +605,7 @@ async function handleSubmit(pin = null) {
                             <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">
                                 PILIH DISTRIBUTOR <span class="text-red-500">*</span>
                             </label>
-                            <select v-model="incomingItem.distributor_id" @change="incomingItem.brand_id = null; incomingItem.product_type_id = null; incomingItem.storage = '';"
+                            <select v-model="incomingItem.distributor_id"
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
                                 <option :value="null">-- PILIH DISTRIBUTOR --</option>
                                 <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
@@ -594,8 +615,8 @@ async function handleSubmit(pin = null) {
                             <!-- BRAND -->
                             <div>
                                 <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">BRAND <span class="text-red-500">*</span></label>
-                                <select v-model="incomingItem.brand_id" :disabled="!incomingItem.distributor_id" @change="incomingItem.product_type_id = null; incomingItem.storage = '';"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all disabled:opacity-50">
+                                <select v-model="incomingItem.brand_id" @change="incomingItem.product_type_id = null; incomingItem.storage = '';"
+                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
                                     <option :value="null">Pilih Brand</option>
                                     <option v-for="b in getFilteredBrandsForItem(incomingItem)" :key="b.id" :value="b.id">{{ b.name }}</option>
                                 </select>
