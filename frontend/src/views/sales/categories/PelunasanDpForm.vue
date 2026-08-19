@@ -181,15 +181,15 @@ function getDpItemInfo(dp) {
     let type = "-";
     let gb = "-";
     
-    if (dp.items && dp.items.length > 0) {
+    if (dp.items && Array.isArray(dp.items) && dp.items.length > 0) {
         const firstItem = dp.items[0];
         brand = firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || "-";
         type = firstItem.product?.name || firstItem.name || "-";
         gb = firstItem.storage || "-";
-    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
+    } else if (dp.nonHpDetails && Array.isArray(dp.nonHpDetails) && dp.nonHpDetails.length > 0) {
         const firstItem = dp.nonHpDetails[0];
         type = firstItem.product?.name || firstItem.name || "-";
-    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
+    } else if (dp.non_hp_details && Array.isArray(dp.non_hp_details) && dp.non_hp_details.length > 0) {
         const firstItem = dp.non_hp_details[0];
         type = firstItem.product?.name || firstItem.name || "-";
     }
@@ -227,8 +227,8 @@ function handleProceedToForm() {
 // -- FORM PELUNASAN LOGIC --
 
 const filteredInventoryProducts = computed(() => {
-    const q = stockSearchQuery.value.toLowerCase().trim();
-    const allProducts = inventoryStore.products.filter(p => (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold');
+    const q = (stockSearchQuery.value || "").toLowerCase().trim();
+    const allProducts = (inventoryStore.products || []).filter(p => (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold');
     if (!q) return allProducts;
 
     const cleanQ = q.replace(/\./g, '');
@@ -569,7 +569,7 @@ async function handleSubmit(pin = null) {
             <div v-if="isLoadingDps" class="py-12 flex justify-center items-center">
                 <Loader2 class="animate-spin text-primary-500" :size="32" />
             </div>
-            <div v-else-if="filteredDps.length === 0" class="py-12 text-center text-surface-400">
+            <div v-else-if="!filteredDps || filteredDps.length === 0" class="py-12 text-center text-surface-400">
                 Belum ada nota DP yang aktif atau ditemukan.
             </div>
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -761,7 +761,7 @@ async function handleSubmit(pin = null) {
                                 class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none" />
                             
                             <div v-if="showStockDropdown" class="absolute z-[100] mt-1 w-full bg-white dark:bg-surface-800 border-2 border-surface-200 dark:border-surface-700 rounded-xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">
-                                <div v-if="filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">
+                                <div v-if="!filteredInventoryProducts || filteredInventoryProducts.length === 0" class="p-4 text-center text-xs text-text-secondary">
                                     Tidak ada stok ditemukan...
                                 </div>
                                 <div v-for="item in filteredInventoryProducts" :key="item.id"
@@ -906,7 +906,7 @@ async function handleSubmit(pin = null) {
                             </div>
                             <div class="space-y-3">
                                 <div v-for="(payment, index) in splitPayments" :key="index" class="p-4 bg-white dark:bg-surface-900 rounded-xl border border-surface-200 dark:border-surface-700 relative flex flex-col gap-2">
-                                    <button v-if="splitPayments.length > 1" @click="removeSplitPayment(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                                    <button v-if="splitPayments && splitPayments.length > 1" @click="removeSplitPayment(index)" type="button" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
                                         <X :size="16" />
                                     </button>
                                     <div class="grid grid-cols-2 gap-2">
