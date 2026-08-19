@@ -30,6 +30,14 @@ const customerForm = ref({
     notes: ""
 });
 
+const splitPayments = ref([]);
+const proofImage = ref(null);
+const proofImagePreview = ref(null);
+const customerProofImage = ref(null);
+const customerProofImagePreview = ref(null);
+const paymentProofImage = ref(null);
+const paymentProofImagePreview = ref(null);
+
 const fetchActiveDps = async () => {
     isLoadingDps.value = true;
     try {
