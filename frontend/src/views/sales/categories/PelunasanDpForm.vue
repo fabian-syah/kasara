@@ -63,6 +63,19 @@ onMounted(() => {
     fetchActiveDps();
 });
 
+const filteredDps = computed(() => {
+    if (!activeDps.value) return [];
+    if (!searchQuery.value) return activeDps.value;
+    
+    const query = searchQuery.value.toLowerCase();
+    return activeDps.value.filter(dp => {
+        const customerName = (dp.customer_name || '').toLowerCase();
+        const customerPhone = (dp.customer_phone || '').toLowerCase();
+        const receiptId = (dp.receipt_id || '').toLowerCase();
+        return customerName.includes(query) || customerPhone.includes(query) || receiptId.includes(query);
+    });
+});
+
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
 const outgoingItem = ref(null);
