@@ -35,38 +35,38 @@ const isCompressingPayment = ref(false);
 const incomingItem = ref({ incoming_source: 'luar_pstore', distributor_id: null, brand_id: null, product_type_id: null, storage: '', condition: 'second', imei: '', quantity: 1, cost_price: 0 });
 
 function getFilteredBrandsForItem(item) { 
-    const defaultBrands = props.brands || []; 
-    if (!item.distributor_id) return defaultBrands; 
-    const dist = (props.distributors || []).find(d => d.id == item.distributor_id); 
+    const defaultBrands = Array.isArray(props.brands) ? props.brands : []; 
+    if (!item?.distributor_id) return defaultBrands; 
+    const dist = (Array.isArray(props.distributors) ? props.distributors : []).find(d => d && d.id == item.distributor_id); 
     if (!dist || !dist.allowed_brands) return defaultBrands; 
     try { 
         const allowedIds = typeof dist.allowed_brands === 'string' ? JSON.parse(dist.allowed_brands) : dist.allowed_brands; 
         if (!Array.isArray(allowedIds)) return defaultBrands; 
         const numericIds = allowedIds.map(id => Number(id)); 
-        return defaultBrands.filter(b => numericIds.includes(Number(b.id))); 
+        return defaultBrands.filter(b => b && numericIds.includes(Number(b.id))); 
     } catch { 
         return defaultBrands; 
     } 
 }
 
 function getFilteredTypesForItem(item) { 
-    if (!item.brand_id) return []; 
-    return (props.productTypes || []).filter(t => t.brand_id == item.brand_id); 
+    if (!item?.brand_id || !Array.isArray(props.productTypes)) return []; 
+    return props.productTypes.filter(t => t && t.brand_id == item.brand_id); 
 }
 
 function getCapacitiesForItem(item) { 
-    if (!item.product_type_id) return []; 
+    if (!item?.product_type_id || !Array.isArray(props.productTypes)) return []; 
     const set = new Set(); 
-    const type = (props.productTypes || []).find(t => t.id == item.product_type_id); 
+    const type = props.productTypes.find(t => t && t.id == item.product_type_id); 
     if (type?.storage) { 
         type.storage.split(/[,]/).forEach(s => { 
             const clean = s.trim(); 
             if (clean) set.add(clean); 
         }); 
     } 
-    const prices = (props.productPrices || []).filter(p => p.product_type_id == item.product_type_id); 
+    const prices = (Array.isArray(props.productPrices) ? props.productPrices : []).filter(p => p && p.product_type_id == item.product_type_id); 
     prices.forEach(p => { 
-        if (p.storage) set.add(p.storage); 
+        if (p?.storage) set.add(p.storage); 
     }); 
     return Array.from(set).sort(); 
 }
@@ -75,11 +75,11 @@ function autoFillIncomingItemFromDp(dp) {
     if (!dp) return;
     
     let firstItem = null;
-    if (dp.items && dp.items.length > 0) {
+    if (dp.items && Array.isArray(dp.items) && dp.items.length > 0) {
         firstItem = dp.items[0];
-    } else if (dp.nonHpDetails && dp.nonHpDetails.length > 0) {
+    } else if (dp.nonHpDetails && Array.isArray(dp.nonHpDetails) && dp.nonHpDetails.length > 0) {
         firstItem = dp.nonHpDetails[0];
-    } else if (dp.non_hp_details && dp.non_hp_details.length > 0) {
+    } else if (dp.non_hp_details && Array.isArray(dp.non_hp_details) && dp.non_hp_details.length > 0) {
         firstItem = dp.non_hp_details[0];
     }
     
@@ -106,8 +106,8 @@ function autoFillIncomingItemFromDp(dp) {
     }
     
     // Direct product_id match
-    if (!typeId && firstItem.product_id && props.productTypes) {
-        const found = props.productTypes.find(pt => pt.id == firstItem.product_id);
+    if (!typeId && firstItem.product_id && Array.isArray(props.productTypes)) {
+        const found = props.productTypes.find(pt => pt && pt.id == firstItem.product_id);
         if (found) {
             typeId = found.id;
             brandId = found.brand_id;
@@ -117,11 +117,12 @@ function autoFillIncomingItemFromDp(dp) {
     // Name-based matching for Brand
     const rawBrandName = (firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || firstItem.brand_name || "").toString().trim().toLowerCase();
     
-    if (!brandId && rawBrandName && props.brands) {
+    if (!brandId && rawBrandName && Array.isArray(props.brands)) {
         const cleanRawBrand = rawBrandName.replace(/[™®]/g, '').trim();
         const foundB = props.brands.find(b => {
-            const bName = b.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
-            return bName === cleanRawBrand || cleanRawBrand.includes(bName) || bName.includes(cleanRawBrand);
+            if (!b) return false;
+            const bName = (b.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
+            return bName && (bName === cleanRawBrand || cleanRawBrand.includes(bName) || bName.includes(cleanRawBrand));
         });
         if (foundB) {
             brandId = foundB.id;
@@ -131,22 +132,22 @@ function autoFillIncomingItemFromDp(dp) {
     // Name-based matching for Product Type
     const rawTypeName = (firstItem.product?.name || firstItem.name || firstItem.type || firstItem.product_name || "").toString().trim().toLowerCase();
     
-    if (!typeId && rawTypeName && props.productTypes) {
+    if (!typeId && rawTypeName && Array.isArray(props.productTypes)) {
         const cleanRawType = rawTypeName.replace(/[™®]/g, '').trim();
         
         const candidateTypes = brandId 
-            ? props.productTypes.filter(pt => pt.brand_id == brandId) 
-            : props.productTypes;
+            ? props.productTypes.filter(pt => pt && pt.brand_id == brandId) 
+            : props.productTypes.filter(pt => !!pt);
             
         let foundT = candidateTypes.find(pt => {
-            const ptName = pt.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
-            return ptName === cleanRawType;
+            const ptName = (pt.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
+            return ptName && ptName === cleanRawType;
         });
 
         if (!foundT) {
             foundT = candidateTypes.find(pt => {
-                const ptName = pt.name.toString().trim().toLowerCase().replace(/[™®]/g, '');
-                return ptName.includes(cleanRawType) || cleanRawType.includes(ptName);
+                const ptName = (pt.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
+                return ptName && (ptName.includes(cleanRawType) || cleanRawType.includes(ptName));
             });
         }
 
