@@ -73,7 +73,7 @@ const filteredDps = computed(() => {
 
 const stockSearchQuery = ref("");
 const showStockDropdown = ref(false);
-const outgoingItem = ref(null);
+const outgoingItems = ref([]);
 
 const isSubmitting = ref(false);
 const isCompressing = ref(false);
@@ -199,13 +199,18 @@ function selectStockItem(item) {
     const cost = parseFloat(item.cost_price || 0);
     price = selling > 0 ? selling : (cost > 0 ? cost : 0);
 
-    outgoingItem.value = {
-        product_detail_id: item.id,
-        item: item,
-        price: price,
-        quantity: 1,
-        max_quantity: item.stock || item.quantity || 1
-    };
+    const exists = outgoingItems.value.find(i => i.product_detail_id === item.id);
+    if (!exists) {
+        outgoingItems.value.push({
+            product_detail_id: item.id,
+            item: item,
+            price: price,
+            quantity: 1,
+            max_quantity: item.stock || item.quantity || 1
+        });
+    } else if (!item.imei && exists.quantity < exists.max_quantity) {
+        exists.quantity++;
+    }
 
     stockSearchQuery.value = "";
     showStockDropdown.value = false;
@@ -213,8 +218,8 @@ function selectStockItem(item) {
     recalculateSplitPayments();
 }
 
-function removeOutgoingItem() {
-    outgoingItem.value = null;
+function removeOutgoingItem(index) {
+    outgoingItems.value.splice(index, 1);
     recalculateSplitPayments();
 }
 
@@ -226,8 +231,7 @@ function closeStockDropdown() {
 
 // Financials
 const totalOutgoingPriceComputed = computed(() => {
-    if (!outgoingItem.value) return 0;
-    return (outgoingItem.value.price || 0) * (outgoingItem.value.quantity || 1);
+    return outgoingItems.value.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 });
 
 const sisaBayar = computed(() => {
@@ -313,8 +317,8 @@ async function handlePhotoChange(type, event) {
 }
 
 async function handleSubmit(pin = null) {
-    if (!outgoingItem.value) {
-        alert("Silakan pilih unit/item barang keluar.");
+    if (outgoingItems.value.length === 0) {
+        alert("Silakan pilih minimal 1 unit/item barang keluar.");
         return;
     }
     
@@ -371,19 +375,22 @@ async function handleSubmit(pin = null) {
         if (pin) formData.append('transaction_pin', pin);
 
         // Outgoing items
-        const item = outgoingItem.value;
-        if (item.item?.imei) {
-            formData.append('product_detail_ids[]', item.product_detail_id);
-            formData.append(`hp_items_meta[${item.product_detail_id}][selling_price]`, Number(item.price || 0));
-            formData.append(`hp_items_meta[${item.product_detail_id}][item_discount]`, 0);
-            formData.append(`hp_items_meta[${item.product_detail_id}][distributed_discount]`, 0);
-        } else {
-            formData.append(`non_hp_items[0][product_id]`, item.item?.product_id || item.product_detail_id);
-            formData.append(`non_hp_items[0][quantity]`, item.quantity);
-            formData.append(`non_hp_items[0][selling_price]`, Number(item.price || 0));
-            formData.append(`non_hp_items[0][item_discount]`, 0);
-            formData.append(`non_hp_items[0][distributed_discount]`, 0);
-        }
+        let nonHpIndex = 0;
+        outgoingItems.value.forEach(item => {
+            if (item.item?.imei) {
+                formData.append('product_detail_ids[]', item.product_detail_id);
+                formData.append(`hp_items_meta[${item.product_detail_id}][selling_price]`, Number(item.price || 0));
+                formData.append(`hp_items_meta[${item.product_detail_id}][item_discount]`, 0);
+                formData.append(`hp_items_meta[${item.product_detail_id}][distributed_discount]`, 0);
+            } else {
+                formData.append(`non_hp_items[${nonHpIndex}][product_id]`, item.item?.product_id || item.product_detail_id);
+                formData.append(`non_hp_items[${nonHpIndex}][quantity]`, item.quantity);
+                formData.append(`non_hp_items[${nonHpIndex}][selling_price]`, Number(item.price || 0));
+                formData.append(`non_hp_items[${nonHpIndex}][item_discount]`, 0);
+                formData.append(`non_hp_items[${nonHpIndex}][distributed_discount]`, 0);
+                nonHpIndex++;
+            }
+        });
 
         formData.append('global_discount_value', 0);
         formData.append('global_discount_type', 'fixed');
@@ -418,17 +425,15 @@ async function handleSubmit(pin = null) {
         const transactionData = {
             id: data.id,
             order_no: data.receipt_id || "TRX-" + Date.now(),
-            items: [
-                {
-                    name: item.item?.product?.name || item.item?.name,
-                    imei: item.item?.imei || '-',
-                    price: item.price,
-                    condition: item.item?.condition || 'second',
-                    storage: item.item?.storage || '-',
-                    qty: item.quantity,
-                    is_hp: !!item.item?.imei
-                }
-            ],
+            items: outgoingItems.value.map(item => ({
+                name: item.item?.product?.name || item.item?.name,
+                imei: item.item?.imei || '-',
+                price: item.price,
+                condition: item.item?.condition || 'second',
+                storage: item.item?.storage || '-',
+                qty: item.quantity,
+                is_hp: !!item.item?.imei
+            })),
             original_price: totalOutgoingPriceComputed.value,
             total_discount: 0,
             grand_total: totalOutgoingPriceComputed.value,
@@ -656,12 +661,12 @@ async function handleSubmit(pin = null) {
                             </div>
                         </div>
 
-                        <div v-if="outgoingItem" class="mt-4 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 relative">
-                            <button @click="removeOutgoingItem" type="button" class="absolute top-2 right-2 text-primary-400 hover:text-red-500 transition-colors">
+                        <div v-for="(outItem, idx) in outgoingItems" :key="idx" class="mt-4 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-800 relative">
+                            <button @click="removeOutgoingItem(idx)" type="button" class="absolute top-2 right-2 text-primary-400 hover:text-red-500 transition-colors">
                                 <X :size="20" />
                             </button>
                             <p class="text-xs font-black text-primary-700 dark:text-primary-400 mb-4 pr-6">
-                                {{ outgoingItem.item?.product?.name || outgoingItem.item?.name }} ({{ outgoingItem.item?.imei || 'Non-IMEI' }})
+                                {{ outItem.item?.product?.name || outItem.item?.name }} ({{ outItem.item?.imei || 'Non-IMEI' }})
                             </p>
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -669,16 +674,16 @@ async function handleSubmit(pin = null) {
                                     <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">HARGA JUAL</label>
                                     <div class="relative">
                                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-primary-600/50">Rp</span>
-                                        <input v-money:price="outgoingItem" type="text"
+                                        <input v-money:price="outItem" type="text"
                                             class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl pl-8 pr-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-bold text-sm text-primary-600" />
                                     </div>
                                 </div>
-                                <div v-if="!outgoingItem.item?.imei">
+                                <div v-if="!outItem.item?.imei">
                                     <label class="block text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2">JUMLAH KELUAR</label>
                                     <div class="flex items-center gap-2">
-                                        <input v-model.number="outgoingItem.quantity" type="number" min="1" :max="outgoingItem.max_quantity"
+                                        <input v-model.number="outItem.quantity" type="number" min="1" :max="outItem.max_quantity"
                                             class="w-full border-2 border-primary-200 dark:border-primary-800/50 rounded-xl px-3 py-2 bg-white dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm font-bold" />
-                                        <span class="text-[10px] font-bold text-primary-600/60 uppercase">Maks: {{ outgoingItem.max_quantity }}</span>
+                                        <span class="text-[10px] font-bold text-primary-600/60 uppercase">Maks: {{ outItem.max_quantity }}</span>
                                     </div>
                                 </div>
                             </div>
