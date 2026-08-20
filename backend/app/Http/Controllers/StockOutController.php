@@ -3188,7 +3188,12 @@ class StockOutController extends Controller
                 }
             }
 
-            // 4. Update the StockOut record
+            // 4. Restore DP Settlement if this was a Pelunasan DP
+            if ($stockOut->category === 'pelunasan_dp' && $stockOut->parent_dp_id) {
+                StockOut::where('id', $stockOut->parent_dp_id)->update(['is_dp_settled' => false]);
+            }
+
+            // 5. Update the StockOut record
             $stockOut->update([
                 'category' => 'cancel_penjualan',
                 'cancelled_at' => now(),
