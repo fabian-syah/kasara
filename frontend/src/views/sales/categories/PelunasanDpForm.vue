@@ -543,10 +543,6 @@ async function handleSubmit(pin = null) {
                             <span class="text-text-secondary font-bold">DP Dibayar</span>
                             <span class="font-black text-emerald-600">{{ formatCurrency(dp.dp_amount) }}</span>
                         </div>
-                        <div class="flex justify-between text-sm mt-1 pt-1 border-t border-surface-200 dark:border-surface-700">
-                            <span class="text-text-secondary font-bold uppercase tracking-widest">Sisa Lunas</span>
-                            <span class="font-black text-red-500">{{ formatCurrency(dp.selling_price - dp.dp_amount) }}</span>
-                        </div>
                     </div>
                 </div>
             </div>

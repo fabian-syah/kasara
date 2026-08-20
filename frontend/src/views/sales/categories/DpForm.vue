@@ -542,7 +542,7 @@ async function submitTradeIn(pin = null) {
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Nominal Bayar DP <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Harga Total Unit / Estimasi <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
                             <input v-money:selling_price="dpForm" type="text" class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-10 pr-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none font-black text-lg text-primary-600" />

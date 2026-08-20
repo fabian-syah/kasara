@@ -170,6 +170,9 @@ class StockOut extends Model
         'cancelled_at',
         'cancelled_by',
         'cancel_reason',
+        'dp_amount',
+        'is_dp_settled',
+        'parent_dp_id',
     ];
 
     protected $casts = [
