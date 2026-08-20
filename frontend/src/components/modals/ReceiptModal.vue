@@ -1208,6 +1208,36 @@ const allReceiptItems = computed(() => {
         });
     }
 
+    // 3. Add DP Deduction for Pelunasan DP
+    if (props.transaction.category === 'pelunasan_dp') {
+        const itemsTotal = list.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
+        const gTotal = Number(props.transaction.grand_total || props.transaction.total || 0);
+        const tDiscount = Number(props.transaction.total_discount || 0);
+        
+        // DP Deduction = Harga Barang (itemsTotal) - Diskon - Sisa Pelunasan (gTotal)
+        const dpAmount = itemsTotal - tDiscount - gTotal;
+        
+        if (dpAmount > 0) {
+            let noteStr = props.transaction.notes || '';
+            let dpLabel = 'POTONGAN DP';
+            
+            // Try to extract the Nota from notes if it exists
+            const match = noteStr.match(/Nota:\s*([^\s\n]+)/i);
+            if (match) {
+                dpLabel += ` (NOTA: ${match[1]})`;
+            }
+
+            list.push({
+                name: dpLabel,
+                imei: '-',
+                price: -Math.abs(dpAmount),
+                qty: 1,
+                is_hp: false,
+                is_dp_deduction: true
+            });
+        }
+    }
+
     return list;
 });
 
