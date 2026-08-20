@@ -172,7 +172,10 @@ function handleProceedToForm() {
 
 const filteredInventoryProducts = computed(() => {
     const q = (stockSearchQuery.value || "").toLowerCase().trim();
-    const allProducts = (inventoryStore.products || []).filter(p => (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold');
+    const selectedIds = new Set(outgoingItems.value.map(i => i.product_detail_id));
+    const allProducts = (inventoryStore.products || []).filter(p => 
+        !selectedIds.has(p.id) && (p.imei || p.stock > 0 || p.quantity > 0) && p.status !== 'sold'
+    );
     if (!q) return allProducts;
 
     const cleanQ = q.replace(/\./g, '');
