@@ -432,6 +432,10 @@ async function handleSubmit(pin = null) {
         formData.append('global_discount_value', 0);
         formData.append('global_discount_type', 'fixed');
         formData.append('total_discount', 0);
+        
+        // Pass DP details for receipt
+        const dpItemString = `${getDpItemInfo(selectedDp.value).brand} - ${getDpItemInfo(selectedDp.value).type} ${getDpItemInfo(selectedDp.value).gb}`;
+        formData.append('bundle_description', `DP: ${dpItemString}`);
 
         formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
             payment_method_id: p.method_id,
@@ -502,7 +506,8 @@ async function handleSubmit(pin = null) {
             ].filter(Boolean),
             parent_dp_id: selectedDp.value.id,
             dp_deduction: dpAmount.value,
-            original_dp_receipt: selectedDp.value.receipt_id
+            original_dp_receipt: selectedDp.value.receipt_id,
+            bundle_description: `DP: ${dpItemString}`
         };
 
         emit('transaction-complete', transactionData);

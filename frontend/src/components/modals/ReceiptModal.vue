@@ -1218,13 +1218,15 @@ const allReceiptItems = computed(() => {
         const dpAmount = itemsTotal - tDiscount - gTotal;
         
         if (dpAmount > 0) {
-            let noteStr = props.transaction.notes || '';
             let dpLabel = 'POTONGAN DP';
-            
-            // Try to extract the Nota from notes if it exists
-            const match = noteStr.match(/Nota:\s*([^\s\n]+)/i);
-            if (match) {
-                dpLabel += ` (NOTA: ${match[1]})`;
+            if (props.transaction.bundle_description && props.transaction.bundle_description.startsWith('DP: ')) {
+                dpLabel = `POTONGAN DP (${props.transaction.bundle_description.replace('DP: ', '')})`;
+            } else {
+                let noteStr = props.transaction.notes || '';
+                const match = noteStr.match(/Nota:\s*([^\s\n]+)/i);
+                if (match) {
+                    dpLabel += ` (NOTA: ${match[1]})`;
+                }
             }
 
             list.push({
