@@ -153,7 +153,8 @@ function getDpItemInfo(dp) {
 
 const dpAmount = computed(() => {
     if (!selectedDp.value) return 0;
-    return Number(selectedDp.value.dp_amount || 0);
+    const dp = Number(selectedDp.value.dp_amount || 0);
+    return dp > 0 ? dp : Number(selectedDp.value.selling_price || 0);
 });
 
 function handleProceedToForm() {
@@ -541,7 +542,7 @@ async function handleSubmit(pin = null) {
                     <div class="flex flex-col mt-2 pt-2 border-t border-surface-200 dark:border-surface-700">
                         <div class="flex justify-between text-xs mb-1">
                             <span class="text-text-secondary font-bold">DP Dibayar</span>
-                            <span class="font-black text-emerald-600">{{ formatCurrency(dp.dp_amount) }}</span>
+                            <span class="font-black text-emerald-600">{{ formatCurrency(dp.dp_amount > 0 ? dp.dp_amount : dp.selling_price) }}</span>
                         </div>
                     </div>
                 </div>
