@@ -150,6 +150,31 @@ function getDpItemInfo(dp) {
         
         firstLine = firstLine.replace(/\b(Second|New|BNO|Baru|SCD)\b/gi, '').trim();
         
+        // Extract brand
+        if (props.brands && Array.isArray(props.brands)) {
+            const sortedBrands = [...props.brands].sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0));
+            for (const b of sortedBrands) {
+                if (b.name && firstLine.toLowerCase().startsWith(b.name.toLowerCase())) {
+                    brand = b.name;
+                    firstLine = firstLine.substring(b.name.length).trim();
+                    firstLine = firstLine.replace(/^[™®-]\s*/, '').trim();
+                    break;
+                }
+            }
+        }
+        
+        if (brand === "-") {
+            const commonBrands = ['Iphone ™', 'Iphone', 'Samsung', 'Oppo', 'Vivo', 'Xiaomi', 'Realme', 'Infinix', 'Poco', 'Asus', 'Itel', 'Tecno', 'Nokia', 'Huawei', 'Honor', 'ZTE', 'Motorola', 'Sony', 'LG', 'Google Pixel', 'OnePlus', 'Redmi', 'Lenovo', 'Apple'];
+            for (const b of commonBrands) {
+                if (firstLine.toLowerCase().startsWith(b.toLowerCase())) {
+                    brand = b;
+                    firstLine = firstLine.substring(b.length).trim();
+                    firstLine = firstLine.replace(/^[™®-]\s*/, '').trim();
+                    break;
+                }
+            }
+        }
+        
         type = firstLine || "-";
     }
 
