@@ -294,6 +294,8 @@
                                                             <span v-if="item.is_bundle_child"
                                                                 class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
                                                             <span>
+                                                                <span v-if="item.is_dp_deduction" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">DP</span>
+                                                                <span v-if="transaction.category === 'pelunasan_dp' && !item.is_dp_deduction && !item.is_bundle_header" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">PELUNASAN</span>
                                                                 <span v-if="(item.name || '').includes('IN:')" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">MASUK</span>
                                                                 <span v-if="(item.name || '').includes('OUT:')" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">KELUAR</span>
                                                                 <span class="align-middle">
@@ -1218,14 +1220,14 @@ const allReceiptItems = computed(() => {
         const dpAmount = itemsTotal - tDiscount - gTotal;
         
         if (dpAmount > 0) {
-            let dpLabel = 'POTONGAN DP';
+            let dpLabel = 'DP';
             if (props.transaction.bundle_description && props.transaction.bundle_description.startsWith('DP: ')) {
-                dpLabel = `POTONGAN DP (${props.transaction.bundle_description.replace('DP: ', '')})`;
+                dpLabel = props.transaction.bundle_description.replace('DP: ', '').trim();
             } else {
                 let noteStr = props.transaction.notes || '';
                 const match = noteStr.match(/Nota:\s*([^\s\n]+)/i);
                 if (match) {
-                    dpLabel += ` (NOTA: ${match[1]})`;
+                    dpLabel = `NOTA: ${match[1]}`;
                 }
             }
 
