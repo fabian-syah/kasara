@@ -114,7 +114,9 @@ function clearAllTempStates() {
         'temp_tukar_tambah_form',
         'temp_downgrade_form',
         'temp_refund_form',
-        'temp_angkat_barang_form'
+        'temp_angkat_barang_form',
+        'temp_dp_form',
+        'temp_pelunasan_dp_form'
     ];
     keys.forEach(k => {
         localStorage.removeItem(`${k}_${userId}`);
