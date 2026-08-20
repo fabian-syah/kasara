@@ -138,6 +138,19 @@ function getDpItemInfo(dp) {
     } else if (dp.non_hp_details && Array.isArray(dp.non_hp_details) && dp.non_hp_details.length > 0) {
         const firstItem = dp.non_hp_details[0];
         type = firstItem.product?.name || firstItem.name || "-";
+    } else if (dp.notes) {
+        const lines = dp.notes.split('\n');
+        let firstLine = lines[0] || "";
+        
+        const gbMatch = firstLine.match(/(\d+\s*GB)/i);
+        if (gbMatch) {
+            gb = gbMatch[1];
+            firstLine = firstLine.replace(gbMatch[1], '').trim();
+        }
+        
+        firstLine = firstLine.replace(/\b(Second|New|BNO|Baru|SCD)\b/gi, '').trim();
+        
+        type = firstLine || "-";
     }
 
     let dpDate = dp.created_at;
