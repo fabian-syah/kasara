@@ -833,7 +833,7 @@ async function handleSubmit(pin = null) {
                                 </div>
                                 <div class="text-right bg-white/10 p-4 rounded-2xl border border-white/20 flex flex-col justify-center">
                                     <span class="text-[9px] font-black text-primary-200 uppercase tracking-widest block mb-1">DP DIBAYAR</span>
-                                    <p class="text-lg font-bold text-white truncate">- {{ formatCurrency(dpAmount) }}</p>
+                                    <p class="text-lg font-bold text-white truncate">{{ formatCurrency(dpAmount) }}</p>
                                 </div>
                             </div>
 
