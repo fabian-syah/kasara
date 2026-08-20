@@ -79,8 +79,6 @@ const isSubmitting = ref(false);
 const isCompressing = ref(false);
 const isCompressingPayment = ref(false);
 
-const incomingItem = ref({ incoming_source: 'luar_pstore', distributor_id: null, brand_id: null, product_type_id: null, storage: '', condition: 'second', imei: '', quantity: 1, cost_price: 0 });
-
 function getFilteredBrandsForItem(item) { 
     const defaultBrands = Array.isArray(props.brands) ? props.brands : []; 
     if (!item?.distributor_id) return defaultBrands; 
@@ -118,110 +116,11 @@ function getCapacitiesForItem(item) {
     return Array.from(set).sort(); 
 }
 
-function autoFillIncomingItemFromDp(dp) {
-    if (!dp) return;
-    
-    let firstItem = null;
-    if (dp.items && Array.isArray(dp.items) && dp.items.length > 0) {
-        firstItem = dp.items[0];
-    } else if (dp.nonHpDetails && Array.isArray(dp.nonHpDetails) && dp.nonHpDetails.length > 0) {
-        firstItem = dp.nonHpDetails[0];
-    } else if (dp.non_hp_details && Array.isArray(dp.non_hp_details) && dp.non_hp_details.length > 0) {
-        firstItem = dp.non_hp_details[0];
-    }
-    
-    if (!firstItem) return;
-
-    // Cost price: remaining balance or DP amount or item selling price
-    const remainingBalance = (Number(dp.total_price || dp.grand_total || 0) - Number(dp.dp_amount || 0));
-    incomingItem.value.cost_price = remainingBalance > 0 ? remainingBalance : (firstItem.selling_price || dp.dp_amount || 0);
-
-    // Storage
-    const storageStr = (firstItem.storage || firstItem.gb || "").toString().trim();
-    if (storageStr) {
-        incomingItem.value.storage = storageStr;
-    }
-
-    // Determine Brand ID & Product Type ID
-    let brandId = null;
-    let typeId = null;
-
-    // Direct object relation
-    if (firstItem.product) {
-        brandId = firstItem.product.brand_id || firstItem.product.brand?.id || null;
-        typeId = firstItem.product.id || null;
-    }
-    
-    // Direct product_id match
-    if (!typeId && firstItem.product_id && Array.isArray(props.productTypes)) {
-        const found = props.productTypes.find(pt => pt && pt.id == firstItem.product_id);
-        if (found) {
-            typeId = found.id;
-            brandId = found.brand_id;
-        }
-    }
-
-    // Name-based matching for Brand
-    const rawBrandName = (firstItem.product?.brand?.name || firstItem.product?.brand || firstItem.brand || firstItem.brand_name || "").toString().trim().toLowerCase();
-    
-    if (!brandId && rawBrandName && Array.isArray(props.brands)) {
-        const cleanRawBrand = rawBrandName.replace(/[™®]/g, '').trim();
-        const foundB = props.brands.find(b => {
-            if (!b) return false;
-            const bName = (b.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
-            return bName && (bName === cleanRawBrand || cleanRawBrand.includes(bName) || bName.includes(cleanRawBrand));
-        });
-        if (foundB) {
-            brandId = foundB.id;
-        }
-    }
-
-    // Name-based matching for Product Type
-    const rawTypeName = (firstItem.product?.name || firstItem.name || firstItem.type || firstItem.product_name || "").toString().trim().toLowerCase();
-    
-    if (!typeId && rawTypeName && Array.isArray(props.productTypes)) {
-        const cleanRawType = rawTypeName.replace(/[™®]/g, '').trim();
-        
-        const candidateTypes = brandId 
-            ? props.productTypes.filter(pt => pt && pt.brand_id == brandId) 
-            : props.productTypes.filter(pt => !!pt);
-            
-        let foundT = candidateTypes.find(pt => {
-            const ptName = (pt.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
-            return ptName && ptName === cleanRawType;
-        });
-
-        if (!foundT) {
-            foundT = candidateTypes.find(pt => {
-                const ptName = (pt.name || "").toString().trim().toLowerCase().replace(/[™®]/g, '');
-                return ptName && (ptName.includes(cleanRawType) || cleanRawType.includes(ptName));
-            });
-        }
-
-        if (foundT) {
-            typeId = foundT.id;
-            if (!brandId) brandId = foundT.brand_id;
-        }
-    }
-
-    if (brandId) incomingItem.value.brand_id = Number(brandId);
-    if (typeId) incomingItem.value.product_type_id = Number(typeId);
-}
-
 function selectDp(dp) {
     selectedDp.value = dp;
-    autoFillIncomingItemFromDp(dp);
 }
 
-watch(
-    [() => selectedDp.value, () => props.brands, () => props.productTypes],
-    ([newDp]) => {
-        if (newDp) {
-            autoFillIncomingItemFromDp(newDp);
-        }
-    },
-    { immediate: true, deep: true }
-);
+
 
 function getDpItemInfo(dp) {
     let brand = "-";
@@ -264,8 +163,6 @@ function handleProceedToForm() {
     customerForm.value.customer_name = selectedDp.value.customer_name || "";
     customerForm.value.customer_phone = selectedDp.value.customer_phone || "";
     customerForm.value.notes = "Pelunasan DP Nota: " + selectedDp.value.receipt_id;
-    
-    autoFillIncomingItemFromDp(selectedDp.value);
     
     addSplitPayment();
     currentStep.value = 2;
@@ -335,8 +232,8 @@ const totalOutgoingPriceComputed = computed(() => {
 
 const sisaBayar = computed(() => {
     const totalOut = totalOutgoingPriceComputed.value;
-    const diff = totalOut - dpAmount.value - (incomingItem.value.cost_price || 0);
-    return Math.max(0, diff); // If DP is more than price, user doesn't pay more. (Should we handle downgrade?)
+    const diff = totalOut - dpAmount.value;
+    return Math.max(0, diff);
 });
 
 const isCashOnly = computed(() => {
@@ -562,15 +459,6 @@ async function handleSubmit(pin = null) {
                 paymentProofImagePreview.value
             ].filter(Boolean),
             parent_dp_id: selectedDp.value.id,
-            incoming_source: incomingItem.value.incoming_source,
-            distributor_id: incomingItem.value.distributor_id,
-            incoming_brand_id: incomingItem.value.brand_id,
-            incoming_product_type_id: incomingItem.value.product_type_id,
-            incoming_storage: incomingItem.value.storage,
-            incoming_condition: incomingItem.value.condition,
-            incoming_imei: incomingItem.value.imei,
-            incoming_cost_price: incomingItem.value.cost_price,
-            incoming_quantity: incomingItem.value.quantity,
             dp_deduction: dpAmount.value,
             original_dp_receipt: selectedDp.value.receipt_id
         };
@@ -703,91 +591,33 @@ async function handleSubmit(pin = null) {
                 <!-- BARANG MASUK (DP DATA) -->
                 <div class="space-y-6">
                     <h4 class="text-sm font-black text-emerald-600 uppercase tracking-widest border-b border-emerald-100 dark:border-emerald-900/30 pb-2">
-                        [1] BARANG MASUK (DARI USER)
+                        [1] BARANG MASUK (DATA NOTA DP)
                     </h4>
-                    <div class="space-y-4">
-                        <!-- SUMBER BARANG -->
-                        <div>
-                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">
-                                SUMBER BARANG <span class="text-red-500">*</span>
-                            </label>
-                            <select v-model="incomingItem.incoming_source"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
-                                <option value="luar_pstore">Luar PStore</option>
-                                <option value="ex_pstore">Ex PStore</option>
-                            </select>
+                    
+                    <div class="bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-200 dark:border-emerald-800 rounded-xl p-5 flex flex-col gap-3">
+                        <div class="flex justify-between items-center border-b border-emerald-200 dark:border-emerald-800/50 pb-2 mb-2">
+                            <span class="text-xs font-black text-emerald-700 dark:text-emerald-500 uppercase">NOTA: {{ selectedDp?.receipt_id }}</span>
+                            <span class="text-[10px] font-bold text-emerald-600">{{ getDpItemInfo(selectedDp).dpDate }}</span>
                         </div>
-                        <!-- DISTRIBUTOR -->
-                        <div>
-                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">
-                                PILIH DISTRIBUTOR <span class="text-red-500">*</span>
-                            </label>
-                            <select v-model="incomingItem.distributor_id"
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
-                                <option :value="null">-- PILIH DISTRIBUTOR --</option>
-                                <option v-for="d in distributors" :key="d.id" :value="d.id">{{ d.name }}</option>
-                            </select>
+                        
+                        <div class="flex justify-between text-xs">
+                            <span class="text-emerald-700 dark:text-emerald-400 font-bold">Model/Tipe</span>
+                            <span class="font-black text-emerald-900 dark:text-emerald-300 text-right">{{ getDpItemInfo(selectedDp).brand }} - {{ getDpItemInfo(selectedDp).type }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- BRAND -->
-                            <div>
-                                <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">BRAND <span class="text-red-500">*</span></label>
-                                <select v-model="incomingItem.brand_id" @change="incomingItem.product_type_id = null; incomingItem.storage = '';"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
-                                    <option :value="null">Pilih Brand</option>
-                                    <option v-for="b in getFilteredBrandsForItem(incomingItem)" :key="b.id" :value="b.id">{{ b.name }}</option>
-                                </select>
-                            </div>
-                            <!-- TYPE -->
-                            <div>
-                                <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">TIPE <span class="text-red-500">*</span></label>
-                                <select v-model="incomingItem.product_type_id" :disabled="!incomingItem.brand_id" @change="incomingItem.storage = '';"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all disabled:opacity-50">
-                                    <option :value="null">Pilih Tipe</option>
-                                    <option v-for="t in getFilteredTypesForItem(incomingItem)" :key="t.id" :value="t.id">{{ t.name }}</option>
-                                </select>
-                            </div>
+                        <div class="flex justify-between text-xs">
+                            <span class="text-emerald-700 dark:text-emerald-400 font-bold">Kapasitas</span>
+                            <span class="font-black text-emerald-900 dark:text-emerald-300 text-right">{{ getDpItemInfo(selectedDp).gb }}</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- STORAGE -->
-                            <div>
-                                <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">STORAGE <span class="text-red-500">*</span></label>
-                                <select v-model="incomingItem.storage" :disabled="!incomingItem.product_type_id"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all disabled:opacity-50">
-                                    <option value="">Pilih Storage</option>
-                                    <option v-for="cap in getCapacitiesForItem(incomingItem)" :key="cap" :value="cap">{{ cap }}</option>
-                                </select>
+                        
+                        <div class="mt-4 pt-3 border-t border-emerald-200 dark:border-emerald-800/50">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-emerald-700 dark:text-emerald-400 font-bold">Estimasi Harga</span>
+                                <span class="font-black text-emerald-900 dark:text-emerald-300">{{ formatCurrency(selectedDp?.selling_price) }}</span>
                             </div>
-                            <!-- KONDISI -->
-                            <div>
-                                <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">KATEGORI <span class="text-red-500">*</span></label>
-                                <select v-model="incomingItem.condition"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all">
-                                    <option value="second">Second / SCD</option>
-                                    <option value="new">Baru / NEW</option>
-                                    <option value="bno">BNO</option>
-                                </select>
+                            <div class="flex justify-between text-base">
+                                <span class="text-emerald-800 dark:text-emerald-400 font-black uppercase tracking-widest">DP DIBAYAR</span>
+                                <span class="font-black text-emerald-600">- {{ formatCurrency(dpAmount) }}</span>
                             </div>
-                        </div>
-                        <!-- IMEI -->
-                        <div>
-                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">
-                                MASUKKAN IMEI <span class="text-red-500">*</span>
-                            </label>
-                            <input v-model="incomingItem.imei" type="text" placeholder="15 digit IMEI..."
-                                class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all" />
-                        </div>
-                        <!-- HARGA -->
-                        <div>
-                            <label class="block text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1.5">
-                                HARGA UNIT MASUK (PER UNIT) <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-text-secondary">Rp</span>
-                                <input v-money:cost_price="incomingItem" type="text"
-                                    class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl pl-8 pr-3 py-2.5 bg-surface-50 dark:bg-surface-900 text-sm font-bold text-text-primary focus:outline-none focus:border-primary-500 transition-all" />
-                            </div>
-                            <p class="text-[9px] font-bold text-text-secondary italic mt-1">*Otomatis jadi harga modal</p>
                         </div>
                     </div>
                 </div>
