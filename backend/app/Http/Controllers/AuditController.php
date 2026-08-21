@@ -1609,8 +1609,8 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
 
-                        // Pre-calculate actual discrepancy (Total Items Sum - Paid Amount) to handle manual global discounts, bundling, and DP
-                        $receiptDiscrepancies = [];
+                        // Pre-calculate proportional discrepancy factor to sync item prices with actual Omset target
+                        $receiptProportions = [];
                         $allHpSums = DB::table('stock_out_items')
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
@@ -1641,15 +1641,30 @@ class AuditController extends Controller
                             ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
                             ->whereBetween('reporting_date', [$startDate, $endDate])
                             ->whereNull('deleted_at')
-                            ->select('receipt_id', 'paid_amount', 'category');
+                            ->select('receipt_id', 'selling_price', 'paid_amount', 'category', 'split_payments');
                         $applyLocalScope($trxQuery);
 
                         foreach ($trxQuery->get() as $trx) {
                             if (!in_array(strtolower($trx->category), ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah'])) {
                                 $sumItems = $itemSumsByReceipt[$trx->receipt_id] ?? 0;
-                                $paid = (float) $trx->paid_amount;
-                                if ($sumItems > $paid && $paid > 0) {
-                                    $receiptDiscrepancies[$trx->receipt_id] = $sumItems - $paid;
+                                
+                                $price = strtolower($trx->category) === 'pelunasan_dp' 
+                                    ? max(0, abs((float) ($trx->paid_amount ?? 0))) 
+                                    : max(0, abs((float) ($trx->selling_price ?? 0)));
+                                    
+                                $spTotal = 0;
+                                if ($trx->split_payments) {
+                                    $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                                    if (is_array($sData)) {
+                                        foreach ($sData as $sp) {
+                                            $spTotal += abs((float) ($sp['amount'] ?? 0));
+                                        }
+                                    }
+                                }
+                                $targetOmset = ($spTotal > 0) ? min($spTotal, $price) : $price;
+
+                                if ($sumItems > 0 && $targetOmset > 0 && abs($sumItems - $targetOmset) > 0.01) {
+                                    $receiptProportions[$trx->receipt_id] = $targetOmset / $sumItems;
                                 }
                             }
                         }
@@ -1680,10 +1695,8 @@ class AuditController extends Controller
 
                                 if ($isStandardSale && $catLower !== 'tukar_tambah') {
                                     $receiptId = $hp->receipt_id ?? 'unknown';
-                                    if (isset($receiptDiscrepancies[$receiptId]) && $receiptDiscrepancies[$receiptId] > 0) {
-                                        $deduct = min($price, $receiptDiscrepancies[$receiptId]);
-                                        $price -= $deduct;
-                                        $receiptDiscrepancies[$receiptId] -= $deduct;
+                                    if (isset($receiptProportions[$receiptId])) {
+                                        $price = $price * $receiptProportions[$receiptId];
                                     }
                                 }
 
@@ -1879,10 +1892,8 @@ class AuditController extends Controller
 
                                 if ($isStandardSale && $catLower !== 'tukar_tambah') {
                                     $receiptId = $trx->receipt_id ?? 'unknown';
-                                    if (isset($receiptDiscrepancies[$receiptId]) && $receiptDiscrepancies[$receiptId] > 0) {
-                                        $deduct = min($totalItemPrice, $receiptDiscrepancies[$receiptId]);
-                                        $totalItemPrice -= $deduct;
-                                        $receiptDiscrepancies[$receiptId] -= $deduct;
+                                    if (isset($receiptProportions[$receiptId])) {
+                                        $totalItemPrice = $totalItemPrice * $receiptProportions[$receiptId];
                                     }
                                 }
 
@@ -2221,13 +2232,11 @@ class AuditController extends Controller
 
                 if ($catLower === 'dp' && empty($details)) {
                     $noteParts = explode("\n", $trx->notes ?? '', 2);
-                    $itemName = trim($noteParts[0]) ?: 'Unit DP';
-                    $itemName = preg_replace('/^(?:Unit DP:\s*|Pre-Order \/ DP:\s*)/i', '', $itemName);
-                    // Guaranteed removal of PSTORE UNIT
-                    $itemName = str_ireplace('PSTORE UNIT', '', $itemName);
-                    $itemName = preg_replace('/^\s*-\s*/', '', $itemName);
-                    $itemName = trim($itemName);
-                    $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : null;
+                    $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : (trim($noteParts[0]) ?: null);
+
+                    $dpDate = $trx->created_at ? $trx->created_at->format('d M Y') : '-';
+                    $custName = trim($trx->customer_name ?? $trx->receiver_name ?? '');
+                    $itemName = "DP : " . ($custName ? $custName . " " : "") . $dpDate;
 
                     $dpAmt = (float) $trx->dp_amount;
                     $paidAmt = (float) $trx->paid_amount;
