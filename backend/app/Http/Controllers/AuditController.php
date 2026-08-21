@@ -1648,10 +1648,12 @@ class AuditController extends Controller
                                     $dpTracker[$receiptId] -= $deduct;
                                 }
 
-                                if ($isStandardSale && $catLower !== 'tukar_tambah') {
+                                if ($isStandardSale && $catLower !== 'tukar_tambah' && $catLower !== 'pelunasan_dp') {
                                     $receiptId = $hp->receipt_id ?? 'unknown';
                                     if (!isset($globalDiscountTracker[$receiptId])) {
-                                        $globalDiscountTracker[$receiptId] = (float) ($hp->total_discount ?? 0);
+                                        $trxPaid = (float) ($hp->paid_amount ?? 0);
+                                        $trxTotal = (float) ($hp->trx_selling_price ?? 0);
+                                        $globalDiscountTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
                                     }
                                     if ($globalDiscountTracker[$receiptId] > 0) {
                                         $deduct = min($price, $globalDiscountTracker[$receiptId]);
@@ -1850,10 +1852,12 @@ class AuditController extends Controller
 
                                 $totalItemPrice = $pricePerItem * $qty;
 
-                                if ($isStandardSale && $catLower !== 'tukar_tambah') {
+                                if ($isStandardSale && $catLower !== 'tukar_tambah' && $catLower !== 'pelunasan_dp') {
                                     $receiptId = $trx->receipt_id ?? 'unknown';
                                     if (!isset($globalDiscountTracker[$receiptId])) {
-                                        $globalDiscountTracker[$receiptId] = (float) ($trx->total_discount ?? 0);
+                                        $trxPaid = (float) ($trx->paid_amount ?? 0);
+                                        $trxTotal = (float) ($trx->selling_price ?? 0);
+                                        $globalDiscountTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
                                     }
                                     if ($globalDiscountTracker[$receiptId] > 0) {
                                         $deduct = min($totalItemPrice, $globalDiscountTracker[$receiptId]);
@@ -4633,6 +4637,7 @@ class AuditController extends Controller
             'laptop' => ['label' => 'Penjualan laptop', 'icon' => '⬜️'],
             'tv' => ['label' => 'Penjualan tv', 'icon' => '⬜️'],
             'jasa' => ['label' => 'Penjualan Jasa', 'icon' => '⬜️'],
+            'dokter_pstore' => ['label' => 'Dokter Pstore', 'icon' => '⬜️'],
             'inventaris_toko' => ['label' => 'Inventaris Toko', 'icon' => '⬜️'],
             'pspatu' => ['label' => 'Penjualan pspatu', 'icon' => '⬜️'],
             'psshion' => ['label' => 'Penjualan psshion', 'icon' => '⬜️'],

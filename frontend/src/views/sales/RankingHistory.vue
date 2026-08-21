@@ -1865,6 +1865,7 @@ const getBaseReportText = (isForCopy = false) => {
         { key: 'laptop', label: 'Penjualan laptop', emoji: '⬜️' },
         { key: 'tv', label: 'Penjualan tv', emoji: '⬜️' },
         { key: 'jasa', label: 'Penjualan Jasa', emoji: '⬜️' },
+        { key: 'dokter_pstore', label: 'Dokter Pstore', emoji: '⬜️' },
         { key: 'pspatu', label: 'Penjualan pspatu', emoji: '⬜️' },
         { key: 'psshion', label: 'Penjualan psshion', emoji: '⬜️' },
         { key: 'icloud', label: 'icloud', emoji: '⬜️' }
