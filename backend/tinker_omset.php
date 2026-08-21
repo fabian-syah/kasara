@@ -47,7 +47,7 @@ foreach($normalSales as $sale) {
     
     $omset = ($spTotal > 0) ? min($spTotal, $priceTarget) : $priceTarget;
     $penjualanStore += $omset;
-    echo "NORMAL SALE: " . str_pad($sale->receipt_id, 15) . " | Omset: " . number_format($omset, 0, ',', '.') . "\n";
+    echo "NORMAL SALE: " . str_pad($sale->receipt_id, 15) . " | Omset: " . str_pad(number_format($omset, 0, ',', '.'), 10) . " | Cat: " . $sale->category . " | Status: " . $sale->status . "\n";
 }
 
 // 2. Out TT
