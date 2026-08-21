@@ -1609,8 +1609,51 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
 
-                        static $dpTracker = [];
-                        static $globalDiscountTracker = [];
+                        // Pre-calculate actual discrepancy (Total Items Sum - Paid Amount) to handle manual global discounts, bundling, and DP
+                        $receiptDiscrepancies = [];
+                        $allHpSums = DB::table('stock_out_items')
+                            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->whereNull('stock_outs.deleted_at')
+                            ->groupBy('stock_outs.receipt_id')
+                            ->select('stock_outs.receipt_id', DB::raw('SUM(stock_out_items.selling_price - COALESCE(stock_out_items.item_discount, 0)) as total'));
+                        $applyLocalScope($allHpSums);
+                        
+                        $allNhpSums = DB::table('stock_out_non_hp_items')
+                            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->whereNull('stock_outs.deleted_at')
+                            ->groupBy('stock_outs.receipt_id')
+                            ->select('stock_outs.receipt_id', DB::raw('SUM((stock_out_non_hp_items.selling_price - COALESCE(stock_out_non_hp_items.item_discount, 0)) * stock_out_non_hp_items.quantity) as total'));
+                        $applyLocalScope($allNhpSums);
+
+                        $itemSumsByReceipt = [];
+                        foreach ($allHpSums->get() as $r) {
+                            $itemSumsByReceipt[$r->receipt_id] = (float) $r->total;
+                        }
+                        foreach ($allNhpSums->get() as $r) {
+                            $itemSumsByReceipt[$r->receipt_id] = ($itemSumsByReceipt[$r->receipt_id] ?? 0) + (float) $r->total;
+                        }
+
+                        $trxQuery = DB::table('stock_outs')
+                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereBetween('reporting_date', [$startDate, $endDate])
+                            ->whereNull('deleted_at')
+                            ->select('receipt_id', 'paid_amount', 'category');
+                        $applyLocalScope($trxQuery);
+
+                        foreach ($trxQuery->get() as $trx) {
+                            if (!in_array(strtolower($trx->category), ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah'])) {
+                                $sumItems = $itemSumsByReceipt[$trx->receipt_id] ?? 0;
+                                $paid = (float) $trx->paid_amount;
+                                if ($sumItems > $paid && $paid > 0) {
+                                    $receiptDiscrepancies[$trx->receipt_id] = $sumItems - $paid;
+                                }
+                            }
+                        }
+
                         foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account', 'stock_outs.paid_amount', 'stock_outs.selling_price as trx_selling_price', 'stock_outs.receipt_id', 'stock_outs.total_discount')->get() as $hp) {
                             $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
@@ -1635,30 +1678,12 @@ class AuditController extends Controller
                                 // Omset is based on the outgoing item price for ALL sales (Base, TT Out, Downgrade Out)
                                 $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
 
-                                if ($catLower === 'pelunasan_dp') {
+                                if ($isStandardSale && $catLower !== 'tukar_tambah') {
                                     $receiptId = $hp->receipt_id ?? 'unknown';
-                                    if (!isset($dpTracker[$receiptId])) {
-                                        $trxPaid = (float) ($hp->paid_amount ?? 0);
-                                        $trxTotal = (float) ($hp->trx_selling_price ?? 0);
-                                        $dpTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
-                                    }
-                                    
-                                    $deduct = min($price, $dpTracker[$receiptId]);
-                                    $price -= $deduct;
-                                    $dpTracker[$receiptId] -= $deduct;
-                                }
-
-                                if ($isStandardSale && $catLower !== 'tukar_tambah' && $catLower !== 'pelunasan_dp') {
-                                    $receiptId = $hp->receipt_id ?? 'unknown';
-                                    if (!isset($globalDiscountTracker[$receiptId])) {
-                                        $trxPaid = (float) ($hp->paid_amount ?? 0);
-                                        $trxTotal = (float) ($hp->trx_selling_price ?? 0);
-                                        $globalDiscountTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
-                                    }
-                                    if ($globalDiscountTracker[$receiptId] > 0) {
-                                        $deduct = min($price, $globalDiscountTracker[$receiptId]);
+                                    if (isset($receiptDiscrepancies[$receiptId]) && $receiptDiscrepancies[$receiptId] > 0) {
+                                        $deduct = min($price, $receiptDiscrepancies[$receiptId]);
                                         $price -= $deduct;
-                                        $globalDiscountTracker[$receiptId] -= $deduct;
+                                        $receiptDiscrepancies[$receiptId] -= $deduct;
                                     }
                                 }
 
@@ -1852,17 +1877,12 @@ class AuditController extends Controller
 
                                 $totalItemPrice = $pricePerItem * $qty;
 
-                                if ($isStandardSale && $catLower !== 'tukar_tambah' && $catLower !== 'pelunasan_dp') {
+                                if ($isStandardSale && $catLower !== 'tukar_tambah') {
                                     $receiptId = $trx->receipt_id ?? 'unknown';
-                                    if (!isset($globalDiscountTracker[$receiptId])) {
-                                        $trxPaid = (float) ($trx->paid_amount ?? 0);
-                                        $trxTotal = (float) ($trx->selling_price ?? 0);
-                                        $globalDiscountTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
-                                    }
-                                    if ($globalDiscountTracker[$receiptId] > 0) {
-                                        $deduct = min($totalItemPrice, $globalDiscountTracker[$receiptId]);
+                                    if (isset($receiptDiscrepancies[$receiptId]) && $receiptDiscrepancies[$receiptId] > 0) {
+                                        $deduct = min($totalItemPrice, $receiptDiscrepancies[$receiptId]);
                                         $totalItemPrice -= $deduct;
-                                        $globalDiscountTracker[$receiptId] -= $deduct;
+                                        $receiptDiscrepancies[$receiptId] -= $deduct;
                                     }
                                 }
 
