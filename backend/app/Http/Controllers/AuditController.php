@@ -1638,6 +1638,12 @@ class AuditController extends Controller
                         foreach ($allNhpSums->get() as $r) {
                             $itemSumsByReceipt[$r->receipt_id] = ($itemSumsByReceipt[$r->receipt_id] ?? 0) + (float) $r->total;
                         }
+                        $trxQuery = DB::table('stock_outs')
+                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereBetween('reporting_date', [$startDate, $endDate])
+                            ->whereNull('deleted_at')
+                            ->select('receipt_id', 'selling_price', 'paid_amount', 'category', 'split_payments');
+                        $applyLocalScope($trxQuery);
                         
                         foreach ($trxQuery->get() as $trx) {
                             if (!in_array(strtolower($trx->category), ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah'])) {
