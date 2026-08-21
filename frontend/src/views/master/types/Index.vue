@@ -18,9 +18,9 @@ const editingType = ref(null);
 
 // --- Delete with Password Confirmation ---
 const showDeleteModal = ref(false);
-const deletePassword = ref('');
+const deletePin = ref('');
 const typeToDelete = ref(null);
-const verifyingPassword = ref(false);
+const verifyingPin = ref(false);
 
 // Debounce search for performance
 let searchTimeout = null;

@@ -17,9 +17,9 @@ const selectedPrice = ref(null);
 
 // --- Delete with Password Confirmation ---
 const showDeleteModal = ref(false);
-const deletePassword = ref('');
+const deletePin = ref('');
 const priceToDelete = ref(null);
-const verifyingPassword = ref(false);
+const verifyingPin = ref(false);
 
 // Debounced search
 let searchTimeout = null;
