@@ -1612,6 +1612,15 @@ class AuditController extends Controller
                         // Deduct discrepancy strictly from HP items
                         $receiptHpDiscounts = [];
                         
+                        $allHpSums = DB::table('stock_out_items')
+                            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                            ->whereNull('stock_outs.deleted_at')
+                            ->groupBy('stock_outs.receipt_id')
+                            ->select('stock_outs.receipt_id', DB::raw('SUM(stock_out_items.selling_price - COALESCE(stock_out_items.item_discount, 0)) as total'));
+                        $applyLocalScope($allHpSums);
+                        
                         $allNhpSums = DB::table('stock_out_non_hp_items')
                             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
