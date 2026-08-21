@@ -7,10 +7,18 @@ $kernel->bootstrap();
 use App\Models\StockOut;
 use App\Models\TukarTambah;
 use App\Models\Downgrade;
+use App\Models\Branch;
 use Carbon\Carbon;
 
 $date = '2026-08-21';
-$branchId = 53; // PSTORE CIKARANG
+$branch = Branch::where('name', 'PStore CIKARANG')->first();
+
+if (!$branch) {
+    die("Branch PStore CIKARANG not found.\n");
+}
+
+$branchId = $branch->id;
+echo "Found Branch: " . $branch->name . " (ID: $branchId)\n\n";
 
 $start = Carbon::parse($date)->startOfDay();
 $end = Carbon::parse($date)->endOfDay();
@@ -19,12 +27,11 @@ $end = Carbon::parse($date)->endOfDay();
 $normalSales = StockOut::whereBetween('created_at', [$start, $end])
     ->where('branch_id', $branchId)
     ->where('status', '!=', 'cancelled')
-    ->whereNotIn('category', ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'tukar_unit'])
+    ->whereNotIn('category', ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'tukar_unit', 'cancel_penjualan'])
     ->get();
 
 $penjualanStore = 0;
 foreach($normalSales as $sale) {
-    // Omset for normal sales is the paid_amount or selling_price
     $spTotal = 0;
     if ($sale->split_payments) {
         $sData = is_string($sale->split_payments) ? json_decode($sale->split_payments, true) : $sale->split_payments;
@@ -40,7 +47,7 @@ foreach($normalSales as $sale) {
     
     $omset = ($spTotal > 0) ? min($spTotal, $priceTarget) : $priceTarget;
     $penjualanStore += $omset;
-    echo "NORMAL SALE: " . $sale->receipt_id . " | Omset: " . $omset . "\n";
+    echo "NORMAL SALE: " . str_pad($sale->receipt_id, 15) . " | Omset: " . number_format($omset, 0, ',', '.') . "\n";
 }
 
 // 2. Out TT
@@ -55,7 +62,7 @@ foreach($ttSales as $sale) {
     $tt = TukarTambah::where('receipt_id', $sale->receipt_id)->first();
     $pOut = $tt ? (float) $tt->outgoing_price : (float) $sale->selling_price;
     $outTT += $pOut;
-    echo "TT SALE: " . $sale->receipt_id . " | Out TT: " . $pOut . "\n";
+    echo "TT SALE    : " . str_pad($sale->receipt_id, 15) . " | Out TT: " . number_format($pOut, 0, ',', '.') . "\n";
 }
 
 // 3. Out DG
@@ -70,16 +77,16 @@ foreach($dgSales as $sale) {
     $dg = Downgrade::where('receipt_id', $sale->receipt_id)->first();
     $pOut = $dg ? (float) $dg->outgoing_price : (float) $sale->selling_price;
     $outDG += $pOut;
-    echo "DG SALE: " . $sale->receipt_id . " | Out DG: " . $pOut . "\n";
+    echo "DG SALE    : " . str_pad($sale->receipt_id, 15) . " | Out DG: " . number_format($pOut, 0, ',', '.') . "\n";
 }
 
 $totalOmset = $penjualanStore + $outTT + $outDG;
 
 echo "\n==================================\n";
-echo "Penjualan Store dkk : " . number_format($penjualanStore, 0, ',', '.') . "\n";
-echo "Out TT              : " . number_format($outTT, 0, ',', '.') . "\n";
-echo "Out DG              : " . number_format($outDG, 0, ',', '.') . "\n";
+echo "Penjualan Store dkk : Rp " . number_format($penjualanStore, 0, ',', '.') . "\n";
+echo "Out TT              : Rp " . number_format($outTT, 0, ',', '.') . "\n";
+echo "Out DG              : Rp " . number_format($outDG, 0, ',', '.') . "\n";
 echo "----------------------------------\n";
-echo "TOTAL OMSET         : " . number_format($totalOmset, 0, ',', '.') . "\n";
+echo "TOTAL OMSET         : Rp " . number_format($totalOmset, 0, ',', '.') . "\n";
 echo "==================================\n";
 
