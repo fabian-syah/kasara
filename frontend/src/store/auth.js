@@ -87,7 +87,10 @@ export const useAuthStore = defineStore('auth', () => {
 
             return { success: true, user: userData }
         } catch (err) {
-            console.error('Login Exception:', err); // Log full error
+            // Log full error only if it's an unexpected error (not 401/422)
+            if (err.response?.status !== 401 && err.response?.status !== 422) {
+                console.error('Login Exception:', err);
+            }
             error.value = err.response?.data?.message || err.message || 'Login failed'
             
             // Pass rate limit info if 429
