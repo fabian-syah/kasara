@@ -1534,7 +1534,7 @@ class AuditController extends Controller
                         $stockReport = ['apple_lux' => 0, 'hp' => 0, 'accessories' => 0, 'apply' => 0, 'arcis' => 0, 'debs' => 0, 'dokter_pstore' => 0, 'jaringan' => 0, 'sim_card' => 0, 'laptop' => 0, 'tv' => 0, 'inventaris_toko' => 0, 'pspatu' => 0, 'psshion' => 0, 'icloud' => 0, 'others' => 0];
                         $rawStockDetails = ['hp' => [], 'apple_lux' => [], 'accessories' => [], 'apply' => [], 'arcis' => [], 'debs' => [], 'dokter_pstore' => [], 'laptop' => [], 'tv' => [], 'jaringan' => [], 'sim_card' => [], 'inventaris_toko' => [], 'pspatu' => [], 'psshion' => [], 'icloud' => [], 'others' => []];
 
-                        $getCategoryByItem = function ($did, $isHp = false) {
+                        $getCategoryByItem = function ($did, $isHp = false, $name = '') {
                             $did = (int) $did;
 
                             $idMap = [
@@ -1561,6 +1561,11 @@ class AuditController extends Controller
                             if (isset($idMap[$did])) {
                                 return $idMap[$did];
                             }
+
+                            $nameLower = strtolower($name ?? '');
+                            if (str_contains($nameLower, 'icloud')) return 'icloud';
+                            if (str_contains($nameLower, 'jasa') || str_contains($nameLower, 'service') || str_contains($nameLower, 'servis')) return 'jasa';
+                            if (str_contains($nameLower, 'case') || str_contains($nameLower, 'charger') || str_contains($nameLower, 'kabel') || str_contains($nameLower, 'adaptor') || str_contains($nameLower, 'tempered')) return 'accessories';
 
                             return $isHp ? 'hp' : 'others';
                         };
@@ -1622,7 +1627,7 @@ class AuditController extends Controller
                             // Standard sales criteria: Exclude refunds from standard unit/revenue maps
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit']);
 
-                            $itemCat = $getCategoryByItem($hp->distributor_id, true);
+                            $itemCat = $getCategoryByItem($hp->distributor_id, true, $hp->name);
                             $addUnitToMap($map, $hp->brand, $itemCat, $catLower);
 
                             if ($isStandardSale || $catLower === 'tukar_tambah') {
@@ -1796,7 +1801,7 @@ class AuditController extends Controller
                             }
 
                             $qty = (int) $item->quantity;
-                            $cat = $getCategoryByItem($did);
+                            $cat = $getCategoryByItem($did, false, $item->product?->name ?? '');
 
                             // Breakdown for non-IMEI HP if any
                             $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'downgrade', 'tukar_unit']);
@@ -1853,7 +1858,7 @@ class AuditController extends Controller
 
                         $applyStockScope($alStock);
                         foreach ($alStock->select('products.name', 'product_details.distributor_id', DB::raw('count(*) as qty'))->groupBy('products.name', 'product_details.distributor_id')->get() as $s) {
-                            $cat = $getCategoryByItem($s->distributor_id);
+                            $cat = $getCategoryByItem($s->distributor_id, false, $s->name);
                             $cleanName = trim($s->name);
                             if (!isset($rawStockDetails[$cat]))
                                 $rawStockDetails[$cat] = [];
@@ -1904,7 +1909,7 @@ class AuditController extends Controller
                                 }
                             }
 
-                            $cat = $getCategoryByItem($did);
+                            $cat = $getCategoryByItem($did, false, $s->name);
                             $cleanName = trim($s->name);
                             $qty = (int) $s->quantity;
                             if (!isset($rawStockDetails[$cat]))
