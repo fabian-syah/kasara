@@ -739,9 +739,20 @@ class ReportController extends Controller
                 $txModal += (float) ($item->product_price ?? 0) * $item->quantity;
             }
 
+            $spTotal = 0;
+            if ($tx->split_payments) {
+                $sData = is_string($tx->split_payments) ? json_decode($tx->split_payments, true) : $tx->split_payments;
+                if (is_array($sData)) {
+                    foreach ($sData as $sp) {
+                        $spTotal += abs((float) ($sp['amount'] ?? 0));
+                    }
+                }
+            }
+            $effectivePrice = ($spTotal > 0) ? $spTotal : abs($sellingPrice);
+
             if ($isTukarTambah) {
                 $tt = $tukarTambahs->get($tx->receipt_id);
-                $ttOutgoing = $tt ? $tt->sum('outgoing_price') : $sellingPrice;
+                $ttOutgoing = $tt ? $tt->sum('outgoing_price') : $effectivePrice;
                 $ttCost = $tt ? $tt->sum('incoming_cost_price') : 0;
                 $txOmset = max(0, abs($ttOutgoing));
                 $txOmsetBersih = max(0, $ttCost);
@@ -750,16 +761,16 @@ class ReportController extends Controller
                 $statsByLocation[$locKey]['tukar_tambah_amt'] += $txOmset;
             } elseif ($isDowngrade) {
                 $dg = $downgrades->get($tx->receipt_id);
-                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $sellingPrice;
+                $dgOutgoing = $dg ? $dg->sum('outgoing_price') : $effectivePrice;
                 $txOmset = max(0, abs($dgOutgoing));
-                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->incoming_cost_price) : -abs($sellingPrice);
+                $txOmsetBersih = $dg ? $dg->sum(fn($d) => $d->incoming_cost_price) : -abs($effectivePrice);
                 $txProfit = $dgOutgoing - $txModal;
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
                 $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;
             } elseif ($isNormalSales) {
-                $txOmset = max(0, abs($sellingPrice));
+                $txOmset = max(0, $effectivePrice);
                 $txOmsetBersih = $txOmset;
-                $txProfit = max(0, abs($sellingPrice)) - $txModal;
+                $txProfit = max(0, $effectivePrice) - $txModal;
             } elseif ($isAngkatBarang) {
                 $txOmsetBersih = -abs($sellingPrice);
                 $txProfit = $txModal - abs($sellingPrice);
@@ -804,10 +815,29 @@ class ReportController extends Controller
 
             // Items breakdown
             $txItems = $itemsByTx->get($tx->id, []);
+            
+            $trxItemsTotal = 0;
+            foreach ($txItems as $item) {
+                $trxItemsTotal += ($item->item_price > 0) ? (float) $item->item_price : (float) $item->product_price;
+            }
+            foreach ($txNonHpItems as $item) {
+                $trxItemsTotal += (float) ($item->product_price ?? 0) * $item->quantity;
+            }
+            
+            $discrepancy = 0;
+            if ($isNormalSales && $trxItemsTotal > 0 && round($trxItemsTotal) != round($txOmset)) {
+                $discrepancy = $trxItemsTotal - $txOmset;
+            }
+            
             foreach ($txItems as $item) {
                 $brand = strtolower($item->brand);
                 $isIphone = str_contains($brand, 'iphone') || str_contains($brand, 'apple');
-                $price = $txOmset > 0 ? ($txOmset / count($txItems)) : (abs($sellingPrice) / count($txItems)); 
+                
+                $basePrice = ($item->item_price > 0) ? (float) $item->item_price : (float) $item->product_price;
+                $price = $basePrice;
+                if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                    $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                }
                 
                 if ($isIphone) {
                     if ($item->condition === 'new') {
@@ -821,6 +851,16 @@ class ReportController extends Controller
                     $statsByLocation[$locKey]['android_qty'] += 1;
                     $statsByLocation[$locKey]['android_amt'] += $price;
                 }
+            }
+            
+            // non hp items discrepancy distribution
+            foreach ($txNonHpItems as $item) {
+                $basePrice = (float) ($item->product_price ?? 0) * $item->quantity;
+                $price = $basePrice;
+                if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                    $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                }
+                $statsByLocation[$locKey]['android_amt'] += 0; // non hp items usually not counted here, but if needed we can add logic
             }
         }
 

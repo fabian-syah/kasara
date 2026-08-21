@@ -3293,9 +3293,49 @@ class AuditController extends Controller
             $details = [];
             $calculatedTotal = 0;
 
+            // Pre-calculate exact discrepancy to match Omset exactly
+            $catLower = strtolower($trx->category);
+            $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'pelunasan_dp']);
+            
+            $dbSellingPrice = $catLower === 'pelunasan_dp' ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
+            $spTotal = 0;
+            if ($trx->split_payments) {
+                $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                if (is_array($sData)) {
+                    foreach ($sData as $sp) {
+                        $spTotal += abs((float) ($sp['amount'] ?? 0));
+                    }
+                }
+            }
+            $targetTrxOmset = ($spTotal > 0) ? $spTotal : $dbSellingPrice;
+            
+            $trxItemsTotal = 0;
+            foreach ($trx->items as $item) {
+                $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
+            }
+            $jsonItems = $trx->non_hp_items;
+            if (is_array($jsonItems) && count($jsonItems) > 0) {
+                foreach ($jsonItems as $itemData) {
+                    $trxItemsTotal += (($itemData['selling_price'] ?? 0) * ($itemData['quantity'] ?? 1));
+                }
+            } else {
+                foreach ($trx->nonHpItems as $nhp) {
+                    $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                }
+            }
+            
+            $discrepancy = 0;
+            if ($isNormalSales && $trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
+                $discrepancy = $trxItemsTotal - $targetTrxOmset;
+            }
+
             // HP Items
             foreach ($trx->items as $item) {
-                $price = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
+                $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
+                $price = $basePrice;
+                if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                    $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                }
                 $details[] = [
                     'id' => 'hp_' . $item->id,
                     'name' => $item->product?->name ?? 'Unknown HP',
@@ -3318,8 +3358,12 @@ class AuditController extends Controller
                 $productMap = $trx->nonHpItems->pluck('product', 'product_id');
                 foreach ($jsonItems as $idx => $itemData) {
                     $product = $productMap[$itemData['product_id'] ?? null] ?? null;
-                    $price = $itemData['selling_price'] ?? 0;
+                    $basePrice = $itemData['selling_price'] ?? 0;
                     $qty = $itemData['quantity'] ?? 1;
+                    $price = $basePrice;
+                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                    }
                     $details[] = [
                         'id' => 'nonhp_json_' . $idx,
                         'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
@@ -3335,25 +3379,25 @@ class AuditController extends Controller
             } else {
                 foreach ($trx->nonHpItems as $nhp) {
                     $basePrice = $nhp->product?->price ?? 0;
+                    $price = $basePrice;
+                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                    }
                     $details[] = [
                         'id' => 'nonhp_' . $nhp->id,
                         'name' => $nhp->product?->name ?? 'Unknown Item',
                         'qty' => $nhp->quantity,
-                        'price' => $basePrice,
+                        'price' => $price,
                         'is_fixed' => true,
                         'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
                         'type' => 'Non-HP',
                         'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0)
                     ];
-                    $calculatedTotal += ($basePrice * $nhp->quantity);
+                    $calculatedTotal += ($price * $nhp->quantity);
                 }
             }
 
-            // Gap handling (Disk/Admin)
-            $remainingBalance = $trx->selling_price - $calculatedTotal;
-            if (abs($remainingBalance) > 1) {
-                $details[] = ['id' => 'gap_1', 'name' => $remainingBalance > 0 ? 'Biaya Admin / Tambahan' : 'Diskon', 'qty' => 1, 'price' => $remainingBalance, 'brand' => '-', 'type' => 'Lainnya', 'raw_cost_price' => 0];
-            }
+            // Gap handling removed because exact matching is achieved via proportional deduction
 
             // Outlet Name (Pre-fetched)
             $sourceUser = $trx->inventoryUser ?? $trx->user;
