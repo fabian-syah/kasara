@@ -24,7 +24,7 @@ $start = Carbon::parse($date)->startOfDay();
 $end = Carbon::parse($date)->endOfDay();
 
 // 1. Penjualan Store (dan penjualan normal lainnya)
-$normalSales = StockOut::whereBetween('created_at', [$start, $end])
+$normalSales = StockOut::where('reporting_date', $date)
     ->where('branch_id', $branchId)
     ->where('status', '!=', 'cancelled')
     ->whereNotIn('category', ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'tukar_unit', 'cancel_penjualan'])
@@ -51,7 +51,7 @@ foreach($normalSales as $sale) {
 }
 
 // 2. Out TT
-$ttSales = StockOut::whereBetween('created_at', [$start, $end])
+$ttSales = StockOut::where('reporting_date', $date)
     ->where('branch_id', $branchId)
     ->where('status', '!=', 'cancelled')
     ->where('category', 'tukar_tambah')
@@ -66,7 +66,7 @@ foreach($ttSales as $sale) {
 }
 
 // 3. Out DG
-$dgSales = StockOut::whereBetween('created_at', [$start, $end])
+$dgSales = StockOut::where('reporting_date', $date)
     ->where('branch_id', $branchId)
     ->where('status', '!=', 'cancelled')
     ->where('category', 'downgrade')
