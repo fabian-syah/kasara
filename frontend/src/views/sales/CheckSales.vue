@@ -287,15 +287,15 @@
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">
                                         <div class="flex flex-col">
-                                            <span>{{ formatCurrency(detail.price) }}</span>
+                                            <span>{{ detail.is_incoming || String(detail.name).startsWith('IN:') ? '-' : '' }}{{ formatCurrency(detail.price) }}</span>
                                             <span v-if="detail.item_discount > 0"
                                                 class="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-red-100 dark:border-red-500/20">
                                                 Disc: -{{ formatCurrency(detail.item_discount) }}
                                             </span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
-                                        formatCurrency(detail.price * detail.qty) }}</td>
+                                    <td class="px-6 py-4 font-black whitespace-nowrap" :class="detail.is_incoming || String(detail.name).startsWith('IN:') ? 'text-red-500' : 'text-text-primary'">{{
+                                        (detail.is_incoming || String(detail.name).startsWith('IN:')) ? '-' : '' }}{{ formatCurrency(detail.price * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1 items-start">
                                             <span v-if="item.global_discount_value > 0"
@@ -304,7 +304,7 @@
                                             </span>
                                             <span
                                                 class="font-black text-emerald-600 dark:text-emerald-400 text-[13px] whitespace-nowrap">
-                                                {{ formatCurrency(item.grand_total) }}
+                                                {{ formatCurrency(['tukar_tambah', 'downgrade'].includes((item.category || '').toLowerCase()) ? item.items.reduce((sum, d) => sum + (d.is_incoming || String(d.name).startsWith('IN:') ? 0 : (d.price * d.qty)), 0) : item.grand_total) }}
                                             </span>
                                         </div>
                                     </td>
