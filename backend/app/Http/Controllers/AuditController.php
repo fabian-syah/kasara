@@ -2443,10 +2443,10 @@ class AuditController extends Controller
                 // Tukar Tambah: selisih harga = uang masuk ke toko (positif)
                 // Downgrade, Refund, Angkat Barang: uang keluar dari toko (negatif)
                 // Tukar Unit: selisih selalu 0
-                if (in_array($catLower, ['refund', 'angkat_barang', 'downgrade'])) {
+                if (in_array($catLower, ['refund', 'angkat_barang'])) {
                     $finalPrice = -abs($rawSellingPrice);
-                } elseif ($catLower === 'tukar_tambah') {
-                    $finalPrice = abs($rawSellingPrice);
+                } elseif (in_array($catLower, ['tukar_tambah', 'downgrade'])) {
+                    $finalPrice = $priceOut;
                 } elseif ($catLower === 'tukar_unit') {
                     $finalPrice = 0;
                 } else {
