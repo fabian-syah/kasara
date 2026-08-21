@@ -1221,15 +1221,16 @@ const allReceiptItems = computed(() => {
         
         if (dpAmount > 0) {
             let dpLabel = 'DP';
-            if (props.transaction.bundle_description && props.transaction.bundle_description.startsWith('DP: ')) {
-                dpLabel = props.transaction.bundle_description.replace('DP: ', '').trim();
-            } else {
-                let noteStr = props.transaction.notes || '';
-                const match = noteStr.match(/Nota:\s*([^\s\n]+)/i);
-                if (match) {
-                    dpLabel = `NOTA: ${match[1]}`;
-                }
+            const custName = props.transaction.customer_name || 'Umum';
+            let dpDateStr = '';
+            
+            const noteStr = props.transaction.notes || '';
+            const dateMatch = noteStr.match(/Nota:\s*[A-Z]?(\d{2})([A-Z]{3})/i);
+            if (dateMatch) {
+                dpDateStr = dateMatch[1] + ' ' + dateMatch[2].toUpperCase();
             }
+
+            dpLabel = `: ${custName}${dpDateStr ? ' ' + dpDateStr : ''}`;
 
             list.push({
                 name: dpLabel,
