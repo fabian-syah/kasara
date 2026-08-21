@@ -724,7 +724,7 @@ class ReportController extends Controller
             
             $isNormalSales = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp']);
 
-            $sellingPrice = $cat === 'pelunasan_dp' ? (float) $tx->paid_amount : (float) $tx->selling_price;
+            $sellingPrice = $cat === 'pelunasan_dp' ? (float) ($tx->paid_amount ?? 0) : (float) ($tx->selling_price ?? 0);
             $txOmset = 0;
             $txOmsetBersih = 0;
             
@@ -1075,7 +1075,7 @@ class ReportController extends Controller
                 $saleType = 'downgrade';
             }
 
-            $price = $cat === 'pelunasan_dp' ? max(0, abs((float) $tx->paid_amount)) : max(0, abs((float) $tx->selling_price));
+            $price = $cat === 'pelunasan_dp' ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
             $spTotal = 0;
             if ($tx->split_payments) {
                 $sData = is_string($tx->split_payments) ? json_decode($tx->split_payments, true) : $tx->split_payments;
