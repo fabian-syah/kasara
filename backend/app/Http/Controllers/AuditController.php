@@ -1609,16 +1609,8 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
 
-                        // Pre-calculate proportional discrepancy factor to sync item prices with actual Omset target
-                        $receiptProportions = [];
-                        $allHpSums = DB::table('stock_out_items')
-                            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
-                            ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                            ->whereNull('stock_outs.deleted_at')
-                            ->groupBy('stock_outs.receipt_id')
-                            ->select('stock_outs.receipt_id', DB::raw('SUM(stock_out_items.selling_price - COALESCE(stock_out_items.item_discount, 0)) as total'));
-                        $applyLocalScope($allHpSums);
+                        // Deduct discrepancy strictly from HP items
+                        $receiptHpDiscounts = [];
                         
                         $allNhpSums = DB::table('stock_out_non_hp_items')
                             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
@@ -1631,19 +1623,13 @@ class AuditController extends Controller
 
                         $itemSumsByReceipt = [];
                         foreach ($allHpSums->get() as $r) {
+                            $hpSumsByReceipt[$r->receipt_id] = (float) $r->total;
                             $itemSumsByReceipt[$r->receipt_id] = (float) $r->total;
                         }
                         foreach ($allNhpSums->get() as $r) {
                             $itemSumsByReceipt[$r->receipt_id] = ($itemSumsByReceipt[$r->receipt_id] ?? 0) + (float) $r->total;
                         }
-
-                        $trxQuery = DB::table('stock_outs')
-                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
-                            ->whereBetween('reporting_date', [$startDate, $endDate])
-                            ->whereNull('deleted_at')
-                            ->select('receipt_id', 'selling_price', 'paid_amount', 'category', 'split_payments');
-                        $applyLocalScope($trxQuery);
-
+                        
                         foreach ($trxQuery->get() as $trx) {
                             if (!in_array(strtolower($trx->category), ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah'])) {
                                 $sumItems = $itemSumsByReceipt[$trx->receipt_id] ?? 0;
@@ -1664,7 +1650,8 @@ class AuditController extends Controller
                                 $targetOmset = ($spTotal > 0) ? min($spTotal, $price) : $price;
 
                                 if ($sumItems > 0 && $targetOmset > 0 && abs($sumItems - $targetOmset) > 0.01) {
-                                    $receiptProportions[$trx->receipt_id] = $targetOmset / $sumItems;
+                                    $discrepancy = $sumItems - $targetOmset;
+                                    $receiptHpDiscounts[$trx->receipt_id] = $discrepancy;
                                 }
                             }
                         }
@@ -1695,8 +1682,13 @@ class AuditController extends Controller
 
                                 if ($isStandardSale && $catLower !== 'tukar_tambah') {
                                     $receiptId = $hp->receipt_id ?? 'unknown';
-                                    if (isset($receiptProportions[$receiptId])) {
-                                        $price = $price * $receiptProportions[$receiptId];
+                                    if (isset($receiptHpDiscounts[$receiptId])) {
+                                        $disc = $receiptHpDiscounts[$receiptId];
+                                        $hpTotal = $hpSumsByReceipt[$receiptId] ?? 0;
+                                        if ($hpTotal > 0) {
+                                            // Deduct proportionally across HP items in this receipt
+                                            $price -= ($price / $hpTotal) * $disc;
+                                        }
                                     }
                                 }
 
@@ -1890,12 +1882,7 @@ class AuditController extends Controller
 
                                 $totalItemPrice = $pricePerItem * $qty;
 
-                                if ($isStandardSale && $catLower !== 'tukar_tambah') {
-                                    $receiptId = $trx->receipt_id ?? 'unknown';
-                                    if (isset($receiptProportions[$receiptId])) {
-                                        $totalItemPrice = $totalItemPrice * $receiptProportions[$receiptId];
-                                    }
-                                }
+                                // Removed non-HP proportional discount logic to keep their prices fully intact
 
                                 if ($catLower === 'tukar_tambah') {
                                     $productTradeSelisih += abs((float) $item->selling_price) * $qty;
