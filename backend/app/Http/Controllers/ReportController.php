@@ -391,7 +391,7 @@ class ReportController extends Controller
                 DB::raw("SUM(CASE 
                     WHEN stock_outs.category = 'tukar_tambah' THEN COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                     WHEN stock_outs.category = 'downgrade' THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
-                    WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN ABS(COALESCE(stock_outs.selling_price, 0)) 
+                    WHEN stock_outs.category NOT IN ('refund', 'angkat_barang') THEN CASE WHEN stock_outs.category = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END 
                     ELSE 0 
                 END) as omset")
             );
@@ -631,6 +631,7 @@ class ReportController extends Controller
             'stock_outs.id',
             'stock_outs.category',
             'stock_outs.selling_price',
+            'stock_outs.paid_amount',
             'stock_outs.payment_method_id',
             'stock_outs.split_payments',
             'stock_outs.notes',
@@ -723,7 +724,7 @@ class ReportController extends Controller
             
             $isNormalSales = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp']);
 
-            $sellingPrice = (float) $tx->selling_price;
+            $sellingPrice = $cat === 'pelunasan_dp' ? (float) $tx->paid_amount : (float) $tx->selling_price;
             $txOmset = 0;
             $txOmsetBersih = 0;
             
@@ -1034,8 +1035,8 @@ class ReportController extends Controller
             'stock_outs.id',
             'stock_outs.category',
             'stock_outs.selling_price',
-            'stock_outs.split_payments',
-            'stock_outs.notes',
+            'stock_outs.paid_amount',
+            'stock_outs.total_discount',
             'stock_outs.sales_account',
             'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
@@ -1074,7 +1075,7 @@ class ReportController extends Controller
                 $saleType = 'downgrade';
             }
 
-            $price = max(0, abs((float) $tx->selling_price));
+            $price = $cat === 'pelunasan_dp' ? max(0, abs((float) $tx->paid_amount)) : max(0, abs((float) $tx->selling_price));
             $spTotal = 0;
             if ($tx->split_payments) {
                 $sData = is_string($tx->split_payments) ? json_decode($tx->split_payments, true) : $tx->split_payments;

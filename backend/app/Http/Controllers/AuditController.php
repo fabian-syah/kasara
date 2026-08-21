@@ -651,7 +651,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = max(0, abs((float) $tx->selling_price));
+                        $price = $cat === 'pelunasan_dp' ? max(0, abs((float) $tx->paid_amount)) : max(0, abs((float) $tx->selling_price));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -847,6 +847,7 @@ class AuditController extends Controller
                         'stock_outs.reporting_date',
                         'stock_outs.created_at',
                         'stock_outs.selling_price',
+                        'stock_outs.paid_amount',
                         'stock_outs.total_discount',
                         'stock_outs.notes',
                         'stock_outs.sales_account',
@@ -874,7 +875,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = max(0, abs((float) $tx->selling_price));
+                        $price = $cat === 'pelunasan_dp' ? max(0, abs((float) $tx->paid_amount)) : max(0, abs((float) $tx->selling_price));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
