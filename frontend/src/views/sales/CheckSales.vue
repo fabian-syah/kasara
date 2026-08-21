@@ -287,7 +287,7 @@
                                     <td class="px-6 py-4 font-bold">{{ detail.qty }}</td>
                                     <td class="px-6 py-4 font-bold text-emerald-600 whitespace-nowrap">
                                         <div class="flex flex-col">
-                                            <span>{{ formatCurrency(detail.original_price || detail.price) }}</span>
+                                            <span>{{ formatCurrency(detail.price) }}</span>
                                             <span v-if="detail.item_discount > 0"
                                                 class="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded w-fit mt-0.5 border border-red-100 dark:border-red-500/20">
                                                 Disc: -{{ formatCurrency(detail.item_discount) }}
@@ -295,7 +295,7 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 font-black text-text-primary whitespace-nowrap">{{
-                                        formatCurrency((detail.original_price ? (detail.original_price - detail.item_discount) : detail.price) * detail.qty) }}</td>
+                                        formatCurrency(detail.price * detail.qty) }}</td>
                                     <td class="px-6 py-4" v-if="idx === 0" :rowspan="item.items.length">
                                         <div class="flex flex-col gap-1 items-start">
                                             <span v-if="item.global_discount_value > 0"
