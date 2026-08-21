@@ -184,12 +184,12 @@ class DashboardController extends Controller
             $notes = strtolower($sale->notes ?? '');
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
-            $price = abs((float)($sale->selling_price ?? 0));
+            $price = $cat === 'pelunasan_dp' ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0));
 
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                 $saleType = 'tukar_tambah';
-            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp'])) {
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
@@ -288,7 +288,7 @@ class DashboardController extends Controller
             return [
                 'id' => $trx->receipt_id,
                 'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? $trx->customer_name ?? 'Guest',
-                'total' => abs((float)($trx->selling_price ?? 0)),
+                'total' => $trx->category === 'pelunasan_dp' ? abs((float)($trx->paid_amount ?? 0)) : abs((float)($trx->selling_price ?? 0)),
                 'time' => $trx->created_at->diffForHumans(),
                 'datetime' => $trx->created_at->format('d M H:i'),
                 'status' => 'success'
@@ -468,7 +468,7 @@ class DashboardController extends Controller
                     }
                 }
 
-                $price = abs((float)($sale->selling_price ?? 0));
+                $price = $cat === 'pelunasan_dp' ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0));
 
                 $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp']);
                 $isTradeIn = ($cat === 'tukar_tambah');
