@@ -2148,11 +2148,46 @@ class AuditController extends Controller
                     }
                 }
 
+                $trxProportion = 1.0;
+                $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah']);
+                if ($isStandardSale) {
+                    $priceTarget = $catLower === 'pelunasan_dp' 
+                        ? max(0, abs((float) ($trx->paid_amount ?? 0))) 
+                        : max(0, abs((float) ($trx->selling_price ?? 0)));
+                        
+                    $spTotal = 0;
+                    if ($trx->split_payments) {
+                        $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                        if (is_array($sData)) {
+                            foreach ($sData as $sp) {
+                                $spTotal += abs((float) ($sp['amount'] ?? 0));
+                            }
+                        }
+                    }
+                    $targetOmset = ($spTotal > 0) ? min($spTotal, $priceTarget) : $priceTarget;
+                    
+                    $sumItemsRaw = 0;
+                    foreach ($trx->items as $i) {
+                        $sumItemsRaw += max(0, (float) ($i->pivot?->selling_price ?? $i->selling_price ?? 0) - (float) ($i->pivot?->item_discount ?? 0));
+                    }
+                    foreach ($trx->nonHpDetails as $i) {
+                        $sumItemsRaw += max(0, (float) ($i->selling_price ?? 0) - (float) ($i->item_discount ?? 0)) * max(1, (int)$i->quantity);
+                    }
+                    
+                    if ($sumItemsRaw > 0 && $targetOmset > 0 && abs($sumItemsRaw - $targetOmset) > 0.01) {
+                        $trxProportion = $targetOmset / $sumItemsRaw;
+                    }
+                }
+
                 foreach ($trx->items as $item) {
                     $dId = $item->distributor_id ?? $item->pivot?->distributor_id;
                     $dist = $dId ? $distributors->get($dId) : null;
                     $dName = $dist ? ($dist->name ?? 'KOSONG') : ($item->supplier_name ?? 'KOSONG');
                     $basePrice = ($item->pivot?->selling_price ?? $item->selling_price ?? 0) - ($item->pivot?->item_discount ?? 0);
+
+                    if ($isStandardSale) {
+                        $basePrice *= $trxProportion;
+                    }
 
                     if ($basePrice <= 0 && in_array(strtolower($trx->category), ['angkat_barang', 'refund', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                         $basePrice = (float) ($item->cost_price ?? 0);
@@ -2187,6 +2222,9 @@ class AuditController extends Controller
                 foreach ($trx->nonHpDetails as $item) {
                     $qty = $item->quantity;
                     $price = ($item->selling_price ?? 0) - ($item->item_discount ?? 0);
+                    if ($isStandardSale) {
+                        $price *= $trxProportion;
+                    }
                     $did = $item->distributor_id;
                     if (!$did && $item->product) {
                         $did = $item->product->distributor_id;
