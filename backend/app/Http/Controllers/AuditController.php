@@ -1604,7 +1604,8 @@ class AuditController extends Controller
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
 
-                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account', 'stock_outs.paid_amount', 'stock_outs.selling_price as trx_selling_price')->get() as $hp) {
+                        static $dpTracker = [];
+                        foreach ($hpItemsQuery->select('products.name', 'products.brand', 'product_details.distributor_id', 'product_details.storage', 'product_details.cost_price', 'stock_out_items.selling_price as item_price', 'stock_out_items.item_discount', 'stock_outs.category', 'product_details.imei', 'stock_outs.selling_price as total_diff', 'stock_outs.notes', 'stock_outs.sales_account', 'stock_outs.paid_amount', 'stock_outs.selling_price as trx_selling_price', 'stock_outs.receipt_id')->get() as $hp) {
                             $catLower = $resolveActualCategory($hp->category, $hp->notes, $hp->sales_account);
                             if (in_array($catLower, ['refund', 'retur', 'angkat_barang', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
                                 $key = $catLower === 'downgrade' ? 'out_dg' : $catLower;
@@ -1629,11 +1630,16 @@ class AuditController extends Controller
                                 $price = (float) $hp->item_price - (float) ($hp->item_discount ?? 0);
 
                                 if ($catLower === 'pelunasan_dp') {
-                                    $trxPaid = (float) ($hp->paid_amount ?? 0);
-                                    $trxTotal = (float) ($hp->trx_selling_price ?? 0);
-                                    if ($trxTotal > 0) {
-                                        $price = $price * ($trxPaid / $trxTotal);
+                                    $receiptId = $hp->receipt_id ?? 'unknown';
+                                    if (!isset($dpTracker[$receiptId])) {
+                                        $trxPaid = (float) ($hp->paid_amount ?? 0);
+                                        $trxTotal = (float) ($hp->trx_selling_price ?? 0);
+                                        $dpTracker[$receiptId] = max(0, $trxTotal - $trxPaid);
                                     }
+                                    
+                                    $deduct = min($price, $dpTracker[$receiptId]);
+                                    $price -= $deduct;
+                                    $dpTracker[$receiptId] -= $deduct;
                                 }
 
                                 if ($catLower === 'tukar_tambah') {
@@ -1823,14 +1829,6 @@ class AuditController extends Controller
                                 $pricePerItem = ($catLower === 'tukar_tambah')
                                     ? abs((float) $item->selling_price)
                                     : (float) ($item->selling_price ?? 0) - (float) ($item->item_discount ?? 0);
-
-                                if ($catLower === 'pelunasan_dp') {
-                                    $trxPaid = (float) ($trx->paid_amount ?? 0);
-                                    $trxTotal = (float) ($trx->selling_price ?? 0);
-                                    if ($trxTotal > 0) {
-                                        $pricePerItem = $pricePerItem * ($trxPaid / $trxTotal);
-                                    }
-                                }
 
                                 if ($catLower === 'tukar_tambah') {
                                     $productTradeSelisih += abs((float) $item->selling_price) * $qty;
