@@ -1230,7 +1230,7 @@ const allReceiptItems = computed(() => {
                 dpDateStr = dateMatch[1] + ' ' + dateMatch[2].toUpperCase();
             }
 
-            dpLabel = `: ${custName}${dpDateStr ? ' ' + dpDateStr : ''}`;
+            dpLabel = `DP : ${custName}${dpDateStr ? ' ' + dpDateStr : ''}`;
 
             list.push({
                 name: dpLabel,
