@@ -1075,7 +1075,7 @@ const summaryStats = computed(() => {
         let saleType = 'other';
         if (cat === 'tukar_tambah') {
             saleType = 'tukar_tambah';
-        } else if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'].includes(cat)) {
+        } else if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'].includes(cat)) {
             saleType = 'base_sale';
         }
         const isBaseSale = saleType === 'base_sale';

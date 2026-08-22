@@ -881,7 +881,7 @@ class AuditController extends Controller
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                             $saleType = 'tukar_tambah';
-                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp'])) {
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                             $saleType = 'base_sale';
                         } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                             $saleType = 'angkat_barang';
@@ -1450,7 +1450,7 @@ class AuditController extends Controller
                             $saleType = 'ignored';
                             if ($cat === 'tukar_tambah') {
                                 $saleType = 'tukar_tambah';
-                            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp'])) {
+                            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                                 $saleType = 'base_sale';
                             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                                 $saleType = 'angkat_barang';
@@ -1604,7 +1604,7 @@ class AuditController extends Controller
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                             ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                             ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'pelunasan_dp']);
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'dp', 'pelunasan_dp']);
                         $applyLocalScope($hpItemsQuery);
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
@@ -1614,7 +1614,7 @@ class AuditController extends Controller
                         
                         $allHpSums = DB::table('stock_out_items')
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->whereNull('stock_outs.deleted_at')
                             ->groupBy('stock_outs.receipt_id')
@@ -1623,7 +1623,7 @@ class AuditController extends Controller
                         
                         $allNhpSums = DB::table('stock_out_non_hp_items')
                             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->whereNull('stock_outs.deleted_at')
                             ->groupBy('stock_outs.receipt_id')
@@ -1639,7 +1639,7 @@ class AuditController extends Controller
                             $itemSumsByReceipt[$r->receipt_id] = ($itemSumsByReceipt[$r->receipt_id] ?? 0) + (float) $r->total;
                         }
                         $trxQuery = DB::table('stock_outs')
-                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'pelunasan_dp'])
+                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('reporting_date', [$startDate, $endDate])
                             ->whereNull('deleted_at')
                             ->select('receipt_id', 'selling_price', 'paid_amount', 'category', 'split_payments');

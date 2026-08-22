@@ -236,7 +236,7 @@ class SalesExport
             $currentSumPrice = abs($sumOutPrices);
             $discount = (float)($so->total_discount ?? 0);
             
-            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship']);
+            $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp']);
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
 
             if ($isBaseSale) {
