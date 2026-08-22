@@ -658,7 +658,8 @@ class ReportController extends Controller
             'products.brand',
             'product_details.condition',
             'product_details.cost_price',
-            'stock_out_items.selling_price as item_price'
+            'stock_out_items.selling_price as item_price',
+            'products.price as product_price'
         )->get();
 
         $itemsByTx = $items->groupBy('stock_out_id');
