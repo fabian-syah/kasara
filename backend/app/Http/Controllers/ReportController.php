@@ -316,7 +316,7 @@ class ReportController extends Controller
         // Group CS stats by Petugas Stok (inventory_user_id) as requested
         $csUserIdField = 'inventory_user_id';
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'pelunasan_dp'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
 
 
@@ -611,7 +611,7 @@ class ReportController extends Controller
             }
         }
         
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
 
         // 1. Get Payment Methods
@@ -722,9 +722,9 @@ class ReportController extends Controller
             $isTukarUnit = $cat === 'tukar_unit' || str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($account, 'tukar unit') || str_contains($account, 'tukar_unit');
             $isDowngrade = $cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($account, 'downgrade');
             
-            $isNormalSales = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp']);
+            $isNormalSales = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp']);
 
-            $sellingPrice = $cat === 'pelunasan_dp' ? (float) ($tx->paid_amount ?? 0) : (float) ($tx->selling_price ?? 0);
+            $sellingPrice = ($cat === 'pelunasan_dp' || $cat === 'dp') ? (float) ($tx->paid_amount ?? 0) : (float) ($tx->selling_price ?? 0);
             $txOmset = 0;
             $txOmsetBersih = 0;
             
@@ -1041,7 +1041,7 @@ class ReportController extends Controller
             }
         }
         
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
 
 
@@ -1077,6 +1077,8 @@ class ReportController extends Controller
             'stock_outs.selling_price',
             'stock_outs.paid_amount',
             'stock_outs.total_discount',
+            'stock_outs.split_payments',
+            'stock_outs.notes',
             'stock_outs.sales_account',
             'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
@@ -1105,7 +1107,7 @@ class ReportController extends Controller
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                 $saleType = 'tukar_tambah';
-            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
@@ -1115,7 +1117,7 @@ class ReportController extends Controller
                 $saleType = 'downgrade';
             }
 
-            $price = $cat === 'pelunasan_dp' ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
+            $price = ($cat === 'pelunasan_dp' || $cat === 'dp') ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
             $spTotal = 0;
             if ($tx->split_payments) {
                 $sData = is_string($tx->split_payments) ? json_decode($tx->split_payments, true) : $tx->split_payments;
