@@ -109,7 +109,7 @@ const confirmDelete = async () => {
     verifyingPin.value = true;
     try {
         // 1. Verify PIN
-        await apiAuth.verifyPin(deletePin.value);
+        await apiAuth.verifyPassword(deletePin.value);
         await api.delete(priceToDelete.value);
         toast.success('Harga berhasil dihapus');
         fetchData();
@@ -117,7 +117,7 @@ const confirmDelete = async () => {
     } catch (error) {
         console.error(error);
         if (error.response && error.response.status === 422) {
-            toast.error('PIN Keamanan salah!');
+            toast.error('Password salah!');
         } else {
             toast.error('Gagal menghapus harga');
         }
@@ -397,12 +397,12 @@ const exportToExcel = () => {
             <div class="bg-surface-800 border border-surface-700 rounded-2xl w-full max-w-md p-6 shadow-xl">
                 <h3 class="text-lg font-bold text-text-primary mb-2">Konfirmasi Hapus</h3>
                 <p class="text-text-secondary text-sm mb-5">
-                    Masukkan PIN Keamanan Anda untuk melanjutkan penghapusan harga ini.
+                    Masukkan Password Anda untuk melanjutkan penghapusan harga ini.
                 </p>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">PIN Keamanan</label>
-                        <input v-model="deletePin" type="password" placeholder="Masukkan PIN keamanan anda" maxlength="4"
+                        <label class="block text-xs font-medium text-text-secondary uppercase mb-1">Password</label>
+                        <input v-model="deletePin" type="password" placeholder="Masukkan password anda"
                             class="w-full bg-surface-900 border border-surface-700 rounded-xl px-4 py-3 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all placeholder:text-surface-500"
                             @keyup.enter="confirmDelete" />
                     </div>
