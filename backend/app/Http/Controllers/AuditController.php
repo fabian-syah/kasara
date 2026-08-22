@@ -1649,7 +1649,7 @@ class AuditController extends Controller
                             if (!in_array(strtolower($trx->category), ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah'])) {
                                 $sumItems = $itemSumsByReceipt[$trx->receipt_id] ?? 0;
                                 
-                                $price = strtolower($trx->category) === 'pelunasan_dp' 
+                                $price = (strtolower($trx->category) === 'pelunasan_dp' || strtolower($trx->category) === 'dp') 
                                     ? max(0, abs((float) ($trx->paid_amount ?? 0))) 
                                     : max(0, abs((float) ($trx->selling_price ?? 0)));
                                     
@@ -1663,6 +1663,11 @@ class AuditController extends Controller
                                     }
                                 }
                                 $targetOmset = ($spTotal > 0) ? min($spTotal, $price) : $price;
+
+                                // If this is a DP transaction with no items attached, add its omset directly to HP Sales
+                                if ($sumItems == 0 && in_array(strtolower($trx->category), ['dp', 'pelunasan_dp'])) {
+                                    $mapRp['hp'] = ($mapRp['hp'] ?? 0) + $targetOmset;
+                                }
 
                                 if ($sumItems > 0 && $targetOmset > 0 && abs($sumItems - $targetOmset) > 0.01) {
                                     $discrepancy = $sumItems - $targetOmset;
