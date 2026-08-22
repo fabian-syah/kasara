@@ -1212,7 +1212,10 @@ const allReceiptItems = computed(() => {
 
     // 3. Add DP Deduction for Pelunasan DP
     if (props.transaction.category === 'pelunasan_dp') {
-        const itemsTotal = list.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty)), 0);
+        const itemsTotal = list.reduce((sum, item) => {
+            const p = Number(item.original_price ?? item.pivot?.selling_price ?? item.selling_price ?? item.price ?? 0);
+            return sum + (p * Number(item.qty || 1));
+        }, 0);
         const gTotal = Number(props.transaction.grand_total || props.transaction.total || 0);
         const tDiscount = Number(props.transaction.total_discount || 0);
         
@@ -1236,6 +1239,8 @@ const allReceiptItems = computed(() => {
                 name: dpLabel,
                 imei: '-',
                 price: -Math.abs(dpAmount),
+                original_price: -Math.abs(dpAmount),
+                selling_price: -Math.abs(dpAmount),
                 qty: 1,
                 is_hp: false,
                 is_dp_deduction: true
