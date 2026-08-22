@@ -564,6 +564,10 @@
                                         
                                         <!-- Payment Details in Title -->
                                         <div v-if="currentProofType === 'payment' && currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5" title="Waktu Transaksi">
+                                                <Calendar :size="12" class="text-text-secondary" />
+                                                <span class="text-text-primary">{{ currentProofItem.created_at ? new Date(currentProofItem.created_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}).replace(/\./g, ':') + ' WIB' : (formatDate(currentProofItem.date) + (currentProofItem.time ? ', ' + currentProofItem.time.slice(0, 5).replace(/\./g, ':') + ' WIB' : '')) }}</span>
+                                            </div>
                                             <template v-if="currentProofItem.split_payments_data && currentProofItem.split_payments_data.length > 0">
                                                 <div v-for="(split, sIdx) in currentProofItem.split_payments_data" :key="sIdx" class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                     <span class="text-text-secondary uppercase text-[10px] tracking-wider">{{ split.method_name }}:</span>
