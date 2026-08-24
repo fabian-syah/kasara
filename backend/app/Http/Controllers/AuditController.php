@@ -652,12 +652,12 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = $cat === 'pelunasan_dp' ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
+                        $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                             $saleType = 'tukar_tambah';
-                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp'])) {
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                             $saleType = 'base_sale';
                         } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                             $saleType = 'angkat_barang';
@@ -876,7 +876,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = $cat === 'pelunasan_dp' ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
+                        $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -1445,7 +1445,7 @@ class AuditController extends Controller
                             $notes = strtolower($ps->notes ?? '');
                             $sa = strtolower($ps->sales_account ?? '');
                             $cat = strtolower(str_replace(' ', '_', $ps->category ?? ''));
-                            $price = $cat === 'pelunasan_dp' ? max(0, abs((float) ($ps->paid_amount ?? 0))) : max(0, abs((float) ($ps->selling_price ?? 0)));
+                            $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($ps->paid_amount ?? 0))) : max(0, abs((float) ($ps->selling_price ?? 0)));
 
                             $saleType = 'ignored';
                             if ($cat === 'tukar_tambah') {
@@ -2158,7 +2158,7 @@ class AuditController extends Controller
                 $trxProportion = 1.0;
                 $isStandardSale = !in_array($catLower, ['refund', 'angkat_barang', 'cancel_penjualan', 'tukar_unit', 'tukar_tambah']);
                 if ($isStandardSale) {
-                    $priceTarget = $catLower === 'pelunasan_dp' 
+                    $priceTarget = in_array($catLower, ['dp', 'pelunasan_dp'])
                         ? max(0, abs((float) ($trx->paid_amount ?? 0))) 
                         : max(0, abs((float) ($trx->selling_price ?? 0)));
                         
@@ -3349,9 +3349,9 @@ class AuditController extends Controller
 
             // Pre-calculate exact discrepancy to match Omset exactly
             $catLower = strtolower($trx->category);
-            $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'pelunasan_dp']);
+            $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
             
-            $dbSellingPrice = $catLower === 'pelunasan_dp' ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
+            $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
             $spTotal = 0;
             if ($trx->split_payments) {
                 $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
