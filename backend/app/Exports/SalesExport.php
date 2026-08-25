@@ -90,7 +90,7 @@ class SalesExport
 
     public function collection()
     {
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
 
         $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
             ->whereIn('category', $salesCategories)
@@ -240,7 +240,7 @@ class SalesExport
             $isTradeIn = in_array($cat, ['tukar_tambah', 'downgrade']);
 
             if ($isBaseSale) {
-                $finalTotalPenjualan = abs((float)$so->selling_price);
+                $finalTotalPenjualan = ($cat === 'dp' || $cat === 'pelunasan_dp') ? abs((float)$so->paid_amount) : abs((float)$so->selling_price);
             } elseif ($isTradeIn && $exchangeInfo) {
                 $outVal = abs((float)($exchangeInfo->outgoing_price ?? ($cat === 'tukar_tambah' ? abs((float)$so->selling_price) : 0)));
                 $inVal = abs((float)($exchangeInfo->incoming_cost_price ?? 0));
@@ -268,7 +268,7 @@ class SalesExport
                     $amt = abs((float)($so->paid_amount ?: $so->selling_price));
                     if (isset($payData[$name])) { $payData[$name] = $amt; }
                 } else {
-                    $remainingToAllocate = abs((float)$so->selling_price);
+                    $remainingToAllocate = ($cat === 'dp' || $cat === 'pelunasan_dp') ? abs((float)$so->paid_amount) : abs((float)$so->selling_price);
                     foreach ($splitPayments as $sp) {
                         $name = $sp['method_name'] ?? 'Lainnya';
                         $amt = abs((float)($sp['amount'] ?? 0));
@@ -333,7 +333,11 @@ class SalesExport
                 $rowArr['total_penjualan'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPenjualan : '';
                 
                 // Pisah Payment Methods (Waterfall Allocation per Item)
-                $rowOmset = ($cat !== 'cancel_penjualan' && $detail['type'] === 'outgoing') ? (float)$detail['total_price'] : 0;
+                if ($cat === 'dp' || $cat === 'pelunasan_dp') {
+                    $rowOmset = ($cat !== 'cancel_penjualan' && $detail['type'] === 'outgoing') ? (float)$so->paid_amount : 0;
+                } else {
+                    $rowOmset = ($cat !== 'cancel_penjualan' && $detail['type'] === 'outgoing') ? (float)$detail['total_price'] : 0;
+                }
                 
                 foreach ($this->paymentMethods as $pm) {
                     $pmName = $pm->name;
