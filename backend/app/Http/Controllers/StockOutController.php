@@ -1264,6 +1264,20 @@ class StockOutController extends Controller
                     default => '-'
                 };
 
+                $inputByName = $log->user?->name;
+                if (!$inputByName) {
+                    $so = \App\Models\StockOut::where('category', 'barang_masuk')
+                        ->whereHas('items', function ($q) use ($query) {
+                            $q->withTrashed()->where('imei', $query);
+                        })
+                        ->whereBetween('created_at', [
+                            (clone $log->created_at)->subSeconds(60)->toDateTimeString(),
+                            (clone $log->created_at)->addSeconds(60)->toDateTimeString()
+                        ])
+                        ->first();
+                    $inputByName = $so?->user?->name;
+                }
+
                 $allEvents[] = [
                     'type' => 'stock_in',
                     'sub_type' => 'registration',
@@ -1278,7 +1292,7 @@ class StockOutController extends Controller
                     'timestamp' => $log->created_at->timestamp,
                     'distributor' => $log->distributor?->name ?? ($currentDetail?->distributor?->name ?? null),
                     'supplier_name' => $log->supplier_name ?? ($currentDetail?->supplier_name ?? null),
-                    'input_by' => $log->user?->name,
+                    'input_by' => $inputByName,
                     'ram' => $currentDetail?->ram,
                     'storage' => $currentDetail?->storage,
                     'selling_price' => $currentDetail?->selling_price,
@@ -1326,6 +1340,20 @@ class StockOutController extends Controller
                             default => $detail->placement_type . ' #' . $detail->placement_id
                         };
 
+                        $inputByName = $detail->user?->name;
+                        if (!$inputByName) {
+                            $so = \App\Models\StockOut::where('category', 'barang_masuk')
+                                ->whereHas('items', function ($q) use ($detail) {
+                                    $q->withTrashed()->where('imei', $detail->imei);
+                                })
+                                ->whereBetween('created_at', [
+                                    (clone $detail->created_at)->subSeconds(60)->toDateTimeString(),
+                                    (clone $detail->created_at)->addSeconds(60)->toDateTimeString()
+                                ])
+                                ->first();
+                            $inputByName = $so?->user?->name;
+                        }
+
                         $allEvents[] = [
                             'type' => 'stock_in',
                             'sub_type' => 'registration',
@@ -1340,7 +1368,7 @@ class StockOutController extends Controller
                             'timestamp' => $detail->created_at->timestamp,
                             'distributor' => $detail->distributor?->name,
                             'supplier_name' => $detail->supplier_name,
-                            'input_by' => $detail->user?->name,
+                            'input_by' => $inputByName,
                             'ram' => $detail->ram,
                             'storage' => $detail->storage,
                             'selling_price' => $detail->selling_price,
