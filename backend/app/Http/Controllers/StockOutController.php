@@ -1300,13 +1300,21 @@ class StockOutController extends Controller
                     // Only skip if the ONLY stock-in event is the barang_masuk itself
                     // (i.e., ProductDetail was created at the same time as barang_masuk)
                     $shouldShow = true;
-                    $barangMasukOut = $detail->stockOuts->first(fn($so) => $so->category === 'barang_masuk');
-                    if ($barangMasukOut) {
-                        $pdTs = $detail->created_at->timestamp;
-                        $bmTs = $barangMasukOut->created_at->timestamp;
-                        // If ProductDetail was created by barang_masuk (same timestamp), skip it
-                        if (abs($pdTs - $bmTs) <= 5) {
-                            $shouldShow = false;
+                    $hasOlderLog = $stockInLogs->contains(function ($log) use ($detail) {
+                        return $log->created_at->timestamp < $detail->created_at->timestamp - 5;
+                    });
+                    if ($hasOlderLog) {
+                        // This created_at is an updated timestamp (e.g. from transfer), not the original registration.
+                        $shouldShow = false;
+                    } else {
+                        $barangMasukOut = $detail->stockOuts->first(fn($so) => $so->category === 'barang_masuk');
+                        if ($barangMasukOut) {
+                            $pdTs = $detail->created_at->timestamp;
+                            $bmTs = $barangMasukOut->created_at->timestamp;
+                            // If ProductDetail was created by barang_masuk (same timestamp), skip it
+                            if (abs($pdTs - $bmTs) <= 5) {
+                                $shouldShow = false;
+                            }
                         }
                     }
 

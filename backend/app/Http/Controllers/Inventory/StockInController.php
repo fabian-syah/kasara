@@ -1036,6 +1036,14 @@ class StockInController extends Controller
                     $imei = $matches[1];
                 }
 
+                $isTransfer = str_contains($item->description ?? '', 'Pindah Cabang Masuk') || str_contains($item->description ?? '', 'Transfer Masuk');
+                $supplierName = '-';
+                if ($isTransfer) {
+                    $supplierName = '-';
+                } else {
+                    $supplierName = $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-')));
+                }
+
                 $hpSheet[] = [
                     count($hpSheet),
                     $item->created_at ? $item->created_at->format('d/m/Y H:i') : '-',
@@ -1045,7 +1053,7 @@ class StockInController extends Controller
                     $detail?->condition ?? '-',
                     str_replace("'", "", (string)$imei),
                     $locationName,
-                    $item->distributor?->name ?? ($item->supplier_name ?? ($detail?->distributor?->name ?? ($detail?->supplier_name ?? '-'))),
+                    $supplierName,
                     (float)($detail?->cost_price ?? ($item->cost_price ?? 0)),
                     $item->user?->name ?? '-',
                     $item->notes ?: ($item->description ?? '-'),
