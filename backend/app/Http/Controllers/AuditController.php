@@ -2324,15 +2324,20 @@ class AuditController extends Controller
                     $prodName = 'Balancing Pembayaran';
                     $isHp = false;
 
-                    if ($originalTrx && $originalTrx->items->isNotEmpty()) {
-                        $firstItem = $originalTrx->items->first();
-                        $dId = $firstItem->distributor_id ?? $firstItem->pivot?->distributor_id;
-                        $dist = $dId ? \App\Models\Distributor::find($dId) : null;
-                        $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
-                        $imei = $firstItem->imei ?? '-';
-                        $brand = $firstItem->product?->brand ?? '-';
-                        $prodName = 'Balancing: ' . ($firstItem->product?->name ?? 'Item');
-                        $isHp = true;
+                    if ($originalTrx) {
+                        if (!$trx->customer_wa) $trx->customer_wa = $originalTrx->customer_wa ?? $originalTrx->customer_phone;
+                        if (!$trx->customer_phone) $trx->customer_phone = $originalTrx->customer_phone ?? $originalTrx->customer_wa;
+                        
+                        if ($originalTrx->items->isNotEmpty()) {
+                            $firstItem = $originalTrx->items->first();
+                            $dId = $firstItem->distributor_id ?? $firstItem->pivot?->distributor_id;
+                            $dist = $dId ? \App\Models\Distributor::find($dId) : null;
+                            $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
+                            $imei = $firstItem->imei ?? '-';
+                            $brand = $firstItem->product?->brand ?? '-';
+                            $prodName = 'Balancing: ' . ($firstItem->product?->name ?? 'Item');
+                            $isHp = true;
+                        }
                     }
 
                     $details[] = [
