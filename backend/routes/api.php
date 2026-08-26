@@ -377,7 +377,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment-methods', function () {
             $methods = \App\Models\PaymentMethod::where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'type', 'provider']);
+                ->get(['id', 'name', 'category', 'account_number', 'account_name']);
             return response()->json(['data' => $methods]);
         });
 
@@ -410,21 +410,20 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut = new \App\Models\StockOut();
                 $branchCode = \App\Models\Branch::find($request->branch_id)->code ?? 'XX';
                 $count = \App\Models\StockOut::whereDate('created_at', today())->count() + 1;
-                $stockOut->invoice_number = "INV-BAL-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $stockOut->receipt_id = "INV-BAL-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 4, '0', STR_PAD_LEFT);
                 $stockOut->branch_id = $request->branch_id;
-                $stockOut->creator_id = $user->id;
-                $stockOut->pic_id = $request->customer_service_id;
+                $stockOut->user_id = $user->id; // Using user_id instead of creator_id
+                $stockOut->balancing_cs_user_id = $request->customer_service_id; // Using the dedicated column
                 $stockOut->customer_name = $request->customer_name;
                 $stockOut->customer_phone = $request->customer_phone;
                 
-                // Ensure this constant exists. We added it to StockOut earlier.
                 $stockOut->category = 'balancing'; 
                 $stockOut->sub_category = 'balancing_metode_pembayaran';
                 $stockOut->status = 'completed';
-                $stockOut->total_amount = $totalAmount;
+                $stockOut->selling_price = $totalAmount; // Using selling_price instead of total_amount
                 $stockOut->reporting_date = $request->date; 
                 $stockOut->notes = $request->notes;
-                $stockOut->payment_proof = $photoPath;
+                $stockOut->payment_proof_image = $photoPath; // Assuming proof_image or payment_proof_image. StockOut has both, let's use payment_proof_image
                 $stockOut->save();
 
                 foreach ($request->payment_methods as $pm) {
