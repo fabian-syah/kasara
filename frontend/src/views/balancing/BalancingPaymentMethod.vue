@@ -391,13 +391,14 @@ function handleOutsideClick(e) {
                     <div class="relative">
                         <input
                             v-model="customerSearch"
-                            @focus="customerSearch.length > 0 ? showCustomerDropdown = true : null"
+                            :disabled="!form.reporting_date"
+                            @focus="customerSearch.length > 0 && form.reporting_date ? showCustomerDropdown = true : null"
                             @input="form.customer_name = customerSearch; showCustomerDropdown = true"
                             type="text"
                             placeholder="Ketik atau pilih nama customer..."
-                            class="w-full px-4 py-3 pr-10 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all"
+                            class="w-full px-4 py-3 pr-10 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         />
-                        <button type="button" @click.stop="showCustomerDropdown = !showCustomerDropdown" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none">
+                        <button type="button" :disabled="!form.reporting_date" @click.stop="form.reporting_date ? showCustomerDropdown = !showCustomerDropdown : null" class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
                             <ChevronDown :size="16" class="transition-transform" :class="showCustomerDropdown ? 'rotate-180' : ''" />
                         </button>
                     </div>
