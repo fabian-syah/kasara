@@ -586,7 +586,7 @@ class AuditController extends Controller
                     $nhpStatsQuery = (clone $salesBase)->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')->select(DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'), DB::raw("sum(stock_out_non_hp_items.quantity) as non_hp_units"))->groupBy('owner_id')->get()->keyBy('owner_id');
 
                     // Activity Unit breakdown (IMEI + Non-HP)
-                    $activityItemQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
+                    $activityItemQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur', 'balancing'])
                         ->leftJoin('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
                         ->select(
                             DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
@@ -595,10 +595,11 @@ class AuditController extends Controller
                             DB::raw("sum(case when stock_outs.category = 'downgrade' then 1 else 0 end) as dw_imei"),
                             DB::raw("sum(case when stock_outs.category = 'angkat_barang' then 1 else 0 end) as ab_imei"),
                             DB::raw("sum(case when stock_outs.category = 'refund' then 1 else 0 end) as rf_imei"),
-                            DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as rt_imei")
+                            DB::raw("sum(case when stock_outs.category = 'retur' then 1 else 0 end) as rt_imei"),
+                            DB::raw("count(distinct case when stock_outs.category = 'balancing' then stock_outs.id end) as bl_imei")
                         )->groupBy('owner_id')->get()->keyBy('owner_id');
 
-                    $activityNhpQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur'])
+                    $activityNhpQuery = (clone $baseQuery)->whereIn('stock_outs.category', ['refund', 'tukar_tambah', 'downgrade', 'angkat_barang', 'tukar_unit', 'retur', 'balancing'])
                         ->leftJoin('stock_out_non_hp_items', 'stock_outs.id', '=', 'stock_out_non_hp_items.stock_out_id')
                         ->select(
                             DB::raw('COALESCE(stock_outs.inventory_user_id, stock_outs.user_id) as owner_id'),
@@ -719,6 +720,7 @@ class AuditController extends Controller
                         $stat->total_ab = (int) ($actItems->ab_imei ?? 0) + (int) ($actNhp->ab_nhp ?? 0);
                         $stat->total_refund = (int) ($actItems->rf_imei ?? 0) + (int) ($actNhp->rf_nhp ?? 0);
                         $stat->total_retur = (int) ($actItems->rt_imei ?? 0) + (int) ($actNhp->rt_nhp ?? 0);
+                        $stat->total_balancing = (int) ($actItems->bl_imei ?? 0);
                         $iphone = (int) ($items->iphone_units ?? 0);
                         $android = (int) ($items->android_units ?? 0);
                         $nonHp = (int) ($nhp->non_hp_units ?? 0);
@@ -760,6 +762,7 @@ class AuditController extends Controller
                             'total_ab' => (int) $stat->total_ab,
                             'total_refund' => (int) $stat->total_refund,
                             'total_retur' => (int) $stat->total_retur,
+                            'total_balancing' => (int) $stat->total_balancing,
                             'iphone_units' => $iphone,
                             'android_units' => $android,
                             'non_hp_units' => $nonHp,

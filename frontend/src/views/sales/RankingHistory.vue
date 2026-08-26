@@ -189,7 +189,7 @@
                             class="text-text-secondary group-hover:text-red-500 transition-colors" />
                     </div>
                     <h3 class="text-lg font-bold text-text-primary mb-1">Ranking Aktivitas Unit</h3>
-                    <p class="text-sm text-text-secondary">Berdasarkan Refund, Tukar Unit/Tambah, Angkat Barang &
+                    <p class="text-sm text-text-secondary">Berdasarkan Refund, Tukar Unit/Tambah, Angkat Barang, Balancing &
                         Downgrade</p>
                 </button>
 
@@ -818,6 +818,7 @@
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Angkat Barang</th>
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Refund</th>
                                     <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Retur</th>
+                                    <th v-if="currentView === 'activity'" class="px-2 py-4 text-center">Balancing</th>
                                     <th v-if="currentView === 'activity'"
                                         class="px-2 py-4 text-center text-primary-500">Total Unit
                                     </th>
@@ -1037,10 +1038,12 @@
                                                 item.total_refund || 0 }}</td>
                                             <td class="px-2 py-4 text-center font-bold text-purple-500 text-xs">{{
                                                 item.total_retur || 0 }}</td>
+                                            <td class="px-2 py-4 text-center font-bold text-teal-500 text-xs">{{
+                                                item.total_balancing || 0 }}</td>
                                             <td class="px-2 py-4 text-center font-black text-primary-500">{{
                                                 (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) +
                                                 (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur ||
-                                                0) }}</td>
+                                                0) + (item.total_balancing || 0) }}</td>
                                         </template>
                                         <template v-if="currentView === 'sales'">
                                             <td class="px-6 py-4 text-right font-black text-text-primary font-mono whitespace-nowrap">
@@ -1457,7 +1460,7 @@ const sortedData = computed(() => {
     let filtered = base
     if (currentView.value === 'activity') {
         filtered = base.filter(item => {
-            const totalActivity = (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0)
+            const totalActivity = (item.total_tu || 0) + (item.total_tt || 0) + (item.total_dw || 0) + (item.total_ab || 0) + (item.total_refund || 0) + (item.total_retur || 0) + (item.total_balancing || 0)
             return totalActivity > 0
         })
     }
@@ -1631,7 +1634,7 @@ const salesHierarchy = computed(() => {
         const distMap = new Map()
 
         // List kategori aktivitas (seperti di backend)
-        const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
+        const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur', 'balancing'];
 
         // Coba ambil dari 'breakdown' atau 'details'
         const rawItems = cs.breakdown || cs.details || []
@@ -2015,7 +2018,7 @@ const copyReportToClipboard = async () => {
 
 
 const totals = computed(() => {
-    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, totOmset = 0, omset_bersih = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0;
+    let units = 0, iphone = 0, android = 0, nonHp = 0, revenue = 0, totOmset = 0, omset_bersih = 0, activity_revenue = 0, tu = 0, tt = 0, dw = 0, ab = 0, refund = 0, retur = 0, balancing = 0;
 
     if (currentView.value === 'brand' || currentView.value === 'distributor') {
         sortedData.value.forEach(row => units += row.qty);
@@ -2039,6 +2042,7 @@ const totals = computed(() => {
                 ab += (item.total_ab || 0);
                 refund += (item.total_refund || 0);
                 retur += (item.total_retur || 0);
+                balancing += (item.total_balancing || 0);
                 revenue += (item.grand_total || 0);
                 totOmset += (item.total_omset || 0);
                 activity_revenue += (item.total_activity_rp || 0);
@@ -2048,8 +2052,8 @@ const totals = computed(() => {
         });
     }
 
-    const activity = tu + tt + dw + ab + refund + retur;
-    return { units, iphone, android, nonHp, revenue, totOmset, omset_bersih, activity_revenue, tu, tt, dw, ab, refund, retur, activity };
+    const activity = tu + tt + dw + ab + refund + retur + balancing;
+    return { units, iphone, android, nonHp, revenue, totOmset, omset_bersih, activity_revenue, tu, tt, dw, ab, refund, retur, balancing, activity };
 });
 
 const handlePeriodChange = () => {
