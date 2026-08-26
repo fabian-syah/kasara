@@ -693,6 +693,50 @@ const routes = [
                 }
             },
 
+            // Balancing (Super Admin Only)
+            {
+                path: 'balancing',
+                name: 'BalancingMenu',
+                component: () => import('../views/balancing/BalancingMenu.vue'),
+                meta: {
+                    title: 'Balancing',
+                    menu: 'balancing_group',
+                    permissions: ['super_admin']
+                }
+            },
+            {
+                path: 'balancing/payment-method',
+                name: 'BalancingPaymentBranchSelect',
+                component: () => import('../views/balancing/BalancingBranchSelect.vue'),
+                props: { balancingType: 'payment-method' },
+                meta: {
+                    title: 'Pilih Cabang - Balancing Pembayaran',
+                    menu: 'balancing_payment',
+                    permissions: ['super_admin']
+                }
+            },
+            {
+                path: 'balancing/payment-method/form',
+                name: 'BalancingPaymentMethodForm',
+                component: () => import('../views/balancing/BalancingPaymentMethod.vue'),
+                meta: {
+                    title: 'Form Balancing Metode Pembayaran',
+                    menu: 'balancing_payment',
+                    permissions: ['super_admin']
+                }
+            },
+            {
+                path: 'balancing/missed-sale',
+                name: 'BalancingMissedSaleBranchSelect',
+                component: () => import('../views/balancing/BalancingBranchSelect.vue'),
+                props: { balancingType: 'missed-sale' },
+                meta: {
+                    title: 'Pilih Cabang - Balancing Penjualan Terlewat',
+                    menu: 'balancing_missed',
+                    permissions: ['super_admin']
+                }
+            },
+
             {
                 path: 'system-status',
                 name: 'SystemStatus',

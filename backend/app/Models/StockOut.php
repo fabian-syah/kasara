@@ -173,6 +173,9 @@ class StockOut extends Model
         'dp_amount',
         'is_dp_settled',
         'parent_dp_id',
+        'balancing_type',
+        'balancing_notes',
+        'balancing_cs_user_id',
     ];
 
     protected $casts = [

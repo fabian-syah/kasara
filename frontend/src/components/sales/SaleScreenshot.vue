@@ -196,7 +196,8 @@ const categoryLabels = {
   downgrade: 'Downgrade',
   cancel_penjualan: 'Dibatalkan',
   brand_ambassador: 'Brand Ambassador',
-  event_sponsorship: 'Event / Sponsorship'
+  event_sponsorship: 'Event / Sponsorship',
+  balancing: 'Balancing',
 }
 
 const categoryLabel = computed(() => categoryLabels[props.sale?.category] || props.sale?.category || 'Penjualan')

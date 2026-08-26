@@ -230,3 +230,12 @@ export const questions = {
     update: (id, data) => api.put(`/questions/${id}`, data),
     delete: (id) => api.delete(`/questions/${id}`)
 }
+
+export const balancing = {
+    branches: () => api.get('/balancing/branches'),
+    branchUsers: (branchId) => api.get('/balancing/branch-users', { params: { branch_id: branchId } }),
+    customers: (branchId) => api.get('/balancing/customers', { params: { branch_id: branchId } }),
+    paymentMethods: (branchId) => api.get('/balancing/payment-methods', { params: { branch_id: branchId } }),
+    storePaymentMethod: (data) => api.post('/balancing/payment-method', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    cancel: (id, data) => api.post(`/balancing/${id}/cancel`, data),
+}

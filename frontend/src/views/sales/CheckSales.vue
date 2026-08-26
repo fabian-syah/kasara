@@ -755,7 +755,8 @@ const categoryLabels = {
     'pelunasan_dp': 'Pelunasan DP',
     'brand_ambassador': 'Brand Ambassador',
     'event_/_sponsorship': 'Event / Sponsorship',
-    'event_sponsorship': 'Event / Sponsorship'
+    'event_sponsorship': 'Event / Sponsorship',
+    'balancing': 'Balancing',
 };
 
 const months = [

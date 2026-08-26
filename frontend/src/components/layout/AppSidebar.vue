@@ -37,7 +37,8 @@ import {
     Trophy,
     History,
     PieChart,
-    UserCircle
+    UserCircle,
+    Scale
 } from "lucide-vue-next";
 
 const props = defineProps({
@@ -190,6 +191,17 @@ const menuItems = [
 
     // Liga Cabang (Super Admin)
     { id: "branch_league", path: "/admin/leagues", label: "Liga Cabang", icon: Trophy },
+
+    // Balancing (Super Admin)
+    {
+        id: "balancing_group",
+        label: "Balancing",
+        icon: Scale,
+        items: [
+            { id: "balancing_payment", path: "/balancing/payment-method", label: "Balancing Metode Pembayaran" },
+            { id: "balancing_missed", path: "/balancing/missed-sale", label: "Balancing Penjualan Terlewat" },
+        ]
+    },
 
     // Sales Menus
     { id: "sales_create", path: "/sales/create", label: "Buat Penjualan", icon: ShoppingCart },

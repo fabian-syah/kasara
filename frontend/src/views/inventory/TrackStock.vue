@@ -23,7 +23,7 @@ const printableCategories = [
     'tukar_unit', 'tukar_tambah', 'downgrade', 'retur', 'keluar',
     'pindah_cabang', 'kesalahan_input', 'brand_ambassador',
     'event_sponsorship', 'giveaway_customer', 'inventaris', 'hilang',
-    'dp', 'pelunasan_dp'
+    'dp', 'pelunasan_dp', 'balancing'
 ];
 
 const canPrintReceipt = (result) => {
@@ -57,7 +57,7 @@ const categoryIcons = {
     angkat_barang: Box, brand_ambassador: User, event_sponsorship: Calendar,
     keluar: Box, giveaway_customer: Gift, inventaris: Box, hilang: AlertTriangle,
     refund: RotateCcw, cancel_penjualan: RotateCcw,
-    dp: Wallet, pelunasan_dp: CheckSquare,
+    dp: Wallet, pelunasan_dp: CheckSquare, balancing: Wallet,
 };
 
 const categoryLabels = {
@@ -69,7 +69,7 @@ const categoryLabels = {
     event_sponsorship: 'Event / Sponsorship', keluar: 'Keluar',
     giveaway_customer: 'Giveaway Customer', inventaris: 'Inventaris', hilang: 'Hilang',
     refund: 'Refund', cancel_penjualan: 'Batal Penjualan',
-    dp: 'DP', pelunasan_dp: 'Pelunasan DP',
+    dp: 'DP', pelunasan_dp: 'Pelunasan DP', balancing: 'Balancing',
 };
 
 async function search() {
@@ -106,7 +106,7 @@ function getCategoryColor(category) {
     if (category === 'event_sponsorship') return 'cyan';
     if (['shopee', 'orderan_online'].includes(category)) return 'orange';
     if (['angkat_barang', 'refund'].includes(category)) return 'indigo';
-    if (['dp', 'pelunasan_dp'].includes(category)) return 'emerald';
+    if (['dp', 'pelunasan_dp', 'balancing'].includes(category)) return 'emerald';
     return 'emerald';
 }
 </script>
@@ -252,7 +252,7 @@ function getCategoryColor(category) {
                                 'bg-cyan-500': result.category === 'event_sponsorship',
                                 'bg-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                 'bg-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
-                                'bg-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp'].includes(result.category),
+                                'bg-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
                             }"></div>
 
                             <!-- Header -->
@@ -266,7 +266,7 @@ function getCategoryColor(category) {
                                         'bg-cyan-500/10 text-cyan-400': result.category === 'event_sponsorship',
                                         'bg-[#EE4D2D]/10 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                         'bg-indigo-500/10 text-indigo-400': ['angkat_barang', 'refund'].includes(result.category),
-                                        'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp'].includes(result.category),
+                                        'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="18" />
                                     </div>
@@ -325,7 +325,7 @@ function getCategoryColor(category) {
                                     </template>
 
                                     <!-- Sales / Retur / Cancel -->
-                                    <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'cancel_penjualan', 'dp', 'pelunasan_dp'].includes(result.category)">
+                                    <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'cancel_penjualan', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category)">
                                         <div>
                                             <p class="text-[10px] text-text-secondary">Customer</p>
                                             <p class="text-xs text-text-primary uppercase">{{ result.customer_name || '-' }}</p>

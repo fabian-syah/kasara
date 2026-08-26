@@ -1022,7 +1022,8 @@ const receiptTitle = computed(() => {
         'angkat_barang': 'Nota Angkat Barang',
         'downgrade': 'Nota Downgrade',
         'shopee': 'Nota Shopee',
-        'orderan_online': 'Nota Order Online'
+        'orderan_online': 'Nota Order Online',
+        'balancing': 'Nota Balancing',
     };
     return mapping[cat] || 'Nota Penjualan';
 });

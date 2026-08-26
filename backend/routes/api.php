@@ -340,6 +340,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Settings
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
+
+    // Balancing (Super Admin only)
+    Route::middleware(['role:super_admin'])->prefix('balancing')->group(function () {
+        Route::get('/branches', [\App\Http\Controllers\BalancingController::class, 'getBranches']);
+        Route::get('/branch-users', [\App\Http\Controllers\BalancingController::class, 'getBranchUsers']);
+        Route::get('/customers', [\App\Http\Controllers\BalancingController::class, 'getCustomers']);
+        Route::get('/payment-methods', [\App\Http\Controllers\BalancingController::class, 'getPaymentMethods']);
+        Route::post('/payment-method', [\App\Http\Controllers\BalancingController::class, 'storePaymentMethod']);
+        Route::post('/{id}/cancel', [\App\Http\Controllers\BalancingController::class, 'cancel']);
+    });
+
     // WhatsApp GDrive Share (Livewire style)
     Route::match(['get', 'post'], '/receipts/{id}/share-wa', [\App\Http\Controllers\WhatsAppShareController::class, 'share']);
 });

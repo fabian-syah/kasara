@@ -597,6 +597,7 @@ const getCategoryLabel = (val) => {
         'event_sponsorship': 'Event / Sponsorship',
         'hilang': 'Hilang / Dicuri',
         'cancel_penjualan': 'Cancel Penjualan',
+        'balancing': 'Balancing',
     };
     return categories[val] || val;
 };
