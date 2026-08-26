@@ -388,13 +388,33 @@ Route::middleware('auth:sanctum')->group(function () {
                 });
             }
 
-            $customers = $query->select('customer_name')
-                ->distinct()
-                ->orderBy('customer_name')
-                ->limit(20)
-                ->pluck('customer_name');
+            $transactions = $query->with(['items.product'])
+                ->orderBy('created_at', 'desc')
+                ->limit(100)
+                ->get()
+                ->map(function ($trx) {
+                    return [
+                        'customer_name' => $trx->customer_name,
+                        'customer_phone' => $trx->customer_phone,
+                        'receipt_id' => $trx->receipt_id ?? $trx->invoice_number,
+                        'total_amount' => $trx->selling_price ?? $trx->total_amount,
+                        'items' => $trx->items->map(function ($item) {
+                            return $item->product ? $item->product->name : 'Item';
+                        })->toArray(),
+                        'time' => $trx->created_at->format('H:i'),
+                        'category' => $trx->category,
+                    ];
+                });
                 
-            return response()->json(['data' => $customers]);
+            $grouped = $transactions->groupBy('customer_name')->map(function ($trxs, $name) {
+                return [
+                    'name' => $name,
+                    'phone' => $trxs->first()['customer_phone'],
+                    'transactions' => $trxs
+                ];
+            })->values();
+
+            return response()->json(['data' => $grouped]);
         });
 
         Route::get('/payment-methods', function () {

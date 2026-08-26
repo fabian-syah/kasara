@@ -5,7 +5,7 @@ import { balancing } from '../../api/axios';
 import {
     ArrowLeft, Calendar, User, FileText, Camera, CreditCard,
     Plus, Trash2, Check, Loader2, AlertTriangle, X, Lock,
-    Building2, Scale, ChevronDown, Search
+    Building2, Scale, ChevronDown, Search, Eye, EyeOff
 } from 'lucide-vue-next';
 
 const route = useRoute();
@@ -54,11 +54,19 @@ const submitResult = ref(null);
 // Customer search
 const customerSearch = ref('');
 const showCustomerDropdown = ref(false);
+const selectedCustomerData = ref(null); // Track selected customer details
 const filteredCustomers = computed(() => {
     if (!customerSearch.value) return customers.value.slice(0, 20);
     const q = customerSearch.value.toLowerCase();
-    return customers.value.filter(c => c.toLowerCase().includes(q)).slice(0, 20);
+    return customers.value.filter(c => c.name && c.name.toLowerCase().includes(q)).slice(0, 20);
 });
+
+function selectCustomer(customerObj) {
+    customerSearch.value = customerObj.name;
+    form.value.customer_name = customerObj.name;
+    selectedCustomerData.value = customerObj;
+    showCustomerDropdown.value = false;
+}
 
 // CS search
 const csSearch = ref('');
@@ -80,6 +88,7 @@ const fileInputRef = ref(null);
 const showPasswordModal = ref(false);
 const passwordInput = ref('');
 const passwordError = ref('');
+const showPassword = ref(false);
 
 // Validation
 const errors = ref({});
@@ -203,7 +212,7 @@ async function confirmSubmit() {
     try {
         const formData = new FormData();
         formData.append('branch_id', branchId.value);
-        formData.append('reporting_date', form.value.reporting_date);
+        formData.append('date', form.value.reporting_date);
         formData.append('customer_name', form.value.customer_name || '');
         formData.append('balancing_description', form.value.balancing_description || '');
         if (form.value.balancing_cs_user_id) {
@@ -272,6 +281,7 @@ watch(() => form.value.reporting_date, async (newDate) => {
             customers.value = res.data.data || [];
             form.value.customer_name = ''; // Reset customer when date changes
             customerSearch.value = '';
+            selectedCustomerData.value = null;
         } catch (e) {
             console.error('Failed to fetch customers for date:', e);
         }
@@ -279,6 +289,7 @@ watch(() => form.value.reporting_date, async (newDate) => {
         customers.value = [];
         form.value.customer_name = '';
         customerSearch.value = '';
+        selectedCustomerData.value = null;
     }
 });
 
@@ -422,7 +433,7 @@ function handleOutsideClick(e) {
                             v-model="customerSearch"
                             :disabled="!form.reporting_date"
                             @focus="customerSearch.length > 0 && form.reporting_date ? showCustomerDropdown = true : null"
-                            @input="form.customer_name = customerSearch; showCustomerDropdown = true"
+                            @input="form.customer_name = customerSearch; showCustomerDropdown = true; selectedCustomerData = null"
                             type="text"
                             placeholder="Ketik atau pilih nama customer..."
                             class="w-full px-4 py-3 pr-10 rounded-xl border border-neutral-200 dark:border-neutral-700 text-sm bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -433,15 +444,40 @@ function handleOutsideClick(e) {
                     </div>
                     <!-- Dropdown -->
                     <div v-if="showCustomerDropdown && filteredCustomers.length"
-                        class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-xl">
+                        class="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-xl">
                         <button
-                            v-for="(name, idx) in filteredCustomers"
+                            v-for="(cust, idx) in filteredCustomers"
                             :key="idx"
-                            @click.prevent="selectCustomer(name)"
-                            class="w-full text-left px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+                            @click.prevent="selectCustomer(cust)"
+                            class="w-full text-left px-4 py-3 border-b last:border-b-0 border-neutral-100 dark:border-neutral-700/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors flex flex-col gap-1"
                         >
-                            {{ name }}
+                            <span class="text-sm font-medium text-neutral-900 dark:text-white">{{ cust.name }}</span>
+                            <span v-if="cust.transactions && cust.transactions.length" class="text-xs text-neutral-500 dark:text-neutral-400">
+                                {{ cust.transactions.length }} transaksi pada tanggal ini
+                            </span>
                         </button>
+                    </div>
+
+                    <!-- Selected Customer Preview -->
+                    <div v-if="selectedCustomerData && selectedCustomerData.transactions && selectedCustomerData.transactions.length > 0" class="mt-3 p-4 bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 rounded-xl">
+                        <h4 class="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-3">Detail Transaksi Customer</h4>
+                        <div class="space-y-3">
+                            <div v-for="(trx, idx) in selectedCustomerData.transactions" :key="idx" class="flex flex-col gap-1.5 p-3 bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700/50">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-semibold px-2 py-0.5 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded uppercase">{{ trx.category }}</span>
+                                        <span class="text-xs text-neutral-500">{{ trx.time }}</span>
+                                    </div>
+                                    <span class="text-sm font-bold text-neutral-900 dark:text-white">{{ formatCurrency(trx.total_amount) }}</span>
+                                </div>
+                                <div v-if="trx.receipt_id" class="text-xs text-neutral-500 font-mono">{{ trx.receipt_id }}</div>
+                                <div v-if="trx.items && trx.items.length" class="flex flex-wrap gap-1 mt-1">
+                                    <span v-for="(item, i) in trx.items" :key="i" class="text-xs bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full">
+                                        {{ item }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -633,14 +669,21 @@ function handleOutsideClick(e) {
                     <h3 class="text-lg font-bold text-center text-neutral-900 dark:text-white mb-1">Verifikasi Password</h3>
                     <p class="text-sm text-center text-neutral-500 dark:text-neutral-400 mb-5">Masukkan password Anda untuk mengkonfirmasi</p>
 
-                    <input
-                        v-model="passwordInput"
-                        type="password"
-                        placeholder="Masukkan password..."
-                        @keyup.enter="confirmSubmit"
-                        class="w-full px-4 py-3 rounded-xl border border-neutral-200 dark:border-neutral-600 text-sm bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all"
-                        :class="passwordError ? '!border-red-400' : ''"
-                    />
+                    <div class="relative">
+                        <input
+                            v-model="passwordInput"
+                            :type="showPassword ? 'text' : 'password'"
+                            placeholder="Masukkan password..."
+                            @keyup.enter="confirmSubmit"
+                            class="w-full px-4 py-3 pr-12 rounded-xl border border-neutral-200 dark:border-neutral-600 text-sm bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 transition-all"
+                            :class="passwordError ? '!border-red-400' : ''"
+                        />
+                        <button type="button" @click="showPassword = !showPassword"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 focus:outline-none transition-colors">
+                            <EyeOff v-if="showPassword" :size="20" />
+                            <Eye v-else :size="20" />
+                        </button>
+                    </div>
                     <p v-if="passwordError" class="mt-2 text-xs text-red-500 text-center">{{ passwordError }}</p>
 
                     <div class="flex gap-3 mt-6">
