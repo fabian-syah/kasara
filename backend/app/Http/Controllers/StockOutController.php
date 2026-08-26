@@ -704,7 +704,7 @@ class StockOutController extends Controller
                 $totalSellingPrice = floatval($rawSelling ?? 0);
 
                 // Fallback Hitung Total dari Item secara otomatis jika 0 (terutama untuk Pindah Cabang)
-                if ($totalSellingPrice == 0) {
+                if ($totalSellingPrice == 0 && in_array($request->category, ['pindah_cabang', 'angkat_barang', 'tukar_unit', 'refund', 'downgrade'])) {
                     // Kalkulasi HP
                     if (isset($productDetails) && $productDetails->count() > 0) {
                         foreach ($productDetails as $pd) {

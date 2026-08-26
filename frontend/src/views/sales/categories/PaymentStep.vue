@@ -106,7 +106,11 @@ const missingFields = computed(() => {
     if (!proofImage.value) fields.push("Foto Bukti (Nota)");
     if (!isCashOnly.value && !paymentProofImage.value) fields.push("Foto Bukti Pembayaran");
 
-    const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
+    if (props.transactionCategory === 'penjualan_store' && cartTotal.value <= 0) {
+        fields.push("Total Belanja 0 (Kembali ke Step 3 untuk isi Harga)");
+    }
+
+    const totalPaid = splitPayments.value.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
     if (totalPaid < effectiveTotal.value && props.transactionCategory !== 'dp') {
         fields.push("Pembayaran Kurang");
     }
@@ -121,7 +125,7 @@ const missingFields = computed(() => {
 const isFormValid = computed(() => missingFields.value.length === 0);
 
 const changeAmount = computed(() => {
-    const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
+    const totalPaid = splitPayments.value.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
     return totalPaid - effectiveTotal.value;
 });
 
@@ -281,7 +285,7 @@ async function processPayment(pin = null) {
         formData.append('category', props.transactionCategory);
         formData.append('sales_account', props.salesAccount);
 
-        const totalPaid = splitPayments.value.reduce((sum, p) => sum + p.amount, 0);
+        const totalPaid = splitPayments.value.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
         formData.append('paid_amount', totalPaid);
         formData.append('selling_price', Number(cartStore.total || 0));
 

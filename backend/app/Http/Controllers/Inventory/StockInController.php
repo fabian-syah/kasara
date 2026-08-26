@@ -297,7 +297,7 @@ class StockInController extends Controller
                                 ?? $existingRecords->first();
 
                     if ($existing) {
-                        $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer'];
+                        $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer', 'sold'];
                         if (in_array($existing->status, $activeStatuses) && !$existing->trashed()) {
                             // Get location info of existing item
                             $existingLocation = '';
@@ -308,10 +308,16 @@ class StockInController extends Controller
                             } elseif ($existing->placement_type === 'online_shop') {
                                 $existingLocation = \App\Models\OnlineShop::find($existing->placement_id)?->name ?? 'Unknown';
                             }
+                            
+                            $statusMessage = $existing->status === 'sold' 
+                                ? "sudah Terjual. Gunakan menu Retur/Cancel Penjualan." 
+                                : "sudah ada di " . ($existingLocation ?: 'inventory');
+                                
                             $duplicates[] = [
                                 'imei' => $item['imei'],
                                 'location' => $existingLocation,
                                 'placement_type' => $existing->placement_type,
+                                'status_message' => $statusMessage,
                             ];
                             continue;
                         }
@@ -453,7 +459,7 @@ class StockInController extends Controller
                                 'placement_id' => $request->placement_id,
                                 'placement_name' => $placementName,
                                 'distributor_name' => $supplierName ?? null,
-                                'error_message' => "IMEI sudah ada di " . ($dup['location'] ?: 'inventory'),
+                                'error_message' => "IMEI " . ($dup['status_message'] ?? ("sudah ada di " . ($dup['location'] ?: 'inventory'))),
                                 'error_type' => 'duplicate',
                             ]);
                         } catch (\Exception $logErr) {
