@@ -342,6 +342,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
 
     // Balancing (Super Admin only)
+    // Balancing (Super Admin only)
     Route::prefix('balancing')->group(function () {
         Route::get('/branches', function () {
             $branches = \App\Models\Branch::where('is_active', true)
@@ -350,11 +351,115 @@ Route::middleware('auth:sanctum')->group(function () {
                 ->get(['id', 'name', 'address', 'timezone']);
             return response()->json(['data' => $branches]);
         });
-        Route::get('/branch-users', [\App\Http\Controllers\BalancingController::class, 'getBranchUsers']);
-        Route::get('/customers', [\App\Http\Controllers\BalancingController::class, 'getCustomers']);
-        Route::get('/payment-methods', [\App\Http\Controllers\BalancingController::class, 'getPaymentMethods']);
-        Route::post('/payment-method', [\App\Http\Controllers\BalancingController::class, 'storePaymentMethod']);
-        Route::post('/{id}/cancel', [\App\Http\Controllers\BalancingController::class, 'cancel']);
+
+        Route::get('/branch-users', function (\Illuminate\Http\Request $request) {
+            $branchId = $request->query('branch_id');
+            if (!$branchId) return response()->json(['data' => []]);
+            $users = \App\Models\User::where('branch_id', $branchId)
+                ->where('is_active', true)
+                ->select('id', 'name')
+                ->get();
+            return response()->json(['data' => $users]);
+        });
+
+        Route::get('/customers', function (\Illuminate\Http\Request $request) {
+            $search = $request->query('search');
+            if (!$search || strlen($search) < 2) return response()->json(['data' => []]);
+            $customers = \App\Models\StockOut::where('customer_name', 'ilike', "%{$search}%")
+                ->orWhere('customer_phone', 'ilike', "%{$search}%")
+                ->select('customer_name', 'customer_phone')
+                ->distinct()
+                ->limit(10)
+                ->get();
+            return response()->json(['data' => $customers]);
+        });
+
+        Route::get('/payment-methods', function () {
+            $methods = \App\Models\PaymentMethod::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'type', 'provider']);
+            return response()->json(['data' => $methods]);
+        });
+
+        Route::post('/payment-method', function (\Illuminate\Http\Request $request) {
+            $request->validate([
+                'branch_id' => 'required|exists:branches,id',
+                'date' => 'required|date',
+                'customer_name' => 'required|string|max:255',
+                'customer_phone' => 'nullable|string|max:20',
+                'customer_service_id' => 'required|exists:users,id',
+                'notes' => 'required|string',
+                'photo' => 'required|image|max:2048',
+                'payment_methods' => 'required|array|min:1',
+                'payment_methods.*.method_id' => 'required|exists:payment_methods,id',
+                'payment_methods.*.amount' => 'required|numeric',
+                'password' => 'required|string',
+            ]);
+
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                return response()->json(['success' => false, 'message' => 'Password salah.'], 403);
+            }
+
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                $photoPath = $request->file('photo')->store('balancing', 'public');
+                $totalAmount = collect($request->payment_methods)->sum('amount');
+                
+                $stockOut = new \App\Models\StockOut();
+                $branchCode = \App\Models\Branch::find($request->branch_id)->code ?? 'XX';
+                $count = \App\Models\StockOut::whereDate('created_at', today())->count() + 1;
+                $stockOut->invoice_number = "INV-BAL-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $stockOut->branch_id = $request->branch_id;
+                $stockOut->creator_id = $user->id;
+                $stockOut->pic_id = $request->customer_service_id;
+                $stockOut->customer_name = $request->customer_name;
+                $stockOut->customer_phone = $request->customer_phone;
+                
+                // Ensure this constant exists. We added it to StockOut earlier.
+                $stockOut->category = 'balancing'; 
+                $stockOut->sub_category = 'balancing_metode_pembayaran';
+                $stockOut->status = 'completed';
+                $stockOut->total_amount = $totalAmount;
+                $stockOut->reporting_date = $request->date; 
+                $stockOut->notes = $request->notes;
+                $stockOut->payment_proof = $photoPath;
+                $stockOut->save();
+
+                foreach ($request->payment_methods as $pm) {
+                    $stockOut->paymentMethods()->attach($pm['method_id'], ['amount' => $pm['amount']]);
+                }
+
+                \Illuminate\Support\Facades\DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Balancing metode pembayaran berhasil disimpan.',
+                    'data' => $stockOut->load('paymentMethods')
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                \Illuminate\Support\Facades\Log::error('Balancing Payment Error: ' . $e->getMessage());
+                return response()->json(['success' => false, 'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()], 500);
+            }
+        });
+
+        Route::post('/{id}/cancel', function (\Illuminate\Http\Request $request, $id) {
+            $request->validate(['password' => 'required|string', 'reason' => 'required|string']);
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                return response()->json(['success' => false, 'message' => 'Password salah.'], 403);
+            }
+            $stockOut = \App\Models\StockOut::where('category', 'balancing')->findOrFail($id);
+            if ($stockOut->status === 'cancelled') {
+                return response()->json(['success' => false, 'message' => 'Transaksi sudah dibatalkan.'], 422);
+            }
+            $stockOut->status = 'cancelled';
+            $stockOut->notes .= "\n[DIBATALKAN: {$request->reason}]";
+            $stockOut->save();
+            return response()->json(['success' => true, 'message' => 'Balancing berhasil dibatalkan.']);
+        });
     });
 
     // WhatsApp GDrive Share (Livewire style)
