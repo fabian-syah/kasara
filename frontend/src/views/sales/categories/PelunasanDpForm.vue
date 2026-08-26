@@ -353,9 +353,10 @@ async function handlePhotoChange(type, event) {
             alert("Gagal mengompres gambar. Silakan coba lagi.");
         } finally {
             if (type === 'proofImage' || type === 'customerProofImage') isCompressing.value = false;
-            if (type === 'paymentProofImage') isCompressingPayment.value = false;
         }
     }
+}
+
 const isClickLocked = ref(false);
 async function handleSubmit(pin = null) {
     if (isClickLocked.value && !pin) return;
