@@ -468,11 +468,17 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->reporting_date = $request->date; 
                 $stockOut->notes = $request->notes;
                 $stockOut->payment_proof_image = $photoPath; // Assuming proof_image or payment_proof_image. StockOut has both, let's use payment_proof_image
+                $processedSplits = collect($request->payment_methods)->map(function ($pm) {
+                    return [
+                        'payment_method_id' => $pm['method_id'],
+                        'amount' => $pm['amount']
+                    ];
+                })->toArray();
+                
+                $stockOut->split_payments = $processedSplits;
+                $stockOut->payment_method_id = $processedSplits[0]['payment_method_id'] ?? null;
+                
                 $stockOut->save();
-
-                foreach ($request->payment_methods as $pm) {
-                    $stockOut->paymentMethods()->attach($pm['method_id'], ['amount' => $pm['amount']]);
-                }
 
                 \Illuminate\Support\Facades\DB::commit();
 
