@@ -451,9 +451,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 $totalAmount = collect($request->payment_methods)->sum('amount');
                 
                 $stockOut = new \App\Models\StockOut();
-                $branchCode = \App\Models\Branch::find($request->branch_id)->code ?? 'XX';
+                $branch = \App\Models\Branch::find($request->branch_id);
+                $branchCode = $branch->code ? substr(strtoupper(str_replace(' ', '', $branch->code)), 0, 3) : 'XX';
                 $count = \App\Models\StockOut::whereDate('created_at', today())->count() + 1;
-                $stockOut->receipt_id = "INV-BAL-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $stockOut->receipt_id = "BAL-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 3, '0', STR_PAD_LEFT);
                 $stockOut->branch_id = $request->branch_id;
                 $stockOut->user_id = $user->id; // Using user_id instead of creator_id
                 $stockOut->balancing_cs_user_id = $request->customer_service_id; // Using the dedicated column
