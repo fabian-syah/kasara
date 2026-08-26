@@ -227,7 +227,7 @@ class AuditController extends Controller
             };
 
             $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
-            $activityCategories = ['refund', 'angkat_barang', 'cancel_penjualan'];
+            $activityCategories = ['refund', 'angkat_barang', 'cancel_penjualan', 'balancing'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
             // Optimization: Pre-fetch meta data to avoid N+1 in loops
@@ -2306,6 +2306,25 @@ class AuditController extends Controller
                     ];
                 }
 
+                if ($catLower === 'balancing' && empty($details)) {
+                    $details[] = [
+                        'name' => 'Balancing Pembayaran',
+                        'qty' => 1,
+                        'price' => (float) $trx->selling_price,
+                        'original_price' => (float) $trx->selling_price,
+                        'item_discount' => 0,
+                        'brand' => '-',
+                        'type' => 'Balancing',
+                        'is_hp' => false,
+                        'imei' => '-',
+                        'distributor_name' => '-',
+                        'ram' => '-',
+                        'storage' => '-',
+                        'condition' => '-',
+                        'notes' => $trx->notes
+                    ];
+                }
+
                 // DISABLED GROUPING LOGIC FOR BUNDLES: Keep items individual as requested
                 /*
                 if ($trx->is_bundle) {
@@ -2414,7 +2433,7 @@ class AuditController extends Controller
                             $amt = (float) ($sp['amount'] ?? 0);
                             if (in_array($catLower, ['refund', 'angkat_barang'])) {
                                 $amt = -abs($amt);
-                            } else {
+                            } elseif ($catLower !== 'balancing') {
                                 $amt = abs($amt);
                             }
                             $detailedSplitPayments[] = [
@@ -2470,9 +2489,10 @@ class AuditController extends Controller
                         foreach ($splits as $sp) {
                             $pmId = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
                             $amt = (float) ($sp['amount'] ?? 0);
-                            // Hanya negate untuk refund/angkat_barang
                             if (in_array($catLower, ['refund', 'angkat_barang'])) {
                                 $amt = -abs($amt);
+                            } elseif ($catLower === 'balancing') {
+                                $amt = $amt; // Keep original sign for balancing
                             } else {
                                 $amt = abs($amt);
                             }
