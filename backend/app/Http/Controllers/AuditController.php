@@ -1493,8 +1493,11 @@ class AuditController extends Controller
                                     $remainingToAllocate = $price;
                                     foreach ($sData as $sp) {
                                         $amt = abs((float) ($sp['amount'] ?? 0));
-                                        $spTotal += $amt;
-                                        if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
+                                        if ($saleType === 'balancing' && $price < 0) {
+                                            $amt = -$amt;
+                                        }
+                                        $spTotal += abs($amt);
+                                        if ($saleType === 'base_sale' || $saleType === 'tukar_tambah' || $saleType === 'balancing') {
                                             $pm = $paymentMethods->get($sp['payment_method_id'] ?? ($sp['method_id'] ?? null));
                                             $mName = $pm?->name ?? 'Lainnya';
                                             $allocatedAmt = min($amt, $remainingToAllocate);
@@ -1504,7 +1507,7 @@ class AuditController extends Controller
                                     }
                                 }
                             } else {
-                                if ($saleType === 'base_sale' || $saleType === 'tukar_tambah') {
+                                if ($saleType === 'base_sale' || $saleType === 'tukar_tambah' || $saleType === 'balancing') {
                                     $mName = $ps->payment_method_id ? ($paymentMethods->get($ps->payment_method_id)?->name ?? 'Lainnya') : 'CASH TOKO';
                                     $pSums[$mName] = ($pSums[$mName] ?? 0) + $price;
                                 }
