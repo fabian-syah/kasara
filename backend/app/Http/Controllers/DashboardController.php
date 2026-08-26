@@ -184,7 +184,7 @@ class DashboardController extends Controller
             $notes = strtolower($sale->notes ?? '');
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
-            $price = ($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0));
+            $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0)));
 
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -197,6 +197,8 @@ class DashboardController extends Controller
                 $saleType = 'refund';
             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                 $saleType = 'downgrade';
+            } elseif ($cat === 'balancing') {
+                $saleType = 'balancing';
             }
 
             $omsetContribution = 0;
@@ -212,7 +214,7 @@ class DashboardController extends Controller
                 
                 $omsetContribution = $outVal;
                 $netContribution = $outVal - $inVal;
-            } elseif ($saleType === 'base_sale') {
+            } elseif ($saleType === 'base_sale' || $saleType === 'balancing') {
                 $omsetContribution = $price;
                 $netContribution = $price;
             } elseif ($saleType === 'angkat_barang') {
@@ -468,13 +470,14 @@ class DashboardController extends Controller
                     }
                 }
 
-                $price = ($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0));
+                $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0)));
 
                 $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp']);
+                $isBalancing = ($cat === 'balancing');
                 $isTradeIn = ($cat === 'tukar_tambah');
                 $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
 
-                if ($isBaseSale) {
+                if ($isBaseSale || $isBalancing) {
                     $omset += $price;
                     $omsetBersih += $price;
                 } elseif ($isTradeIn) {
@@ -593,6 +596,8 @@ class DashboardController extends Controller
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
                             THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
+                            THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
                         END
                     ) as total_omset"),
@@ -611,6 +616,8 @@ class DashboardController extends Controller
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
                             THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
+                            THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
                         END
                     ) as omset_bersih")
@@ -686,6 +693,8 @@ class DashboardController extends Controller
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
                             THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
+                            THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
                         END
                     ) as omset"),
@@ -701,6 +710,8 @@ class DashboardController extends Controller
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
                             THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
+                            THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
                         END
                     ) as omset_bersih")
