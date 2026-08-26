@@ -264,11 +264,11 @@ async function handlePaymentFileChange(e) {
     }
 }
 
-let isClickLocked = false;
+const isClickLocked = ref(false);
 async function handleSubmitOrder() {
-    if (isClickLocked) return;
-    isClickLocked = true;
-    setTimeout(() => { isClickLocked = false; }, 1000);
+    if (isClickLocked.value) return;
+    isClickLocked.value = true;
+    setTimeout(() => { isClickLocked.value = false; }, 1000);
 
     if (!isFormValid.value) {
         alert("Mohon lengkapi data: " + missingFields.value.join(", "));
@@ -789,13 +789,13 @@ async function processPayment(pin = null) {
                             class="w-20 h-20 flex-none bg-surface-100 dark:bg-surface-800 hover:bg-surface-200 dark:hover:bg-surface-700 text-text-primary rounded-[1.25rem] font-bold transition-all flex items-center justify-center">
                             <ArrowLeft :size="28" />
                         </button>
-                        <button @click="handleSubmitOrder" :disabled="isSubmitting || isCompressing"
+                        <button @click="handleSubmitOrder" :disabled="isSubmitting || isCompressing || isClickLocked"
                             class="flex-1 h-20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-white rounded-[1.25rem] font-black text-xl shadow-2xl shadow-emerald-500/30 transition-all flex items-center justify-center gap-3"
                             :class="{ 'opacity-60 grayscale cursor-not-allowed': !isFormValid && !isSubmitting }">
-                            <Loader2 v-if="isSubmitting" class="animate-spin" :size="28" />
+                            <Loader2 v-if="isSubmitting || isClickLocked" class="animate-spin" :size="28" />
                             <CheckCircle v-else :size="28" />
                             <span>
-                                {{ submitButtonText }}
+                                {{ (isSubmitting || isClickLocked) ? 'Memproses...' : submitButtonText }}
                             </span>
                         </button>
                     </div>

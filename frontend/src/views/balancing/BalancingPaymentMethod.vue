@@ -166,11 +166,11 @@ function validateForm() {
 }
 
 // Open password modal
-let isClickLocked = false;
+const isClickLocked = ref(false);
 function handleSubmit() {
-    if (isClickLocked) return;
-    isClickLocked = true;
-    setTimeout(() => { isClickLocked = false; }, 1000);
+    if (isClickLocked.value) return;
+    isClickLocked.value = true;
+    setTimeout(() => { isClickLocked.value = false; }, 1000);
 
     if (!validateForm()) return;
     showPasswordModal.value = true;
@@ -578,10 +578,11 @@ function handleOutsideClick(e) {
 
                 <!-- Submit Button -->
                 <div class="pt-4 border-t border-neutral-100 dark:border-neutral-800">
-                    <button type="submit"
-                        class="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center gap-2">
-                        <Check :size="18" />
-                        Selesaikan Transaksi
+                    <button type="submit" :disabled="isClickLocked"
+                        class="w-full py-4 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <Loader2 v-if="isClickLocked" class="animate-spin" :size="18" />
+                        <Check v-else :size="18" />
+                        <span>{{ isClickLocked ? 'Memproses...' : 'Selesaikan Transaksi' }}</span>
                     </button>
                 </div>
             </form>

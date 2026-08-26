@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, nextTick, watch, computed } from "vue";
-import { Lock, AlertCircle, Eye, EyeOff } from "lucide-vue-next";
+import { Lock, AlertCircle, Eye, EyeOff, Loader2 } from "lucide-vue-next";
 import { useAuthStore } from "../../store/auth";
 
 const authStore = useAuthStore();
@@ -38,21 +38,25 @@ const inputPlaceholder = computed(() => {
     return props.mode === 'pin' ? 'PIN Keamanan...' : 'Password Login...';
 });
 
-let isClickLocked = false;
+const isClickLocked = ref(false);
 function handleSubmit() {
-    if (isClickLocked) return;
+    if (isClickLocked.value) return;
     if (!inputVal.value) return;
 
-    isClickLocked = true;
-    setTimeout(() => { isClickLocked = false; }, 1000);
+    isClickLocked.value = true;
+    localLoading.value = true;
 
     emit("success", inputVal.value);
     emit("verified", inputVal.value);
-    resetInput();
+    
+    // We don't reset isClickLocked immediately because the parent will handle API request.
+    // If it fails, watch error will unlock it.
 }
 
 watch(() => props.error, (newVal) => {
     if (newVal) {
+        localLoading.value = false;
+        isClickLocked.value = false;
         resetInput();
     }
 });
@@ -122,9 +126,10 @@ onMounted(() => {
                                 <EyeOff v-else :size="20" />
                             </button>
                         </div>
-                        <button type="submit" :disabled="!inputVal || loading || localLoading"
+                        <button type="submit" :disabled="!inputVal || loading || localLoading || isClickLocked"
                             class="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            Lanjutkan
+                            <Loader2 v-if="loading || localLoading || isClickLocked" class="w-5 h-5 animate-spin" />
+                            <span>{{ (loading || localLoading || isClickLocked) ? 'Memproses...' : 'Lanjutkan' }}</span>
                         </button>
                     </form>
 

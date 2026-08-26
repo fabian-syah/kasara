@@ -356,14 +356,12 @@ async function handlePhotoChange(type, event) {
             if (type === 'paymentProofImage') isCompressingPayment.value = false;
         }
     }
-}
-
-let isClickLocked = false;
+const isClickLocked = ref(false);
 async function handleSubmit(pin = null) {
-    if (isClickLocked && !pin) return;
+    if (isClickLocked.value && !pin) return;
     if (!pin) {
-        isClickLocked = true;
-        setTimeout(() => { isClickLocked = false; }, 1000);
+        isClickLocked.value = true;
+        setTimeout(() => { isClickLocked.value = false; }, 1000);
     }
 
     if (outgoingItems.value.length === 0) {
@@ -594,7 +592,7 @@ async function handleSubmit(pin = null) {
             </div>
 
             <div class="mt-4 flex justify-end">
-                <button @click="handleProceedToForm" :disabled="!selectedDp"
+                <button @click="handleProceedToForm" :disabled="!selectedDp || isClickLocked"
                     class="px-8 py-4 bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-black text-lg shadow-xl shadow-primary-500/20 transition-all flex items-center gap-2">
                     Lanjut Pelunasan <ArrowRight :size="20" />
                 </button>
@@ -868,12 +866,13 @@ async function handleSubmit(pin = null) {
                     class="flex-1 py-4 sm:py-5 bg-surface-100 dark:bg-surface-800 text-text-primary rounded-2xl font-black uppercase tracking-widest hover:bg-surface-200 dark:hover:bg-surface-700 transition-all active:scale-[0.98] border border-surface-200 dark:border-surface-700">
                     Kembali Ganti DP
                 </button>
-                <button @click="handleSubmit()" :disabled="isSubmitting"
+                <button @click="handleSubmit()" :disabled="isSubmitting || isClickLocked"
                     class="flex-[2] py-4 sm:py-5 bg-gradient-to-r from-emerald-500 to-primary-600 hover:from-emerald-400 hover:to-primary-500 disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-[0.1em] shadow-xl shadow-emerald-500/30 transition-all hover:shadow-emerald-500/50 hover:-translate-y-1 active:scale-[0.98] flex items-center justify-center gap-3">
-                    <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
+                    <Loader2 v-if="isSubmitting || isClickLocked" class="animate-spin" :size="24" />
                     <template v-else>
                         <Save :size="24" /> Selesaikan Pelunasan
                     </template>
+                    <span v-if="isSubmitting || isClickLocked" class="ml-2">Memproses...</span>
                 </button>
             </div>
         </div>
