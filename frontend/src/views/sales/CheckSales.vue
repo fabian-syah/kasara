@@ -1082,6 +1082,7 @@ const summaryStats = computed(() => {
         const isBaseSale = saleType === 'base_sale';
         const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
         const isDeduction = ['refund', 'angkat_barang'].includes(cat);
+        const isBalancing = cat === 'balancing';
 
         if (isBaseSale) {
             baseSales += total;
@@ -1099,6 +1100,12 @@ const summaryStats = computed(() => {
 
         if (isDeduction) {
             outlay += total;
+        }
+
+        if (isBalancing) {
+            // Balancing can be positive or negative, so we must use the actual signed value
+            const signedTotal = parseFloat(item.grand_total || item.original_price) || 0;
+            baseSales += signedTotal;
         }
 
         // Unit Logic: Separate IN and OUT

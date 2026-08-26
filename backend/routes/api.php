@@ -460,6 +460,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->balancing_cs_user_id = $request->customer_service_id; // Using the dedicated column
                 $stockOut->customer_name = $request->customer_name;
                 $stockOut->customer_phone = $request->customer_phone;
+                $stockOut->customer_wa = $request->customer_phone;
                 
                 $stockOut->category = 'balancing'; 
                 $stockOut->sub_category = 'balancing_metode_pembayaran';

@@ -2307,17 +2307,43 @@ class AuditController extends Controller
                 }
 
                 if ($catLower === 'balancing' && empty($details)) {
+                    // Try to find the original transaction for this customer
+                    $originalTrx = \App\Models\StockOut::with(['items.product'])
+                        ->where('customer_name', $trx->customer_name)
+                        ->where('id', '!=', $trx->id)
+                        ->where('created_at', '<=', $trx->created_at)
+                        ->whereNotIn('category', ['balancing', 'refund', 'cancel_penjualan', 'angkat_barang'])
+                        ->latest()
+                        ->first();
+                        
+                    $distName = '-';
+                    $imei = '-';
+                    $brand = '-';
+                    $prodName = 'Balancing Pembayaran';
+                    $isHp = false;
+
+                    if ($originalTrx && $originalTrx->items->isNotEmpty()) {
+                        $firstItem = $originalTrx->items->first();
+                        $dId = $firstItem->distributor_id ?? $firstItem->pivot?->distributor_id;
+                        $dist = $dId ? \App\Models\Distributor::find($dId) : null;
+                        $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
+                        $imei = $firstItem->imei ?? '-';
+                        $brand = $firstItem->product?->brand ?? '-';
+                        $prodName = 'Balancing: ' . ($firstItem->product?->name ?? 'Item');
+                        $isHp = true;
+                    }
+
                     $details[] = [
-                        'name' => 'Balancing Pembayaran',
+                        'name' => $prodName,
                         'qty' => 1,
                         'price' => (float) $trx->selling_price,
                         'original_price' => (float) $trx->selling_price,
                         'item_discount' => 0,
-                        'brand' => '-',
+                        'brand' => $brand,
                         'type' => 'Balancing',
-                        'is_hp' => false,
-                        'imei' => '-',
-                        'distributor_name' => '-',
+                        'is_hp' => $isHp,
+                        'imei' => $imei,
+                        'distributor_name' => $distName,
                         'ram' => '-',
                         'storage' => '-',
                         'condition' => '-',

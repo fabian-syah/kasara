@@ -207,6 +207,11 @@ async function confirmSubmit() {
         formData.append('branch_id', branchId.value);
         formData.append('date', form.value.reporting_date);
         formData.append('customer_name', form.value.customer_name || '');
+        
+        if (selectedCustomerData.value?.phone) {
+            formData.append('customer_phone', selectedCustomerData.value.phone);
+        }
+
         formData.append('balancing_description', form.value.balancing_description || '');
         if (form.value.balancing_cs_user_id) {
             formData.append('customer_service_id', form.value.balancing_cs_user_id);
