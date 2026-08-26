@@ -485,7 +485,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 return response()->json([
                     'success' => true,
                     'message' => 'Balancing metode pembayaran berhasil disimpan.',
-                    'data' => $stockOut->load('paymentMethods')
+                    'data' => $stockOut->load('paymentMethod')
                 ]);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\DB::rollBack();
