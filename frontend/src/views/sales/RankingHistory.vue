@@ -1806,7 +1806,7 @@ const totalOutDg = computed(() => {
 
 const sortedPayments = computed(() => {
     const p = salesData.value?.report_summary?.payments || {};
-    const entries = Object.entries(p).filter(([method, amt]) => amt > 0 && !method.toUpperCase().includes('DOWNGRADE'));
+    const entries = Object.entries(p).filter(([method, amt]) => amt !== 0 && !method.toUpperCase().includes('DOWNGRADE'));
     entries.sort(([nameA], [nameB]) => {
         const isACash = nameA.toUpperCase().includes('CASH TOKO');
         const isBCash = nameB.toUpperCase().includes('CASH TOKO');
