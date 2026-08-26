@@ -1445,7 +1445,7 @@ class AuditController extends Controller
                             $notes = strtolower($ps->notes ?? '');
                             $sa = strtolower($ps->sales_account ?? '');
                             $cat = strtolower(str_replace(' ', '_', $ps->category ?? ''));
-                            $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($ps->paid_amount ?? 0))) : max(0, abs((float) ($ps->selling_price ?? 0)));
+                            $price = $cat === 'balancing' ? (float) ($ps->selling_price ?? 0) : (in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($ps->paid_amount ?? 0))) : max(0, abs((float) ($ps->selling_price ?? 0))));
 
                             $saleType = 'ignored';
                             if ($cat === 'tukar_tambah') {
@@ -1458,6 +1458,8 @@ class AuditController extends Controller
                                 $saleType = 'refund';
                             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                                 $saleType = 'downgrade';
+                            } elseif ($cat === 'balancing') {
+                                $saleType = 'balancing';
                             }
 
                             if ($cat === 'cancel_penjualan') {
@@ -1495,9 +1497,9 @@ class AuditController extends Controller
 
                             // USER RULE: Omset MUST strictly follow actual received payments (spTotal) over database selling_price!
                             // If spTotal exceeds price, it means there is kembalian (change), so we cap it to price.
-                            $effectivePrice = ($spTotal > 0) ? min($spTotal, $price) : $price;
+                            $effectivePrice = ($spTotal > 0 && $cat !== 'balancing') ? min($spTotal, $price) : $price;
 
-                            if ($saleType === 'base_sale') {
+                            if ($saleType === 'base_sale' || $saleType === 'balancing') {
                                 $baseSalesOnly += $effectivePrice;
                             } elseif ($saleType === 'tukar_tambah') {
                                 $outPrice = floatval($ps->tt_outgoing_price ?? 0);
