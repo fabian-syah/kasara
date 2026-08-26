@@ -1430,7 +1430,10 @@ onMounted(() => {
                             <div v-for="item in duplicateDetails.items" :key="item.imei || item"
                                 class="text-sm font-mono text-white/80 bg-surface-900 border border-surface-700 p-2 rounded-xl text-center">
                                 <div>{{ item.imei || item }}</div>
-                                <div v-if="item.location" class="text-xs text-amber-400 mt-1 font-sans">
+                                <div v-if="item.status_message" class="text-xs text-amber-400 mt-1 font-sans">
+                                    {{ item.status_message }}
+                                </div>
+                                <div v-else-if="item.location" class="text-xs text-amber-400 mt-1 font-sans">
                                     Sudah ada di {{ item.location }}
                                 </div>
                             </div>
