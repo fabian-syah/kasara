@@ -477,6 +477,12 @@
                                 <span class="text-emerald-950 font-black">{{
                                     salesData?.report_summary?.activities?.in_dg || 0 }}</span>
                             </div>
+                            <div
+                                class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
+                                <span class="capitalize">Balancing</span>
+                                <span class="text-emerald-950 font-black">{{
+                                    salesData?.report_summary?.activities?.balancing || 0 }}</span>
+                            </div>
 
                             <!-- Rincian Unit (Refund/Angkat Barang Details) -->
                             <div v-if="salesData?.report_summary?.activities?.details" class="mt-4 mb-8 space-y-6">

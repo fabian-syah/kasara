@@ -653,7 +653,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
+                        $price = $cat === 'balancing' ? (float) ($tx->selling_price ?? 0) : (in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0))));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -666,6 +666,8 @@ class AuditController extends Controller
                             $saleType = 'refund';
                         } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                             $saleType = 'downgrade';
+                        } elseif ($cat === 'balancing') {
+                            $saleType = 'balancing';
                         }
 
                         if ($saleType === 'base_sale') {
@@ -701,6 +703,9 @@ class AuditController extends Controller
                         } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
                             $ownerGroups[$ownerId]['grand_total'] -= $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
+                        } elseif ($saleType === 'balancing') {
+                            $ownerGroups[$ownerId]['grand_total'] += $price;
+                            $ownerGroups[$ownerId]['total_activity_rp'] += abs($price);
                         }
                     }
 
@@ -879,7 +884,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
-                        $price = in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
+                        $price = $cat === 'balancing' ? (float) ($tx->selling_price ?? 0) : (in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0))));
 
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -892,6 +897,8 @@ class AuditController extends Controller
                             $saleType = 'refund';
                         } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                             $saleType = 'downgrade';
+                        } elseif ($cat === 'balancing') {
+                            $saleType = 'balancing';
                         }
 
                         if ($saleType === 'base_sale') {
@@ -920,6 +927,9 @@ class AuditController extends Controller
                             }
                         } elseif ($saleType === 'refund' || $saleType === 'angkat_barang') {
                             $dailyStats[$date]['omset_bersih'] -= $price;
+                        } elseif ($saleType === 'balancing') {
+                            $dailyStats[$date]['total_omset'] += $price;
+                            $dailyStats[$date]['omset_bersih'] += $price;
                         }
                     }
 
@@ -1443,6 +1453,7 @@ class AuditController extends Controller
                         $totalSudahDiaudit = 0;
                         $totalBelumDiaudit = 0;
                         $totalCancelGlobal = 0;
+                        $totalBalancingGlobal = 0;
 
                         foreach ($rawStats as $ps) {
                             $notes = strtolower($ps->notes ?? '');
@@ -1463,6 +1474,7 @@ class AuditController extends Controller
                                 $saleType = 'downgrade';
                             } elseif ($cat === 'balancing') {
                                 $saleType = 'balancing';
+                                $totalBalancingGlobal++;
                             }
 
                             if ($cat === 'cancel_penjualan') {
@@ -2038,6 +2050,7 @@ class AuditController extends Controller
                                 'in_tt' => count($activityDetails['in_tt'] ?? []),
                                 'in_dg' => count($activityDetails['in_dg'] ?? []),
                                 'out_dg' => count($activityDetails['out_dg'] ?? []),
+                                'balancing' => $totalBalancingGlobal ?? 0,
                                 'details' => $activityDetails
                             ],
                             'debug' => [
