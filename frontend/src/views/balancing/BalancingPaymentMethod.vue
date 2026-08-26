@@ -15,9 +15,21 @@ const router = useRouter();
 const branchId = computed(() => route.query.branch_id);
 const branchName = computed(() => route.query.branch_name || 'Cabang');
 
+// Helper for 5 AM reset date
+function getBalancingDate() {
+    const now = new Date();
+    if (now.getHours() < 5) {
+        now.setDate(now.getDate() - 1);
+    }
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 // Form state
 const form = ref({
-    reporting_date: '',
+    reporting_date: getBalancingDate(),
     customer_name: '',
     balancing_description: '',
     balancing_cs_user_id: null,
@@ -239,7 +251,7 @@ async function fetchData() {
     try {
         const [usersRes, customersRes, methodsRes] = await Promise.all([
             balancing.branchUsers(branchId.value),
-            balancing.customers(branchId.value),
+            balancing.customers(branchId.value, form.value.reporting_date),
             balancing.paymentMethods(branchId.value),
         ]);
 
@@ -252,6 +264,23 @@ async function fetchData() {
         loadingData.value = false;
     }
 }
+
+watch(() => form.value.reporting_date, async (newDate) => {
+    if (newDate) {
+        try {
+            const res = await balancing.customers(branchId.value, newDate);
+            customers.value = res.data.data || [];
+            form.value.customer_name = ''; // Reset customer when date changes
+            customerSearch.value = '';
+        } catch (e) {
+            console.error('Failed to fetch customers for date:', e);
+        }
+    } else {
+        customers.value = [];
+        form.value.customer_name = '';
+        customerSearch.value = '';
+    }
+});
 
 function goBack() {
     router.push('/balancing/payment-method');

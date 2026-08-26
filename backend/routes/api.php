@@ -365,12 +365,20 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/customers', function (\Illuminate\Http\Request $request) {
             $search = $request->query('search');
             $branchId = $request->query('branch_id');
+            $date = $request->query('date');
             
             $query = \App\Models\StockOut::whereNotNull('customer_name')
                 ->where('customer_name', '!=', '');
                 
             if ($branchId) {
                 $query->where('branch_id', $branchId);
+            }
+            
+            if ($date) {
+                $query->where(function($q) use ($date) {
+                    $q->whereDate('created_at', $date)
+                      ->orWhereDate('reporting_date', $date);
+                });
             }
 
             if ($search && strlen($search) >= 2) {
