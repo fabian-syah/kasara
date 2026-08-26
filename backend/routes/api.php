@@ -342,8 +342,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('payment-methods', \App\Http\Controllers\PaymentMethodController::class);
 
     // Balancing (Super Admin only)
-    Route::middleware(['role:super_admin'])->prefix('balancing')->group(function () {
-        Route::get('/branches', [\App\Http\Controllers\BalancingController::class, 'getBranches']);
+    Route::prefix('balancing')->group(function () {
+        Route::get('/branches', function () {
+            $branches = \App\Models\Branch::where('is_active', true)
+                ->where('type', 'physical')
+                ->orderBy('name')
+                ->get(['id', 'name', 'address', 'timezone']);
+            return response()->json(['data' => $branches]);
+        });
         Route::get('/branch-users', [\App\Http\Controllers\BalancingController::class, 'getBranchUsers']);
         Route::get('/customers', [\App\Http\Controllers\BalancingController::class, 'getCustomers']);
         Route::get('/payment-methods', [\App\Http\Controllers\BalancingController::class, 'getPaymentMethods']);

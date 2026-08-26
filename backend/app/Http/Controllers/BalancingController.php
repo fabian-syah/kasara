@@ -19,229 +19,193 @@ class BalancingController extends Controller
      */
     public function getBranches()
     {
-        return response()->json(['data' => 'test_success']);
+        $branches = Branch::where('is_active', true)
+            ->where('type', 'physical')
+            ->orderBy('name')
+            ->get(['id', 'name', 'address', 'timezone']);
+
+        return response()->json(['data' => $branches]);
     }
 
     /**
-     * Get CS (inventory) users belonging to a specific branch.
-     * These are the users with role 'inventory' whose creator is assigned to this branch,
-     * or toko_offline users directly assigned to the branch.
+     * Get users for a specific branch (to be used as Customer Service selection)
      */
     public function getBranchUsers(Request $request)
     {
-        $request->validate(['branch_id' => 'required|exists:branches,id']);
+        $branchId = $request->query('branch_id');
 
-        $branchId = $request->branch_id;
+        if (!$branchId) {
+            return response()->json(['data' => []]);
+        }
 
-        // Get users directly assigned to this branch (toko_offline, inventory accounts)
         $users = User::where('branch_id', $branchId)
             ->where('is_active', true)
-            ->whereHas('roles', function ($q) {
-                $q->whereIn('name', ['inventory', 'toko_offline']);
-            })
-            ->orderBy('name')
-            ->get(['id', 'name', 'username', 'code_id']);
+            ->select('id', 'name')
+            ->get();
 
         return response()->json(['data' => $users]);
     }
 
     /**
-     * Get distinct customer names from previous transactions at a branch.
-     * Useful for autocomplete in the balancing form.
+     * Search customers based on name or phone
      */
     public function getCustomers(Request $request)
     {
-        $request->validate(['branch_id' => 'required|exists:branches,id']);
+        $search = $request->query('search');
 
-        $branchId = $request->branch_id;
+        if (!$search || strlen($search) < 2) {
+            return response()->json(['data' => []]);
+        }
 
-        $customers = StockOut::where('branch_id', $branchId)
-            ->whereNotNull('customer_name')
-            ->where('customer_name', '!=', '')
-            ->select('customer_name')
+        // Search from previous StockOuts as customer history
+        $customers = StockOut::where('customer_name', 'ilike', "%{$search}%")
+            ->orWhere('customer_phone', 'ilike', "%{$search}%")
+            ->select('customer_name', 'customer_phone')
             ->distinct()
-            ->orderBy('customer_name')
-            ->limit(500)
-            ->pluck('customer_name');
+            ->limit(10)
+            ->get();
 
         return response()->json(['data' => $customers]);
     }
 
     /**
-     * Get payment methods available for a branch.
+     * Get payment methods available for balancing
      */
-    public function getPaymentMethods(Request $request)
+    public function getPaymentMethods()
     {
-        $request->validate(['branch_id' => 'required|exists:branches,id']);
-
-        $branch = Branch::find($request->branch_id);
-
-        // Get branch-specific payment methods, fall back to all active ones
-        $methods = $branch->paymentMethods()->where('is_active', true)->get();
-
-        if ($methods->isEmpty()) {
-            $methods = PaymentMethod::where('is_active', true)->orderBy('name')->get();
-        }
+        // Balancing might allow negative inputs to reduce omset
+        $methods = PaymentMethod::where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'type', 'provider']);
 
         return response()->json(['data' => $methods]);
     }
 
     /**
-     * Store a new balancing record (Balancing Metode Pembayaran).
-     * Creates a StockOut with category='balancing' and the user-specified reporting_date.
+     * Store a new Balancing Payment Method record.
      */
     public function storePaymentMethod(Request $request)
     {
         $request->validate([
             'branch_id' => 'required|exists:branches,id',
-            'reporting_date' => 'required|date',
-            'customer_name' => 'nullable|string|max:255',
-            'balancing_description' => 'nullable|string|max:500',
-            'balancing_cs_user_id' => 'nullable|exists:users,id',
+            'date' => 'required|date',
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'nullable|string|max:20',
+            'customer_service_id' => 'required|exists:users,id',
             'notes' => 'required|string',
-            'proof_image' => 'required|image|max:20480',
-            'split_payments' => 'required|string', // JSON string
-            'selling_price' => 'required|numeric', // Can be negative
+            'photo' => 'required|image|max:2048', // Max 2MB
+            'payment_methods' => 'required|array|min:1',
+            'payment_methods.*.method_id' => 'required|exists:payment_methods,id',
+            'payment_methods.*.amount' => 'required|numeric', // allow negative
             'password' => 'required|string',
         ]);
 
-        // Verify super admin password
-        /** @var User $user */
+        // Verify Super Admin Password
         $user = Auth::user();
-
-        if (!Hash::check($request->password, $user->getAuthPassword())) {
+        if (!Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'Password salah.',
-                'errors' => ['password' => ['Password yang Anda masukkan salah.']]
-            ], 422);
+                'success' => false,
+                'message' => 'Password salah.'
+            ], 403);
         }
 
-        DB::beginTransaction();
-
         try {
-            // Handle file upload
-            $proofImagePath = null;
-            if ($request->hasFile('proof_image')) {
-                $proofImagePath = $request->file('proof_image')->store('stock-outs/balancing', 'public');
-            }
+            DB::beginTransaction();
 
-            // Parse split_payments
-            $splitPayments = json_decode($request->split_payments, true);
-            if (!is_array($splitPayments) || empty($splitPayments)) {
-                throw new \Exception('Metode pembayaran harus diisi minimal satu.');
-            }
-
-            // Calculate total from split payments
+            $photoPath = $request->file('photo')->store('balancing', 'public');
+            
             $totalAmount = 0;
-            $primaryMethodId = null;
-            foreach ($splitPayments as $sp) {
-                $totalAmount += floatval($sp['amount'] ?? 0);
-                if (!$primaryMethodId && isset($sp['payment_method_id'])) {
-                    $primaryMethodId = $sp['payment_method_id'];
-                }
+            foreach ($request->payment_methods as $pm) {
+                $totalAmount += $pm['amount'];
             }
 
-            // Use explicit selling_price from request (can be negative)
-            $sellingPrice = floatval($request->selling_price);
+            // In Balancing Metode Pembayaran, we don't reduce inventory,
+            // we just create a StockOut record categorized as 'balancing' to record the omset modification.
+            // A StockOut without items will just serve as an invoice/transaction record.
+            
+            $stockOut = new StockOut();
+            // Generate invoice number
+            $branchCode = Branch::find($request->branch_id)->code ?? 'XX';
+            $datePrefix = date('ymd');
+            $count = StockOut::whereDate('created_at', today())->count() + 1;
+            $stockOut->invoice_number = "INV-BAL-{$branchCode}-{$datePrefix}-" . str_pad($count, 4, '0', STR_PAD_LEFT);
+            
+            $stockOut->branch_id = $request->branch_id;
+            $stockOut->creator_id = $user->id; // Super admin
+            $stockOut->pic_id = $request->customer_service_id; // CS selected
+            
+            $stockOut->customer_name = $request->customer_name;
+            $stockOut->customer_phone = $request->customer_phone;
+            
+            $stockOut->category = StockOut::CATEGORY_BALANCING;
+            $stockOut->sub_category = 'balancing_metode_pembayaran';
+            
+            $stockOut->status = 'completed';
+            $stockOut->total_amount = $totalAmount;
+            
+            // Critical for omset attribution: set the reporting date to the requested date!
+            $stockOut->reporting_date = $request->date; 
+            
+            $stockOut->notes = $request->notes;
+            $stockOut->payment_proof = $photoPath;
+            
+            $stockOut->save();
 
-            // Create the balancing StockOut record
-            $stockOut = StockOut::create([
-                'receipt_id' => StockOut::generateReceiptId(),
-                'category' => 'balancing',
-                'balancing_type' => 'payment_method',
-                'sub_category' => 'balancing_metode_pembayaran',
-                'status' => 'received',
-                'user_id' => Auth::id(),
-                'branch_id' => $request->branch_id,
-                'reporting_date' => $request->reporting_date, // User-selected date, NOT today
-                'customer_name' => $request->customer_name,
-                'selling_price' => $sellingPrice,
-                'payment_method_id' => $primaryMethodId,
-                'split_payments' => $splitPayments,
-                'paid_amount' => $totalAmount,
-                'notes' => $request->notes,
-                'balancing_notes' => $request->balancing_description,
-                'balancing_cs_user_id' => $request->balancing_cs_user_id,
-                'inventory_user_id' => $request->balancing_cs_user_id,
-                'proof_image' => $proofImagePath,
-                'confirmed_at' => now(),
-                'confirmed_by' => Auth::id(),
-            ]);
+            // Attach Payment Methods
+            foreach ($request->payment_methods as $pm) {
+                $stockOut->paymentMethods()->attach($pm['method_id'], [
+                    'amount' => $pm['amount'],
+                ]);
+            }
 
             DB::commit();
-
-            Log::info("Balancing Payment Method created", [
-                'stock_out_id' => $stockOut->id,
-                'receipt_id' => $stockOut->receipt_id,
-                'branch_id' => $request->branch_id,
-                'reporting_date' => $request->reporting_date,
-                'selling_price' => $sellingPrice,
-                'created_by' => Auth::id(),
-            ]);
-
-            // Load relationships for response
-            $stockOut->load(['branch', 'user', 'paymentMethod']);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Balancing metode pembayaran berhasil disimpan.',
-                'data' => $stockOut,
-            ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error("Balancing store failed: " . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+                'data' => $stockOut->load('paymentMethods')
             ]);
 
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Balancing Payment Error: ' . $e->getMessage());
             return response()->json([
-                'message' => 'Gagal menyimpan balancing: ' . $e->getMessage(),
+                'success' => false,
+                'message' => 'Terjadi kesalahan sistem: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Cancel/void a balancing record.
+     * Cancel / Void a balancing transaction.
      */
     public function cancel(Request $request, $id)
     {
         $request->validate([
             'password' => 'required|string',
-            'cancel_reason' => 'required|string|max:500',
+            'reason' => 'required|string',
         ]);
 
-        /** @var User $user */
         $user = Auth::user();
-
-        if (!Hash::check($request->password, $user->getAuthPassword())) {
+        if (!Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'Password salah.',
-                'errors' => ['password' => ['Password yang Anda masukkan salah.']]
+                'success' => false,
+                'message' => 'Password salah.'
+            ], 403);
+        }
+
+        $stockOut = StockOut::where('category', StockOut::CATEGORY_BALANCING)->findOrFail($id);
+
+        if ($stockOut->status === 'cancelled') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaksi sudah dibatalkan sebelumnya.'
             ], 422);
         }
 
-        $stockOut = StockOut::where('id', $id)
-            ->where('category', 'balancing')
-            ->firstOrFail();
-
-        if ($stockOut->cancelled_at) {
-            return response()->json([
-                'message' => 'Balancing ini sudah dibatalkan sebelumnya.',
-            ], 422);
-        }
-
-        $stockOut->update([
-            'cancelled_at' => now(),
-            'cancelled_by' => Auth::id(),
-            'cancel_reason' => $request->cancel_reason,
-            'selling_price' => 0, // Zero out the amount
-        ]);
-
-        Log::info("Balancing cancelled", [
-            'stock_out_id' => $stockOut->id,
-            'receipt_id' => $stockOut->receipt_id,
-            'cancelled_by' => Auth::id(),
-            'reason' => $request->cancel_reason,
-        ]);
+        $stockOut->status = 'cancelled';
+        $stockOut->notes = $stockOut->notes . "\n[DIBATALKAN: {$request->reason}]";
+        $stockOut->save();
 
         return response()->json([
             'success' => true,
