@@ -209,24 +209,28 @@ async function confirmSubmit() {
         formData.append('customer_name', form.value.customer_name || '');
         formData.append('balancing_description', form.value.balancing_description || '');
         if (form.value.balancing_cs_user_id) {
-            formData.append('balancing_cs_user_id', form.value.balancing_cs_user_id);
+            formData.append('customer_service_id', form.value.balancing_cs_user_id);
         }
         formData.append('notes', form.value.notes);
         formData.append('selling_price', totalAmount.value);
         formData.append('password', passwordInput.value);
 
-        // Build split_payments
+        // Build payment methods correctly for Laravel validation
         const validPayments = paymentEntries.value
             .filter(p => p.payment_method_id && p.amount)
             .map(p => ({
-                payment_method_id: p.payment_method_id,
+                method_id: p.payment_method_id,
                 amount: parseFloat(String(p.amount).replace(/[^0-9.\-]/g, '')) || 0,
             }));
-        formData.append('split_payments', JSON.stringify(validPayments));
+            
+        validPayments.forEach((p, idx) => {
+            formData.append(`payment_methods[${idx}][method_id]`, p.method_id);
+            formData.append(`payment_methods[${idx}][amount]`, p.amount);
+        });
 
         // Proof image
         if (form.value.proof_image) {
-            formData.append('proof_image', form.value.proof_image);
+            formData.append('photo', form.value.proof_image);
         }
 
         const { data } = await balancing.storePaymentMethod(formData);
