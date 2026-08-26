@@ -154,13 +154,6 @@ function removeImage() {
     if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
-// Select customer from dropdown
-function selectCustomer(name) {
-    form.value.customer_name = name;
-    customerSearch.value = name;
-    showCustomerDropdown.value = false;
-}
-
 // Select CS user
 function selectCsUser(user) {
     form.value.balancing_cs_user_id = user.id;
