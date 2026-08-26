@@ -91,13 +91,13 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp'];
+        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp', 'balancing'];
         return $this->getAggregatedStats($user, $dashCat, 'toko_offline');
     }
 
     private function getOnlineShopStats($user)
     {
-        $categories = ['shopee', 'orderan_online', 'giveaway', 'cancel_penjualan'];
+        $categories = ['shopee', 'orderan_online', 'giveaway', 'cancel_penjualan', 'balancing'];
         return $this->getAggregatedStats($user, $categories, 'online_shop');
     }
 
@@ -532,7 +532,7 @@ class DashboardController extends Controller
             return null;
 
         try {
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp'];
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_tambah', 'downgrade', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp', 'balancing'];
 
             // Use reporting date logic
             $location = $user->branch ?: ($user->onlineShop ?: null);
