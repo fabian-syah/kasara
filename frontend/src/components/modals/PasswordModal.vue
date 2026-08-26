@@ -38,8 +38,13 @@ const inputPlaceholder = computed(() => {
     return props.mode === 'pin' ? 'PIN Keamanan...' : 'Password Login...';
 });
 
+let isClickLocked = false;
 function handleSubmit() {
+    if (isClickLocked) return;
     if (!inputVal.value) return;
+
+    isClickLocked = true;
+    setTimeout(() => { isClickLocked = false; }, 1000);
 
     emit("success", inputVal.value);
     emit("verified", inputVal.value);
