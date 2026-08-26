@@ -358,7 +358,14 @@ async function handlePhotoChange(type, event) {
     }
 }
 
+let isClickLocked = false;
 async function handleSubmit(pin = null) {
+    if (isClickLocked && !pin) return;
+    if (!pin) {
+        isClickLocked = true;
+        setTimeout(() => { isClickLocked = false; }, 1000);
+    }
+
     if (outgoingItems.value.length === 0) {
         alert("Silakan pilih minimal 1 unit/item barang keluar.");
         return;

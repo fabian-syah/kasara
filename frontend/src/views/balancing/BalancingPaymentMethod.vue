@@ -166,7 +166,12 @@ function validateForm() {
 }
 
 // Open password modal
+let isClickLocked = false;
 function handleSubmit() {
+    if (isClickLocked) return;
+    isClickLocked = true;
+    setTimeout(() => { isClickLocked = false; }, 1000);
+
     if (!validateForm()) return;
     showPasswordModal.value = true;
     passwordInput.value = '';

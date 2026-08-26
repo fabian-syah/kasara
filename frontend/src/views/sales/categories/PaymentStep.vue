@@ -264,7 +264,12 @@ async function handlePaymentFileChange(e) {
     }
 }
 
+let isClickLocked = false;
 async function handleSubmitOrder() {
+    if (isClickLocked) return;
+    isClickLocked = true;
+    setTimeout(() => { isClickLocked = false; }, 1000);
+
     if (!isFormValid.value) {
         alert("Mohon lengkapi data: " + missingFields.value.join(", "));
         return;
