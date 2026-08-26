@@ -357,27 +357,42 @@ Route::middleware('auth:sanctum')->group(function () {
             if (!$branchId) return response()->json(['data' => []]);
             $users = \App\Models\User::where('branch_id', $branchId)
                 ->where('is_active', true)
-                ->select('id', 'name')
+                ->select('id', 'name', 'username')
                 ->get();
             return response()->json(['data' => $users]);
         });
 
         Route::get('/customers', function (\Illuminate\Http\Request $request) {
             $search = $request->query('search');
-            if (!$search || strlen($search) < 2) return response()->json(['data' => []]);
-            $customers = \App\Models\StockOut::where('customer_name', 'ilike', "%{$search}%")
-                ->orWhere('customer_phone', 'ilike', "%{$search}%")
-                ->select('customer_name', 'customer_phone')
+            $branchId = $request->query('branch_id');
+            
+            $query = \App\Models\StockOut::whereNotNull('customer_name')
+                ->where('customer_name', '!=', '');
+                
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            if ($search && strlen($search) >= 2) {
+                $query->where(function($q) use ($search) {
+                    $q->where('customer_name', 'ilike', "%{$search}%")
+                      ->orWhere('customer_phone', 'ilike', "%{$search}%");
+                });
+            }
+
+            $customers = $query->select('customer_name')
                 ->distinct()
-                ->limit(10)
-                ->get();
+                ->orderBy('customer_name')
+                ->limit(20)
+                ->pluck('customer_name');
+                
             return response()->json(['data' => $customers]);
         });
 
         Route::get('/payment-methods', function () {
             $methods = \App\Models\PaymentMethod::where('is_active', true)
                 ->orderBy('name')
-                ->get(['id', 'name', 'category', 'account_number', 'account_name']);
+                ->get(['id', 'name']); // Only select id and name to avoid SQL errors on missing columns
             return response()->json(['data' => $methods]);
         });
 
