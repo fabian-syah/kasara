@@ -370,7 +370,7 @@ function handleOutsideClick(e) {
                     <input
                         v-model="form.reporting_date"
                         type="date"
-                        class="w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-white"
+                        class="w-full px-4 py-3 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 focus:ring-violet-500/40 focus:border-violet-500 bg-white dark:bg-neutral-800/50 text-neutral-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark]"
                         :class="errors.reporting_date ? 'border-red-300 dark:border-red-700' : 'border-neutral-200 dark:border-neutral-700'"
                     />
                     <p v-if="errors.reporting_date" class="mt-1.5 text-xs text-red-500">{{ errors.reporting_date }}</p>
