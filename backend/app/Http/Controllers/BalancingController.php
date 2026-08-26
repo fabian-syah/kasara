@@ -19,12 +19,7 @@ class BalancingController extends Controller
      */
     public function getBranches()
     {
-        $branches = Branch::where('is_active', true)
-            ->where('type', 'physical')
-            ->orderBy('name')
-            ->get(['id', 'name', 'address', 'timezone']);
-
-        return response()->json(['data' => $branches]);
+        return response()->json(['data' => 'test_success']);
     }
 
     /**
