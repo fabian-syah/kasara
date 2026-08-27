@@ -1058,7 +1058,7 @@ class ReportController extends Controller
         if ($startDate && $endDate) {
             $baseQuery->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                 $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                  ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                  /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
             });
         } elseif ($startDate) {
             $baseQuery->where(function ($q) use ($startDate, $startTS) {

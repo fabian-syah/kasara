@@ -116,7 +116,7 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             });
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
@@ -334,7 +334,7 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             })
             ->pluck('receipt_id')->filter()->toArray();
             
@@ -348,7 +348,7 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  ->orWhereBetween('created_at', [$startTS, $endTS]);
+                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             })
             ->select('user_id', DB::raw("SUM(
                 CASE 
@@ -417,7 +417,7 @@ class DashboardController extends Controller
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
-                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                      /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
                 })
                  ->select(DB::raw("SUM(
                     CASE 
@@ -441,7 +441,7 @@ class DashboardController extends Controller
                 ->whereNull('deleted_at')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
-                      ->orWhereBetween('created_at', [$startTS, $endTS]);
+                      /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
                 })
                 ->get();
 
@@ -582,7 +582,7 @@ class DashboardController extends Controller
                 
                 $query->where(function ($q) use ($startDate, $actualEndDate, $startTS, $endTS) {
                     $q->whereBetween('stock_outs.reporting_date', [$startDate, $actualEndDate])
-                      ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                      /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
                 });
 
                 $stats = $query->select(
@@ -678,7 +678,7 @@ class DashboardController extends Controller
                 
                 $query->where(function ($q) use ($start, $actualEnd, $startTS, $endTS) {
                     $q->whereBetween('stock_outs.reporting_date', [$start, $actualEnd])
-                      ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                      /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
                 });
 
                 return $query->select(

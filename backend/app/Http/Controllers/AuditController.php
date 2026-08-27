@@ -287,7 +287,7 @@ class AuditController extends Controller
                             $startTS = $startDate . ' 05:00:00';
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                             $q->whereBetween('reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('created_at', [$startTS, $endTS]) */;
                         })
                         ->when($requestedCategory && $requestedCategory !== 'all', function ($q) use ($requestedCategory) {
                             if ($requestedCategory === 'orderan_online' || $requestedCategory === 'shopee')
@@ -356,7 +356,7 @@ class AuditController extends Controller
                     $hpQuery = DB::table('stock_out_items')->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')->join('products', 'product_details.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->leftJoin('distributors', 'product_details.distributor_id', '=', 'distributors.id')->whereIn('stock_outs.category', $successCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->when($requestedCondition, fn($q) => $q->where('product_details.condition', $requestedCondition))->when($requestedProductTypeId, fn($q) => $q->where('products.id', $requestedProductTypeId))->when($requestedCapacity, fn($q) => $q->where('product_details.storage', $requestedCapacity))->when($requestedDistributorId, fn($q) => $q->where('product_details.distributor_id', $requestedDistributorId))->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             $userCheck = function ($sq, $col, $ids) {
@@ -402,7 +402,7 @@ class AuditController extends Controller
                     $nhpQuery = DB::table('stock_out_non_hp_items')->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')->join('users', 'stock_outs.user_id', '=', 'users.id')->whereIn('stock_outs.category', $successCategories)
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
@@ -455,7 +455,7 @@ class AuditController extends Controller
                         ->whereNotNull('sales_account')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('created_at', [$startTS, $endTS]) */;
                         })
                         ->distinct()
                         ->pluck('sales_account');
@@ -487,7 +487,7 @@ class AuditController extends Controller
                                 ->where('sales_account', $name)
                                 ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                                     $q->whereBetween('reporting_date', [$startDate, $endDate])
-                                        ->orWhereBetween('created_at', [$startTS, $endTS]);
+                                        /* ->orWhereBetween('created_at', [$startTS, $endTS]) */;
                                 })
                                 ->where(function ($q) use ($userId) {
                                     $q->whereNull('inventory_user_id')->orWhere('inventory_user_id', '!=', $userId);
@@ -498,7 +498,7 @@ class AuditController extends Controller
 
                     $baseQuery->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                         $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                            ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                            /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                     });
 
                     $baseQuery->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist) {
@@ -789,7 +789,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                             if ($requestedBranchId) {
@@ -1010,7 +1010,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select('products.name', 'products.brand', DB::raw('count(*) as qty'))
@@ -1024,7 +1024,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select('products.name', 'products.brand', DB::raw('sum(quantity) as qty'))
@@ -1087,7 +1087,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select('product_details.condition', DB::raw('count(*) as qty'))
@@ -1100,7 +1100,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select(DB::raw("'new' as condition"), DB::raw('sum(quantity) as qty'))
@@ -1165,7 +1165,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), DB::raw('count(*) as qty'))
@@ -1179,7 +1179,7 @@ class AuditController extends Controller
                         ->whereNull('stock_outs.deleted_at')
                         ->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                             $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                         })
                         ->where(fn($q) => $applyQueryFilters($q))
                         ->select(DB::raw("COALESCE(distributors.name, 'Tanpa Distributor') as distributor"), DB::raw('sum(quantity) as qty'))
@@ -1250,7 +1250,7 @@ class AuditController extends Controller
 
                             $query->where(function ($q) use ($startDate, $endDate, $startTS, $endTS) {
                                 $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                    ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                    /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                             });
 
                             $query->whereNull('stock_outs.deleted_at');
@@ -1349,7 +1349,7 @@ class AuditController extends Controller
                             $endTS = date('Y-m-d', strtotime($endDate . ' +1 day')) . ' 04:59:59';
                             $q->where(function ($qq) use ($startDate, $endDate, $startTS, $endTS) {
                                 $qq->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
-                                    ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]);
+                                    /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */;
                             });
                             $q->where(function ($sub) use ($requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $branchIds, $onlineShopIds, $isGlobalUnrestricted, $isAnalist, $isSuperAdmin) {
                                 if ($requestedBranchId)
