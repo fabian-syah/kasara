@@ -297,7 +297,7 @@ class StockInController extends Controller
                                 ?? $existingRecords->first();
 
                     if ($existing) {
-                        $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer', 'sold'];
+                        $activeStatuses = ['available', 'in_transit', 'booking', 'process', 'service', 'transfer'];
                         if (in_array($existing->status, $activeStatuses) && !$existing->trashed()) {
                             // Get location info of existing item
                             $existingLocation = '';
@@ -476,6 +476,7 @@ class StockInController extends Controller
                     'duplicates' => collect($duplicates)->map(fn($dup) => [
                         'imei' => $dup['imei'],
                         'location' => $dup['location'],
+                        'status_message' => $dup['status_message'] ?? null,
                     ])->toArray()
                 ], 201);
             }
