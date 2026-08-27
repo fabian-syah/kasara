@@ -375,10 +375,7 @@ Route::middleware('auth:sanctum')->group(function () {
             }
             
             if ($date) {
-                $query->where(function($q) use ($date) {
-                    $q->whereDate('created_at', $date)
-                      ->orWhereDate('reporting_date', $date);
-                });
+                $query->whereDate('reporting_date', $date);
             }
 
             if ($search && strlen($search) >= 2) {
