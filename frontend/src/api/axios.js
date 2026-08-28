@@ -238,4 +238,7 @@ export const balancing = {
     paymentMethods: (branchId) => api.get('/balancing/payment-methods', { params: { branch_id: branchId } }),
     storePaymentMethod: (data) => api.post('/balancing/payment-method', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
     cancel: (id, data) => api.post(`/balancing/${id}/cancel`, data),
+    branchInventory: (branchId) => api.get('/balancing/branch-inventory', { params: { branch_id: branchId } }),
+    storeMissedSale: (data) => api.post('/balancing/missed-sale', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
 }
+

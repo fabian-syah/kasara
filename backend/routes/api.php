@@ -492,6 +492,287 @@ Route::middleware('auth:sanctum')->group(function () {
             }
         });
 
+        // Inventory for a specific branch (for Balancing Penjualan Terlewat)
+        Route::get('/branch-inventory', function (\Illuminate\Http\Request $request) {
+            $branchId = $request->query('branch_id');
+            if (!$branchId) return response()->json(['data' => []]);
+
+            // HP items (product_details) placed at this branch
+            $hpItems = \App\Models\ProductDetail::where('status', 'available')
+                ->where('placement_type', 'branch')
+                ->where('placement_id', $branchId)
+                ->with(['product.brandRelation', 'distributor'])
+                ->get()
+                ->map(function ($detail) {
+                    return [
+                        'id' => $detail->id,
+                        'type' => 'hp',
+                        'product' => [
+                            'name' => $detail->product?->name ?? 'Unknown',
+                            'brand' => $detail->product?->brand ?? '-',
+                        ],
+                        'name' => $detail->product?->name ?? 'Unknown',
+                        'imei' => $detail->imei,
+                        'ram' => $detail->ram,
+                        'storage' => $detail->storage,
+                        'condition' => $detail->condition ?? 'new',
+                        'selling_price' => $detail->selling_price ?? 0,
+                        'price' => $detail->selling_price ?? 0,
+                        'distributor' => [
+                            'name' => $detail->distributor?->name ?? null,
+                        ],
+                    ];
+                });
+
+            // Non-HP items (inventory) at this branch
+            $nonHpItems = \App\Models\Inventory::where('placement_type', 'branch')
+                ->where('placement_id', $branchId)
+                ->where('quantity', '>', 0)
+                ->with(['product.brandRelation'])
+                ->get()
+                ->map(function ($inv) {
+                    return [
+                        'id' => $inv->id,
+                        'type' => 'non_hp',
+                        'is_non_hp' => true,
+                        'product_id' => $inv->product_id,
+                        'product' => [
+                            'name' => $inv->product?->name ?? 'Unknown',
+                            'brand' => $inv->product?->brand ?? '-',
+                        ],
+                        'name' => $inv->product?->name ?? 'Unknown',
+                        'imei' => null,
+                        'ram' => null,
+                        'storage' => null,
+                        'condition' => 'new',
+                        'selling_price' => $inv->product?->selling_price ?? $inv->product?->price ?? 0,
+                        'price' => $inv->product?->selling_price ?? $inv->product?->price ?? 0,
+                        'stock' => $inv->quantity,
+                        'quantity' => $inv->quantity,
+                        'distributor' => [
+                            'name' => $inv->distributor?->name ?? null,
+                        ],
+                    ];
+                });
+
+            return response()->json(['data' => $hpItems->concat($nonHpItems)->values()]);
+        });
+
+        // Store Missed Sale Balancing
+        Route::post('/missed-sale', function (\Illuminate\Http\Request $request) {
+            $request->validate([
+                'branch_id' => 'required|exists:branches,id',
+                'reporting_date' => 'required|date',
+                'password' => 'required|string',
+                'customer_name' => 'nullable|string|max:255',
+                'customer_wa' => 'nullable|string|max:50',
+                'customer_service_id' => 'nullable|exists:users,id',
+                'notes' => 'nullable|string',
+                'photo' => 'nullable|image|max:20480',
+                'selling_price' => 'required|numeric|min:0',
+                'payment_method_id' => 'nullable|exists:payment_methods,id',
+                'split_payments' => 'nullable|string', // JSON string
+                'product_detail_ids' => 'nullable|array',
+                'product_detail_ids.*' => 'exists:product_details,id',
+                'non_hp_items' => 'nullable|array',
+                'non_hp_items.*.product_id' => 'required|exists:products,id',
+                'non_hp_items.*.quantity' => 'required|integer|min:1',
+                'non_hp_items.*.selling_price' => 'nullable|numeric|min:0',
+                'is_bundle' => 'nullable',
+                'bundle_description' => 'nullable|string',
+                'global_discount_value' => 'nullable|numeric|min:0',
+                'global_discount_type' => 'nullable|string|in:fixed,percentage',
+                'total_discount' => 'nullable|numeric|min:0',
+                'hp_items_meta' => 'nullable|string', // JSON string
+            ]);
+
+            $user = \Illuminate\Support\Facades\Auth::user();
+            if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+                return response()->json(['success' => false, 'message' => 'Password salah.'], 403);
+            }
+
+            try {
+                \Illuminate\Support\Facades\DB::beginTransaction();
+
+                $branchId = $request->branch_id;
+
+                // Process HP items — verify availability and mark as sold
+                $productDetails = collect();
+                if ($request->product_detail_ids && count($request->product_detail_ids) > 0) {
+                    $uniqueIds = array_unique($request->product_detail_ids);
+                    $productDetails = \App\Models\ProductDetail::whereIn('id', $uniqueIds)
+                        ->where('status', 'available')
+                        ->where('placement_type', 'branch')
+                        ->where('placement_id', $branchId)
+                        ->lockForUpdate()
+                        ->get();
+
+                    if ($productDetails->count() !== count($uniqueIds)) {
+                        throw new \Exception('Beberapa barang HP sudah tidak tersedia atau sudah keluar stok.');
+                    }
+                }
+
+                // Process Non-HP items — deduct inventory
+                $nonHpDistMap = [];
+                if ($request->non_hp_items) {
+                    foreach ($request->non_hp_items as $item) {
+                        $product = \App\Models\Product::findOrFail($item['product_id']);
+
+                        $invQuery = \App\Models\Inventory::where('product_id', $item['product_id'])
+                            ->where('placement_type', 'branch')
+                            ->where('placement_id', $branchId);
+
+                        $inventories = $invQuery->where('quantity', '>', 0)->orderBy('quantity', 'asc')->get();
+                        $totalAvailable = $inventories->sum('quantity');
+
+                        if ($totalAvailable < $item['quantity']) {
+                            throw new \Exception("Stok tidak cukup untuk produk: {$product->name}. Tersedia: $totalAvailable");
+                        }
+
+                        $remainingToDeduct = $item['quantity'];
+                        foreach ($inventories as $inventory) {
+                            if ($remainingToDeduct <= 0) break;
+                            $deductAmount = min($inventory->quantity, $remainingToDeduct);
+                            $inventory->decrement('quantity', $deductAmount);
+                            $remainingToDeduct -= $deductAmount;
+
+                            if (!isset($nonHpDistMap[$item['product_id']])) {
+                                $nonHpDistMap[$item['product_id']] = $inventory->distributor_id;
+                            }
+
+                            \App\Models\InventoryLog::create([
+                                'product_id' => $item['product_id'],
+                                'type' => 'out',
+                                'quantity' => $deductAmount,
+                                'balance_after' => $inventory->quantity,
+                                'description' => "BALANCING PENJUALAN TERLEWAT",
+                                'reference_id' => 'BAL-MS-' . time(),
+                                'user_id' => $user->id,
+                                'distributor_id' => $inventory->distributor_id,
+                                'branch_id' => $branchId,
+                                'reporting_date' => $request->reporting_date,
+                            ]);
+                        }
+                    }
+                }
+
+                // Handle photo upload
+                $photoPath = null;
+                if ($request->hasFile('photo')) {
+                    $photoPath = $request->file('photo')->store('balancing', 'public');
+                }
+
+                // Generate receipt ID
+                $branch = \App\Models\Branch::find($branchId);
+                $branchCode = $branch->code ? substr(strtoupper(str_replace(' ', '', $branch->code)), 0, 3) : 'XX';
+                $count = \App\Models\StockOut::whereDate('created_at', today())->count() + 1;
+                $receiptId = "BAL-MS-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+                // Parse split_payments
+                $splitPayments = null;
+                if ($request->split_payments) {
+                    $splitPayments = is_string($request->split_payments) ? json_decode($request->split_payments, true) : $request->split_payments;
+                }
+
+                // Parse hp_items_meta
+                $hpItemsMeta = null;
+                if ($request->hp_items_meta) {
+                    $hpItemsMeta = is_string($request->hp_items_meta) ? json_decode($request->hp_items_meta, true) : $request->hp_items_meta;
+                }
+
+                // Create StockOut record
+                $stockOut = new \App\Models\StockOut();
+                $stockOut->receipt_id = $receiptId;
+                $stockOut->branch_id = $branchId;
+                $stockOut->user_id = $user->id;
+                $stockOut->balancing_cs_user_id = $request->customer_service_id;
+                $stockOut->customer_name = $request->customer_name;
+                $stockOut->customer_wa = $request->customer_wa;
+                $stockOut->category = 'balancing';
+                $stockOut->sub_category = 'balancing_penjualan_terlewat';
+                $stockOut->status = 'completed';
+                $stockOut->selling_price = $request->selling_price;
+                $stockOut->reporting_date = $request->reporting_date;
+                $stockOut->notes = $request->notes;
+                $stockOut->payment_proof_image = $photoPath;
+                $stockOut->payment_method_id = $request->payment_method_id;
+                $stockOut->split_payments = $splitPayments;
+                $stockOut->is_bundle = filter_var($request->is_bundle, FILTER_VALIDATE_BOOLEAN);
+                $stockOut->bundle_description = $request->bundle_description;
+                $stockOut->global_discount_value = $request->global_discount_value ?? 0;
+                $stockOut->global_discount_type = $request->global_discount_type ?? 'fixed';
+                $stockOut->total_discount = $request->total_discount ?? 0;
+                $stockOut->save();
+
+                // Attach HP items
+                foreach ($productDetails as $detail) {
+                    $meta = $hpItemsMeta[$detail->id] ?? null;
+                    $finalPrice = $meta['selling_price'] ?? $detail->selling_price;
+
+                    $stockOut->items()->attach($detail->id, [
+                        'selling_price' => $finalPrice,
+                        'item_discount' => $meta['item_discount'] ?? 0,
+                        'distributed_discount' => $meta['distributed_discount'] ?? 0,
+                        'distributor_id' => $detail->distributor_id,
+                        'notes' => $meta['bundle_name'] ?? null,
+                        'snapshot_product_id' => $detail->product_id,
+                        'snapshot_product_name' => $detail->product ? $detail->product->name : null,
+                    ]);
+
+                    // Mark HP item as sold
+                    $detail->update(['status' => 'sold']);
+
+                    // Log HP movement
+                    \App\Models\InventoryLog::create([
+                        'product_id' => $detail->product_id,
+                        'type' => 'out',
+                        'quantity' => 1,
+                        'balance_after' => 0,
+                        'description' => "BALANCING PENJUALAN TERLEWAT (" . ($detail->imei ?? '-') . ")",
+                        'reference_id' => $receiptId,
+                        'user_id' => $user->id,
+                        'distributor_id' => $detail->distributor_id,
+                        'branch_id' => $branchId,
+                        'reporting_date' => $request->reporting_date,
+                    ]);
+                }
+
+                // Create Non-HP detail records
+                if ($request->non_hp_items) {
+                    foreach ($request->non_hp_items as $item) {
+                        $prod = \App\Models\Product::find($item['product_id']);
+                        if ($prod) {
+                            $distId = $nonHpDistMap[$item['product_id']] ?? $prod->distributor_id ?? null;
+                            \App\Models\StockOutNonHpItem::create([
+                                'stock_out_id' => $stockOut->id,
+                                'product_id' => $item['product_id'],
+                                'quantity' => $item['quantity'],
+                                'selling_price' => isset($item['selling_price']) && is_numeric($item['selling_price']) ? floatval($item['selling_price']) : floatval($prod->price ?? 0),
+                                'item_discount' => $item['item_discount'] ?? 0,
+                                'distributed_discount' => $item['distributed_discount'] ?? 0,
+                                'received_quantity' => $item['quantity'],
+                                'returned_quantity' => 0,
+                                'distributor_id' => $distId,
+                                'notes' => $item['bundle_name'] ?? null,
+                            ]);
+                        }
+                    }
+                }
+
+                \Illuminate\Support\Facades\DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Balancing penjualan terlewat berhasil disimpan.',
+                    'data' => $stockOut->load(['items.product', 'nonHpDetails.product', 'paymentMethod', 'branch'])
+                ]);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+                \Illuminate\Support\Facades\Log::error('Balancing Missed Sale Error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()], 500);
+            }
+        });
+
         Route::post('/{id}/cancel', function (\Illuminate\Http\Request $request, $id) {
             $request->validate(['password' => 'required|string', 'reason' => 'required|string']);
             $user = \Illuminate\Support\Facades\Auth::user();

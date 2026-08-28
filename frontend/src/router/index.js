@@ -736,6 +736,16 @@ const routes = [
                     permissions: ['super_admin']
                 }
             },
+            {
+                path: 'balancing/missed-sale/form',
+                name: 'BalancingMissedSaleForm',
+                component: () => import('../views/balancing/BalancingMissedSale.vue'),
+                meta: {
+                    title: 'Form Balancing Penjualan Terlewat',
+                    menu: 'balancing_missed',
+                    permissions: ['super_admin']
+                }
+            },
 
             {
                 path: 'system-status',

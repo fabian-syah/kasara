@@ -910,7 +910,9 @@ class StockOutController extends Controller
                     'item_discount' => $hpMeta['item_discount'] ?? 0,
                     'distributed_discount' => $hpMeta['distributed_discount'] ?? 0,
                     'distributor_id' => $detail->distributor_id, // Capture HP distributor permanently
-                    'notes' => $hpMeta['bundle_name'] ?? null
+                    'notes' => $hpMeta['bundle_name'] ?? null,
+                    'snapshot_product_id' => $detail->product_id,
+                    'snapshot_product_name' => $detail->product ? $detail->product->name : null,
                 ]);
 
                 $updateStatus = $newStatus;
@@ -1484,7 +1486,7 @@ class StockOutController extends Controller
                 $mergedItems = $out->items->map(fn($i) => [
                     'type' => 'hp',
                     'imei' => $i->imei,
-                    'product_name' => $i->product?->name,
+                    'product_name' => $i->pivot?->snapshot_product_name ?? $i->product?->name,
                     'quantity' => 1,
                     'distributor_name' => $i->distributor?->name,
                     'supplier_name' => $i->supplier_name,
@@ -1591,9 +1593,10 @@ class StockOutController extends Controller
                 // Add outgoing HP items to rawItems
                 foreach ($out->items as $i) {
                     $isRefundOrAngkat = in_array($catLower, ['refund', 'angkat_barang']);
-                    $pName = ($isRefundOrAngkat ? "IN: " : "") . ($i->product?->name ?? 'Unknown HP');
+                    $pNameActual = $i->pivot?->snapshot_product_name ?? $i->product?->name ?? 'Unknown HP';
+                    $pName = ($isRefundOrAngkat ? "IN: " : "") . $pNameActual;
                     if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
-                        $pName = "OUT: " . ($i->product?->name ?? 'Unknown HP');
+                        $pName = "OUT: " . $pNameActual;
                     }
 
                     $rawItems[] = [
@@ -1732,7 +1735,7 @@ class StockOutController extends Controller
                         'sub_type' => 'registration',
                         'id' => $out->receipt_id,
                         'imei' => $query,
-                        'product_name' => $out->items->first()?->product?->name ?? ($out->nonHpDetails->first()?->product?->name ?? 'Mixed Items'),
+                        'product_name' => $out->items->first() ? ($out->items->first()->pivot?->snapshot_product_name ?? $out->items->first()->product?->name) : ($out->nonHpDetails->first()?->product?->name ?? 'Mixed Items'),
                         'status' => 'available',
                         'placement_type' => $out->branch_id ? 'branch' : ($out->warehouse_id ? 'warehouse' : 'online_shop'),
                         'placement_id' => $out->branch_id ?? $out->warehouse_id ?? $out->online_shop_id,
@@ -1818,7 +1821,7 @@ class StockOutController extends Controller
                         'sub_type' => 'arrival',
                         'id' => $out->receipt_id, // Link to same receipt
                         'imei' => $query, // Contextual imei
-                        'product_name' => $out->items->first()?->product?->name ?? 'Mixed Items',
+                        'product_name' => $out->items->first() ? ($out->items->first()->pivot?->snapshot_product_name ?? $out->items->first()->product?->name) : 'Mixed Items',
                         'status' => 'available',
                         'placement_type' => $out->destination_type,
                         'placement_id' => $out->destination_id,
@@ -1871,7 +1874,7 @@ class StockOutController extends Controller
                         'sub_type' => 'retur_arrival',
                         'id' => $out->receipt_id,
                         'imei' => $query,
-                        'product_name' => $returItem?->product?->name ?? 'Unknown',
+                        'product_name' => $returItem ? ($returItem->pivot?->snapshot_product_name ?? $returItem->product?->name) : 'Unknown',
                         'status' => 'available',
                         'placement_type' => $returItem?->placement_type,
                         'placement_id' => $returItem?->placement_id,
@@ -1920,7 +1923,7 @@ class StockOutController extends Controller
                             'sub_type' => 'retur_rejected_return',
                             'id' => $out->receipt_id,
                             'imei' => $returItem->imei,
-                            'product_name' => $returItem->product?->name ?? 'Unknown',
+                            'product_name' => $returItem->pivot?->snapshot_product_name ?? $returItem->product?->name ?? 'Unknown',
                             'status' => 'available',
                             'placement_type' => $returItem->placement_type,
                             'placement_id' => $returItem->placement_id,
@@ -1972,7 +1975,7 @@ class StockOutController extends Controller
                                 'sub_type' => 'return_transfer_arrival',
                                 'id' => $out->receipt_id,
                                 'imei' => $item->imei,
-                                'product_name' => $item->product?->name ?? 'Unknown',
+                                'product_name' => $item->pivot?->snapshot_product_name ?? $item->product?->name ?? 'Unknown',
                                 'status' => 'available',
                                 'placement_type' => $item->placement_type,
                                 'placement_id' => $item->placement_id,

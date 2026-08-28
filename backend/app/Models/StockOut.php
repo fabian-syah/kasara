@@ -243,7 +243,7 @@ class StockOut extends Model
     public function items()
     {
         return $this->belongsToMany(ProductDetail::class, 'stock_out_items')
-            ->withPivot(['selling_price', 'item_discount', 'distributed_discount', 'status', 'notes'])
+            ->withPivot(['selling_price', 'item_discount', 'distributed_discount', 'status', 'notes', 'snapshot_product_id', 'snapshot_product_name'])
             ->withTimestamps();
     }
 
