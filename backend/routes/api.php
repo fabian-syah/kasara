@@ -646,7 +646,7 @@ Route::middleware('auth:sanctum')->group(function () {
                                 'quantity' => $deductAmount,
                                 'balance_after' => $inventory->quantity,
                                 'description' => "BALANCING PENJUALAN TERLEWAT",
-                                'reference_id' => 'BAL-MS-' . time(),
+                                'reference_id' => 'BMS-' . time(),
                                 'user_id' => $user->id,
                                 'distributor_id' => $inventory->distributor_id,
                                 'branch_id' => $branchId,
@@ -666,7 +666,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 $branch = \App\Models\Branch::find($branchId);
                 $branchCode = $branch->code ? substr(strtoupper(str_replace(' ', '', $branch->code)), 0, 3) : 'XX';
                 $count = \App\Models\StockOut::whereDate('created_at', today())->count() + 1;
-                $receiptId = "BAL-MS-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 3, '0', STR_PAD_LEFT);
+                $receiptId = "BMS-{$branchCode}-" . date('ymd') . "-" . str_pad($count, 3, '0', STR_PAD_LEFT);
 
                 // Parse split_payments
                 $splitPayments = null;
