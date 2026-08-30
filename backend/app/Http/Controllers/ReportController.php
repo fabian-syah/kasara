@@ -610,6 +610,12 @@ class ReportController extends Controller
                 }
             }
         }
+
+        // Fallback: if no dates provided ("Semua Waktu"), default to current month
+        if (!$startDate && !$endDate) {
+            $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $logicalNow->toDateString();
+        }
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
@@ -1020,7 +1026,7 @@ class ReportController extends Controller
         $startDate = $request->query('start_date') ?: null;
         $endDate = $request->query('end_date') ?: null;
 
-        // Role-based Date Restriction
+         // Role-based Date Restriction
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
             $today = $logicalNow->toDateString();
@@ -1041,6 +1047,13 @@ class ReportController extends Controller
                     $startDate = $startOfThisMonth;
                 }
             }
+        }
+
+        // Fallback: if no dates provided ("Semua Waktu"), default to current month
+        // to prevent memory exhaustion from loading all historical transactions
+        if (!$startDate && !$endDate) {
+            $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $logicalNow->toDateString();
         }
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
