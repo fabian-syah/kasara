@@ -299,6 +299,7 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => strtoupper($so->category),
+                    'keterangan' => $so->notes ?? '-',
                     'bundling' => ($cat === 'bundling' || $isBundling) ? 'BUNDLING' : '-',
                     
                     // Conditional Outbound Columns
@@ -386,6 +387,7 @@ class SalesExport
             'Nama Customer',
             'WhatsApp',
             'Kategori',
+            'Keterangan',
             'Bundling',
             'Produk Keluar',
             'IMEI',

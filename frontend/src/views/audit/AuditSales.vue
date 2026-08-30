@@ -242,8 +242,13 @@
                                         <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
                                     </div>
                                     <span v-else
-                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                        {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : item.category }}
+                                          :class="[
+                                            'px-2.5 py-1 text-xs font-semibold rounded-lg border',
+                                            item.category === 'balancing' 
+                                                ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 border-orange-100 dark:border-orange-500/20' 
+                                                : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/20'
+                                          ]">
+                                          {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : item.category }}
                                     </span>
                                 </td>
                                 <td colspan="3" class="p-0 align-top">
