@@ -611,12 +611,6 @@ class ReportController extends Controller
             }
         }
 
-        // Fallback: if no dates provided ("Semua Waktu"), default to current month
-        if (!$startDate && !$endDate) {
-            $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
-            $endDate = $logicalNow->toDateString();
-        }
-        
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
 
@@ -633,7 +627,9 @@ class ReportController extends Controller
         if ($startDate) $baseQuery->where('stock_outs.reporting_date', '>=', $startDate);
         if ($endDate) $baseQuery->where('stock_outs.reporting_date', '<=', $endDate);
 
-        $transactions = $baseQuery->select(
+        $statsByLocation = [];
+
+        $baseQuery->select(
             'stock_outs.id',
             'stock_outs.category',
             'stock_outs.selling_price',
@@ -645,57 +641,43 @@ class ReportController extends Controller
             'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
             DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id')
-        )->get();
+        )->orderBy('stock_outs.id')->chunk(2000, function ($transactions) use (&$statsByLocation, $paymentMethods) {
 
-        $itemsQuery = DB::table('stock_out_items')
-            ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
-            ->join('products', 'product_details.product_id', '=', 'products.id')
-            ->whereIn('stock_outs.category', $salesCategoriesExtended)
-            ->where('stock_outs.status', '!=', 'cancelled')
-            ->whereNull('stock_outs.deleted_at')
-            ->where('products.type', 'hp');
+            $txIds = $transactions->pluck('id')->toArray();
+            $receiptIds = $transactions->pluck('receipt_id')->filter()->unique()->toArray();
 
-        if ($startDate) $itemsQuery->where('stock_outs.reporting_date', '>=', $startDate);
-        if ($endDate) $itemsQuery->where('stock_outs.reporting_date', '<=', $endDate);
+            $items = empty($txIds) ? collect() : DB::table('stock_out_items')
+                ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                ->join('products', 'product_details.product_id', '=', 'products.id')
+                ->whereIn('stock_out_items.stock_out_id', $txIds)
+                ->where('products.type', 'hp')
+                ->select(
+                    'stock_out_items.stock_out_id',
+                    'products.brand',
+                    'product_details.condition',
+                    'product_details.cost_price',
+                    'stock_out_items.selling_price as item_price',
+                    'products.price as product_price'
+                )->get();
+            $itemsByTx = $items->groupBy('stock_out_id');
 
-        $items = $itemsQuery->select(
-            'stock_outs.id as stock_out_id',
-            'products.brand',
-            'product_details.condition',
-            'product_details.cost_price',
-            'stock_out_items.selling_price as item_price',
-            'products.price as product_price'
-        )->get();
+            $nonHpItems = empty($txIds) ? collect() : DB::table('stock_out_non_hp_items')
+                ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                ->whereIn('stock_out_non_hp_items.stock_out_id', $txIds)
+                ->select(
+                    'stock_out_non_hp_items.stock_out_id',
+                    'stock_out_non_hp_items.quantity',
+                    'products.price as product_price'
+                )->get();
+            $nonHpItemsByTx = $nonHpItems->groupBy('stock_out_id');
 
-        $itemsByTx = $items->groupBy('stock_out_id');
-
-        $nonHpItemsQuery = DB::table('stock_out_non_hp_items')
-            ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-            ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
-            ->whereIn('stock_outs.category', $salesCategoriesExtended)
-            ->where('stock_outs.status', '!=', 'cancelled')
-            ->whereNull('stock_outs.deleted_at');
-            
-        if ($startDate) $nonHpItemsQuery->where('stock_outs.reporting_date', '>=', $startDate);
-        if ($endDate) $nonHpItemsQuery->where('stock_outs.reporting_date', '<=', $endDate);
-
-        $nonHpItems = $nonHpItemsQuery->select(
-            'stock_outs.id as stock_out_id',
-            'stock_out_non_hp_items.quantity',
-            'products.price as product_price'
-        )->get();
-        $nonHpItemsByTx = $nonHpItems->groupBy('stock_out_id');
-
-        $tukarTambahs = DB::table('tukar_tambahs')
-            ->whereIn('receipt_id', $transactions->pluck('receipt_id')->unique())
-            ->get()->groupBy('receipt_id');
-            
-        $downgrades = DB::table('downgrades')
-            ->whereIn('receipt_id', $transactions->pluck('receipt_id')->unique())
-            ->get()->groupBy('receipt_id');
-
-        $statsByLocation = [];
+            $tukarTambahs = empty($receiptIds) ? collect() : DB::table('tukar_tambahs')
+                ->whereIn('receipt_id', $receiptIds)
+                ->get()->groupBy('receipt_id');
+                
+            $downgrades = empty($receiptIds) ? collect() : DB::table('downgrades')
+                ->whereIn('receipt_id', $receiptIds)
+                ->get()->groupBy('receipt_id');
 
         foreach ($transactions as $tx) {
             $locKey = $tx->branch_id ? 'B_' . $tx->branch_id : 'O_' . $tx->online_shop_id;
@@ -870,6 +852,7 @@ class ReportController extends Controller
                 $statsByLocation[$locKey]['android_amt'] += 0; // non hp items usually not counted here, but if needed we can add logic
             }
         }
+        });
 
         $branches = \App\Models\Branch::all()->keyBy('id');
         $shops = \App\Models\OnlineShop::all()->keyBy('id');
@@ -1049,12 +1032,6 @@ class ReportController extends Controller
             }
         }
 
-        // Fallback: if no dates provided ("Semua Waktu"), default to current month
-        // to prevent memory exhaustion from loading all historical transactions
-        if (!$startDate && !$endDate) {
-            $startDate = $logicalNow->copy()->startOfMonth()->toDateString();
-            $endDate = $logicalNow->toDateString();
-        }
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
         $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
@@ -1086,7 +1063,8 @@ class ReportController extends Controller
             });
         }
 
-        $rawTransactions = $baseQuery->select(
+        $aggregatedStats = [];
+        $baseQuery->select(
             'stock_outs.id',
             'stock_outs.category',
             'stock_outs.selling_price',
@@ -1098,7 +1076,7 @@ class ReportController extends Controller
             'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
             DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id')
-        )->get();
+        )->orderBy('stock_outs.id')->chunk(2000, function ($rawTransactions) use (&$aggregatedStats) {
 
         $ttData = DB::table('tukar_tambahs')
             ->whereIn('receipt_id', $rawTransactions->pluck('receipt_id')->unique())
@@ -1111,8 +1089,6 @@ class ReportController extends Controller
             ->select('receipt_id', 'outgoing_price', 'incoming_cost_price')
             ->get()
             ->groupBy('receipt_id');
-
-        $aggregatedStats = [];
 
         foreach ($rawTransactions as $tx) {
             $cat = strtolower(str_replace(' ', '_', $tx->category));
@@ -1216,6 +1192,7 @@ class ReportController extends Controller
                 $aggregatedStats[$locKey]['ab_amount'] += $abAmt;
             }
         }
+        });
 
         $baseStats = collect(array_values($aggregatedStats));
 

@@ -91,9 +91,8 @@ const setRange = (type) => {
         filters.value.start_date = formatDateStr(startOfMonth);
         filters.value.end_date = getTodayLocal();
     } else if (type === 'all') {
-        const startOfYear = new Date(logicalToday.getFullYear(), 0, 1);
-        filters.value.start_date = formatDateStr(startOfYear);
-        filters.value.end_date = getTodayLocal();
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchRanking();
 };
