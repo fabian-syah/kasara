@@ -455,6 +455,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->branch_id = $request->branch_id;
                 $stockOut->user_id = $user->id; // Using user_id instead of creator_id
                 $stockOut->balancing_cs_user_id = $request->customer_service_id; // Using the dedicated column
+                $stockOut->inventory_user_id = $request->customer_service_id;
+                if ($request->customer_service_id) {
+                    $csUser = \App\Models\User::find($request->customer_service_id);
+                    $stockOut->sales_account = $csUser ? $csUser->name : null;
+                }
                 $stockOut->customer_name = $request->customer_name;
                 $stockOut->customer_phone = $request->customer_phone;
                 $stockOut->customer_wa = $request->customer_phone;
@@ -686,6 +691,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->branch_id = $branchId;
                 $stockOut->user_id = $user->id;
                 $stockOut->balancing_cs_user_id = $request->customer_service_id;
+                $stockOut->inventory_user_id = $request->customer_service_id;
+                if ($request->customer_service_id) {
+                    $csUser = \App\Models\User::find($request->customer_service_id);
+                    $stockOut->sales_account = $csUser ? $csUser->name : null;
+                }
                 $stockOut->customer_name = $request->customer_name;
                 $stockOut->customer_wa = $request->customer_wa;
                 $stockOut->category = 'balancing';
