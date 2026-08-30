@@ -572,7 +572,7 @@ class AuditController extends Controller
                         ->get()->groupBy('owner_id');
 
                     // Define specific categories
-                    $stdSalesCats = ['penjualan_store'];
+                    $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'balancing'];
                     $normalizedStdSalesCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $stdSalesCats));
                     $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
 
@@ -704,6 +704,7 @@ class AuditController extends Controller
                             $ownerGroups[$ownerId]['grand_total'] -= $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += $price;
                         } elseif ($saleType === 'balancing') {
+                            $ownerGroups[$ownerId]['total_omset'] += $price;
                             $ownerGroups[$ownerId]['grand_total'] += $price;
                             $ownerGroups[$ownerId]['total_activity_rp'] += abs($price);
                         }
