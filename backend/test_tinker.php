@@ -9,7 +9,7 @@ try {
     auth()->login($u);
     $req = app()->make(\Illuminate\Http\Request::class);
     $req->setUserResolver(function() use ($u) { return $u; });
-    $req->merge(['start_date'=>'2026-08-30']);
+    $req->merge(['start_date' => '', 'end_date' => '', 'include_zero' => '0']);
     $res = app()->call('App\Http\Controllers\ReportController@getRankingReport', ['request' => $req]);
     echo "SUCCESS\n";
 } catch (\Throwable $e) {

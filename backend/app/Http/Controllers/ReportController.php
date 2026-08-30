@@ -586,8 +586,8 @@ class ReportController extends Controller
     public function exportRankingExcel(Request $request)
     {
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = $request->query('start_date') ?: null;
+        $endDate = $request->query('end_date') ?: null;
 
         $user = $request->user();
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
@@ -1015,9 +1015,10 @@ class ReportController extends Controller
 
     public function getRankingReport(Request $request)
     {
+      try {
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->query('start_date');
-        $endDate = $request->query('end_date');
+        $startDate = $request->query('start_date') ?: null;
+        $endDate = $request->query('end_date') ?: null;
 
         // Role-based Date Restriction
         $user = $request->user();
@@ -1347,6 +1348,10 @@ class ReportController extends Controller
         $report = $report->sortByDesc('omset')->values();
 
         return response()->json($report);
+      } catch (\Throwable $e) {
+          \Illuminate\Support\Facades\Log::error('Ranking Report Error: ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+          return response()->json(['error' => 'Terjadi kesalahan saat memuat ranking: ' . $e->getMessage()], 500);
+      }
     }
 
     public function getReportFilters(Request $request)
