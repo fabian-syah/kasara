@@ -91,8 +91,8 @@ const setRange = (type) => {
         filters.value.start_date = formatDateStr(startOfMonth);
         filters.value.end_date = getTodayLocal();
     } else if (type === 'all') {
-        const startOfMonth = new Date(logicalToday.getFullYear(), logicalToday.getMonth(), 1);
-        filters.value.start_date = formatDateStr(startOfMonth);
+        const startOfYear = new Date(logicalToday.getFullYear(), 0, 1);
+        filters.value.start_date = formatDateStr(startOfYear);
         filters.value.end_date = getTodayLocal();
     }
     fetchRanking();
@@ -400,7 +400,7 @@ const exportToPDF = async () => {
                     <div class="flex flex-col space-y-3 xl:col-span-3">
                         <label class="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] ml-1">Pilih Cepat</label>
                         <div class="grid grid-cols-2 xs:grid-cols-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-1 bg-surface-900/50 p-1.5 rounded-xl border border-surface-700/30">
-                            <button v-for="key in ['today', 'yesterday', 'month']" :key="key"
+                            <button v-for="key in ['today', 'yesterday', 'month', 'all']" :key="key"
                                 @click="setRange(key)"
                                 class="px-2 py-2.5 rounded-lg text-[9px] font-black transition-all duration-300 uppercase tracking-widest whitespace-nowrap"
                                 :class="activeRange === key ? 'bg-emerald-500 text-white shadow-lg' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
