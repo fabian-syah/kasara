@@ -174,6 +174,11 @@ const totalOmsetBersih = computed(() => {
     return filteredRanking.value.reduce((sum, item) => sum + (item.omset_bersih || 0), 0);
 });
 
+const totalBalancingPenjualan = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.balancing_penjualan_amount || 0), 0));
+const totalBalancingPembayaran = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.balancing_pembayaran_amount || 0), 0));
+const totalDp = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.dp_amount || 0), 0));
+const totalPelunasanDp = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.pelunasan_dp_amount || 0), 0));
+
 
 const top3 = computed(() => {
     return filteredRanking.value.slice(0, 3);
@@ -650,7 +655,7 @@ const exportToPDF = async () => {
                     class="bg-surface-800/10 rounded-3xl border border-surface-800 shadow-2xl relative transition-colors"
                     :class="exportPart > 0 ? '!overflow-visible' : 'overflow-hidden'">
                     <div :class="exportPart > 0 ? '!overflow-visible' : 'overflow-x-auto no-scrollbar'">
-                        <table class="w-full text-left border-collapse min-w-[700px] md:min-w-[900px]">
+                        <table class="w-full text-left border-collapse min-w-[1200px] md:min-w-[1400px]">
                             <thead>
                                 <tr class="bg-surface-800/50">
                                     <th
@@ -669,6 +674,18 @@ const exportToPDF = async () => {
 -->
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Bal. Penjualan</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Bal. Pembayaran</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        DP</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Pelunasan DP</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
                                         Total Omset</th>
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
@@ -682,7 +699,7 @@ const exportToPDF = async () => {
                                          
                                          <!-- SEPARATOR TABLE ROW -->
                                          <template v-if="item.isSeparator">
-                                             <td colspan="4" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
+                                             <td colspan="8" class="px-4 md:px-8 py-5 md:py-6 text-center shadow-inner">
                                                  <div class="flex items-center gap-3 justify-center">
                                                      <Store class="w-5 h-5 text-primary-500" />
                                                      <span class="text-sm md:text-base font-black text-text-primary uppercase tracking-[0.2em]">{{ item.name }}</span>
@@ -720,6 +737,30 @@ const exportToPDF = async () => {
                                                  </div>
                                              </td>
                                              <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.balancing_penjualan_amount > 0" class="text-[10px] md:text-xs font-bold text-text-secondary tabular-nums">
+                                                     {{ formatCurrency(item.balancing_penjualan_amount) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.balancing_pembayaran_amount > 0" class="text-[10px] md:text-xs font-bold text-text-secondary tabular-nums">
+                                                     {{ formatCurrency(item.balancing_pembayaran_amount) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.dp_amount > 0" class="text-[10px] md:text-xs font-bold text-text-secondary tabular-nums">
+                                                     {{ formatCurrency(item.dp_amount) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.pelunasan_dp_amount > 0" class="text-[10px] md:text-xs font-bold text-text-secondary tabular-nums">
+                                                     {{ formatCurrency(item.pelunasan_dp_amount) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                                  <span v-if="item.omset > 0"
                                                      class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
                                                      {{ formatCurrency(item.omset) }}
@@ -745,6 +786,26 @@ const exportToPDF = async () => {
                                  <tr class="bg-surface-800/50 border-t border-surface-700">
                                      <td colspan="2" class="px-8 py-6 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">
                                          TOTAL PERIODE
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
+                                             {{ formatCurrency(totalBalancingPenjualan) }}
+                                         </span>
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
+                                             {{ formatCurrency(totalBalancingPembayaran) }}
+                                         </span>
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
+                                             {{ formatCurrency(totalDp) }}
+                                         </span>
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
+                                             {{ formatCurrency(totalPelunasanDp) }}
+                                         </span>
                                      </td>
                                      <td class="px-8 py-6 text-right">
                                          <span class="text-xl font-black text-primary-500 tabular-nums tracking-tighter drop-shadow-sm">

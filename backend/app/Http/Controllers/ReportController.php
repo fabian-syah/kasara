@@ -612,7 +612,7 @@ class ReportController extends Controller
         }
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
-        $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing']);
 
         // 1. Get Payment Methods
         $paymentMethods = \App\Models\PaymentMethod::all();
@@ -632,6 +632,7 @@ class ReportController extends Controller
         $baseQuery->select(
             'stock_outs.id',
             'stock_outs.category',
+            'stock_outs.sub_category',
             'stock_outs.selling_price',
             'stock_outs.paid_amount',
             'stock_outs.payment_method_id',
@@ -690,6 +691,10 @@ class ReportController extends Controller
                     'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                     'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                     'android_qty' => 0, 'android_amt' => 0,
+                    'balancing_penjualan_qty' => 0, 'balancing_penjualan_amt' => 0,
+                    'balancing_pembayaran_qty' => 0, 'balancing_pembayaran_amt' => 0,
+                    'dp_qty' => 0, 'dp_amt' => 0,
+                    'pelunasan_dp_qty' => 0, 'pelunasan_dp_amt' => 0,
                     'refund_qty' => 0, 'refund_amt' => 0,
                     'angkat_barang_qty' => 0, 'angkat_barang_amt' => 0,
                     'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
@@ -702,9 +707,15 @@ class ReportController extends Controller
             }
 
             $cat = strtolower(str_replace(' ', '_', $tx->category));
+            $subCat = strtolower($tx->sub_category ?? '');
             $notes = strtolower($tx->notes ?? '');
             $account = strtolower($tx->sales_account ?? '');
 
+            $isBalancingPenjualan = $cat === 'balancing' && $subCat === 'balancing_penjualan_terlewat';
+            $isBalancingPembayaran = $cat === 'balancing' && $subCat === 'balancing_metode_pembayaran';
+            $isDp = $cat === 'dp';
+            $isPelunasanDp = $cat === 'pelunasan_dp';
+            
             $isTukarTambah = $cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($account, 'tukar tambah') || str_contains($account, 'tukar_tambah');
             $isRefund = $cat === 'refund' || str_contains($notes, 'refund') || str_contains($account, 'refund');
             $isAngkatBarang = $cat === 'angkat_barang' || str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($account, 'barang angkat') || str_contains($account, 'angkat barang') || str_contains($account, 'angkat_barang');
@@ -756,10 +767,23 @@ class ReportController extends Controller
                 $txProfit = $dgOutgoing - $txModal;
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
                 $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;
-            } elseif ($isNormalSales) {
+            } elseif ($isNormalSales || $isBalancingPenjualan || $isBalancingPembayaran) {
                 $txOmset = max(0, $effectivePrice);
                 $txOmsetBersih = $txOmset;
                 $txProfit = max(0, $effectivePrice) - $txModal;
+                if ($isDp) {
+                    $statsByLocation[$locKey]['dp_qty'] += 1;
+                    $statsByLocation[$locKey]['dp_amt'] += $txOmset;
+                } elseif ($isPelunasanDp) {
+                    $statsByLocation[$locKey]['pelunasan_dp_qty'] += 1;
+                    $statsByLocation[$locKey]['pelunasan_dp_amt'] += $txOmset;
+                } elseif ($isBalancingPenjualan) {
+                    $statsByLocation[$locKey]['balancing_penjualan_qty'] += 1;
+                    $statsByLocation[$locKey]['balancing_penjualan_amt'] += $txOmset;
+                } elseif ($isBalancingPembayaran) {
+                    $statsByLocation[$locKey]['balancing_pembayaran_qty'] += 1;
+                    $statsByLocation[$locKey]['balancing_pembayaran_amt'] += $txOmset;
+                }
             } elseif ($isAngkatBarang) {
                 $txOmsetBersih = -abs($sellingPrice);
                 $txProfit = $txModal - abs($sellingPrice);
@@ -781,7 +805,7 @@ class ReportController extends Controller
             $statsByLocation[$locKey]['profit'] += $txProfit ?? 0;
 
             // Payments - match AuditController exactly
-            if ($isNormalSales || $isTukarTambah) {
+            if ($isNormalSales || $isBalancingPenjualan || $isBalancingPembayaran || $isTukarTambah) {
                 $splits = json_decode($tx->split_payments, true);
                 if (is_array($splits) && count($splits) > 0) {
                     $remainingToAllocate = abs($sellingPrice);
@@ -897,6 +921,10 @@ class ReportController extends Controller
             'iPhone New (Qty)', 'iPhone New (Rp)',
             'iPhone Scd (Qty)', 'iPhone Scd (Rp)',
             'Android (Qty)', 'Android (Rp)',
+            'Balancing Penjualan (Qty)', 'Balancing Penjualan (Rp)',
+            'Balancing Pembayaran (Qty)', 'Balancing Pembayaran (Rp)',
+            'DP (Qty)', 'DP (Rp)',
+            'Pelunasan DP (Qty)', 'Pelunasan DP (Rp)',
             'Refund (Qty)', 'Refund (Rp)',
             'Angkat Barang (Qty)', 'Angkat Barang (Rp)',
             'Tukar Tambah (Qty)', 'Tukar Tambah (Rp)',
@@ -924,6 +952,10 @@ class ReportController extends Controller
                 $row['iphone_new_qty'], $row['iphone_new_amt'],
                 $row['iphone_scd_qty'], $row['iphone_scd_amt'],
                 $row['android_qty'], $row['android_amt'],
+                $row['balancing_penjualan_qty'], $row['balancing_penjualan_amt'],
+                $row['balancing_pembayaran_qty'], $row['balancing_pembayaran_amt'],
+                $row['dp_qty'], $row['dp_amt'],
+                $row['pelunasan_dp_qty'], $row['pelunasan_dp_amt'],
                 $row['refund_qty'], $row['refund_amt'],
                 $row['angkat_barang_qty'], $row['angkat_barang_amt'],
                 $row['tukar_tambah_qty'], $row['tukar_tambah_amt'],
@@ -941,6 +973,10 @@ class ReportController extends Controller
                 'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                 'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                 'android_qty' => 0, 'android_amt' => 0,
+                'balancing_penjualan_qty' => 0, 'balancing_penjualan_amt' => 0,
+                'balancing_pembayaran_qty' => 0, 'balancing_pembayaran_amt' => 0,
+                'dp_qty' => 0, 'dp_amt' => 0,
+                'pelunasan_dp_qty' => 0, 'pelunasan_dp_amt' => 0,
                 'refund_qty' => 0, 'refund_amt' => 0,
                 'angkat_barang_qty' => 0, 'angkat_barang_amt' => 0,
                 'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
@@ -957,6 +993,10 @@ class ReportController extends Controller
                 $total['iphone_new_qty'] += $r['iphone_new_qty']; $total['iphone_new_amt'] += $r['iphone_new_amt'];
                 $total['iphone_scd_qty'] += $r['iphone_scd_qty']; $total['iphone_scd_amt'] += $r['iphone_scd_amt'];
                 $total['android_qty'] += $r['android_qty']; $total['android_amt'] += $r['android_amt'];
+                $total['balancing_penjualan_qty'] += $r['balancing_penjualan_qty']; $total['balancing_penjualan_amt'] += $r['balancing_penjualan_amt'];
+                $total['balancing_pembayaran_qty'] += $r['balancing_pembayaran_qty']; $total['balancing_pembayaran_amt'] += $r['balancing_pembayaran_amt'];
+                $total['dp_qty'] += $r['dp_qty']; $total['dp_amt'] += $r['dp_amt'];
+                $total['pelunasan_dp_qty'] += $r['pelunasan_dp_qty']; $total['pelunasan_dp_amt'] += $r['pelunasan_dp_amt'];
                 $total['refund_qty'] += $r['refund_qty']; $total['refund_amt'] += $r['refund_amt'];
                 $total['angkat_barang_qty'] += $r['angkat_barang_qty']; $total['angkat_barang_amt'] += $r['angkat_barang_amt'];
                 $total['tukar_tambah_qty'] += $r['tukar_tambah_qty']; $total['tukar_tambah_amt'] += $r['tukar_tambah_amt'];
@@ -1034,8 +1074,7 @@ class ReportController extends Controller
 
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
-        $salesCategoriesExtended = array_merge($salesCategories, ['refund']);
-
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing']);
 
         // 1. Get Base Stats (Omset & Transaction Count)
         $baseQuery = DB::table('stock_outs')
@@ -1067,6 +1106,7 @@ class ReportController extends Controller
         $baseQuery->select(
             'stock_outs.id',
             'stock_outs.category',
+            'stock_outs.sub_category',
             'stock_outs.selling_price',
             'stock_outs.paid_amount',
             'stock_outs.total_discount',
@@ -1092,14 +1132,23 @@ class ReportController extends Controller
 
         foreach ($rawTransactions as $tx) {
             $cat = strtolower(str_replace(' ', '_', $tx->category));
+            $subCat = strtolower($tx->sub_category ?? '');
             $notes = strtolower($tx->notes ?? '');
             $sa = strtolower($tx->sales_account ?? '');
 
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                 $saleType = 'tukar_tambah';
-            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
+            } elseif ($cat === 'balancing' && $subCat === 'balancing_penjualan_terlewat') {
+                $saleType = 'balancing_penjualan';
+            } elseif ($cat === 'balancing' && $subCat === 'balancing_metode_pembayaran') {
+                $saleType = 'balancing_pembayaran';
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
                 $saleType = 'base_sale';
+            } elseif ($cat === 'dp') {
+                $saleType = 'dp';
+            } elseif ($cat === 'pelunasan_dp') {
+                $saleType = 'pelunasan_dp';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
@@ -1125,6 +1174,10 @@ class ReportController extends Controller
             $txOmset = 0;
             $txOmsetBersih = 0;
             $isTransaction = false;
+            $isDp = false;
+            $isPelunasanDp = false;
+            $isBalancingPenjualan = false;
+            $isBalancingPembayaran = false;
             $isRefund = false;
             $isAb = false;
             $refundAmt = 0;
@@ -1134,6 +1187,26 @@ class ReportController extends Controller
                 $txOmset = $effectivePrice;
                 $txOmsetBersih = $effectivePrice;
                 $isTransaction = true;
+            } elseif ($saleType === 'dp') {
+                $txOmset = $effectivePrice;
+                $txOmsetBersih = $effectivePrice;
+                $isTransaction = true;
+                $isDp = true;
+            } elseif ($saleType === 'pelunasan_dp') {
+                $txOmset = $effectivePrice;
+                $txOmsetBersih = $effectivePrice;
+                $isTransaction = true;
+                $isPelunasanDp = true;
+            } elseif ($saleType === 'balancing_penjualan') {
+                $txOmset = $effectivePrice;
+                $txOmsetBersih = $effectivePrice;
+                $isTransaction = true;
+                $isBalancingPenjualan = true;
+            } elseif ($saleType === 'balancing_pembayaran') {
+                $txOmset = $effectivePrice;
+                $txOmsetBersih = $effectivePrice;
+                $isTransaction = true;
+                $isBalancingPembayaran = true;
             } elseif ($saleType === 'tukar_tambah') {
                 $tt = $ttData->get($tx->receipt_id);
                 $outPrice = $tt ? $tt->sum('outgoing_price') : 0;
@@ -1173,6 +1246,10 @@ class ReportController extends Controller
                     'sales_omset' => 0,
                     'omset_bersih' => 0,
                     'transaction_count' => 0,
+                    'dp_amount' => 0,
+                    'pelunasan_dp_amount' => 0,
+                    'balancing_penjualan_amount' => 0,
+                    'balancing_pembayaran_amount' => 0,
                     'refund_count' => 0,
                     'refund_amount' => 0,
                     'ab_count' => 0,
@@ -1183,6 +1260,10 @@ class ReportController extends Controller
             $aggregatedStats[$locKey]['sales_omset'] += $txOmset;
             $aggregatedStats[$locKey]['omset_bersih'] += $txOmsetBersih;
             if ($isTransaction) $aggregatedStats[$locKey]['transaction_count']++;
+            if ($isDp) $aggregatedStats[$locKey]['dp_amount'] += $txOmset;
+            if ($isPelunasanDp) $aggregatedStats[$locKey]['pelunasan_dp_amount'] += $txOmset;
+            if ($isBalancingPenjualan) $aggregatedStats[$locKey]['balancing_penjualan_amount'] += $txOmset;
+            if ($isBalancingPembayaran) $aggregatedStats[$locKey]['balancing_pembayaran_amount'] += $txOmset;
             if ($isRefund) {
                 $aggregatedStats[$locKey]['refund_count']++;
                 $aggregatedStats[$locKey]['refund_amount'] += $refundAmt;
@@ -1268,6 +1349,10 @@ class ReportController extends Controller
                 'type' => 'Offline',
                 'omset' => (float) $omset,
                 'omset_bersih' => (float) $omsetBersih,
+                'dp_amount' => (float) $branchBase->sum('dp_amount'),
+                'pelunasan_dp_amount' => (float) $branchBase->sum('pelunasan_dp_amount'),
+                'balancing_penjualan_amount' => (float) $branchBase->sum('balancing_penjualan_amount'),
+                'balancing_pembayaran_amount' => (float) $branchBase->sum('balancing_pembayaran_amount'),
                 'transaction_count' => (int) $branchBase->sum('transaction_count'),
                 'refund_count' => (int) $branchBase->sum('refund_count'),
                 'refund_amount' => (float) $branchBase->sum('refund_amount'),
@@ -1301,6 +1386,10 @@ class ReportController extends Controller
                 'type' => 'Online',
                 'omset' => (float) $omset,
                 'omset_bersih' => (float) $omsetBersih,
+                'dp_amount' => (float) $shopBase->sum('dp_amount'),
+                'pelunasan_dp_amount' => (float) $shopBase->sum('pelunasan_dp_amount'),
+                'balancing_penjualan_amount' => (float) $shopBase->sum('balancing_penjualan_amount'),
+                'balancing_pembayaran_amount' => (float) $shopBase->sum('balancing_pembayaran_amount'),
                 'transaction_count' => (int) $shopBase->sum('transaction_count'),
                 'refund_count' => (int) $shopBase->sum('refund_count'),
                 'refund_amount' => (float) $shopBase->sum('refund_amount'),
