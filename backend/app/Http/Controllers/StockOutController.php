@@ -1678,11 +1678,17 @@ class StockOutController extends Controller
                     $dpDate = $out->created_at ? $out->created_at->format('d M Y') : '-';
                     $custName = trim($out->customer_name ?? $out->receiver_name ?? '');
                     
+                    $productNameStr = trim($noteParts[0]);
+                    if (!$productNameStr || strtolower($productNameStr) === 'dp') {
+                        $itemName = "DP : " . ($custName ? $custName . " " : "") . $dpDate;
+                    } else {
+                        $itemName = str_ireplace('pstore unit', '', $productNameStr);
+                    }              
                     $rawItems[] = [
                         'type' => 'dp',
                         'is_hp' => true,
-                        'name' => "DP : " . ($custName ? $custName . " " : "") . $dpDate,
-                        'product_name' => "DP : " . ($custName ? $custName . " " : "") . $dpDate,
+                        'name' => $itemName,
+                        'product_name' => $itemName,
                         'qty' => 1,
                         'quantity' => 1,
                         'price' => (float)($out->dp_amount > 0 ? $out->dp_amount : ($out->paid_amount > 0 ? $out->paid_amount : $out->selling_price)),

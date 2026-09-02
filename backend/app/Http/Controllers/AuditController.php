@@ -2312,7 +2312,13 @@ class AuditController extends Controller
 
                     $dpDate = $trx->created_at ? $trx->created_at->format('d M Y') : '-';
                     $custName = trim($trx->customer_name ?? $trx->receiver_name ?? '');
-                    $itemName = "DP : " . ($custName ? $custName . " " : "") . $dpDate;
+                    
+                    $productNameStr = trim($noteParts[0]);
+                    if (!$productNameStr || strtolower($productNameStr) === 'dp') {
+                        $itemName = "DP : " . ($custName ? $custName . " " : "") . $dpDate;
+                    } else {
+                        $itemName = str_ireplace('pstore unit', '', $productNameStr);
+                    }
 
                     $dpAmt = (float) $trx->dp_amount;
                     $paidAmt = (float) $trx->paid_amount;
