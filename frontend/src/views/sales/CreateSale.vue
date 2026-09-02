@@ -25,7 +25,8 @@ import {
     UserPlus,
     Loader2,
     Wallet,
-    CheckSquare
+    CheckSquare,
+    Undo2
 } from "lucide-vue-next";
 import PasswordModal from "../../components/modals/PasswordModal.vue";
 import PinModal from "../../components/modals/PinModal.vue";
@@ -42,6 +43,7 @@ import PenjualanStep3 from "./categories/PenjualanStep3.vue";
 import PaymentStep from "./categories/PaymentStep.vue";
 import DpForm from "./categories/DpForm.vue";
 import PelunasanDpForm from "./categories/PelunasanDpForm.vue";
+import RefundDpForm from "./categories/RefundDpForm.vue";
 
 const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
@@ -64,6 +66,7 @@ const allCategories = [
     { id: "downgrade", label: "Downgrade", icon: 'TrendingDown' },
     { id: "dp", label: "DP (Down Payment)", icon: 'Wallet' },
     { id: "pelunasan_dp", label: "Pelunasan DP", icon: 'CheckSquare' },
+    { id: "refund_dp", label: "Refund DP", icon: 'Undo2' },
 ];
 
 const categoriesPenjualan = computed(() => {
@@ -116,7 +119,8 @@ function clearAllTempStates() {
         'temp_refund_form',
         'temp_angkat_barang_form',
         'temp_dp_form',
-        'temp_pelunasan_dp_form'
+        'temp_pelunasan_dp_form',
+        'temp_refund_dp_form'
     ];
     keys.forEach(k => {
         localStorage.removeItem(`${k}_${userId}`);
@@ -308,6 +312,7 @@ const categoryLabels = {
     downgrade: 'Downgrade berhasil diproses! 📉',
     dp: 'DP berhasil diproses! 💳',
     pelunasan_dp: 'Pelunasan DP berhasil! ✅',
+    refund_dp: 'Refund DP berhasil diproses! 💸',
 };
 
 function handleTransactionComplete(transaction) {
@@ -497,6 +502,7 @@ watch(transactionCategory, () => {
                             <TrendingDown v-else-if="cat.id === 'downgrade'" :size="20" class="sm:w-8 sm:h-8" />
                             <Wallet v-else-if="cat.id === 'dp'" :size="20" class="sm:w-8 sm:h-8" />
                             <CheckSquare v-else-if="cat.id === 'pelunasan_dp'" :size="20" class="sm:w-8 sm:h-8" />
+                            <Undo2 v-else-if="cat.id === 'refund_dp'" :size="20" class="sm:w-8 sm:h-8" />
                         </div>
                         <h3
                             class="text-sm sm:text-xl font-black text-text-primary group-hover:text-primary-600 transition-colors uppercase tracking-tight">
@@ -572,6 +578,14 @@ watch(transactionCategory, () => {
                     @prev="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
 
                 <PelunasanDpForm v-else-if="transactionCategory === 'pelunasan_dp'"
+                    :availablePaymentMethods="availablePaymentMethods" 
+                    :brands="brands" :productTypes="productTypes"
+                    :productPrices="productPrices" :distributors="distributors"
+                    :selectedAccountObject="selectedAccountObject"
+                    :salesAccount="salesAccount"
+                    @back="prevStep" @transaction-complete="handleTransactionComplete" @verify-pin="handleVerifyPin" />
+
+                <RefundDpForm v-else-if="transactionCategory === 'refund_dp'"
                     :availablePaymentMethods="availablePaymentMethods" 
                     :brands="brands" :productTypes="productTypes"
                     :productPrices="productPrices" :distributors="distributors"

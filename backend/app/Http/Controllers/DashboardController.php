@@ -91,7 +91,7 @@ class DashboardController extends Controller
 
     private function getTokoOfflineStats($user)
     {
-        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp', 'balancing'];
+        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp', 'balancing', 'refund_dp'];
         return $this->getAggregatedStats($user, $dashCat, 'toko_offline');
     }
 

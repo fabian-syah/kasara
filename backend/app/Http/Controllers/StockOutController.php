@@ -314,6 +314,7 @@ class StockOutController extends Controller
                     'keluar',
                     'dp',
                     'pelunasan_dp',
+                    'refund_dp',
                 ])
             ],
             'missing_category' => 'required_if:category,hilang|nullable|string',

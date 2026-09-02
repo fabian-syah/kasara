@@ -260,6 +260,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/track', [\App\Http\Controllers\StockOutController::class, 'track']);
     Route::post('/trade-ins', [TradeInController::class, 'store']);
     Route::post('/refunds', [\App\Http\Controllers\RefundController::class, 'store']);
+    Route::post('/dp-refunds', [\App\Http\Controllers\DpRefundController::class, 'store']);
     Route::post('/unit-exchanges', [UnitExchangeController::class, 'store']);
     Route::post('/tukar-tambah', [\App\Http\Controllers\TukarTambahController::class, 'store']);
     Route::post('/downgrades', [\App\Http\Controllers\DowngradeController::class, 'store']);
