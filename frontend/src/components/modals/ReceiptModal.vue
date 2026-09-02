@@ -415,9 +415,9 @@
                                             <div class="flex justify-between">
                                                 <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
                                                 <span class="text-neutral-900 font-bold">
-                                                    {{ formatCurrency(transaction.original_price ||
+                                                    {{ formatCurrency(Math.abs(transaction.original_price ||
                                                         (Number(transaction.selling_price || 0) +
-                                                            Number(transaction.global_discount_value || 0))) }}
+                                                            Number(transaction.global_discount_value || 0)))) }}
                                                 </span>
                                             </div>
                                             <div v-if="Number(transaction.global_discount_value) > 0 && !hasBundleAbsorbedGlobalDiscount" class="flex justify-between">
@@ -454,10 +454,10 @@
                                                 style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
                                                 <div
                                                     class="text-[8px] font-black uppercase tracking-wider leading-none text-white">
-                                                    Yang Harus</div>
+                                                    {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Total' : 'Yang Harus' }}</div>
                                                 <div
                                                     class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
-                                                    Dibayarkan</div>
+                                                    {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Dikembalikan' : 'Dibayarkan' }}</div>
                                             </div>
                                             <!-- Red Total Part -->
                                             <div class="flex-1 flex items-center justify-end pr-4 text-white"
