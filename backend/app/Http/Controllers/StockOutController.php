@@ -261,11 +261,37 @@ class StockOutController extends Controller
 
     public function getActiveDps(Request $request)
     {
-        $dps = StockOut::with(['items.product', 'nonHpDetails.product'])
+        /** @var \App\Models\User|null $user */
+        $user = Auth::user();
+        
+        $query = StockOut::with(['items.product', 'nonHpDetails.product'])
             ->where('category', 'dp')
-            ->where('is_dp_settled', false)
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->where('is_dp_settled', false);
+
+        // LOCATION FILTER (ISOLATION)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
+        if ($user && !$user->hasRole($unrestrictedRoles)) {
+            $query->whereHas('user', function ($q) use ($user) {
+                $bIds = $user->getAccessibleBranchIds();
+                $wIds = $user->getAccessibleWarehouseIds();
+                $osIds = $user->getAccessibleOnlineShopIds();
+
+                $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
+                    if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
+                    if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
+                    if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
+                });
+            });
+        }
+
+        // Additional filter by requested branch_id if provided (useful for admins selecting a branch)
+        if ($request->branch_id) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('branch_id', $request->branch_id);
+            });
+        }
+
+        $dps = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'success' => true,

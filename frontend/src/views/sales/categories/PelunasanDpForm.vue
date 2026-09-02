@@ -45,7 +45,14 @@ const paymentProofImagePreview = ref(null);
 const fetchActiveDps = async () => {
     isLoadingDps.value = true;
     try {
-        const response = await api.get('/stock-outs/active-dps');
+        const params = {};
+        if (props.selectedAccountObject?.branch_id) {
+            params.branch_id = props.selectedAccountObject.branch_id;
+        } else if (props.selectedAccountObject?.branch?.id) {
+            params.branch_id = props.selectedAccountObject.branch.id;
+        }
+
+        const response = await api.get('/stock-outs/active-dps', { params });
         activeDps.value = response.data.data || response.data || [];
     } catch (error) {
         console.error("Gagal mengambil data DP aktif:", error);
