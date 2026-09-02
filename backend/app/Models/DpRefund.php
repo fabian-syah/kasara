@@ -23,6 +23,7 @@ class DpRefund extends Model
         'user_id',
         'inventory_user_id',
         'branch_id',
+        'photo',
     ];
 
     protected $casts = [

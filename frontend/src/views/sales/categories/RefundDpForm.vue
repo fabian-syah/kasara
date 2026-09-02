@@ -38,8 +38,26 @@ const isSubmitting = ref(false);
 
 const refundForm = ref({
     reason: "",
-    notes: ""
+    notes: "",
+    photo: null
 });
+
+function handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Ukuran foto tidak boleh lebih dari 10MB.');
+            return;
+        }
+        refundForm.value.photo = file;
+    }
+}
+
+function removePhoto() {
+    refundForm.value.photo = null;
+    const input = document.getElementById('refundPhotoUpload');
+    if (input) input.value = '';
+}
 
 const splitPayments = ref([]);
 
@@ -225,26 +243,41 @@ async function submitRefundDp(pin = null) {
 
     isSubmitting.value = true;
     try {
-        const payload = {
-            stock_out_id: selectedDp.value.id,
-            reason: refundForm.value.reason,
-            notes: refundForm.value.notes,
-            payment_method_id: splitPayments.value[0]?.method_id,
-            split_payments: JSON.stringify(splitPayments.value.map(p => ({
-                payment_method_id: p.method_id,
-                amount: p.amount
-            }))),
-            sales_account: props.salesAccount
-        };
+        const formData = new FormData();
+        formData.append('stock_out_id', selectedDp.value.id);
+        formData.append('reason', refundForm.value.reason);
+        
+        if (refundForm.value.notes) {
+            formData.append('notes', refundForm.value.notes);
+        }
+        
+        if (refundForm.value.photo) {
+            formData.append('photo', refundForm.value.photo);
+        }
+        
+        formData.append('payment_method_id', splitPayments.value[0]?.method_id);
+        formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
+            payment_method_id: p.method_id,
+            amount: p.amount
+        }))));
+        
+        if (props.salesAccount) {
+            formData.append('sales_account', props.salesAccount);
+        }
 
         if (props.selectedAccountObject?.id) {
-            payload.inventory_user_id = props.selectedAccountObject.id;
+            formData.append('inventory_user_id', props.selectedAccountObject.id);
         }
+        
         if (pin) {
-            payload.transaction_pin = pin;
+            formData.append('transaction_pin', pin);
         }
 
-        const response = await api.post('/dp-refunds', payload);
+        const response = await api.post('/dp-refunds', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
         const data = response.data.data || response.data;
 
         const dpInfo = getDpItemInfo(selectedDp.value);
@@ -477,6 +510,27 @@ async function submitRefundDp(pin = null) {
                         <textarea v-model="refundForm.notes" rows="2"
                             class="w-full border-2 border-surface-200 dark:border-surface-700 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 focus:border-primary-500 transition-all outline-none text-sm"
                             placeholder="Catatan tambahan..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2">Foto Bukti Refund / Customer (Opsional)</label>
+                        <div class="relative w-full">
+                            <input type="file" ref="photoInput" accept="image/*" @change="handlePhotoUpload" class="hidden" id="refundPhotoUpload" />
+                            <label for="refundPhotoUpload" 
+                                class="w-full flex items-center justify-between border-2 border-dashed border-surface-300 dark:border-surface-600 rounded-xl px-4 py-3 bg-surface-50 dark:bg-surface-900 cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-800 transition-all">
+                                <span class="text-sm text-surface-500 font-medium truncate pr-4">
+                                    {{ refundForm.photo ? refundForm.photo.name : 'Upload Foto...' }}
+                                </span>
+                                <div class="shrink-0 flex items-center gap-2">
+                                    <button v-if="refundForm.photo" @click.prevent="removePhoto" type="button" class="p-1 hover:bg-red-100 text-red-500 rounded-lg transition-colors">
+                                        <X :size="16" />
+                                    </button>
+                                    <div class="p-2 bg-primary-100 text-primary-600 rounded-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>

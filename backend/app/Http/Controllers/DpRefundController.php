@@ -26,6 +26,7 @@ class DpRefundController extends Controller
             'split_payments' => 'nullable',
             'transaction_pin' => 'nullable|string',
             'inventory_user_id' => 'nullable|exists:users,id',
+            'photo' => 'nullable|image|max:10240', // up to 10MB
         ]);
 
         // PIN Verification using Trait
@@ -33,7 +34,12 @@ class DpRefundController extends Controller
         if ($pinError) return $pinError;
 
         try {
-            return DB::transaction(function () use ($request, $user) {
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('dp_refunds', 'public');
+            }
+
+            return DB::transaction(function () use ($request, $user, $photoPath) {
                 // 1. Find the original DP transaction
                 $dpTransaction = StockOut::where('id', $request->stock_out_id)
                     ->where('category', 'dp')
@@ -109,6 +115,7 @@ class DpRefundController extends Controller
                     'user_id' => $user->id,
                     'inventory_user_id' => $inventoryUserId,
                     'branch_id' => $branchId,
+                    'photo' => $photoPath,
                 ]);
 
                 // 7. Create StockOut record for visibility in Cek Penjualan (negative sale)
