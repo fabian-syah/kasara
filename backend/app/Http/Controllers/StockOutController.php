@@ -1671,6 +1671,85 @@ class StockOutController extends Controller
                     }
                 }
 
+                // Mock items for DP and Refund DP if empty
+                if (empty($rawItems) && $catLower === 'dp') {
+                    $noteParts = explode("\n", $out->notes ?? '', 2);
+                    $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : (trim($noteParts[0]) ?: null);
+                    $dpDate = $out->created_at ? $out->created_at->format('d M Y') : '-';
+                    $custName = trim($out->customer_name ?? $out->receiver_name ?? '');
+                    
+                    $rawItems[] = [
+                        'type' => 'dp',
+                        'is_hp' => true,
+                        'name' => "DP : " . ($custName ? $custName . " " : "") . $dpDate,
+                        'product_name' => "DP : " . ($custName ? $custName . " " : "") . $dpDate,
+                        'qty' => 1,
+                        'quantity' => 1,
+                        'price' => (float)($out->dp_amount > 0 ? $out->dp_amount : ($out->paid_amount > 0 ? $out->paid_amount : $out->selling_price)),
+                        'selling_price' => (float)($out->dp_amount > 0 ? $out->dp_amount : ($out->paid_amount > 0 ? $out->paid_amount : $out->selling_price)),
+                        'discount' => 0,
+                        'item_discount' => 0,
+                        'brand' => '-',
+                        'condition' => '-',
+                        'storage' => '-',
+                        'imei' => '-',
+                        'notes' => $actualNote
+                    ];
+                }
+
+                if (empty($rawItems) && $catLower === 'refund_dp') {
+                    $originalTrx = null;
+                    if (isset($out->parent_dp_id)) {
+                        $originalTrx = \App\Models\StockOut::with(['items.product', 'nonHpDetails.product'])->find($out->parent_dp_id);
+                    }
+                    if (!$originalTrx) {
+                        $originalTrx = \App\Models\StockOut::with(['items.product', 'nonHpDetails.product'])
+                            ->where('customer_name', $out->customer_name)
+                            ->where('id', '!=', $out->id)
+                            ->where('category', 'dp')
+                            ->where('created_at', '<=', $out->created_at)
+                            ->latest()
+                            ->first();
+                    }
+
+                    $prodName = 'Refund DP';
+                    $isHp = false;
+                    $brand = '-';
+
+                    if ($originalTrx) {
+                        if ($originalTrx->items && $originalTrx->items->isNotEmpty()) {
+                            $firstItem = $originalTrx->items->first();
+                            $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item');
+                            $isHp = true;
+                            $brand = $firstItem->product?->brand ?? '-';
+                        } elseif ($originalTrx->nonHpDetails && $originalTrx->nonHpDetails->isNotEmpty()) {
+                            $firstItem = $originalTrx->nonHpDetails->first();
+                            $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item Non-HP');
+                            $brand = $firstItem->product?->brand ?? '-';
+                        }
+                    }
+
+                    $finalItemPrice = -abs((float) ($out->paid_amount ?: $out->selling_price));
+
+                    $rawItems[] = [
+                        'type' => 'refund_dp',
+                        'is_hp' => $isHp,
+                        'name' => $prodName,
+                        'product_name' => $prodName,
+                        'qty' => 1,
+                        'quantity' => 1,
+                        'price' => $finalItemPrice,
+                        'selling_price' => $finalItemPrice,
+                        'discount' => 0,
+                        'item_discount' => 0,
+                        'brand' => $brand,
+                        'condition' => '-',
+                        'storage' => '-',
+                        'imei' => '-',
+                        'notes' => $out->notes
+                    ];
+                }
+
                 // Consolidate Bundles if applicable
                 if ($out->is_bundle) {
                     $grouped = [];
