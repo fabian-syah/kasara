@@ -1732,6 +1732,13 @@ class StockOutController extends Controller
                             $firstItem = $originalTrx->nonHpDetails->first();
                             $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item Non-HP');
                             $brand = $firstItem->product?->brand ?? '-';
+                        } else {
+                            $noteParts = explode("\n", $originalTrx->notes ?? '', 2);
+                            $productNameStr = trim($noteParts[0]);
+                            if ($productNameStr && strtolower($productNameStr) !== 'dp') {
+                                $prodName = 'Refund DP: ' . str_ireplace('pstore unit', '', $productNameStr);
+                                $isHp = true;
+                            }
                         }
                     }
 

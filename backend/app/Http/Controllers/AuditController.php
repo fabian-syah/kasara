@@ -2378,14 +2378,18 @@ class AuditController extends Controller
                             $isHp = true;
                         } elseif ($originalTrx->nonHpDetails && $originalTrx->nonHpDetails->isNotEmpty()) {
                             $firstItem = $originalTrx->nonHpDetails->first();
-                            $dId = $firstItem->distributor_id;
-                            if (!$dId && $firstItem->product) {
-                                $dId = $firstItem->product->distributor_id;
-                            }
+                            $dId = $firstItem->distributor_id ?? null;
                             $dist = $dId ? $distributors->get($dId) : null;
-                            $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
+                            $distName = $dist ? $dist->name : '-';
                             $brand = $firstItem->product?->brand ?? '-';
                             $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item Non-HP');
+                        } else {
+                            $noteParts = explode("\n", $originalTrx->notes ?? '', 2);
+                            $productNameStr = trim($noteParts[0]);
+                            if ($productNameStr && strtolower($productNameStr) !== 'dp') {
+                                $prodName = 'Refund DP: ' . str_ireplace('pstore unit', '', $productNameStr);
+                                $isHp = true;
+                            }
                         }
                     }
 
