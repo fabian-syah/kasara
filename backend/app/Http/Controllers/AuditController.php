@@ -227,7 +227,7 @@ class AuditController extends Controller
             };
 
             $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
-            $activityCategories = ['refund', 'angkat_barang', 'cancel_penjualan', 'balancing'];
+            $activityCategories = ['refund', 'refund_dp', 'angkat_barang', 'cancel_penjualan', 'balancing'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
             // Optimization: Pre-fetch meta data to avoid N+1 in loops
