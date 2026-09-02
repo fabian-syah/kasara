@@ -2337,6 +2337,72 @@ class AuditController extends Controller
                     ];
                 }
 
+                if ($catLower === 'refund_dp' && empty($details)) {
+                    // Try to find the original DP transaction
+                    $originalTrx = null;
+                    if (isset($trx->parent_dp_id)) {
+                        $originalTrx = \App\Models\StockOut::with(['items.product', 'nonHpDetails.product'])->find($trx->parent_dp_id);
+                    }
+                    
+                    if (!$originalTrx) {
+                        $originalTrx = \App\Models\StockOut::with(['items.product', 'nonHpDetails.product'])
+                            ->where('customer_name', $trx->customer_name)
+                            ->where('id', '!=', $trx->id)
+                            ->where('category', 'dp')
+                            ->where('created_at', '<=', $trx->created_at)
+                            ->latest()
+                            ->first();
+                    }
+
+                    $distName = '-';
+                    $imei = '-';
+                    $brand = '-';
+                    $prodName = 'Refund DP';
+                    $isHp = false;
+
+                    if ($originalTrx) {
+                        if ($originalTrx->items && $originalTrx->items->isNotEmpty()) {
+                            $firstItem = $originalTrx->items->first();
+                            $dId = $firstItem->distributor_id ?? $firstItem->pivot?->distributor_id;
+                            $dist = $dId ? $distributors->get($dId) : null;
+                            $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
+                            $imei = $firstItem->imei ?? '-';
+                            $brand = $firstItem->product?->brand ?? '-';
+                            $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item');
+                            $isHp = true;
+                        } elseif ($originalTrx->nonHpDetails && $originalTrx->nonHpDetails->isNotEmpty()) {
+                            $firstItem = $originalTrx->nonHpDetails->first();
+                            $dId = $firstItem->distributor_id;
+                            if (!$dId && $firstItem->product) {
+                                $dId = $firstItem->product->distributor_id;
+                            }
+                            $dist = $dId ? $distributors->get($dId) : null;
+                            $distName = $dist ? $dist->name : ($firstItem->supplier_name ?? '-');
+                            $brand = $firstItem->product?->brand ?? '-';
+                            $prodName = 'Refund DP: ' . ($firstItem->product?->name ?? 'Item Non-HP');
+                        }
+                    }
+
+                    $finalItemPrice = -abs((float) ($trx->paid_amount ?: $trx->selling_price));
+
+                    $details[] = [
+                        'name' => $prodName,
+                        'qty' => 1,
+                        'price' => $finalItemPrice,
+                        'original_price' => $finalItemPrice,
+                        'item_discount' => 0,
+                        'brand' => $brand,
+                        'type' => 'Refund DP',
+                        'is_hp' => $isHp,
+                        'imei' => $imei,
+                        'distributor_name' => $distName,
+                        'ram' => '-',
+                        'storage' => '-',
+                        'condition' => '-',
+                        'notes' => $trx->notes
+                    ];
+                }
+
                 if ($catLower === 'balancing' && empty($details)) {
                     // Try to find the original transaction for this customer
                     $originalTrx = \App\Models\StockOut::with(['items.product'])
@@ -2628,6 +2694,9 @@ class AuditController extends Controller
                     'cancel_reason' => $trx->cancel_reason,
                     'qty' => $totalQty,
                     'items' => $details,
+                    'product_names' => collect($details)->pluck('name')->unique()->implode(', ') ?: '-',
+                    'imeis' => collect($details)->pluck('imei')->filter(fn($i) => $i !== '-')->unique()->implode(', ') ?: '-',
+                    'distributor_name' => collect($details)->pluck('distributor_name')->unique()->implode(', ') ?: '-',
                     'grand_total' => $finalPrice,
                     'selling_price' => $finalPrice,
                     'total_discount' => (float) $trx->total_discount,

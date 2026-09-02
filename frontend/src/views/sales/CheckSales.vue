@@ -1081,7 +1081,7 @@ const summaryStats = computed(() => {
         }
         const isBaseSale = saleType === 'base_sale';
         const isTradeIn = ['tukar_tambah', 'downgrade'].includes(cat);
-        const isDeduction = ['refund', 'angkat_barang'].includes(cat);
+        const isDeduction = ['refund', 'refund_dp', 'angkat_barang'].includes(cat);
         const isBalancing = cat === 'balancing';
 
         if (isBaseSale) {
@@ -1121,7 +1121,7 @@ const summaryStats = computed(() => {
                         hpUnitsOut += qty;
                     } else {
                         // Fallback logic by category
-                        if (['refund', 'angkat_barang'].includes(cat)) {
+                        if (['refund', 'refund_dp', 'angkat_barang'].includes(cat)) {
                             hpUnitsIn += qty;
                         } else {
                             hpUnitsOut += qty;
@@ -1135,7 +1135,7 @@ const summaryStats = computed(() => {
             const qty = parseInt(item.qty) || 0;
             const hasImei = (item.imei && item.imei !== '-') || (item.imeis && item.imeis !== '-');
             if (hasImei) {
-                if (['refund', 'angkat_barang'].includes(cat)) {
+                if (['refund', 'refund_dp', 'angkat_barang'].includes(cat)) {
                     hpUnitsIn += qty;
                 } else {
                     hpUnitsOut += qty;
@@ -1155,7 +1155,7 @@ const summaryStats = computed(() => {
         let summaryTradeIncoming = 0;
         
         // Sum deductions from activity details
-        ['refund', 'angkat_barang'].forEach(cat => {
+        ['refund', 'refund_dp', 'angkat_barang'].forEach(cat => {
             if (acts[cat]) {
                 acts[cat].forEach(item => {
                     summaryOutlay += parseFloat(item.price || 0);
@@ -1195,10 +1195,11 @@ const summaryStats = computed(() => {
         finalHpUnitsOut = iphone + android + appleLux;
         
         const refundUnits = parseInt(acts.refund) || 0;
+        const refundDpUnits = parseInt(acts.refund_dp) || 0;
         const abUnits = parseInt(acts.angkat_barang) || 0;
         const inTtUnits = parseInt(acts.in_tt) || 0;
         const dgUnits = parseInt(acts.downgrade) || 0;
-        finalHpUnitsIn = refundUnits + abUnits + inTtUnits + dgUnits;
+        finalHpUnitsIn = refundUnits + refundDpUnits + abUnits + inTtUnits + dgUnits;
 
         const nonHpKeys = ['accessories', 'apply', 'debs', 'arcis', 'dokter_pstore', 'laptop', 'tv', 'jaringan', 'sim_card', 'pspatu', 'psshion', 'icloud', 'others'];
         finalNonHpUnits = nonHpKeys.reduce((sum, key) => sum + (parseInt(distMap[key]) || 0), 0);

@@ -140,6 +140,7 @@ class DpRefundController extends Controller
                     'online_shop_id' => $onlineShopId,
                     'split_payments' => $processedSplits,
                     'parent_dp_id' => $dpTransaction->id,
+                    'proof_image' => $photoPath,
                 ]);
 
                 // 8. Mark original DP as settled
