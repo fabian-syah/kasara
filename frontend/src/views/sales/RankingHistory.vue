@@ -1640,7 +1640,7 @@ const salesHierarchy = computed(() => {
         const distMap = new Map()
 
         // List kategori aktivitas (seperti di backend)
-        const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur', 'balancing'];
+        const activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'refund_dp', 'retur', 'balancing', 'dp', 'pelunasan_dp'];
 
         // Coba ambil dari 'breakdown' atau 'details'
         const rawItems = cs.breakdown || cs.details || []

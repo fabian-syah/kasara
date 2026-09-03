@@ -2160,7 +2160,8 @@ class AuditController extends Controller
                                         'distributor_name' => $inDist->name ?? 'Konsumen',
                                         'condition' => $inItem['condition'] ?? 'second',
                                         'storage' => $inItem['storage'] ?? '-',
-                                        'is_incoming' => true
+                                        'is_incoming' => true,
+                                        'category' => $trx->category
                                     ];
                                 }
                             }
@@ -2181,7 +2182,8 @@ class AuditController extends Controller
                             'distributor_name' => $exchangeInfo->distributor->name ?? 'Konsumen',
                             'condition' => $exchangeInfo->incoming_condition ?? 'second',
                             'storage' => $exchangeInfo->incoming_storage ?? '-',
-                            'is_incoming' => true
+                            'is_incoming' => true,
+                            'category' => $trx->category
                         ];
                     }
                 }
@@ -2254,7 +2256,8 @@ class AuditController extends Controller
                         'ram' => $item->storage,
                         'storage' => $item->storage,
                         'condition' => $item->condition,
-                        'notes' => $item->pivot?->notes
+                        'notes' => $item->pivot?->notes,
+                        'category' => $trx->category
                     ];
                 }
                 foreach ($trx->nonHpDetails as $item) {
@@ -2281,7 +2284,8 @@ class AuditController extends Controller
                         'is_hp' => false,
                         'imei' => '-',
                         'distributor_name' => $dName,
-                        'notes' => $item->notes
+                        'notes' => $item->notes,
+                        'category' => $trx->category
                     ];
                 }
 
@@ -2301,7 +2305,8 @@ class AuditController extends Controller
                             'is_hp' => false,
                             'imei' => '-',
                             'distributor_name' => '-',
-                            'notes' => $item['notes'] ?? null
+                            'notes' => $item['notes'] ?? null,
+                            'category' => $trx->category
                         ];
                     }
                 }
@@ -2339,7 +2344,8 @@ class AuditController extends Controller
                         'ram' => '-',
                         'storage' => '-',
                         'condition' => '-',
-                        'notes' => $actualNote
+                        'notes' => $actualNote,
+                        'category' => $trx->category
                     ];
                 }
 
@@ -2409,7 +2415,8 @@ class AuditController extends Controller
                         'ram' => '-',
                         'storage' => '-',
                         'condition' => '-',
-                        'notes' => $trx->notes
+                        'notes' => $trx->notes,
+                        'category' => 'refund_dp'
                     ];
                 }
 
