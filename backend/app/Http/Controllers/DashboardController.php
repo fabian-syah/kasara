@@ -184,7 +184,7 @@ class DashboardController extends Controller
             $notes = strtolower($sale->notes ?? '');
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
-            $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0)));
+            $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : ($cat === 'dp' ? abs((float)($sale->dp_amount ?: ($sale->paid_amount ?: $sale->selling_price))) : ($cat === 'pelunasan_dp' ? abs((float)($sale->paid_amount ?: $sale->selling_price)) : abs((float)($sale->selling_price ?? 0))));
 
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -290,7 +290,7 @@ class DashboardController extends Controller
             return [
                 'id' => $trx->receipt_id,
                 'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? $trx->customer_name ?? 'Guest',
-                'total' => ($trx->category === 'pelunasan_dp' || $trx->category === 'dp') ? abs((float)($trx->paid_amount ?? 0)) : abs((float)($trx->selling_price ?? 0)),
+                'total' => $trx->category === 'dp' ? abs((float)($trx->dp_amount ?: ($trx->paid_amount ?: $trx->selling_price))) : ($trx->category === 'pelunasan_dp' ? abs((float)($trx->paid_amount ?: $trx->selling_price)) : abs((float)($trx->selling_price ?? 0))),
                 'time' => $trx->created_at->diffForHumans(),
                 'datetime' => $trx->created_at->format('d M H:i'),
                 'status' => 'success'
@@ -593,7 +593,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
-                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
+                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
                             THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
@@ -609,7 +609,7 @@ class DashboardController extends Controller
                                 ABS(COALESCE(stock_outs.selling_price, 0))
                             )
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
-                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
+                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
@@ -690,7 +690,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
-                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
+                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
                             THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
@@ -703,7 +703,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE((SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
-                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
+                            THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
