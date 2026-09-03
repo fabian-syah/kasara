@@ -27,6 +27,7 @@ class DpRefundController extends Controller
             'transaction_pin' => 'nullable|string',
             'inventory_user_id' => 'nullable|exists:users,id',
             'photo' => 'nullable|image|max:10240', // up to 10MB
+            'refund_amount' => 'nullable|numeric|min:0',
         ]);
 
         // PIN Verification using Trait
@@ -54,12 +55,14 @@ class DpRefundController extends Controller
                     ], 422);
                 }
 
-                // 2. Calculate refund amount (full refund of DP paid amount)
-                $refundAmount = abs($dpTransaction->dp_amount ?: $dpTransaction->selling_price);
-                if ($refundAmount <= 0) {
+                // 2. Calculate refund amount (full refund of DP paid amount or custom)
+                $maxRefundAmount = abs($dpTransaction->dp_amount ?: $dpTransaction->selling_price);
+                $refundAmount = $request->filled('refund_amount') ? abs((float) $request->refund_amount) : $maxRefundAmount;
+
+                if ($refundAmount <= 0 || $refundAmount > $maxRefundAmount) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Nominal DP tidak valid untuk di-refund.'
+                        'message' => 'Nominal refund tidak valid atau melebihi batas DP maksimal (Rp ' . number_format($maxRefundAmount, 0, ',', '.') . ').'
                     ], 422);
                 }
 

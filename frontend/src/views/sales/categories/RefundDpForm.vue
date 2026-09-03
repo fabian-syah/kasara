@@ -203,9 +203,12 @@ function removeSplitPayment(index) {
     }
 }
 
+const totalSplit = computed(() => {
+    return splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
+});
+
 const isSplitInvalid = computed(() => {
-    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
-    return totalSplit !== dpAmount.value;
+    return totalSplit.value <= 0 || totalSplit.value > dpAmount.value;
 });
 
 // Init payment method
@@ -230,9 +233,8 @@ async function submitRefundDp(pin = null) {
         return;
     }
 
-    const totalSplit = splitPayments.value.reduce((sum, p) => sum + (p.amount || 0), 0);
-    if (totalSplit !== dpAmount.value) {
-        alert(`Total split pembayaran (${formatCurrency(totalSplit)}) tidak sesuai dengan nominal refund (${formatCurrency(dpAmount.value)}).`);
+    if (totalSplit.value <= 0 || totalSplit.value > dpAmount.value) {
+        alert(`Total refund (${formatCurrency(totalSplit.value)}) tidak valid atau melebihi nominal DP asli (${formatCurrency(dpAmount.value)}).`);
         return;
     }
 
@@ -256,6 +258,7 @@ async function submitRefundDp(pin = null) {
         }
         
         formData.append('payment_method_id', splitPayments.value[0]?.method_id);
+        formData.append('refund_amount', totalSplit.value);
         formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
             payment_method_id: p.method_id,
             amount: p.amount
@@ -294,10 +297,10 @@ async function submitRefundDp(pin = null) {
                 qty: 1,
                 is_hp: true
             }],
-            original_price: dpAmount.value,
-            grand_total: dpAmount.value,
-            total: dpAmount.value,
-            paid: dpAmount.value,
+            original_price: totalSplit.value,
+            grand_total: totalSplit.value,
+            total: totalSplit.value,
+            paid: totalSplit.value,
             cash: splitPayments.value.filter(p => {
                 const m = props.availablePaymentMethods.find(m => m.id === p.method_id);
                 return m?.category?.toLowerCase() === 'cash';
@@ -574,7 +577,10 @@ async function submitRefundDp(pin = null) {
                     <!-- Split validation -->
                     <div v-if="isSplitInvalid && splitPayments.length > 0" class="mt-2 text-xs text-red-500 font-bold flex items-center gap-1">
                         <AlertTriangle :size="14" />
-                        Total split ({{ formatCurrency(splitPayments.reduce((sum, p) => sum + (p.amount || 0), 0)) }}) harus sama dengan nominal refund ({{ formatCurrency(dpAmount) }})
+                        Total refund ({{ formatCurrency(totalSplit) }}) tidak boleh melebihi DP asli ({{ formatCurrency(dpAmount) }}) atau 0.
+                    </div>
+                    <div v-else-if="splitPayments.length > 0" class="mt-2 text-xs text-emerald-600 font-bold flex items-center justify-end gap-1">
+                        Total Refund: {{ formatCurrency(totalSplit) }}
                     </div>
                 </div>
             </div>
@@ -589,7 +595,7 @@ async function submitRefundDp(pin = null) {
                     class="flex-[2] py-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:bg-surface-300 dark:disabled:bg-surface-600 disabled:cursor-not-allowed text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-red-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
                     <Loader2 v-if="isSubmitting" class="animate-spin" :size="24" />
                     <template v-else>
-                        <Undo2 :size="24" /> Proses Refund DP — {{ formatCurrency(dpAmount) }}
+                        <Undo2 :size="24" /> Proses Refund DP — {{ formatCurrency(totalSplit) }}
                     </template>
                 </button>
             </div>
