@@ -516,16 +516,18 @@ function handleOutsideClick(e) {
                         </button>
                     </div>
                     <div v-if="showCsDropdown && filteredCsUsers.length"
-                        class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-xl">
-                        <button
-                            v-for="user in filteredCsUsers"
-                            :key="user.id"
-                            @click.prevent="selectCsUser(user)"
-                            class="w-full text-left px-4 py-2.5 text-sm text-neutral-700 dark:text-neutral-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
-                        >
-                            <span class="font-medium">{{ user.name }}</span>
-                            <span v-if="user.username" class="text-neutral-400 ml-2 text-xs">({{ user.username }})</span>
-                        </button>
+                        class="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 shadow-xl p-1.5">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            <button
+                                v-for="user in filteredCsUsers"
+                                :key="user.id"
+                                @click.prevent="selectCsUser(user)"
+                                class="w-full text-left px-3 py-2 text-sm rounded-lg text-neutral-700 dark:text-neutral-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+                            >
+                                <span class="font-medium truncate">{{ user.name }}</span>
+                                <span v-if="user.username" class="text-neutral-400 text-[10px] truncate">({{ user.username }})</span>
+                            </button>
+                        </div>
                     </div>
                     <p v-if="csUsers.length === 0 && !loadingData" class="mt-1.5 text-xs text-neutral-400">Tidak ada CS ditemukan di cabang ini.</p>
                 </div>
