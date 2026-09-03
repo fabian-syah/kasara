@@ -719,8 +719,8 @@ class ReportController extends Controller
             $isPelunasanDp = $cat === 'pelunasan_dp';
             
             $isTukarTambah = $cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($account, 'tukar tambah') || str_contains($account, 'tukar_tambah');
-            $isRefund = $cat === 'refund' || str_contains($notes, 'refund') || str_contains($account, 'refund');
-            $isRefundDp = $cat === 'refund_dp';
+            $isRefundDp = $cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($account, 'refund dp');
+            $isRefund = !$isRefundDp && ($cat === 'refund' || str_contains($notes, 'refund') || str_contains($account, 'refund'));
             $isAngkatBarang = $cat === 'angkat_barang' || str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($account, 'barang angkat') || str_contains($account, 'angkat barang') || str_contains($account, 'angkat_barang');
             $isTukarUnit = $cat === 'tukar_unit' || str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($account, 'tukar unit') || str_contains($account, 'tukar_unit');
             $isDowngrade = $cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($account, 'downgrade');
@@ -1165,12 +1165,12 @@ class ReportController extends Controller
                 $saleType = 'pelunasan_dp';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
+                $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                 $saleType = 'downgrade';
-            } elseif ($cat === 'refund_dp') {
-                $saleType = 'refund_dp';
             }
 
             if ($cat === 'dp') {

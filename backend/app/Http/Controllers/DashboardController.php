@@ -193,6 +193,8 @@ class DashboardController extends Controller
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
+                $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
@@ -220,7 +222,7 @@ class DashboardController extends Controller
             } elseif ($saleType === 'angkat_barang') {
                 $omsetContribution = 0;
                 $netContribution = -$price;
-            } elseif ($saleType === 'refund') {
+            } elseif ($saleType === 'refund' || $saleType === 'refund_dp') {
                 $omsetContribution = 0;
                 $netContribution = -$price;
             } elseif ($saleType === 'downgrade') {
