@@ -178,6 +178,7 @@ const totalBalancingPenjualan = computed(() => filteredRanking.value.reduce((sum
 const totalBalancingPembayaran = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.balancing_pembayaran_amount || 0), 0));
 const totalDp = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.dp_amount || 0), 0));
 const totalPelunasanDp = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.pelunasan_dp_amount || 0), 0));
+const totalRefundDp = computed(() => filteredRanking.value.reduce((sum, item) => sum + (item.refund_dp_amount || 0), 0));
 
 
 const top3 = computed(() => {
@@ -686,6 +687,9 @@ const exportToPDF = async () => {
                                         Pelunasan DP</th>
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
+                                        Refund DP</th>
+                                    <th
+                                        class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
                                         Total Omset</th>
                                     <th
                                         class="px-4 md:px-8 py-4 md:py-6 text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] border-b border-surface-800 text-right">
@@ -761,6 +765,12 @@ const exportToPDF = async () => {
                                                  <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
                                              </td>
                                              <td class="px-4 md:px-8 py-5 md:py-7 text-right">
+                                                 <span v-if="item.refund_dp_amount > 0" class="text-[10px] md:text-xs font-bold text-text-secondary tabular-nums">
+                                                     {{ formatCurrency(item.refund_dp_amount) }}
+                                                 </span>
+                                                 <span v-else class="text-[10px] text-surface-600 opacity-50">-</span>
+                                             </td>
+                                             <td class="px-4 md:px-8 py-5 md:py-7 text-right">
                                                  <span v-if="item.omset > 0"
                                                      class="text-base md:text-lg font-black text-text-primary tabular-nums tracking-tight group-hover:text-emerald-400 transition-colors">
                                                      {{ formatCurrency(item.omset) }}
@@ -805,6 +815,11 @@ const exportToPDF = async () => {
                                      <td class="px-8 py-6 text-right">
                                          <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
                                              {{ formatCurrency(totalPelunasanDp) }}
+                                         </span>
+                                     </td>
+                                     <td class="px-8 py-6 text-right">
+                                         <span class="text-sm font-bold text-text-secondary tabular-nums drop-shadow-sm">
+                                             {{ formatCurrency(totalRefundDp) }}
                                          </span>
                                      </td>
                                      <td class="px-8 py-6 text-right">

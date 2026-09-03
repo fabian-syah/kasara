@@ -358,7 +358,7 @@ class DashboardController extends Controller
                 END
                 -
                 CASE 
-                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade') 
+                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
                          OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                          OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
                          OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
@@ -427,7 +427,7 @@ class DashboardController extends Controller
                     END
                     -
                     CASE 
-                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'angkat_barang', 'downgrade') 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
                              OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                              OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
                              OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
@@ -612,7 +612,7 @@ class DashboardController extends Controller
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
+                            WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
                             THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
@@ -684,7 +684,7 @@ class DashboardController extends Controller
                 return $query->select(
                     'users.id',
                     'users.name',
-                    DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('refund', 'angkat_barang', 'downgrade') THEN stock_outs.id END) as units"),
+                    DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') THEN stock_outs.id END) as units"),
                     DB::raw("SUM(
                         CASE 
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
@@ -706,7 +706,7 @@ class DashboardController extends Controller
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('pelunasan_dp', 'dp') THEN ABS(COALESCE(stock_outs.paid_amount, 0)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
-                            WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'refund')
+                            WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
                             THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))

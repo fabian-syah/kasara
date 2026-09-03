@@ -612,7 +612,7 @@ class ReportController extends Controller
         }
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
-        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing']);
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing', 'refund_dp']);
 
         // 1. Get Payment Methods
         $paymentMethods = \App\Models\PaymentMethod::all();
@@ -696,6 +696,7 @@ class ReportController extends Controller
                     'dp_qty' => 0, 'dp_amt' => 0,
                     'pelunasan_dp_qty' => 0, 'pelunasan_dp_amt' => 0,
                     'refund_qty' => 0, 'refund_amt' => 0,
+                    'refund_dp_qty' => 0, 'refund_dp_amt' => 0,
                     'angkat_barang_qty' => 0, 'angkat_barang_amt' => 0,
                     'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
                     'tukar_unit_qty' => 0, 'tukar_unit_amt' => 0,
@@ -718,6 +719,7 @@ class ReportController extends Controller
             
             $isTukarTambah = $cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($account, 'tukar tambah') || str_contains($account, 'tukar_tambah');
             $isRefund = $cat === 'refund' || str_contains($notes, 'refund') || str_contains($account, 'refund');
+            $isRefundDp = $cat === 'refund_dp';
             $isAngkatBarang = $cat === 'angkat_barang' || str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($account, 'barang angkat') || str_contains($account, 'angkat barang') || str_contains($account, 'angkat_barang');
             $isTukarUnit = $cat === 'tukar_unit' || str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($account, 'tukar unit') || str_contains($account, 'tukar_unit');
             $isDowngrade = $cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($account, 'downgrade');
@@ -794,6 +796,11 @@ class ReportController extends Controller
                 $txProfit = $txModal - abs($sellingPrice);
                 $statsByLocation[$locKey]['refund_qty'] += 1;
                 $statsByLocation[$locKey]['refund_amt'] += abs($sellingPrice);
+            } elseif ($isRefundDp) {
+                $txOmsetBersih = -abs($sellingPrice);
+                $txProfit = -abs($sellingPrice);
+                $statsByLocation[$locKey]['refund_dp_qty'] += 1;
+                $statsByLocation[$locKey]['refund_dp_amt'] += abs($sellingPrice);
             } elseif ($isTukarUnit) {
                 $txProfit = abs($sellingPrice) - $txModal;
                 $statsByLocation[$locKey]['tukar_unit_qty'] += 1;
@@ -1074,7 +1081,7 @@ class ReportController extends Controller
 
         
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'pelunasan_dp', 'dp'];
-        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing']);
+        $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing', 'refund_dp']);
 
         // 1. Get Base Stats (Omset & Transaction Count)
         $baseQuery = DB::table('stock_outs')
@@ -1155,6 +1162,8 @@ class ReportController extends Controller
                 $saleType = 'refund';
             } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
                 $saleType = 'downgrade';
+            } elseif ($cat === 'refund_dp') {
+                $saleType = 'refund_dp';
             }
 
             $price = ($cat === 'pelunasan_dp' || $cat === 'dp') ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0)));
@@ -1236,6 +1245,10 @@ class ReportController extends Controller
                 $txOmsetBersih = -$effectivePrice;
                 $isAb = true;
                 $abAmt = $effectivePrice;
+            } elseif ($saleType === 'refund_dp') {
+                $txOmsetBersih = -$effectivePrice;
+                $isRefund = true;
+                $refundAmt = $effectivePrice;
             }
 
             $locKey = ($tx->branch_id ? 'B_' . $tx->branch_id : 'O_' . $tx->online_shop_id);
@@ -1253,7 +1266,8 @@ class ReportController extends Controller
                     'refund_count' => 0,
                     'refund_amount' => 0,
                     'ab_count' => 0,
-                    'ab_amount' => 0
+                    'ab_amount' => 0,
+                    'refund_dp_amount' => 0
                 ];
             }
 
@@ -1267,6 +1281,9 @@ class ReportController extends Controller
             if ($isRefund) {
                 $aggregatedStats[$locKey]['refund_count']++;
                 $aggregatedStats[$locKey]['refund_amount'] += $refundAmt;
+                if ($saleType === 'refund_dp') {
+                    $aggregatedStats[$locKey]['refund_dp_amount'] += $refundAmt;
+                }
             }
             if ($isAb) {
                 $aggregatedStats[$locKey]['ab_count']++;
@@ -1356,6 +1373,7 @@ class ReportController extends Controller
                 'transaction_count' => (int) $branchBase->sum('transaction_count'),
                 'refund_count' => (int) $branchBase->sum('refund_count'),
                 'refund_amount' => (float) $branchBase->sum('refund_amount'),
+                'refund_dp_amount' => (float) $branchBase->sum('refund_dp_amount'),
                 'ab_count' => (int) $branchBase->sum('ab_count'),
                 'ab_amount' => (float) $branchBase->sum('ab_amount'),
                 'iphone_count' => (int) $branchItems->sum('iphone_count'),
@@ -1393,6 +1411,7 @@ class ReportController extends Controller
                 'transaction_count' => (int) $shopBase->sum('transaction_count'),
                 'refund_count' => (int) $shopBase->sum('refund_count'),
                 'refund_amount' => (float) $shopBase->sum('refund_amount'),
+                'refund_dp_amount' => (float) $shopBase->sum('refund_dp_amount'),
                 'ab_count' => (int) $shopBase->sum('ab_count'),
                 'ab_amount' => (float) $shopBase->sum('ab_amount'),
                 'iphone_count' => (int) $shopItems->sum('iphone_count'),
