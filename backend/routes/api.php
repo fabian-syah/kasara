@@ -356,9 +356,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/branch-users', function (\Illuminate\Http\Request $request) {
             $branchId = $request->query('branch_id');
             if (!$branchId) return response()->json(['data' => []]);
-            $users = \App\Models\User::where('branch_id', $branchId)
+            
+            $branchUserIds = \App\Models\User::where('branch_id', $branchId)->pluck('id');
+            
+            $users = \App\Models\User::where(function($q) use ($branchId, $branchUserIds) {
+                    $q->where('branch_id', $branchId)
+                      ->orWhereIn('created_by', $branchUserIds);
+                })
                 ->where('is_active', true)
                 ->select('id', 'name', 'username')
+                ->orderBy('name')
                 ->get();
             return response()->json(['data' => $users]);
         });
