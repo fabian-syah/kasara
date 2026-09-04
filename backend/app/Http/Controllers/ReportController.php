@@ -709,6 +709,8 @@ class ReportController extends Controller
             }
 
             $cat = strtolower(str_replace(' ', '_', $tx->category));
+            if ($cat === 'cancel_penjualan') continue;
+
             $subCat = strtolower($tx->sub_category ?? '');
             $notes = strtolower($tx->notes ?? '');
             $account = strtolower($tx->sales_account ?? '');
@@ -1146,6 +1148,8 @@ class ReportController extends Controller
 
         foreach ($rawTransactions as $tx) {
             $cat = strtolower(str_replace(' ', '_', $tx->category));
+            if ($cat === 'cancel_penjualan') continue;
+
             $subCat = strtolower($tx->sub_category ?? '');
             $notes = strtolower($tx->notes ?? '');
             $sa = strtolower($tx->sales_account ?? '');
