@@ -176,6 +176,9 @@ class DashboardController extends Controller
         $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
 
         foreach ($todaySales as $sale) {
+            $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
+            if ($cat === 'cancel_penjualan') continue;
+
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
             if (!isset($csPerformance[$csName])) {
                 $csPerformance[$csName] = ['name' => $csName, 'hp_count' => 0, 'non_hp_count' => 0, 'total_sales' => 0, 'net_sales' => 0];
@@ -354,6 +357,7 @@ class DashboardController extends Controller
             })
             ->select('user_id', DB::raw("SUM(
                 CASE 
+                    WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
                     WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
                     THEN 1
                     ELSE 0
@@ -423,6 +427,7 @@ class DashboardController extends Controller
                 })
                  ->select(DB::raw("SUM(
                     CASE 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
                         WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
                         THEN 1
                         ELSE 0
@@ -452,6 +457,7 @@ class DashboardController extends Controller
 
             foreach ($sales as $sale) {
                 $origCat = strtolower($sale->category ?? '');
+                if ($origCat === 'cancel_penjualan') continue;
                 $notes = strtolower($sale->notes ?? '');
                 $sa = strtolower($sale->sales_account ?? '');
                 $cat = strtolower($sale->category ?? '');
@@ -592,6 +598,7 @@ class DashboardController extends Controller
                     DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
@@ -605,6 +612,7 @@ class DashboardController extends Controller
                     ) as total_omset"),
                     DB::raw("SUM(
                         CASE 
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE(
                                 (SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), 
@@ -686,9 +694,10 @@ class DashboardController extends Controller
                 return $query->select(
                     'users.id',
                     'users.name',
-                    DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') THEN stock_outs.id END) as units"),
+                    DB::raw("COUNT(CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN NULL WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) NOT IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') THEN stock_outs.id END) as units"),
                     DB::raw("SUM(
                         CASE 
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
@@ -702,6 +711,7 @@ class DashboardController extends Controller
                     ) as omset"),
                     DB::raw("SUM(
                         CASE 
+                            WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE((SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
