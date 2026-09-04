@@ -56,7 +56,8 @@ class DpRefundController extends Controller
                 }
 
                 // 2. Calculate refund amount (full refund of DP paid amount or custom)
-                $maxRefundAmount = abs($dpTransaction->dp_amount ?: $dpTransaction->selling_price);
+                $dpAmount = (float) $dpTransaction->dp_amount;
+                $maxRefundAmount = abs($dpAmount > 0 ? $dpAmount : (float) $dpTransaction->selling_price);
                 $refundAmount = $request->filled('refund_amount') ? abs((float) $request->refund_amount) : $maxRefundAmount;
 
                 if ($refundAmount <= 0 || $refundAmount > $maxRefundAmount) {
