@@ -135,6 +135,25 @@ const paymentTotal = computed(() => {
     return cartTotal.value;
 });
 
+// Computed: is photo required
+const isPhotoRequired = computed(() => {
+    let selectedIds = [];
+    if (useSplitPayment.value) {
+        selectedIds = splitPayments.value.map(sp => sp.payment_method_id).filter(id => id);
+    } else if (paymentMethodId.value) {
+        selectedIds = [paymentMethodId.value];
+    }
+    
+    if (selectedIds.length === 0) return true;
+    
+    return selectedIds.some(id => {
+        const method = paymentMethods.value.find(m => m.id === id);
+        if (!method) return true;
+        const name = method.name.toLowerCase();
+        return !name.includes('cash') && !name.includes('tunai');
+    });
+});
+
 // ===== Format helpers =====
 function formatCurrency(value) {
     if (!value && value !== 0) return 'Rp 0';
@@ -308,6 +327,11 @@ function validatePayment() {
     } else {
         if (!paymentMethodId.value) errs.payment = 'Pilih metode pembayaran';
     }
+
+    if (isPhotoRequired.value && !proofImage.value) {
+        errs.photo = 'Foto bukti wajib diupload untuk metode selain Cash';
+    }
+
     errors.value = errs;
     return Object.keys(errs).length === 0;
 }
@@ -947,12 +971,13 @@ onMounted(() => {
                 <div>
                     <label class="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                         <Camera :size="16" class="text-amber-500" />
-                        Foto Bukti
+                        Foto Bukti <span v-if="isPhotoRequired">*</span>
                     </label>
                     <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleImageChange" />
 
                     <div v-if="!imagePreview" @click="triggerFileInput"
-                        class="w-full border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20">
+                        class="w-full border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                        :class="errors.photo ? 'border-red-300 dark:border-red-700' : 'border-neutral-200 dark:border-neutral-700'">
                         <Camera :size="28" class="mx-auto text-neutral-300 dark:text-neutral-600 mb-2" />
                         <p class="text-sm text-neutral-500">Klik untuk upload</p>
                         <p class="text-xs text-neutral-400 mt-1">PNG, JPG (Maks. 20MB)</p>
@@ -965,6 +990,7 @@ onMounted(() => {
                             <X :size="12" />
                         </button>
                     </div>
+                    <p v-if="errors.photo" class="mt-1.5 text-xs text-red-500">{{ errors.photo }}</p>
                 </div>
 
                 <!-- Submit -->

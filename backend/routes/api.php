@@ -437,7 +437,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 'customer_phone' => 'nullable|string|max:20',
                 'customer_service_id' => 'required|exists:users,id',
                 'notes' => 'required|string',
-                'photo' => 'required|image|max:2048',
+                'photo' => 'nullable|image|max:20480',
                 'payment_methods' => 'required|array|min:1',
                 'payment_methods.*.method_id' => 'required|exists:payment_methods,id',
                 'payment_methods.*.amount' => 'required|numeric',

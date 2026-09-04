@@ -93,6 +93,22 @@ const showPassword = ref(false);
 // Validation
 const errors = ref({});
 
+// Computed: is photo required
+const isPhotoRequired = computed(() => {
+    const selectedMethodIds = paymentEntries.value
+        .map(p => p.payment_method_id)
+        .filter(id => id !== null);
+
+    if (selectedMethodIds.length === 0) return true;
+
+    return selectedMethodIds.some(id => {
+        const method = paymentMethods.value.find(m => m.id === id);
+        if (!method) return true;
+        const name = method.name.toLowerCase();
+        return !name.includes('cash') && !name.includes('tunai');
+    });
+});
+
 // Computed: total selling price (sum of all payment entries)
 const totalAmount = computed(() => {
     return paymentEntries.value.reduce((sum, entry) => {
@@ -167,7 +183,7 @@ function validateForm() {
 
     if (!form.value.reporting_date) errs.reporting_date = 'Tanggal wajib diisi';
     if (!form.value.notes) errs.notes = 'Keterangan / Notes wajib diisi';
-    if (!form.value.proof_image) errs.proof_image = 'Foto bukti wajib diupload';
+    if (isPhotoRequired.value && !form.value.proof_image) errs.proof_image = 'Foto bukti wajib diupload untuk metode selain Cash';
 
     // Validate payment entries
     const validPayments = paymentEntries.value.filter(p => p.payment_method_id && p.amount);
@@ -552,7 +568,7 @@ function handleOutsideClick(e) {
                 <div>
                     <label class="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                         <Camera :size="16" class="text-violet-500" />
-                        Foto Bukti *
+                        Foto Bukti <span v-if="isPhotoRequired">*</span>
                     </label>
                     <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleImageChange" />
 
