@@ -215,9 +215,13 @@ class InventoryExportController extends Controller
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $shopIds = $user->getAccessibleOnlineShopIds();
-                if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
-                if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
-                if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
+                $distributorIds = (array) ($user->getAccessibleDistributorIds() ?: []);
+                $hasConstraint = false;
+                if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds)); $hasConstraint = true; }
+                if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds)); $hasConstraint = true; }
+                if (!empty($shopIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds)); $hasConstraint = true; }
+                if (!empty($distributorIds)) { $q->orWhere(fn($sq) => $sq->whereIn('distributor_id', $distributorIds)->orWhere(fn($ssq) => $ssq->where('placement_type', 'distributor')->whereIn('placement_id', $distributorIds))); $hasConstraint = true; }
+                if (!$hasConstraint) $q->whereRaw('0 = 1');
             });
         }
     }

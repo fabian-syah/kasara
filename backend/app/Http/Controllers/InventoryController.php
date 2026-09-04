@@ -1457,7 +1457,7 @@ class InventoryController extends Controller
                         $hasConstraint = true;
                     }
                     if (!empty($dIds)) {
-                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
+                        $q->orWhere(fn($sq) => $sq->whereIn('distributor_id', $dIds)->orWhere(fn($ssq) => $ssq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds)));
                         $hasConstraint = true;
                     }
                     if (!$hasConstraint) $q->whereRaw('0 = 1');

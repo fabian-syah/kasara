@@ -233,6 +233,12 @@ async function submitRefundDp(pin = null) {
         return;
     }
 
+    const hasMissingMethod = splitPayments.value.some(p => !p.method_id && p.amount > 0);
+    if (hasMissingMethod) {
+        alert("Pilih metode pembayaran untuk semua nominal refund.");
+        return;
+    }
+
     if (totalSplit.value <= 0 || totalSplit.value > dpAmount.value) {
         alert(`Total refund (${formatCurrency(totalSplit.value)}) tidak valid atau melebihi nominal DP asli (${formatCurrency(dpAmount.value)}).`);
         return;
@@ -257,7 +263,9 @@ async function submitRefundDp(pin = null) {
             formData.append('photo', refundForm.value.photo);
         }
         
-        formData.append('payment_method_id', splitPayments.value[0]?.method_id);
+        if (splitPayments.value.length && splitPayments.value[0]?.method_id) {
+            formData.append('payment_method_id', splitPayments.value[0].method_id);
+        }
         formData.append('refund_amount', totalSplit.value);
         formData.append('split_payments', JSON.stringify(splitPayments.value.map(p => ({
             payment_method_id: p.method_id,

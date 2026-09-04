@@ -2218,7 +2218,13 @@ class StockOutController extends Controller
             if (!empty($distributorIds)) {
                 $q->orWhere(function ($sub) use ($distributorIds) {
                     $sub->where('destination_type', 'distributor')
-                        ->whereIn('destination_id', $distributorIds);
+                        ->whereIn('destination_id', $distributorIds)
+                        ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                            $iq->whereIn('product_details.distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                            $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                        });
                 });
                 $hasFilter = true;
             }
@@ -2319,6 +2325,17 @@ class StockOutController extends Controller
                 $hasFilter = true;
             }
             if (!empty($distributorIds)) {
+                $q->orWhere(function ($sub) use ($distributorIds) {
+                    $sub->whereHas('user', function ($uq) use ($distributorIds) {
+                        $uq->whereIn('distributor_id', $distributorIds);
+                    })
+                    ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                        $iq->whereIn('product_details.distributor_id', $distributorIds);
+                    })
+                    ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                        $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                    });
+                });
                 $hasFilter = true;
             }
 
@@ -2403,7 +2420,13 @@ class StockOutController extends Controller
             if (!empty($distributorIds)) {
                 $q->orWhere(function ($sub) use ($distributorIds) {
                     $sub->where('destination_type', 'distributor')
-                        ->whereIn('destination_id', $distributorIds);
+                        ->whereIn('destination_id', $distributorIds)
+                        ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                            $iq->whereIn('product_details.distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                            $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                        });
                 });
                 $hasFilter = true;
             }
@@ -2455,6 +2478,17 @@ class StockOutController extends Controller
                     $hasFilter = true;
                 }
                 if (!empty($distributorIds)) {
+                    $q->orWhere(function ($sub) use ($distributorIds) {
+                        $sub->whereHas('user', function ($uq) use ($distributorIds) {
+                            $uq->whereIn('distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                            $iq->whereIn('product_details.distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                            $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                        });
+                    });
                     $hasFilter = true;
                 }
 
@@ -3038,6 +3072,17 @@ class StockOutController extends Controller
                 }
 
                 if (!empty($distributorIds)) {
+                    $q->orWhere(function ($sub) use ($distributorIds) {
+                        $sub->whereHas('user', function ($uq) use ($distributorIds) {
+                            $uq->whereIn('distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                            $iq->whereIn('product_details.distributor_id', $distributorIds);
+                        })
+                        ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                            $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                        });
+                    });
                     $hasFilter = true;
                 }
 
@@ -3079,7 +3124,13 @@ class StockOutController extends Controller
                 if (!empty($distributorIds)) {
                     $q->orWhere(function ($sub) use ($distributorIds) {
                         $sub->where('destination_type', 'distributor')
-                            ->whereIn('destination_id', $distributorIds);
+                            ->whereIn('destination_id', $distributorIds)
+                            ->orWhereHas('items', function ($iq) use ($distributorIds) {
+                                $iq->whereIn('product_details.distributor_id', $distributorIds);
+                            })
+                            ->orWhereHas('nonHpItems', function ($nq) use ($distributorIds) {
+                                $nq->whereIn('stock_out_non_hp_items.distributor_id', $distributorIds);
+                            });
                     });
                     $hasFilter = true;
                 }

@@ -113,6 +113,7 @@ class DashboardController extends Controller
 
         $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser'])
             ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
+            ->where('status', '!=', 'cancelled')
             ->whereNull('deleted_at')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
@@ -337,6 +338,7 @@ class DashboardController extends Controller
 
         $rankReceiptIds = DB::table('stock_outs')
             ->whereNull('deleted_at')
+            ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
                   /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
@@ -351,6 +353,7 @@ class DashboardController extends Controller
 
         $todayRankingQuery = DB::table('stock_outs')
             ->whereNull('deleted_at')
+            ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
                   /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
@@ -422,6 +425,7 @@ class DashboardController extends Controller
             // Count units sold by this user
             $units = StockOut::where('user_id', $u->id)
                 ->whereNull('deleted_at')
+                ->where('status', '!=', 'cancelled')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
                       /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
@@ -448,6 +452,7 @@ class DashboardController extends Controller
             // Calculate omset and omset_bersih for each user
             $sales = StockOut::where('user_id', $u->id)
                 ->whereNull('deleted_at')
+                ->where('status', '!=', 'cancelled')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
                       /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;

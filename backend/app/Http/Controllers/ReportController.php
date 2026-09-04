@@ -384,6 +384,7 @@ class ReportController extends Controller
 
         // 1. CS STATS (Aggregation by User)
         $csQuery = StockOut::whereIn('category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->select(
                 'users.id',
@@ -411,6 +412,7 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
             ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
             ->select(
@@ -428,6 +430,7 @@ class ReportController extends Controller
             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
             ->join('users', "stock_outs.{$csUserIdField}", '=', 'users.id')
             ->whereIn('stock_outs.category', $salesCategoriesExtended)
+            ->where('stock_outs.status', '!=', 'cancelled')
             ->when($startDate, fn($q) => $q->where('stock_outs.reporting_date', '>=', $startDate))
             ->when($endDate, fn($q) => $q->where('stock_outs.reporting_date', '<=', $endDate))
             ->select(

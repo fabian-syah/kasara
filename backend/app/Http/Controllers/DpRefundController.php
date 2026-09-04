@@ -44,7 +44,9 @@ class DpRefundController extends Controller
                 // 1. Find the original DP transaction
                 $dpTransaction = StockOut::where('id', $request->stock_out_id)
                     ->where('category', 'dp')
-                    ->where('is_dp_settled', false)
+                    ->where(function ($q) {
+                        $q->where('is_dp_settled', false)->orWhereNull('is_dp_settled');
+                    })
                     ->lockForUpdate()
                     ->first();
 
