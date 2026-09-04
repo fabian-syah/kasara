@@ -107,7 +107,7 @@ class InventoryController extends Controller
                     $hasConstraint = true;
                 }
                 if (!empty($dIds)) {
-                    $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
+                    $q->orWhere(fn($sq) => $sq->whereIn('distributor_id', $dIds)->orWhere(fn($ssq) => $ssq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds)));
                     $hasConstraint = true;
                 }
                 if (!$hasConstraint)
@@ -364,9 +364,13 @@ class InventoryController extends Controller
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $shopIds = $user->getAccessibleOnlineShopIds();
-                if (!empty($branchIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds));
-                if (!empty($warehouseIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds));
-                if (!empty($shopIds)) $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds));
+                $distributorIds = (array) ($user->getAccessibleDistributorIds() ?: []);
+                $hasConstraint = false;
+                if (!empty($branchIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'branch')->whereIn('placement_id', $branchIds)); $hasConstraint = true; }
+                if (!empty($warehouseIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'warehouse')->whereIn('placement_id', $warehouseIds)); $hasConstraint = true; }
+                if (!empty($shopIds)) { $q->orWhere(fn($sq) => $sq->where('placement_type', 'online_shop')->whereIn('placement_id', $shopIds)); $hasConstraint = true; }
+                if (!empty($distributorIds)) { $q->orWhere(fn($sq) => $sq->whereIn('distributor_id', $distributorIds)->orWhere(fn($ssq) => $ssq->where('placement_type', 'distributor')->whereIn('placement_id', $distributorIds))); $hasConstraint = true; }
+                if (!$hasConstraint) $q->whereRaw('0 = 1');
             });
         }
     }
@@ -760,6 +764,17 @@ class InventoryController extends Controller
                         $q->orWhere(function ($sub) use ($colType, $colId, $onlineShopIds) {
                             $sub->where($colType, 'online_shop')
                                 ->whereIn($colId, $onlineShopIds);
+                        });
+                        $hasConstraint = true;
+                    }
+                    $distributorIds = (array) ($user->getAccessibleDistributorIds() ?: []);
+                    if (!empty($distributorIds)) {
+                        $colDist = $tablePrefix ? $tablePrefix . '.distributor_id' : 'distributor_id';
+                        $q->orWhere(function ($sub) use ($colDist, $colType, $colId, $distributorIds) {
+                            $sub->whereIn($colDist, $distributorIds)
+                                ->orWhere(function ($ssq) use ($colType, $colId, $distributorIds) {
+                                    $ssq->where($colType, 'distributor')->whereIn($colId, $distributorIds);
+                                });
                         });
                         $hasConstraint = true;
                     }
@@ -1547,7 +1562,7 @@ class InventoryController extends Controller
                         $hasConstraint = true;
                     }
                     if (!empty($dIds)) {
-                        $q->orWhere(fn($sq) => $sq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds));
+                        $q->orWhere(fn($sq) => $sq->whereIn('distributor_id', $dIds)->orWhere(fn($ssq) => $ssq->where('placement_type', 'distributor')->whereIn('placement_id', $dIds)));
                         $hasConstraint = true;
                     }
                     if (!$hasConstraint)
