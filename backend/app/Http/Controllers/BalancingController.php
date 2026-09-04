@@ -112,7 +112,10 @@ class BalancingController extends Controller
         try {
             DB::beginTransaction();
 
-            $photoPath = $request->file('photo')->store('balancing', 'public');
+            $photoPath = null;
+            if ($request->hasFile('photo')) {
+                $photoPath = $request->file('photo')->store('balancing', 'public');
+            }
             
             $totalAmount = 0;
             foreach ($request->payment_methods as $pm) {

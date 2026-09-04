@@ -452,7 +452,10 @@ Route::middleware('auth:sanctum')->group(function () {
             try {
                 \Illuminate\Support\Facades\DB::beginTransaction();
 
-                $photoPath = $request->file('photo')->store('balancing', 'public');
+                $photoPath = null;
+                if ($request->hasFile('photo')) {
+                    $photoPath = $request->file('photo')->store('balancing', 'public');
+                }
                 $totalAmount = collect($request->payment_methods)->sum('amount');
                 
                 $stockOut = new \App\Models\StockOut();
