@@ -364,6 +364,7 @@ class DashboardController extends Controller
                 END
                 -
                 CASE 
+                    WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
                     WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
                          OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                          OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
@@ -434,6 +435,7 @@ class DashboardController extends Controller
                     END
                     -
                     CASE 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
                         WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
                              OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
                              OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
