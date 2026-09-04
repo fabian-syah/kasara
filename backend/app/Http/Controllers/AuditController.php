@@ -656,6 +656,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
+                        if ($cat === 'cancel_penjualan') continue;
                         $price = $cat === 'balancing' ? (float) ($tx->selling_price ?? 0) : (in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0))));
 
                         $saleType = 'ignored';
@@ -888,6 +889,7 @@ class AuditController extends Controller
                         $notes = strtolower($tx->notes ?? '');
                         $sa = strtolower($tx->sales_account ?? '');
                         $cat = strtolower(str_replace(' ', '_', $tx->category ?? ''));
+                        if ($cat === 'cancel_penjualan') continue;
                         $price = $cat === 'balancing' ? (float) ($tx->selling_price ?? 0) : (in_array($cat, ['dp', 'pelunasan_dp']) ? max(0, abs((float) ($tx->paid_amount ?? 0))) : max(0, abs((float) ($tx->selling_price ?? 0))));
 
                         $saleType = 'ignored';
