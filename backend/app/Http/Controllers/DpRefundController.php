@@ -72,10 +72,22 @@ class DpRefundController extends Controller
                 $targetUser = \App\Models\User::find($inventoryUserId);
                 $branchId = $targetUser->branch_id ?? $user->branch_id;
                 if (!$branchId) {
-                    $branchId = $targetUser?->getAccessibleBranchIds()[0] ?? ($user->getAccessibleBranchIds()[0] ?? null);
+                    $targetBranches = $targetUser ? $targetUser->getAccessibleBranchIds() : [];
+                    $userBranches = $user->getAccessibleBranchIds();
+                    $branchId = !empty($targetBranches) ? $targetBranches[0] : (!empty($userBranches) ? $userBranches[0] : null);
                 }
                 $warehouseId = $targetUser->warehouse_id ?? $user->warehouse_id;
+                if (!$warehouseId) {
+                    $targetWarehouses = $targetUser ? $targetUser->getAccessibleWarehouseIds() : [];
+                    $userWarehouses = $user->getAccessibleWarehouseIds();
+                    $warehouseId = !empty($targetWarehouses) ? $targetWarehouses[0] : (!empty($userWarehouses) ? $userWarehouses[0] : null);
+                }
                 $onlineShopId = $targetUser->online_shop_id ?? $user->online_shop_id;
+                if (!$onlineShopId) {
+                    $targetOnlineShops = $targetUser ? $targetUser->getAccessibleOnlineShopIds() : [];
+                    $userOnlineShops = $user->getAccessibleOnlineShopIds();
+                    $onlineShopId = !empty($targetOnlineShops) ? $targetOnlineShops[0] : (!empty($userOnlineShops) ? $userOnlineShops[0] : null);
+                }
 
                 // 4. Process split payments
                 $negRefund = -abs($refundAmount);
