@@ -3292,6 +3292,7 @@ class StockOutController extends Controller
             \App\Models\Downgrade::where('receipt_id', $receiptId)->delete();
             \App\Models\TradeIn::where('receipt_id', $receiptId)->delete();
             \App\Models\Refund::where('receipt_id', $receiptId)->delete();
+            \App\Models\DpRefund::where('receipt_id', $receiptId)->delete();
 
             // --- B. Handle Non-HP Items ---
             foreach ($stockOut->nonHpDetails as $detail) {
@@ -3346,8 +3347,8 @@ class StockOutController extends Controller
                 }
             }
 
-            // 4. Restore DP Settlement if this was a Pelunasan DP
-            if ($stockOut->category === 'pelunasan_dp' && $stockOut->parent_dp_id) {
+            // 4. Restore DP Settlement if this was a Pelunasan DP or Refund DP
+            if (in_array($stockOut->category, ['pelunasan_dp', 'refund_dp']) && $stockOut->parent_dp_id) {
                 StockOut::where('id', $stockOut->parent_dp_id)->update(['is_dp_settled' => false]);
             }
 
