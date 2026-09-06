@@ -41,6 +41,10 @@ const proofImage = ref(null);
 const imagePreview = ref(null);
 const fileInputRef = ref(null);
 
+const paymentProofImage = ref(null);
+const paymentProofImagePreview = ref(null);
+const paymentProofInputRef = ref(null);
+
 // Payment state
 const paymentMethodId = ref(null);
 const splitPayments = ref([]);
@@ -295,6 +299,21 @@ function removeImage() {
     if (fileInputRef.value) fileInputRef.value.value = '';
 }
 
+function triggerPaymentProofInput() { paymentProofInputRef.value?.click(); }
+function handlePaymentProofChange(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    paymentProofImage.value = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { paymentProofImagePreview.value = e.target.result; };
+    reader.readAsDataURL(file);
+}
+function removePaymentProofImage() {
+    paymentProofImage.value = null;
+    paymentProofImagePreview.value = null;
+    if (paymentProofInputRef.value) paymentProofInputRef.value.value = '';
+}
+
 // ===== Navigation =====
 function nextStep() {
     if (currentStep.value === 1) {
@@ -328,8 +347,8 @@ function validatePayment() {
         if (!paymentMethodId.value) errs.payment = 'Pilih metode pembayaran';
     }
 
-    if (isPhotoRequired.value && !proofImage.value) {
-        errs.photo = 'Foto bukti wajib diupload untuk metode selain Cash';
+    if (isPhotoRequired.value && !paymentProofImage.value) {
+        errs.payment_proof_image = 'Foto bukti pembayaran wajib diupload untuk metode selain Cash';
     }
 
     errors.value = errs;
@@ -384,6 +403,10 @@ async function confirmSubmit() {
         // Photo
         if (proofImage.value) {
             formData.append('photo', proofImage.value);
+        }
+        
+        if (paymentProofImage.value) {
+            formData.append('payment_proof_image', paymentProofImage.value);
         }
 
         // HP items (product_detail_ids) + meta
@@ -470,6 +493,8 @@ function createAnother() {
     notes.value = '';
     proofImage.value = null;
     imagePreview.value = null;
+    paymentProofImage.value = null;
+    paymentProofImagePreview.value = null;
     cartItems.value = [];
     paymentMethodId.value = null;
     splitPayments.value = [];
@@ -971,7 +996,7 @@ onMounted(() => {
                 <div>
                     <label class="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                         <Camera :size="16" class="text-amber-500" />
-                        Foto Bukti <span v-if="isPhotoRequired">*</span>
+                        Foto Bukti (Fisik) 
                     </label>
                     <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleImageChange" />
 
@@ -979,7 +1004,7 @@ onMounted(() => {
                         class="w-full border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
                         :class="errors.photo ? 'border-red-300 dark:border-red-700' : 'border-neutral-200 dark:border-neutral-700'">
                         <Camera :size="28" class="mx-auto text-neutral-300 dark:text-neutral-600 mb-2" />
-                        <p class="text-sm text-neutral-500">Klik untuk upload</p>
+                        <p class="text-sm text-neutral-500">Klik untuk upload (opsional)</p>
                         <p class="text-xs text-neutral-400 mt-1">PNG, JPG (Maks. 20MB)</p>
                     </div>
 
@@ -991,6 +1016,32 @@ onMounted(() => {
                         </button>
                     </div>
                     <p v-if="errors.photo" class="mt-1.5 text-xs text-red-500">{{ errors.photo }}</p>
+                </div>
+
+                <!-- Foto Bukti Pembayaran -->
+                <div v-if="isPhotoRequired">
+                    <label class="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
+                        <CreditCard :size="16" class="text-amber-500" />
+                        Foto Bukti Pembayaran / Transfer <span class="text-red-500">*</span>
+                    </label>
+                    <input ref="paymentProofInputRef" type="file" accept="image/*" class="hidden" @change="handlePaymentProofChange" />
+
+                    <div v-if="!paymentProofImagePreview" @click="triggerPaymentProofInput"
+                        class="w-full border-2 border-dashed border-amber-300 dark:border-amber-600/50 rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                        :class="errors.payment_proof_image ? 'border-red-300 dark:border-red-700' : 'bg-amber-50/30 dark:bg-amber-900/10'">
+                        <Camera :size="28" class="mx-auto text-amber-500 mb-2" />
+                        <p class="text-sm font-semibold text-amber-700 dark:text-amber-500">Upload Bukti Pembayaran/Transfer</p>
+                        <p class="text-xs text-amber-600/70 mt-1">Wajib untuk metode non-tunai</p>
+                    </div>
+
+                    <div v-else class="relative rounded-2xl overflow-hidden border border-amber-200 dark:border-amber-700/50">
+                        <img :src="paymentProofImagePreview" class="w-full max-h-48 object-contain bg-neutral-50 dark:bg-neutral-800" />
+                        <button @click="removePaymentProofImage" type="button"
+                            class="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition-colors">
+                            <X :size="12" />
+                        </button>
+                    </div>
+                    <p v-if="errors.payment_proof_image" class="mt-1.5 text-xs text-red-500">{{ errors.payment_proof_image }}</p>
                 </div>
 
                 <!-- Submit -->

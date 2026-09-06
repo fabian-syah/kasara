@@ -585,6 +585,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 'customer_service_id' => 'nullable|exists:users,id',
                 'notes' => 'nullable|string',
                 'photo' => 'nullable|image|max:20480',
+                'payment_proof_image' => 'nullable|image|max:20480',
                 'selling_price' => 'required|numeric|min:0',
                 'payment_method_id' => 'nullable|exists:payment_methods,id',
                 'split_payments' => 'nullable|string', // JSON string
@@ -675,7 +676,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 // Handle photo upload
                 $photoPath = null;
                 if ($request->hasFile('photo')) {
-                    $photoPath = $request->file('photo')->store('balancing', 'public');
+                    $photoPath = $request->file('photo')->store('balancing/proofs', 'public');
+                }
+
+                $paymentProofPath = null;
+                if ($request->hasFile('payment_proof_image')) {
+                    $paymentProofPath = $request->file('payment_proof_image')->store('balancing/payment-proofs', 'public');
                 }
 
                 // Generate receipt ID
@@ -715,7 +721,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->selling_price = $request->selling_price;
                 $stockOut->reporting_date = $request->reporting_date;
                 $stockOut->notes = $request->notes;
-                $stockOut->payment_proof_image = $photoPath;
+                $stockOut->proof_image = $photoPath;
+                $stockOut->payment_proof_image = $paymentProofPath;
                 $stockOut->payment_method_id = $request->payment_method_id;
                 $stockOut->split_payments = $splitPayments;
                 $stockOut->is_bundle = filter_var($request->is_bundle, FILTER_VALIDATE_BOOLEAN);
