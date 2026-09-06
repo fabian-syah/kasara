@@ -1915,7 +1915,7 @@ class StockOutController extends Controller
                     'proof_images' => $proofImages,
                     'proof_image' => $out->proof_image ? asset('storage/' . $out->proof_image) : ($exchangeInfo && $exchangeInfo->photo_unit ? asset('storage/' . $exchangeInfo->photo_unit) : null),
                     'payment_proof_image' => $out->payment_proof_image ? asset('storage/' . $out->payment_proof_image) : null,
-                    'payment_proof_images' => $out->payment_proof_images ?? [],
+                    'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => asset('storage/' . $img))->toArray() : [],
                     'order_no' => $out->receipt_id,
                     'branch' => $out->branch,
                     'online_shop' => $out->onlineShop,
