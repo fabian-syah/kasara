@@ -366,12 +366,20 @@
                                             <Image :size="14" stroke-width="2.5" />
                                             <span>Lihat Bukti</span>
                                         </button>
-
-                                        <button v-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
+                                        <div v-if="item.payment_proof_images && item.payment_proof_images.length > 0" class="flex flex-wrap gap-1.5">
+                                            <button v-for="(img, imgIdx) in item.payment_proof_images" :key="'pay_'+imgIdx"
+                                                @click="viewProof(item.payment_proof_images, 'payment', item)"
+                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                                :title="'Lihat Foto Bukti Pembayaran #' + (imgIdx + 1)">
+                                                <CreditCard :size="12" stroke-width="3" />
+                                                BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '#' + (imgIdx + 1) : '' }}
+                                            </button>
+                                        </div>
+                                        <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
                                             class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
                                             title="Lihat Foto Bukti Pembayaran/Transfer">
                                             <Wallet :size="12" stroke-width="3" />
-                                            <span>Bayar</span>
+                                            <span>Bukti Transfer</span>
                                         </button>
 
                                         <button @click="openReceipt(item)"
@@ -632,7 +640,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2, Search, X, Image, Wallet, TrendingUp } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2, Search, X, Image, Wallet, TrendingUp, CreditCard } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import { debounce } from '../../utils/debounce'
@@ -727,8 +735,17 @@ const currentProofImages = ref([])
 const currentProofType = ref('unit')
 const currentProofItem = ref(null)
 
-const viewProof = (imgUrl, type = 'unit', item = null) => {
-    currentProofImages.value = [imgUrl]
+const viewProof = (imgUrl, type = 'transaction', item = null) => {
+    if (Array.isArray(imgUrl)) {
+        currentProofImages.value = imgUrl.map(url => {
+            if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('/storage/')) {
+                return '/storage/' + url;
+            }
+            return url;
+        });
+    } else {
+        currentProofImages.value = [imgUrl];
+    }
     currentProofType.value = type
     currentProofItem.value = item
     showProofModal.value = true

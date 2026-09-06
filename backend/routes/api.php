@@ -438,6 +438,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 'customer_service_id' => 'required|exists:users,id',
                 'notes' => 'required|string',
                 'photo' => 'nullable|image|max:20480',
+                'payment_proof_images' => 'nullable|array',
+                'payment_proof_images.*' => 'image|max:20480',
                 'payment_methods' => 'required|array|min:1',
                 'payment_methods.*.method_id' => 'required|exists:payment_methods,id',
                 'payment_methods.*.amount' => 'required|numeric',
@@ -454,8 +456,16 @@ Route::middleware('auth:sanctum')->group(function () {
 
                 $photoPath = null;
                 if ($request->hasFile('photo')) {
-                    $photoPath = $request->file('photo')->store('balancing', 'public');
+                    $photoPath = $request->file('photo')->store('balancing/proofs', 'public');
                 }
+                
+                $paymentProofPaths = [];
+                if ($request->hasFile('payment_proof_images')) {
+                    foreach ($request->file('payment_proof_images') as $file) {
+                        $paymentProofPaths[] = $file->store('balancing/payment-proofs', 'public');
+                    }
+                }
+                
                 $totalAmount = collect($request->payment_methods)->sum('amount');
                 
                 $stockOut = new \App\Models\StockOut();
@@ -481,7 +491,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->selling_price = $totalAmount; // Using selling_price instead of total_amount
                 $stockOut->reporting_date = $request->date; 
                 $stockOut->notes = $request->notes;
-                $stockOut->payment_proof_image = $photoPath; // Assuming proof_image or payment_proof_image. StockOut has both, let's use payment_proof_image
+                $stockOut->proof_image = $photoPath; 
+                $stockOut->payment_proof_images = $paymentProofPaths;
                 $processedSplits = collect($request->payment_methods)->map(function ($pm) {
                     return [
                         'payment_method_id' => $pm['method_id'],

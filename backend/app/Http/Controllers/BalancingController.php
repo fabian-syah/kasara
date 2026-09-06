@@ -159,7 +159,7 @@ class BalancingController extends Controller
             $stockOut->reporting_date = $request->date; 
             
             $stockOut->notes = $request->notes;
-            $stockOut->payment_proof = $photoPath;
+            $stockOut->proof_image = $photoPath;
             $stockOut->payment_proof_images = $paymentProofPaths;
             
             $stockOut->save();

@@ -2741,6 +2741,7 @@ class AuditController extends Controller
                     'payment_proof_image' => $trx->payment_proof_image
                         ? asset('storage/' . $trx->payment_proof_image)
                         : null,
+                    'payment_proof_images' => $trx->payment_proof_images ?? [],
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
                     'price_in' => $exchangeInfo ? (float) ($exchangeInfo->incoming_cost_price ?? 0) : null,
