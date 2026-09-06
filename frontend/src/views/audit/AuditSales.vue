@@ -539,9 +539,9 @@
                         class="w-full bg-white dark:bg-surface-800 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group">
 
                         <!-- HD Image Wrapper -->
-                        <div class="relative overflow-hidden bg-gray-900 aspect-square sm:aspect-auto">
+                        <div class="relative overflow-hidden bg-black flex items-center justify-center w-full">
                             <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)"
-                                class="w-full h-auto min-h-[400px] max-h-[70vh] object-contain transition-all duration-700 group-hover:scale-105"
+                                class="w-full max-h-[65vh] object-contain transition-all duration-700 group-hover:scale-105"
                                 style="image-rendering: -webkit-optimize-contrast; filter: contrast(1.05) brightness(1.02) saturate(1.1);" />
 
                             <!-- HD Badge -->
