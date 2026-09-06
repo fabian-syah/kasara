@@ -366,15 +366,13 @@
                                             <Image :size="14" stroke-width="2.5" />
                                             <span>Lihat Bukti</span>
                                         </button>
-                                        <div v-if="item.payment_proof_images && item.payment_proof_images.length > 0" class="flex flex-wrap gap-1.5">
-                                            <button v-for="(img, imgIdx) in item.payment_proof_images" :key="'pay_'+imgIdx"
-                                                @click="viewProof(item.payment_proof_images, 'payment', item)"
-                                                class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
-                                                :title="'Lihat Foto Bukti Pembayaran #' + (imgIdx + 1)">
-                                                <CreditCard :size="12" stroke-width="3" />
-                                                BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '#' + (imgIdx + 1) : '' }}
-                                            </button>
-                                        </div>
+                                        <button v-if="item.payment_proof_images && item.payment_proof_images.length > 0"
+                                            @click="viewProof(item.payment_proof_images, 'payment', item)"
+                                            class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
+                                            title="Lihat Foto Bukti Pembayaran">
+                                            <CreditCard :size="12" stroke-width="3" />
+                                            BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '(' + item.payment_proof_images.length + ')' : '' }}
+                                        </button>
                                         <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
                                             class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
                                             title="Lihat Foto Bukti Pembayaran/Transfer">
