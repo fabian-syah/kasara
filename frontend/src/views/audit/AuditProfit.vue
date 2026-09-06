@@ -544,28 +544,25 @@
     </Teleport>
     <!-- Proof Photo Modal (HD Gallery) -->
     <div v-if="showProofModal"
-        class="fixed inset-0 z-[99999] flex items-center justify-center p-4 px-6 sm:px-20 bg-black/90 backdrop-blur-md">
-        <div class="relative w-full max-w-5xl h-full flex flex-col items-center justify-center py-12">
+        class="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 sm:px-10 bg-black/90 backdrop-blur-md">
+        <div class="relative w-full max-w-3xl h-full flex flex-col items-center justify-start py-6 sm:py-10">
             <!-- Close Button -->
             <button @click="showProofModal = false"
-                class="absolute top-4 right-0 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] backdrop-blur-md border border-white/20 active:scale-95"
+                class="absolute top-1 right-1 sm:top-4 sm:right-0 p-2 sm:p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all z-[110] backdrop-blur-md border border-white/20 active:scale-95"
                 title="Tutup (ESC)">
-                <X :size="28" stroke-width="3" />
+                <X :size="24" stroke-width="3" />
             </button>
 
             <!-- Images Container (HD Grid/Gallery) -->
-            <div class="w-full flex-1 overflow-y-auto custom-scrollbar p-2">
-                <div :class="[
-                    'w-full max-w-7xl mx-auto',
-                    currentProofImages.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 gap-6 items-start' : 'flex flex-col gap-10 items-center'
-                ]">
+            <div class="w-full flex-1 overflow-y-auto custom-scrollbar p-1 sm:p-2">
+                <div class="w-full max-w-3xl mx-auto flex flex-col gap-6 items-center">
                     <div v-for="(imgUrl, index) in currentProofImages" :key="index"
-                        class="w-full bg-white dark:bg-surface-800 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group">
+                        class="w-full bg-white dark:bg-surface-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] border border-white/10 group">
 
                         <!-- HD Image Wrapper -->
-                        <div class="relative overflow-hidden bg-gray-900 aspect-square sm:aspect-auto">
+                        <div class="relative overflow-hidden bg-black flex items-center justify-center w-full">
                             <img :src="imgUrl" :alt="'Foto Bukti ' + (index + 1)"
-                                class="w-full h-auto min-h-[400px] max-h-[70vh] object-contain transition-all duration-700 group-hover:scale-105"
+                                class="w-full max-h-[50vh] sm:max-h-[60vh] object-contain"
                                 style="image-rendering: -webkit-optimize-contrast; filter: contrast(1.05) brightness(1.02) saturate(1.1);" />
 
                             <!-- HD Badge -->
