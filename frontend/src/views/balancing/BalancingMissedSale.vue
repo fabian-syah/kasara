@@ -148,7 +148,7 @@ const isPhotoRequired = computed(() => {
         selectedIds = [paymentMethodId.value];
     }
     
-    if (selectedIds.length === 0) return true;
+    if (selectedIds.length === 0) return false;
     
     return selectedIds.some(id => {
         const method = paymentMethods.value.find(m => m.id === id);
