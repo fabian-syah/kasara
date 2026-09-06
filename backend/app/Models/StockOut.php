@@ -103,6 +103,7 @@ class StockOut extends Model
         'return_destination_id',
         'proof_image',
         'payment_proof_image',
+        'payment_proof_images',
         // Shopee (legacy single-item fields - kept for backward compatibility)
         'shopee_receiver',
         'shopee_phone',
@@ -186,6 +187,7 @@ class StockOut extends Model
         'shopee_items_data' => 'array',
         'non_hp_items' => 'array',
         'split_payments' => 'array',
+        'payment_proof_images' => 'array',
     ];
 
     protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score'];

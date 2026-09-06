@@ -35,7 +35,7 @@ const form = ref({
     balancing_cs_user_id: null,
     notes: '',
     proof_image: null,
-    payment_proof_image: null,
+    payment_proof_images: [],
 });
 
 // Payment methods (split payments supporting negative values)
@@ -85,7 +85,7 @@ const filteredCsUsers = computed(() => {
 const imagePreview = ref(null);
 const fileInputRef = ref(null);
 
-const paymentProofImagePreview = ref(null);
+const paymentProofImagePreviews = ref([]);
 const paymentProofInputRef = ref(null);
 
 // Password verification modal
@@ -179,23 +179,27 @@ function triggerPaymentProofInput() {
 }
 
 function handlePaymentProofChange(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    form.value.payment_proof_image = file;
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        form.value.payment_proof_images.push(file);
 
-    // Preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        paymentProofImagePreview.value = e.target.result;
-    };
-    reader.readAsDataURL(file);
+        // Preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            paymentProofImagePreviews.value.push(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    if (paymentProofInputRef.value) paymentProofInputRef.value.value = '';
 }
 
-function removePaymentProofImage() {
-    form.value.payment_proof_image = null;
-    paymentProofImagePreview.value = null;
-    if (paymentProofInputRef.value) paymentProofInputRef.value.value = '';
+function removePaymentProofImage(index) {
+    form.value.payment_proof_images.splice(index, 1);
+    paymentProofImagePreviews.value.splice(index, 1);
 }
 
 // Select CS user
@@ -212,8 +216,9 @@ function validateForm() {
     if (!form.value.reporting_date) errs.reporting_date = 'Tanggal wajib diisi';
     if (!form.value.notes) errs.notes = 'Keterangan / Notes wajib diisi';
     if (!form.value.proof_image) errs.proof_image = 'Foto bukti wajib diupload';
-    if (isPhotoRequired.value && !form.value.payment_proof_image) errs.payment_proof_image = 'Foto bukti pembayaran wajib diupload untuk metode selain Cash';
-
+    if (isPhotoRequired.value && form.value.payment_proof_images.length === 0) {
+        errs.payment_proof_images = 'Foto bukti pembayaran wajib diupload untuk metode selain Cash';
+    }
     // Validate payment entries
     const validPayments = paymentEntries.value.filter(p => p.payment_method_id && p.amount);
     if (validPayments.length === 0) {
@@ -283,9 +288,9 @@ async function confirmSubmit() {
             formData.append('photo', form.value.proof_image);
         }
         
-        if (form.value.payment_proof_image) {
-            formData.append('payment_proof_image', form.value.payment_proof_image);
-        }
+        form.value.payment_proof_images.forEach((file, index) => {
+            formData.append(`payment_proof_images[${index}]`, file);
+        });
 
         const { data } = await balancing.storePaymentMethod(formData);
 
@@ -362,11 +367,11 @@ function createAnother() {
         balancing_cs_user_id: null,
         notes: '',
         proof_image: null,
-        payment_proof_image: null,
+        payment_proof_images: [],
     };
     paymentEntries.value = [{ payment_method_id: null, amount: '' }];
     imagePreview.value = null;
-    paymentProofImagePreview.value = null;
+    paymentProofImagePreviews.value = [];
     customerSearch.value = '';
     csSearch.value = '';
     errors.value = {};
@@ -631,28 +636,30 @@ function handleOutsideClick(e) {
                 <div v-if="isPhotoRequired">
                     <label class="flex items-center gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-2">
                         <CreditCard :size="16" class="text-violet-500" />
-                        Foto Bukti Pembayaran / Transfer *
+                        Foto Bukti Pembayaran / Transfer (Bisa Lebih Dari Satu) *
                     </label>
-                    <input ref="paymentProofInputRef" type="file" accept="image/*" class="hidden" @change="handlePaymentProofChange" />
+                    <input ref="paymentProofInputRef" type="file" accept="image/*" multiple class="hidden" @change="handlePaymentProofChange" />
 
-                    <div v-if="!paymentProofImagePreview"
-                        @click="triggerPaymentProofInput"
-                        class="w-full border-2 border-dashed border-violet-300 dark:border-violet-600/50 rounded-2xl p-8 text-center cursor-pointer transition-all hover:border-violet-500 hover:bg-violet-50/50 dark:hover:bg-violet-950/20"
-                        :class="errors.payment_proof_image ? 'border-red-300 dark:border-red-700' : 'bg-violet-50/30 dark:bg-violet-900/10'"
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-3">
+                        <div v-for="(preview, idx) in paymentProofImagePreviews" :key="idx" class="relative rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700 group">
+                            <img :src="preview" class="w-full h-32 object-cover bg-neutral-50 dark:bg-neutral-800" />
+                            <button @click.prevent="removePaymentProofImage(idx)" type="button"
+                                class="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition-colors opacity-0 group-hover:opacity-100">
+                                <X :size="14" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <div @click="triggerPaymentProofInput"
+                        class="w-full border-2 border-dashed border-violet-300 dark:border-violet-600/50 rounded-2xl p-6 text-center cursor-pointer transition-all hover:border-violet-500 hover:bg-violet-50/50 dark:hover:bg-violet-950/20"
+                        :class="errors.payment_proof_images ? 'border-red-300 dark:border-red-700' : 'bg-violet-50/10 dark:bg-violet-900/10'"
                     >
-                        <Camera :size="32" class="mx-auto text-violet-400 dark:text-violet-500 mb-3" />
-                        <p class="text-sm font-medium text-violet-700 dark:text-violet-400">Upload Bukti Pembayaran/Transfer</p>
-                        <p class="text-xs text-violet-500/70 mt-1">Wajib untuk metode non-tunai</p>
+                        <Camera :size="28" class="mx-auto text-violet-400 dark:text-violet-500 mb-2" />
+                        <p class="text-sm font-medium text-violet-700 dark:text-violet-400">Tambah Bukti Pembayaran</p>
+                        <p class="text-[10px] text-violet-500/70 mt-1">Upload satu per satu atau sekaligus</p>
                     </div>
 
-                    <div v-else class="relative rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-700">
-                        <img :src="paymentProofImagePreview" class="w-full max-h-64 object-contain bg-neutral-50 dark:bg-neutral-800" />
-                        <button @click="removePaymentProofImage" type="button"
-                            class="absolute top-3 right-3 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg transition-colors">
-                            <X :size="14" />
-                        </button>
-                    </div>
-                    <p v-if="errors.payment_proof_image" class="mt-1.5 text-xs text-red-500">{{ errors.payment_proof_image }}</p>
+                    <p v-if="errors.payment_proof_images" class="mt-1.5 text-xs text-red-500">{{ errors.payment_proof_images }}</p>
                 </div>
 
                 <!-- Payment Methods Section -->

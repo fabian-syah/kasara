@@ -94,7 +94,8 @@ class BalancingController extends Controller
             'customer_service_id' => 'required|exists:users,id',
             'notes' => 'required|string',
             'photo' => 'nullable|image|max:20480', // Max 20MB
-            'payment_proof_image' => 'nullable|image|max:20480', // Max 20MB
+            'payment_proof_images' => 'nullable|array',
+            'payment_proof_images.*' => 'image|max:20480', // Max 20MB per image
             'payment_methods' => 'required|array|min:1',
             'payment_methods.*.method_id' => 'required|exists:payment_methods,id',
             'payment_methods.*.amount' => 'required|numeric', // allow negative
@@ -118,9 +119,11 @@ class BalancingController extends Controller
                 $photoPath = $request->file('photo')->store('balancing', 'public');
             }
 
-            $paymentProofPath = null;
-            if ($request->hasFile('payment_proof_image')) {
-                $paymentProofPath = $request->file('payment_proof_image')->store('balancing/payment-proofs', 'public');
+            $paymentProofPaths = [];
+            if ($request->hasFile('payment_proof_images')) {
+                foreach ($request->file('payment_proof_images') as $file) {
+                    $paymentProofPaths[] = $file->store('balancing/payment-proofs', 'public');
+                }
             }
             
             $totalAmount = 0;
@@ -157,7 +160,7 @@ class BalancingController extends Controller
             
             $stockOut->notes = $request->notes;
             $stockOut->payment_proof = $photoPath;
-            $stockOut->payment_proof_image = $paymentProofPath;
+            $stockOut->payment_proof_images = $paymentProofPaths;
             
             $stockOut->save();
 

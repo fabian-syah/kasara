@@ -585,7 +585,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 'customer_service_id' => 'nullable|exists:users,id',
                 'notes' => 'nullable|string',
                 'photo' => 'nullable|image|max:20480',
-                'payment_proof_image' => 'nullable|image|max:20480',
+                'payment_proof_images' => 'nullable|array',
+                'payment_proof_images.*' => 'image|max:20480',
                 'selling_price' => 'required|numeric|min:0',
                 'payment_method_id' => 'nullable|exists:payment_methods,id',
                 'split_payments' => 'nullable|string', // JSON string
@@ -679,9 +680,11 @@ Route::middleware('auth:sanctum')->group(function () {
                     $photoPath = $request->file('photo')->store('balancing/proofs', 'public');
                 }
 
-                $paymentProofPath = null;
-                if ($request->hasFile('payment_proof_image')) {
-                    $paymentProofPath = $request->file('payment_proof_image')->store('balancing/payment-proofs', 'public');
+                $paymentProofPaths = [];
+                if ($request->hasFile('payment_proof_images')) {
+                    foreach ($request->file('payment_proof_images') as $file) {
+                        $paymentProofPaths[] = $file->store('balancing/payment-proofs', 'public');
+                    }
                 }
 
                 // Generate receipt ID
@@ -722,7 +725,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 $stockOut->reporting_date = $request->reporting_date;
                 $stockOut->notes = $request->notes;
                 $stockOut->proof_image = $photoPath;
-                $stockOut->payment_proof_image = $paymentProofPath;
+                $stockOut->payment_proof_images = $paymentProofPaths;
                 $stockOut->payment_method_id = $request->payment_method_id;
                 $stockOut->split_payments = $splitPayments;
                 $stockOut->is_bundle = filter_var($request->is_bundle, FILTER_VALIDATE_BOOLEAN);
