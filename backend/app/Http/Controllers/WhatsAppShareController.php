@@ -171,9 +171,9 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbzP3iVzKAw1nURPvzpMGWeHg23W7cu6IybzqdZ73RhY2xmaLmNlIAJ3Gp03pdhAln5bMQ/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbzqP7Wz58XLGSiAK5SJoEl-zu_WWT3gsF-0IjrzWl0b8dy-c4lNZaMn4KpC3Ptzm_FOpw/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
-            $folderPath = 'NOTA';
+            $folderPath = ''; // Langsung ke folder utama NOTA-PSTORE (tanpa subfolder NOTA)
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
             $filename = "Nota_{$customerNameClean}_{$transaction->receipt_id}.pdf";
 
@@ -182,6 +182,7 @@ class WhatsAppShareController extends Controller
                 'htmlContent' => $htmlContent,
                 'filename' => $filename,
                 'folderPath' => $folderPath,
+                'folderId'   => '1JNgz9l5q9FK-ANsVqLwvC_9sE_tfk5Me', // Folder NOTA-PSTORE
             ]);
 
             if ($response->successful()) {
