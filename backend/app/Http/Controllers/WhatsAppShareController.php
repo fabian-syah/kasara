@@ -109,7 +109,7 @@ class WhatsAppShareController extends Controller
         }
 
         try {
-            $transaction = is_numeric($id) 
+            $transaction = is_numeric($id)
                 ? StockOut::findOrFail($id)
                 : StockOut::where('receipt_id', $id)->firstOrFail();
 
@@ -171,7 +171,7 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbxpwoNcEFkoMKUODtRkByT4Te6FnVGzs1ZtesXqQ0nnDbarvQijJ-77u2JWyvsQzO05/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbwfAWmaP4GD22aYIK4qXAre2wtFr8rB6H69AIV1EKP-mAVebS_t7dXhZpgtWQsENa1CWA/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = 'NOTA';
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
