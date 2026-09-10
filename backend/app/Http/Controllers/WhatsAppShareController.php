@@ -182,7 +182,6 @@ class WhatsAppShareController extends Controller
                 'htmlContent' => $htmlContent,
                 'filename' => $filename,
                 'folderPath' => $folderPath,
-                'folderId' => '1JNgz9l5q9FK-ANsVqLwvC_9sE_tfk5Me' // Link folder baru dari Anda
             ]);
 
             if ($response->successful()) {
