@@ -164,12 +164,31 @@ class WhatsAppShareController extends Controller
                 ])->render();
             }
 
-            // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbx71if6w72apwHieHVLL-GP4ZFVqSnIu4JZiOE7zmn_hYcCZzlncLAw-mRBkBvjMA_c6g/exec';
-            $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
-            $folderPath = ''; // Langsung ke folder utama NOTA-PSTORE (tanpa subfolder NOTA)
+            // Ambil data cabang & hitung tanggal operasional transaksi (reset tiap jam 5 pagi)
+            $branchName = $transaction->branch->name
+                ?? ($transaction->onlineShop->name
+                    ?? ($transaction->destinationBranch->name
+                        ?? ($transaction->user->branch->name ?? 'Pusat')));
+
+            $txTime = $transaction->created_at ? \Carbon\Carbon::parse($transaction->created_at) : \Carbon\Carbon::now();
+            if ($txTime->hour < 5) {
+                $txTime = $txTime->subDay();
+            }
+
+            $bulanIndo = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+            $formattedDate = $txTime->format('j') . ' ' . $bulanIndo[(int)$txTime->format('n')] . ' ' . $txTime->format('Y');
+
+            // Format folderPath: "Nama Cabang/14 September 2026"
+            $folderPath = "{$branchName}/{$formattedDate}";
+
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
             $filename = "Nota_{$customerNameClean}_{$transaction->receipt_id}.pdf";
+
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbzbABbAmPA39JkjPQ-vW7fFs1MXXVnIzigQ955y8CidQ-FIJKmNyHy6y4_AzPbCKi2Dgw/exec';
 
             // Kirim raw HTML langsung ke Google API Macro tanpa render ulang di PHP
             $response = Http::timeout(120)->post($scriptUrl, [
