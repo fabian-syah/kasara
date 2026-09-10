@@ -117,7 +117,7 @@ class DashboardController extends Controller
             ->whereNull('deleted_at')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
+                    /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             });
 
         $accessibleBranchIds = $user->getAccessibleBranchIds();
@@ -125,18 +125,23 @@ class DashboardController extends Controller
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
         if ($isRestricted) {
-            $todaySalesQuery->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+            $todaySalesQuery->where(function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
                 $q->whereHas('user', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                    $qu->where(function($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                        if (!empty($accessibleBranchIds)) $sub->orWhereIn('branch_id', $accessibleBranchIds);
-                        if (!empty($accessibleOnlineShopIds)) $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                    $qu->where(function ($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                        if (!empty($accessibleBranchIds))
+                            $sub->orWhereIn('branch_id', $accessibleBranchIds);
+                        if (!empty($accessibleOnlineShopIds))
+                            $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
                     });
                 });
 
-                if (!empty($accessibleBranchIds)) $q->orWhereIn('branch_id', $accessibleBranchIds);
-                if (!empty($accessibleOnlineShopIds)) $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                if (!empty($accessibleBranchIds))
+                    $q->orWhereIn('branch_id', $accessibleBranchIds);
+                if (!empty($accessibleOnlineShopIds))
+                    $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
 
-                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
+                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds))
+                    $q->whereRaw('1=0');
             });
         }
 
@@ -178,7 +183,8 @@ class DashboardController extends Controller
 
         foreach ($todaySales as $sale) {
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
-            if ($cat === 'cancel_penjualan') continue;
+            if ($cat === 'cancel_penjualan')
+                continue;
 
             $csName = $sale->inventoryUser->name ?? $sale->user->name ?? 'Unknown';
             if (!isset($csPerformance[$csName])) {
@@ -188,7 +194,7 @@ class DashboardController extends Controller
             $notes = strtolower($sale->notes ?? '');
             $sa = strtolower($sale->sales_account ?? '');
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
-            $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : ($cat === 'dp' ? abs((float)($sale->dp_amount ?: ($sale->paid_amount ?: $sale->selling_price))) : ($cat === 'pelunasan_dp' ? abs((float)($sale->paid_amount ?: $sale->selling_price)) : abs((float)($sale->selling_price ?? 0))));
+            $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : ($cat === 'dp' ? abs((float) ($sale->dp_amount ?: ($sale->paid_amount ?: $sale->selling_price))) : ($cat === 'pelunasan_dp' ? abs((float) ($sale->paid_amount ?: $sale->selling_price)) : abs((float) ($sale->selling_price ?? 0))));
 
             $saleType = 'ignored';
             if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
@@ -217,7 +223,7 @@ class DashboardController extends Controller
                     $outVal = $price;
                 }
                 $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
-                
+
                 $omsetContribution = $outVal;
                 $netContribution = $outVal - $inVal;
             } elseif ($saleType === 'base_sale' || $saleType === 'balancing') {
@@ -233,7 +239,7 @@ class DashboardController extends Controller
                 $dgRec = $dgMap->get($sale->receipt_id);
                 $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
                 $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
-                
+
                 if ($outDg > 0 || $inDg > 0) {
                     $omsetContribution = $outDg;
                     $netContribution = $outDg - $inDg;
@@ -268,7 +274,7 @@ class DashboardController extends Controller
             if ($sale->non_hp_items) {
                 foreach ($sale->non_hp_items as $item) {
                     $pid = $item['product_id'] ?? null;
-                    
+
                     if ($pid && isset($nonHpProducts[$pid])) {
                         $product = $nonHpProducts[$pid];
                         if (strtolower($product->category) === 'non_hp') {
@@ -296,7 +302,7 @@ class DashboardController extends Controller
             return [
                 'id' => $trx->receipt_id,
                 'customer' => $trx->shopee_receiver ?? $trx->receiver_name ?? $trx->customer_name ?? 'Guest',
-                'total' => $trx->category === 'dp' ? abs((float)($trx->dp_amount ?: ($trx->paid_amount ?: $trx->selling_price))) : ($trx->category === 'pelunasan_dp' ? abs((float)($trx->paid_amount ?: $trx->selling_price)) : abs((float)($trx->selling_price ?? 0))),
+                'total' => $trx->category === 'dp' ? abs((float) ($trx->dp_amount ?: ($trx->paid_amount ?: $trx->selling_price))) : ($trx->category === 'pelunasan_dp' ? abs((float) ($trx->paid_amount ?: $trx->selling_price)) : abs((float) ($trx->selling_price ?? 0))),
                 'time' => $trx->created_at->diffForHumans(),
                 'datetime' => $trx->created_at->format('d M H:i'),
                 'status' => 'success'
@@ -341,10 +347,10 @@ class DashboardController extends Controller
             ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
+                    /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             })
             ->pluck('receipt_id')->filter()->toArray();
-            
+
         $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
             ->groupBy('receipt_id')
@@ -356,7 +362,7 @@ class DashboardController extends Controller
             ->where('status', '!=', 'cancelled')
             ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                 $q->where('reporting_date', $currentReportingDate)
-                  /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
+                    /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
             })
             ->select('user_id', DB::raw("SUM(
                 CASE 
@@ -394,27 +400,34 @@ class DashboardController extends Controller
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
         if ($isRestricted) {
-            $leaderboardQuery->where(function($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                if (!empty($accessibleBranchIds)) $q->orWhereIn('branch_id', $accessibleBranchIds);
-                if (!empty($accessibleOnlineShopIds)) $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds)) $q->whereRaw('1=0');
+            $leaderboardQuery->where(function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                if (!empty($accessibleBranchIds))
+                    $q->orWhereIn('branch_id', $accessibleBranchIds);
+                if (!empty($accessibleOnlineShopIds))
+                    $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
+                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds))
+                    $q->whereRaw('1=0');
             });
         } elseif ($user->hasRole('analist') && !$user->hasRole('super_admin')) {
             $excludedKeywords = config('kasara.excluded_keywords');
-            if (!is_array($excludedKeywords)) $excludedKeywords = [];
+            if (!is_array($excludedKeywords))
+                $excludedKeywords = [];
             if (!empty($excludedKeywords)) {
-                $leaderboardQuery->where(function($q) use ($excludedKeywords) {
-                    $q->whereDoesntHave('branch', function($bq) use ($excludedKeywords) {
-                        $bq->where(function($nq) use ($excludedKeywords) {
-                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                $leaderboardQuery->where(function ($q) use ($excludedKeywords) {
+                    $q->whereDoesntHave('branch', function ($bq) use ($excludedKeywords) {
+                        $bq->where(function ($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw)
+                                $nq->orWhere('name', 'ilike', "%$kw%");
                         });
-                    })->whereDoesntHave('onlineShop', function($sq) use ($excludedKeywords) {
-                        $sq->where(function($nq) use ($excludedKeywords) {
-                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                    })->whereDoesntHave('onlineShop', function ($sq) use ($excludedKeywords) {
+                        $sq->where(function ($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw)
+                                $nq->orWhere('name', 'ilike', "%$kw%");
                         });
-                    })->whereDoesntHave('warehouse', function($wq) use ($excludedKeywords) {
-                        $wq->where(function($nq) use ($excludedKeywords) {
-                            foreach ($excludedKeywords as $kw) $nq->orWhere('name', 'ilike', "%$kw%");
+                    })->whereDoesntHave('warehouse', function ($wq) use ($excludedKeywords) {
+                        $wq->where(function ($nq) use ($excludedKeywords) {
+                            foreach ($excludedKeywords as $kw)
+                                $nq->orWhere('name', 'ilike', "%$kw%");
                         });
                     });
                 });
@@ -428,9 +441,9 @@ class DashboardController extends Controller
                 ->where('status', '!=', 'cancelled')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
-                      /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
+                        /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
                 })
-                 ->select(DB::raw("SUM(
+                ->select(DB::raw("SUM(
                     CASE 
                         WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
                         WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
@@ -455,7 +468,7 @@ class DashboardController extends Controller
                 ->where('status', '!=', 'cancelled')
                 ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
                     $q->where('reporting_date', $currentReportingDate)
-                      /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
+                        /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
                 })
                 ->get();
 
@@ -464,7 +477,8 @@ class DashboardController extends Controller
 
             foreach ($sales as $sale) {
                 $origCat = strtolower($sale->category ?? '');
-                if ($origCat === 'cancel_penjualan') continue;
+                if ($origCat === 'cancel_penjualan')
+                    continue;
                 $notes = strtolower($sale->notes ?? '');
                 $sa = strtolower($sale->sales_account ?? '');
                 $cat = strtolower($sale->category ?? '');
@@ -485,7 +499,7 @@ class DashboardController extends Controller
                     }
                 }
 
-                $price = ($cat === 'balancing') ? (float)($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float)($sale->paid_amount ?? 0)) : abs((float)($sale->selling_price ?? 0)));
+                $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float) ($sale->paid_amount ?? 0)) : abs((float) ($sale->selling_price ?? 0)));
 
                 $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp']);
                 $isBalancing = ($cat === 'balancing');
@@ -497,20 +511,20 @@ class DashboardController extends Controller
                     $omsetBersih += $price;
                 } elseif ($isTradeIn) {
                     $ttRec = $rankTTMap->get($sale->receipt_id);
-                    $outVal = $ttRec ? (float)$ttRec->outgoing_price : 0;
+                    $outVal = $ttRec ? (float) $ttRec->outgoing_price : 0;
                     if ($outVal <= 0) {
                         $outVal = $price;
                     }
-                    $inVal = $ttRec ? (float)$ttRec->incoming_cost_price : 0;
-                    
+                    $inVal = $ttRec ? (float) $ttRec->incoming_cost_price : 0;
+
                     $omset += $outVal;
                     $omsetBersih += ($outVal - $inVal);
                 } elseif ($isDeduction) {
                     if ($cat === 'downgrade') {
                         $dgRec = DB::table('downgrades')->where('receipt_id', $sale->receipt_id)->first();
-                        $outDg = $dgRec ? (float)$dgRec->outgoing_price : 0;
-                        $inDg = $dgRec ? (float)$dgRec->incoming_cost_price : 0;
-                        
+                        $outDg = $dgRec ? (float) $dgRec->outgoing_price : 0;
+                        $inDg = $dgRec ? (float) $dgRec->incoming_cost_price : 0;
+
                         if ($outDg > 0 || $inDg > 0) {
                             $omset += $outDg;
                             $omsetBersih += ($outDg - $inDg);
@@ -571,7 +585,8 @@ class DashboardController extends Controller
                 $name = strtolower($item->name);
                 $excludedKeywords = config('kasara.excluded_keywords') ?: [];
                 foreach ($excludedKeywords as $kw) {
-                    if (str_contains($name, $kw)) return false;
+                    if (str_contains($name, $kw))
+                        return false;
                 }
                 return true;
             };
@@ -590,14 +605,14 @@ class DashboardController extends Controller
                     ->whereNull('stock_outs.deleted_at');
 
                 $actualEndDate = $endDate ?: $startDate;
-                
+
                 // Replicate inclusive date matching from AuditController
                 $startTS = $startDate . ' 05:00:00';
                 $endTS = date('Y-m-d', strtotime($actualEndDate . ' +1 day')) . ' 04:59:59';
-                
+
                 $query->where(function ($q) use ($startDate, $actualEndDate, $startTS, $endTS) {
                     $q->whereBetween('stock_outs.reporting_date', [$startDate, $actualEndDate])
-                      /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
+                        /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
                 });
 
                 $stats = $query->select(
@@ -680,22 +695,22 @@ class DashboardController extends Controller
                 $query->where(function ($q) use ($user) {
                     if ($user->branch_id) {
                         $q->where('stock_outs.branch_id', $user->branch_id)
-                          ->orWhere('users.branch_id', $user->branch_id);
+                            ->orWhere('users.branch_id', $user->branch_id);
                     } elseif ($user->online_shop_id) {
                         $q->where('stock_outs.online_shop_id', $user->online_shop_id)
-                          ->orWhere('users.online_shop_id', $user->online_shop_id);
+                            ->orWhere('users.online_shop_id', $user->online_shop_id);
                     }
                 });
 
                 $actualEnd = $end ?: $start;
-                
+
                 // Replicate inclusive date matching from AuditController
                 $startTS = $start . ' 05:00:00';
                 $endTS = date('Y-m-d', strtotime($actualEnd . ' + 1 day')) . ' 04:59:59';
-                
+
                 $query->where(function ($q) use ($start, $actualEnd, $startTS, $endTS) {
                     $q->whereBetween('stock_outs.reporting_date', [$start, $actualEnd])
-                      /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
+                        /* ->orWhereBetween('stock_outs.created_at', [$startTS, $endTS]) */ ;
                 });
 
                 return $query->select(
@@ -748,24 +763,26 @@ class DashboardController extends Controller
 
             // Helper to build podium data relative to current user
             $getPodiumData = function ($currentRanking, $previousRanking, $unitType, $unitId) {
-                if (!$currentRanking || $currentRanking->isEmpty()) return null;
+                if (!$currentRanking || $currentRanking->isEmpty())
+                    return null;
 
                 $myIndex = $currentRanking->search(fn($i) => $i['type'] === $unitType && $i['id'] == $unitId);
-                
+
                 // Centering logic
                 if ($myIndex === false) {
                     $slice = $currentRanking->take(3);
                 } else {
                     $start = $myIndex - 1;
-                    
+
                     // Adjust if at the beginning
-                    if ($start < 0) $start = 0;
-                    
+                    if ($start < 0)
+                        $start = 0;
+
                     // NEW: Adjust if at the end to always capture 3 items
                     if ($myIndex == $currentRanking->count() - 1 && $currentRanking->count() >= 3) {
                         $start = $myIndex - 2;
                     }
-                    
+
                     $slice = $currentRanking->slice($start, 3);
                 }
 
@@ -778,7 +795,7 @@ class DashboardController extends Controller
 
                 // Arrange to [Left (Idx 0), Center (Idx 1), Right (Idx 2)]
                 $podium = [null, null, null];
-                
+
                 // Find 'me' object in the slice
                 $meObjInSlice = $items->first(fn($it) => $it['is_me']);
                 $meRank = $meObjInSlice ? $meObjInSlice['rank'] : null;
@@ -806,7 +823,8 @@ class DashboardController extends Controller
                 $podium[2] = $podium[2] ?? ['name' => '-', 'omset' => 0, 'rank' => '-', 'is_me' => false];
 
                 $findPrevRank = function ($item) use ($previousRanking) {
-                    if (!$item || !$previousRanking) return '-';
+                    if (!$item || !$previousRanking)
+                        return '-';
                     $prevItem = $previousRanking->where('type', $item['type'])->where('id', $item['id'])->first();
                     return $prevItem ? $prevItem['rank'] : '-';
                 };
@@ -821,12 +839,14 @@ class DashboardController extends Controller
 
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
-            
+
             // Only show rankings for locations this user has access to, or all if unrestricted
-            $restrictRanks = function($ranking) use ($user, $accessibleBranchIds, $accessibleOnlineShopIds) {
-                if ($user->hasRole('super_admin') || $user->hasRole('analist')) return $ranking;
-                return $ranking->filter(function($item) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                    if ($item['type'] === 'branch') return in_array($item['id'], $accessibleBranchIds);
+            $restrictRanks = function ($ranking) use ($user, $accessibleBranchIds, $accessibleOnlineShopIds) {
+                if ($user->hasRole('super_admin') || $user->hasRole('analist'))
+                    return $ranking;
+                return $ranking->filter(function ($item) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
+                    if ($item['type'] === 'branch')
+                        return in_array($item['id'], $accessibleBranchIds);
                     return in_array($item['id'], $accessibleOnlineShopIds);
                 })->values();
             };

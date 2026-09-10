@@ -171,7 +171,7 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbzk9qQtPU0re52VOHwRWLIPxVA6gWgUSoa_PiS1PXS1QS2__Q4aiLw9hp7p2QMxVBdt/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbxpwoNcEFkoMKUODtRkByT4Te6FnVGzs1ZtesXqQ0nnDbarvQijJ-77u2JWyvsQzO05/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = 'NOTA';
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
@@ -181,7 +181,8 @@ class WhatsAppShareController extends Controller
             $response = Http::timeout(120)->post($scriptUrl, [
                 'htmlContent' => $htmlContent,
                 'filename' => $filename,
-                'folderPath' => $folderPath
+                'folderPath' => $folderPath,
+                'folderId' => '1JNgz9l5q9FK-ANsVqLwvC_9sE_tfk5Me' // Link folder baru dari Anda
             ]);
 
             if ($response->successful()) {
