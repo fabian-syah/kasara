@@ -97,15 +97,9 @@ class WhatsAppShareController extends Controller
     {
         $cacheKey = "receipt_drive_link_{$id}";
 
-        // Jika ada htmlContent kiriman baru dari modal web, hapus cache lama 
-        // agar PDF di Google Drive selalu ter-update dengan data modal terbaru
-        if ($htmlContent) {
-            Cache::forget($cacheKey);
-        } else {
-            // Jika dipanggil otomatis tanpa payload HTML (misal cron / background job), gunakan cache jika ada
-            if ($cachedLink = Cache::get($cacheKey)) {
-                return $cachedLink;
-            }
+        // Cek cache di Laravel terlebih dahulu (jika nota sudah pernah dibuat)
+        if ($cachedLink = Cache::get($cacheKey)) {
+            return $cachedLink;
         }
 
         try {
@@ -171,7 +165,7 @@ class WhatsAppShareController extends Controller
             }
 
             // Ambil data folder & nama file berdasarkan transaksi saat ini
-            $scriptUrl = 'https://script.google.com/macros/s/AKfycbxM8bPTup5zbog61aiCAQ1xH4NcQdNuuZpDIgI3QA-bd4dbkt5lrE9j8FfrSGW7L7_0mQ/exec';
+            $scriptUrl = 'https://script.google.com/macros/s/AKfycbx71if6w72apwHieHVLL-GP4ZFVqSnIu4JZiOE7zmn_hYcCZzlncLAw-mRBkBvjMA_c6g/exec';
             $branchName = $transaction->destinationBranch->name ?? ($transaction->user->branch->name ?? 'Pusat');
             $folderPath = ''; // Langsung ke folder utama NOTA-PSTORE (tanpa subfolder NOTA)
             $customerNameClean = $transaction->customer_name ? Str::slug($transaction->customer_name, '_') : 'Pelanggan';
@@ -190,7 +184,7 @@ class WhatsAppShareController extends Controller
                 $driveLink = $result['url'] ?? null;
 
                 if ($driveLink) {
-                    Cache::put($cacheKey, $driveLink, now()->addHours(24));
+                    Cache::put($cacheKey, $driveLink, now()->addDays(30));
                     return $driveLink;
                 } else {
                     $scriptError = $result['error'] ?? 'Unknown script error (URL was empty)';
