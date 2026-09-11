@@ -1,10 +1,30 @@
 <script setup>
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Scale, CreditCard, ShoppingBag, ArrowRight, Shield } from 'lucide-vue-next';
+import { Scale, CreditCard, ShoppingBag, ArrowRight, Shield, History } from 'lucide-vue-next';
+import { useAuthStore } from '../../stores/auth';
 
 const router = useRouter();
+const authStore = useAuthStore();
+
+const isSuperAdmin = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase().replace(/\s+/g, '_');
+    return role === 'super_admin';
+});
 
 const menuItems = [
+    {
+        id: 'history',
+        title: 'History Balancing',
+        description: 'Tampilan riwayat balancing, omset plus, omset minus, selisih pembayaran, filter cabang/CS, dan galeri foto.',
+        icon: History,
+        color: 'from-emerald-500 to-teal-600',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+        borderColor: 'border-emerald-200 dark:border-emerald-800/40',
+        path: '/balancing/history',
+        available: true,
+        superAdminOnly: false,
+    },
     {
         id: 'payment_method',
         title: 'Balancing Metode Pembayaran',
@@ -15,6 +35,7 @@ const menuItems = [
         borderColor: 'border-violet-200 dark:border-violet-800/40',
         path: '/balancing/payment-method',
         available: true,
+        superAdminOnly: true,
     },
     {
         id: 'missed_sale',
@@ -26,8 +47,14 @@ const menuItems = [
         borderColor: 'border-amber-200 dark:border-amber-800/40',
         path: '/balancing/missed-sale',
         available: true,
+        superAdminOnly: true,
     },
 ];
+
+const visibleMenuItems = computed(() => {
+    if (isSuperAdmin.value) return menuItems;
+    return menuItems.filter(item => !item.superAdminOnly);
+});
 
 function navigateTo(item) {
     if (!item.available) return;
@@ -49,17 +76,21 @@ function navigateTo(item) {
                 </div>
             </div>
 
-            <!-- Admin Badge -->
-            <div class="flex items-center gap-2 mt-4 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 w-fit">
+            <!-- Role Access Badge -->
+            <div v-if="isSuperAdmin" class="flex items-center gap-2 mt-4 px-3 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 w-fit">
                 <Shield :size="14" class="text-amber-600 dark:text-amber-400" />
-                <span class="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Super Admin Only</span>
+                <span class="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">Super Admin Access</span>
+            </div>
+            <div v-else class="flex items-center gap-2 mt-4 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 w-fit">
+                <Shield :size="14" class="text-emerald-600 dark:text-emerald-400" />
+                <span class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Audit & Leader Access</span>
             </div>
         </div>
 
         <!-- Menu Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <button
-                v-for="item in menuItems"
+                v-for="item in visibleMenuItems"
                 :key="item.id"
                 @click="navigateTo(item)"
                 :disabled="!item.available"

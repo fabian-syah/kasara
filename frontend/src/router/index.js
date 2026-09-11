@@ -693,7 +693,7 @@ const routes = [
                 }
             },
 
-            // Balancing (Super Admin Only)
+            // Balancing (Super Admin, Audit, Leader)
             {
                 path: 'balancing',
                 name: 'BalancingMenu',
@@ -701,7 +701,17 @@ const routes = [
                 meta: {
                     title: 'Balancing',
                     menu: 'balancing_group',
-                    permissions: ['super_admin']
+                    permissions: ['super_admin', 'audit', 'leader']
+                }
+            },
+            {
+                path: 'balancing/history',
+                name: 'BalancingHistory',
+                component: () => import('../views/balancing/BalancingHistory.vue'),
+                meta: {
+                    title: 'History Balancing',
+                    menu: 'balancing_history',
+                    permissions: ['super_admin', 'audit', 'leader']
                 }
             },
             {

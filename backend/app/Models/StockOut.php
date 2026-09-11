@@ -12,7 +12,8 @@ use App\Events\StockOutEvent;
 class StockOut extends Model
 {
     use SoftDeletes;
-    
+    const CATEGORY_BALANCING = 'balancing';
+
     protected static function boot()
     {
         parent::boot();
@@ -288,6 +289,11 @@ class StockOut extends Model
             // It's before 5 AM (e.g., 4:59 AM), so reporting_date is YESTERDAY
             return $dt->subDay()->format('Y-m-d');
         }
+    }
+
+    public function balancingCsUser()
+    {
+        return $this->belongsTo(User::class, 'balancing_cs_user_id');
     }
 
     public function inventoryUser()

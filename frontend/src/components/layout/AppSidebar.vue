@@ -192,12 +192,13 @@ const menuItems = [
     // Liga Cabang (Super Admin)
     { id: "branch_league", path: "/admin/leagues", label: "Liga Cabang", icon: Trophy },
 
-    // Balancing (Super Admin)
+    // Balancing (Super Admin, Audit, Leader)
     {
         id: "balancing_group",
         label: "Balancing",
         icon: Scale,
         items: [
+            { id: "balancing_history", path: "/balancing/history", label: "History Balancing" },
             { id: "balancing_payment", path: "/balancing/payment-method", label: "Balancing Metode Pembayaran" },
             { id: "balancing_missed", path: "/balancing/missed-sale", label: "Balancing Penjualan Terlewat" },
         ]
@@ -328,6 +329,18 @@ const visibleMenuItems = computed(() => {
         // Get allowed menus for role
         const allowedMenus = getMenuForRole(role);
         filtered = menuItems.filter((item) => allowedMenus.includes(item.id));
+        filtered = filtered.map(group => {
+            if (group.items) {
+                return {
+                    ...group,
+                    items: group.items.filter(sub => allowedMenus.includes(sub.id))
+                };
+            }
+            return group;
+        }).filter(group => {
+            if (group.items && group.items.length === 0) return false;
+            return true;
+        });
     }
 
     // For leader role: dynamically hide monitoring menus based on placements

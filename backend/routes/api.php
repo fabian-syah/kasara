@@ -345,6 +345,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Balancing (Super Admin only)
     // Balancing (Super Admin only)
     Route::prefix('balancing')->group(function () {
+        Route::get('/history', [\App\Http\Controllers\BalancingController::class, 'history']);
+
         Route::get('/branches', function () {
             $branches = \App\Models\Branch::where('is_active', true)
                 ->where('type', 'physical')
