@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { Scale, CreditCard, ShoppingBag, ArrowRight, Shield, History } from 'lucide-vue-next';
-import { useAuthStore } from '../../stores/auth';
+import { useAuthStore } from '../../store/auth';
 
 const router = useRouter();
 const authStore = useAuthStore();
