@@ -34,13 +34,47 @@ class BalancingController extends Controller
     {
         $branchId = $request->query('branch_id');
 
-        if (!$branchId) {
-            return response()->json(['data' => []]);
+        if (!$branchId || $branchId === 'all') {
+            $csUserIds = StockOut::where('category', StockOut::CATEGORY_BALANCING)
+                ->whereNotNull('balancing_cs_user_id')
+                ->pluck('balancing_cs_user_id')
+                ->merge(
+                    StockOut::where('category', StockOut::CATEGORY_BALANCING)
+                        ->whereNotNull('inventory_user_id')
+                        ->pluck('inventory_user_id')
+                )
+                ->unique()
+                ->filter();
+
+            $users = User::whereIn('id', $csUserIds)
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get();
+
+            return response()->json(['data' => $users]);
         }
 
-        $users = User::where('branch_id', $branchId)
+        $userIds = User::where('branch_id', $branchId)
             ->where('is_active', true)
+            ->pluck('id')
+            ->merge(
+                StockOut::where('branch_id', $branchId)
+                    ->where('category', StockOut::CATEGORY_BALANCING)
+                    ->whereNotNull('balancing_cs_user_id')
+                    ->pluck('balancing_cs_user_id')
+            )
+            ->merge(
+                StockOut::where('branch_id', $branchId)
+                    ->where('category', StockOut::CATEGORY_BALANCING)
+                    ->whereNotNull('inventory_user_id')
+                    ->pluck('inventory_user_id')
+            )
+            ->unique()
+            ->filter();
+
+        $users = User::whereIn('id', $userIds)
             ->select('id', 'name')
+            ->orderBy('name')
             ->get();
 
         return response()->json(['data' => $users]);
@@ -522,19 +556,48 @@ class BalancingController extends Controller
         }
         $branchesList = $branchesQuery->get(['id', 'name']);
 
-        // Distinct CS from balancing records
-        $csUserIds = StockOut::where('category', StockOut::CATEGORY_BALANCING)
-            ->whereNotNull('balancing_cs_user_id')
-            ->pluck('balancing_cs_user_id')
-            ->merge(
-                StockOut::where('category', StockOut::CATEGORY_BALANCING)
-                    ->whereNotNull('inventory_user_id')
-                    ->pluck('inventory_user_id')
-            )
-            ->unique()
-            ->filter();
-            
-        $csList = User::whereIn('id', $csUserIds)->select('id', 'name', 'username')->orderBy('name')->get();
+        // CS dropdown list based on branch filter
+        if ($request->filled('branch_id') && $request->branch_id !== 'all') {
+            $filteredBranchId = $request->branch_id;
+            $csUserIds = User::where('branch_id', $filteredBranchId)
+                ->where('is_active', true)
+                ->pluck('id')
+                ->merge(
+                    StockOut::where('branch_id', $filteredBranchId)
+                        ->where('category', StockOut::CATEGORY_BALANCING)
+                        ->whereNotNull('balancing_cs_user_id')
+                        ->pluck('balancing_cs_user_id')
+                )
+                ->merge(
+                    StockOut::where('branch_id', $filteredBranchId)
+                        ->where('category', StockOut::CATEGORY_BALANCING)
+                        ->whereNotNull('inventory_user_id')
+                        ->pluck('inventory_user_id')
+                )
+                ->unique()
+                ->filter();
+
+            $csList = User::whereIn('id', $csUserIds)->select('id', 'name', 'username')->orderBy('name')->get();
+        } else {
+            $csQuery = StockOut::where('category', StockOut::CATEGORY_BALANCING);
+            if (!$user->hasRole('super_admin')) {
+                $accessibleBranchIds = $user->getAccessibleBranchIds();
+                if (!empty($accessibleBranchIds)) {
+                    $csQuery->whereIn('branch_id', $accessibleBranchIds);
+                }
+            }
+
+            $csUserIds = (clone $csQuery)->whereNotNull('balancing_cs_user_id')
+                ->pluck('balancing_cs_user_id')
+                ->merge(
+                    (clone $csQuery)->whereNotNull('inventory_user_id')
+                        ->pluck('inventory_user_id')
+                )
+                ->unique()
+                ->filter();
+
+            $csList = User::whereIn('id', $csUserIds)->select('id', 'name', 'username')->orderBy('name')->get();
+        }
 
         return response()->json([
             'success' => true,

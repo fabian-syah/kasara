@@ -13,6 +13,7 @@ const router = useRouter();
 
 // State
 const loading = ref(false);
+const loadingCs = ref(false);
 const records = ref([]);
 const branches = ref([]);
 const csUsers = ref([]);
@@ -138,6 +139,21 @@ function resetAllFilters() {
 }
 
 // Watchers
+watch(selectedBranch, async (newBranch) => {
+    selectedCs.value = 'all'; // Reset selected CS when branch changes
+    loadingCs.value = true;
+    try {
+        const res = await balancing.branchUsers(newBranch);
+        if (res.data && res.data.data) {
+            csUsers.value = res.data.data;
+        }
+    } catch (e) {
+        console.error('Failed to fetch CS users for branch:', e);
+    } finally {
+        loadingCs.value = false;
+    }
+});
+
 watch([selectedMonth, selectedBranch, selectedCs, dateFilterMode], () => {
     fetchHistory();
 });
@@ -498,9 +514,12 @@ onMounted(() => {
                     <div class="relative">
                         <select
                             v-model="selectedCs"
-                            class="w-full appearance-none px-3 py-2.5 pr-8 text-xs font-medium rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer"
+                            :disabled="loadingCs"
+                            class="w-full appearance-none px-3 py-2.5 pr-8 text-xs font-medium rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer disabled:opacity-60"
                         >
-                            <option value="all" class="dark:bg-neutral-800 dark:text-white">Semua CS</option>
+                            <option value="all" class="dark:bg-neutral-800 dark:text-white">
+                                {{ selectedBranch === 'all' ? 'Semua CS (Semua Cabang)' : `Semua CS Cabang Ini (${csUsers.length})` }}
+                            </option>
                             <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="dark:bg-neutral-800 dark:text-white">
                                 {{ cs.name }}
                             </option>
