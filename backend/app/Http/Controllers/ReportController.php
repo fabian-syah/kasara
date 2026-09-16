@@ -940,11 +940,6 @@ class ReportController extends Controller
             'iPhone New (Qty)', 'iPhone New (Rp)',
             'iPhone Scd (Qty)', 'iPhone Scd (Rp)',
             'Android (Qty)', 'Android (Rp)',
-            'Balancing Penjualan (Qty)', 'Balancing Penjualan (Rp)',
-            'Balancing Pembayaran (Qty)', 'Balancing Pembayaran (Rp)',
-            'DP (Qty)', 'DP (Rp)',
-            'Pelunasan DP (Qty)', 'Pelunasan DP (Rp)',
-            'Refund (Qty)', 'Refund (Rp)',
             'Angkat Barang (Qty)', 'Angkat Barang (Rp)',
             'Tukar Tambah (Qty)', 'Tukar Tambah (Rp)',
             'Tukar Unit (Qty)', 'Tukar Unit (Rp)',
@@ -971,11 +966,6 @@ class ReportController extends Controller
                 $row['iphone_new_qty'], $row['iphone_new_amt'],
                 $row['iphone_scd_qty'], $row['iphone_scd_amt'],
                 $row['android_qty'], $row['android_amt'],
-                $row['balancing_penjualan_qty'], $row['balancing_penjualan_amt'],
-                $row['balancing_pembayaran_qty'], $row['balancing_pembayaran_amt'],
-                $row['dp_qty'], $row['dp_amt'],
-                $row['pelunasan_dp_qty'], $row['pelunasan_dp_amt'],
-                $row['refund_qty'], $row['refund_amt'],
                 $row['angkat_barang_qty'], $row['angkat_barang_amt'],
                 $row['tukar_tambah_qty'], $row['tukar_tambah_amt'],
                 $row['tukar_unit_qty'], $row['tukar_unit_amt'],
@@ -992,11 +982,6 @@ class ReportController extends Controller
                 'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                 'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                 'android_qty' => 0, 'android_amt' => 0,
-                'balancing_penjualan_qty' => 0, 'balancing_penjualan_amt' => 0,
-                'balancing_pembayaran_qty' => 0, 'balancing_pembayaran_amt' => 0,
-                'dp_qty' => 0, 'dp_amt' => 0,
-                'pelunasan_dp_qty' => 0, 'pelunasan_dp_amt' => 0,
-                'refund_qty' => 0, 'refund_amt' => 0,
                 'angkat_barang_qty' => 0, 'angkat_barang_amt' => 0,
                 'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
                 'tukar_unit_qty' => 0, 'tukar_unit_amt' => 0,
@@ -1012,11 +997,6 @@ class ReportController extends Controller
                 $total['iphone_new_qty'] += $r['iphone_new_qty']; $total['iphone_new_amt'] += $r['iphone_new_amt'];
                 $total['iphone_scd_qty'] += $r['iphone_scd_qty']; $total['iphone_scd_amt'] += $r['iphone_scd_amt'];
                 $total['android_qty'] += $r['android_qty']; $total['android_amt'] += $r['android_amt'];
-                $total['balancing_penjualan_qty'] += $r['balancing_penjualan_qty']; $total['balancing_penjualan_amt'] += $r['balancing_penjualan_amt'];
-                $total['balancing_pembayaran_qty'] += $r['balancing_pembayaran_qty']; $total['balancing_pembayaran_amt'] += $r['balancing_pembayaran_amt'];
-                $total['dp_qty'] += $r['dp_qty']; $total['dp_amt'] += $r['dp_amt'];
-                $total['pelunasan_dp_qty'] += $r['pelunasan_dp_qty']; $total['pelunasan_dp_amt'] += $r['pelunasan_dp_amt'];
-                $total['refund_qty'] += $r['refund_qty']; $total['refund_amt'] += $r['refund_amt'];
                 $total['angkat_barang_qty'] += $r['angkat_barang_qty']; $total['angkat_barang_amt'] += $r['angkat_barang_amt'];
                 $total['tukar_tambah_qty'] += $r['tukar_tambah_qty']; $total['tukar_tambah_amt'] += $r['tukar_tambah_amt'];
                 $total['tukar_unit_qty'] += $r['tukar_unit_qty']; $total['tukar_unit_amt'] += $r['tukar_unit_amt'];
