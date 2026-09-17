@@ -12,6 +12,7 @@ use App\Models\ProductDetail;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Branch;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -25,6 +26,10 @@ class DashboardController extends Controller
 
         if ($user && ($user->hasRole('admin_produk') || $user->hasRole('Admin Produk') || $user->hasRole('ADMIN PRODUK'))) {
             return $this->getAdminProdukStats();
+        }
+
+        if ($user && $user->hasRole('leader')) {
+            return $this->getLeaderStats($user);
         }
 
         if ($user->online_shop_id || $user->hasRole(['online_shop', 'toko_online', 'audit', 'analist']) && $user->getAccessibleOnlineShopIds()) {
@@ -86,6 +91,437 @@ class DashboardController extends Controller
             ],
             'recent_types' => $recentTypes,
             'recent_prices' => $recentPrices
+        ]);
+    }
+
+    private function getLeaderStats($user)
+    {
+        $dashCat = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'cancel_penjualan', 'pelunasan_dp', 'dp', 'balancing', 'refund_dp'];
+        $normalizedCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $dashCat));
+
+        $accessibleBranchIds = $user->getAccessibleBranchIds();
+        $branches = Branch::whereIn('id', $accessibleBranchIds)->get(['id', 'name', 'address', 'timezone']);
+        $firstBranch = $branches->first();
+        $currentReportingDate = StockOut::calculateReportingDate('penjualan_store', $firstBranch);
+        $currentMonth = date('Y-m');
+
+        // 1. TODAY'S SALES
+        $todaySalesQuery = StockOut::with(['items.product', 'user', 'inventoryUser', 'branch'])
+            ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
+            ->where('status', '!=', 'cancelled')
+            ->whereNull('deleted_at')
+            ->where('reporting_date', $currentReportingDate);
+
+        if (!empty($accessibleBranchIds)) {
+            $todaySalesQuery->where(function ($q) use ($accessibleBranchIds) {
+                $q->whereIn('branch_id', $accessibleBranchIds)
+                  ->orWhereHas('user', function ($qu) use ($accessibleBranchIds) {
+                      $qu->whereIn('branch_id', $accessibleBranchIds);
+                  });
+            });
+        } else {
+            $todaySalesQuery->whereRaw('1=0');
+        }
+
+        $todaySales = $todaySalesQuery->get();
+
+        // 2. Pre-fetch TT & DG maps for today
+        $receiptIds = $todaySales->pluck('receipt_id')->filter()->unique()->toArray();
+        $ttMap = empty($receiptIds) ? collect() : DB::table('tukar_tambahs')
+            ->whereIn('receipt_id', $receiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+
+        $dgMap = empty($receiptIds) ? collect() : DB::table('downgrades')
+            ->whereIn('receipt_id', $receiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+
+        // Pre-fetch non-hp products
+        $nonHpProductIds = [];
+        foreach ($todaySales as $sale) {
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    if (isset($item['product_id'])) $nonHpProductIds[] = $item['product_id'];
+                }
+            }
+        }
+        $nonHpProducts = empty($nonHpProductIds) ? collect() : Product::whereIn('id', array_unique($nonHpProductIds))->get()->keyBy('id');
+
+        $totalRevenue = 0;
+        $totalNetRevenue = 0;
+        $productsSold = 0;
+        $hpSold = 0;
+        $nonHpSold = 0;
+        $typeSales = [];
+        $brandConditionSales = [];
+        $csPerformance = [];
+
+        foreach ($todaySales as $sale) {
+            $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
+            if ($cat === 'cancel_penjualan') continue;
+
+            $csUser = $sale->inventoryUser ?: $sale->user;
+            $csId = $csUser?->id ?: 0;
+            $csName = $csUser?->name ?: ($sale->user?->name ?: 'Unknown');
+
+            if (!isset($csPerformance[$csId])) {
+                $csPerformance[$csId] = [
+                    'id' => $csId,
+                    'name' => $csName,
+                    'branch_name' => $sale->branch?->name ?: ($csUser?->branch?->name ?: '-'),
+                    'hp_count' => 0,
+                    'non_hp_count' => 0,
+                    'total_sales' => 0,
+                    'net_sales' => 0,
+                ];
+            }
+
+            $notes = strtolower($sale->notes ?? '');
+            $sa = strtolower($sale->sales_account ?? '');
+            $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : ($cat === 'dp' ? abs((float) ($sale->dp_amount ?: ($sale->paid_amount ?: $sale->selling_price))) : ($cat === 'pelunasan_dp' ? abs((float) ($sale->paid_amount ?: $sale->selling_price)) : abs((float) ($sale->selling_price ?? 0))));
+
+            $saleType = 'ignored';
+            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                $saleType = 'tukar_tambah';
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
+                $saleType = 'base_sale';
+            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                $saleType = 'angkat_barang';
+            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
+                $saleType = 'refund_dp';
+            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                $saleType = 'refund';
+            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                $saleType = 'downgrade';
+            } elseif ($cat === 'balancing') {
+                $saleType = 'balancing';
+            }
+
+            $omsetContribution = 0;
+            $netContribution = 0;
+
+            if ($saleType === 'tukar_tambah') {
+                $ttRec = $ttMap->get($sale->receipt_id);
+                $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
+                if ($outVal <= 0) $outVal = $price;
+                $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
+                $omsetContribution = $outVal;
+                $netContribution = $outVal - $inVal;
+            } elseif ($saleType === 'base_sale' || $saleType === 'balancing') {
+                $omsetContribution = $price;
+                $netContribution = $price;
+            } elseif ($saleType === 'angkat_barang' || $saleType === 'refund' || $saleType === 'refund_dp') {
+                $omsetContribution = 0;
+                $netContribution = -$price;
+            } elseif ($saleType === 'downgrade') {
+                $dgRec = $dgMap->get($sale->receipt_id);
+                $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
+                $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
+                if ($outDg > 0 || $inDg > 0) {
+                    $omsetContribution = $outDg;
+                    $netContribution = $outDg - $inDg;
+                } else {
+                    $omsetContribution = 0;
+                    $netContribution = -$price;
+                }
+            }
+
+            $totalRevenue += $omsetContribution;
+            $totalNetRevenue += $netContribution;
+            $csPerformance[$csId]['total_sales'] += $omsetContribution;
+            $csPerformance[$csId]['net_sales'] += $netContribution;
+
+            // HP items
+            foreach ($sale->items as $item) {
+                $productsSold++;
+                $hpSold++;
+                $csPerformance[$csId]['hp_count']++;
+
+                $typeName = $item->product?->name ?? 'Unknown';
+                $typeSales[$typeName] = ($typeSales[$typeName] ?? 0) + 1;
+
+                $brand = $item->product?->brand ?? 'Unknown';
+                $cond = ($item->condition === 'new') ? 'New' : (($item->condition === 'ex_ibox') ? 'Ex iBox' : 'Second');
+                $key = "$brand $cond";
+                $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + 1;
+            }
+
+            // Non-HP items
+            if ($sale->non_hp_items) {
+                foreach ($sale->non_hp_items as $item) {
+                    $pid = $item['product_id'] ?? null;
+                    if ($pid && isset($nonHpProducts[$pid])) {
+                        $product = $nonHpProducts[$pid];
+                        if (strtolower($product->category) === 'non_hp') {
+                            $qty = (int) ($item['quantity'] ?? 1);
+                            $productsSold += $qty;
+                            $nonHpSold += $qty;
+                            $csPerformance[$csId]['non_hp_count'] += $qty;
+
+                            $typeSales[$product->name] = ($typeSales[$product->name] ?? 0) + $qty;
+                            $key = ($product->brand ?? 'Unknown') . " New";
+                            $brandConditionSales[$key] = ($brandConditionSales[$key] ?? 0) + $qty;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Include all active CS staff in the leader's branches
+        $activeStaff = User::role(['inventory', 'toko_offline'])
+            ->where(function($q) use ($accessibleBranchIds) {
+                $q->whereIn('branch_id', $accessibleBranchIds)
+                  ->orWhereHas('placements', function($pq) use ($accessibleBranchIds) {
+                      $pq->whereIn('model_id', $accessibleBranchIds)
+                         ->whereIn('model_type', ['branch', 'App\Models\Branch']);
+                  });
+            })
+            ->where('is_active', true)
+            ->with('branch:id,name')
+            ->get();
+
+        foreach ($activeStaff as $st) {
+            $csKey = $st->id;
+            if (!isset($csPerformance[$csKey])) {
+                $csPerformance[$csKey] = [
+                    'id' => $st->id,
+                    'name' => $st->name,
+                    'branch_name' => $st->branch?->name ?: '-',
+                    'hp_count' => 0,
+                    'non_hp_count' => 0,
+                    'total_sales' => 0,
+                    'net_sales' => 0,
+                ];
+            }
+        }
+
+        $csPerformanceData = collect($csPerformance)
+            ->map(function($cs) {
+                $cs['units'] = ($cs['hp_count'] ?? 0) + ($cs['non_hp_count'] ?? 0);
+                return $cs;
+            })
+            ->sortByDesc('units')
+            ->sortByDesc('total_sales')
+            ->values()
+            ->map(function($cs, $idx) {
+                $cs['rank'] = $idx + 1;
+                return $cs;
+            });
+
+        // 3. Month Stats
+        $monthSales = StockOut::whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedCats)
+            ->where('status', '!=', 'cancelled')
+            ->whereNull('deleted_at')
+            ->where(function ($q) use ($currentMonth) {
+                $q->where('reporting_date', 'like', "{$currentMonth}%")
+                  ->orWhere(function ($sq) {
+                      $sq->whereNull('reporting_date')
+                         ->whereMonth('created_at', date('m'))
+                         ->whereYear('created_at', date('Y'));
+                  });
+            });
+
+        if (!empty($accessibleBranchIds)) {
+            $monthSales->where(function ($q) use ($accessibleBranchIds) {
+                $q->whereIn('branch_id', $accessibleBranchIds)
+                  ->orWhereHas('user', function ($qu) use ($accessibleBranchIds) {
+                      $qu->whereIn('branch_id', $accessibleBranchIds);
+                  });
+            });
+        } else {
+            $monthSales->whereRaw('1=0');
+        }
+
+        $allMonthSales = $monthSales->get();
+        $monthTrxCount = $allMonthSales->count();
+        $monthRevenue = 0;
+        $monthNetRevenue = 0;
+
+        $monthReceiptIds = $allMonthSales->pluck('receipt_id')->filter()->unique()->toArray();
+        $monthTtMap = empty($monthReceiptIds) ? collect() : DB::table('tukar_tambahs')
+            ->whereIn('receipt_id', $monthReceiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+        $monthDgMap = empty($monthReceiptIds) ? collect() : DB::table('downgrades')
+            ->whereIn('receipt_id', $monthReceiptIds)
+            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+
+        foreach ($allMonthSales as $sale) {
+            $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
+            if ($cat === 'cancel_penjualan') continue;
+            $notes = strtolower($sale->notes ?? '');
+            $sa = strtolower($sale->sales_account ?? '');
+            $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : ($cat === 'dp' ? abs((float) ($sale->dp_amount ?: ($sale->paid_amount ?: $sale->selling_price))) : ($cat === 'pelunasan_dp' ? abs((float) ($sale->paid_amount ?: $sale->selling_price)) : abs((float) ($sale->selling_price ?? 0))));
+
+            $saleType = 'ignored';
+            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                $saleType = 'tukar_tambah';
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
+                $saleType = 'base_sale';
+            } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
+                $saleType = 'angkat_barang';
+            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
+                $saleType = 'refund_dp';
+            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
+                $saleType = 'refund';
+            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
+                $saleType = 'downgrade';
+            } elseif ($cat === 'balancing') {
+                $saleType = 'balancing';
+            }
+
+            $omsetContribution = 0;
+            $netContribution = 0;
+
+            if ($saleType === 'tukar_tambah') {
+                $ttRec = $monthTtMap->get($sale->receipt_id);
+                $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
+                if ($outVal <= 0) $outVal = $price;
+                $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
+                $omsetContribution = $outVal;
+                $netContribution = $outVal - $inVal;
+            } elseif ($saleType === 'base_sale' || $saleType === 'balancing') {
+                $omsetContribution = $price;
+                $netContribution = $price;
+            } elseif ($saleType === 'angkat_barang' || $saleType === 'refund' || $saleType === 'refund_dp') {
+                $omsetContribution = 0;
+                $netContribution = -$price;
+            } elseif ($saleType === 'downgrade') {
+                $dgRec = $monthDgMap->get($sale->receipt_id);
+                $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
+                $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
+                if ($outDg > 0 || $inDg > 0) {
+                    $omsetContribution = $outDg;
+                    $netContribution = $outDg - $inDg;
+                } else {
+                    $omsetContribution = 0;
+                    $netContribution = -$price;
+                }
+            }
+
+            $monthRevenue += $omsetContribution;
+            $monthNetRevenue += $netContribution;
+        }
+
+        // 4. Physical Stock
+        $hpStock = ProductDetail::where('placement_type', 'branch')->whereIn('placement_id', $accessibleBranchIds)->where('status', 'available')->count();
+        $nonHpStock = (int) Inventory::where('placement_type', 'branch')->whereIn('placement_id', $accessibleBranchIds)->sum('quantity');
+
+        // 5. Branch Breakdown
+        $branchBreakdown = [];
+        foreach ($branches as $b) {
+            $bHp = ProductDetail::where('placement_type', 'branch')->where('placement_id', $b->id)->where('status', 'available')->count();
+            $bNonHp = (int) Inventory::where('placement_type', 'branch')->where('placement_id', $b->id)->sum('quantity');
+            $bTodaySales = $todaySales->where('branch_id', $b->id);
+            $bTrx = $bTodaySales->count();
+            $bOmset = (float) $bTodaySales->sum('selling_price');
+
+            $branchBreakdown[] = [
+                'id' => $b->id,
+                'name' => $b->name,
+                'address' => $b->address,
+                'hp_stock' => $bHp,
+                'non_hp_stock' => $bNonHp,
+                'total_stock' => $bHp + $bNonHp,
+                'today_trx' => $bTrx,
+                'today_omset' => $bOmset,
+            ];
+        }
+
+        // 6. Balancing Summary
+        $balancingMonth = StockOut::where('category', StockOut::CATEGORY_BALANCING)
+            ->where('status', '!=', 'cancelled')
+            ->whereNull('deleted_at')
+            ->whereIn('branch_id', $accessibleBranchIds)
+            ->where(function ($q) use ($currentMonth) {
+                $q->where('reporting_date', 'like', "{$currentMonth}%")
+                  ->orWhere(function ($sq) {
+                      $sq->whereNull('reporting_date')
+                         ->whereMonth('created_at', date('m'))
+                         ->whereYear('created_at', date('Y'));
+                  });
+            })
+            ->get();
+
+        $recentBalancings = StockOut::with(['branch', 'inventoryUser', 'user'])
+            ->where('category', StockOut::CATEGORY_BALANCING)
+            ->where('status', '!=', 'cancelled')
+            ->whereNull('deleted_at')
+            ->whereIn('branch_id', $accessibleBranchIds)
+            ->latest()
+            ->take(5)
+            ->get()
+            ->map(function ($b) {
+                return [
+                    'id' => $b->id,
+                    'receipt_id' => $b->receipt_id,
+                    'amount' => (float) $b->selling_price,
+                    'sub_category' => $b->sub_category ?: 'Penyesuaian Kasir',
+                    'customer_name' => $b->customer_name ?: '-',
+                    'branch_name' => $b->branch?->name ?: '-',
+                    'cs_name' => $b->inventoryUser?->name ?: ($b->user?->name ?: '-'),
+                    'reporting_date' => $b->reporting_date ?: $b->created_at->format('Y-m-d'),
+                    'time' => $b->created_at->diffForHumans(),
+                    'datetime' => $b->created_at->format('d M Y H:i'),
+                ];
+            });
+
+        // 7. Recent Transactions (Today)
+        $recentTransactions = $todaySales->take(10)->map(function ($trx) {
+            $itemNames = [];
+            foreach ($trx->items as $it) {
+                $itemNames[] = $it->product?->name ?? 'HP';
+            }
+            if ($trx->non_hp_items) {
+                foreach ($trx->non_hp_items as $nit) {
+                    $itemNames[] = $nit['name'] ?? 'Aksesoris';
+                }
+            }
+            return [
+                'id' => $trx->receipt_id,
+                'customer' => $trx->customer_name ?? ($trx->receiver_name ?? 'Guest'),
+                'cs_name' => $trx->inventoryUser?->name ?? ($trx->user?->name ?? '-'),
+                'branch_name' => $trx->branch?->name ?? '-',
+                'items' => !empty($itemNames) ? implode(', ', array_slice($itemNames, 0, 2)) . (count($itemNames) > 2 ? ' +more' : '') : '-',
+                'total' => $trx->category === 'dp' ? abs((float) ($trx->dp_amount ?: ($trx->paid_amount ?: $trx->selling_price))) : ($trx->category === 'pelunasan_dp' ? abs((float) ($trx->paid_amount ?: $trx->selling_price)) : abs((float) ($trx->selling_price ?? 0))),
+                'time' => $trx->created_at->diffForHumans(),
+                'datetime' => $trx->created_at->format('d M H:i'),
+                'status' => 'success'
+            ];
+        });
+
+        return response()->json([
+            'role' => 'leader',
+            'branches' => $branches->map(fn($b) => ['id' => $b->id, 'name' => $b->name, 'address' => $b->address]),
+            'reporting_date' => $currentReportingDate,
+            'stats' => [
+                ['id' => 'revenue', 'label' => 'Total Omset Hari Ini', 'value' => $totalRevenue, 'isCurrency' => true, 'icon' => 'DollarSign', 'color' => 'emerald'],
+                ['id' => 'net_revenue', 'label' => 'Omset Bersih Hari Ini', 'value' => $totalNetRevenue, 'isCurrency' => true, 'icon' => 'TrendingUp', 'color' => 'teal'],
+                ['id' => 'transactions', 'label' => 'Total Transaksi (Hari Ini)', 'value' => $todaySales->count(), 'icon' => 'ShoppingCart', 'color' => 'blue'],
+                ['id' => 'sold', 'label' => 'Unit Terjual (Hari Ini)', 'value' => $productsSold, 'sub' => "HP: $hpSold | Acc: $nonHpSold", 'icon' => 'Package', 'color' => 'violet'],
+                ['id' => 'stock', 'label' => 'Total Stok Fisik Cabang', 'value' => $hpStock + $nonHpStock, 'sub' => "HP: $hpStock | Acc: $nonHpStock", 'icon' => 'Box', 'color' => 'amber'],
+            ],
+            'month_summary' => [
+                'month_name' => Carbon::now()->format('F Y'),
+                'transactions' => $monthTrxCount,
+                'revenue' => (float) $monthRevenue,
+                'net_revenue' => (float) $monthNetRevenue,
+            ],
+            'balancing_summary' => [
+                'month_count' => $balancingMonth->count(),
+                'month_net' => (float) $balancingMonth->sum('selling_price'),
+                'month_plus' => (float) $balancingMonth->where('selling_price', '>', 0)->sum('selling_price'),
+                'month_minus' => (float) $balancingMonth->where('selling_price', '<', 0)->sum('selling_price'),
+                'recent' => $recentBalancings,
+            ],
+            'recentTransactions' => $recentTransactions,
+            'typeSales' => collect($typeSales)->map(fn($v, $k) => ['name' => $k, 'count' => $v])->sortByDesc('count')->values()->take(5),
+            'brandSales' => collect($brandConditionSales)->map(fn($v, $k) => ['name' => $k, 'count' => $v])->sortByDesc('count')->values(),
+            'csPerformance' => $csPerformanceData,
+            'branch_breakdown' => $branchBreakdown,
+            'branch_ranking' => $this->getBranchRankingData($user),
         ]);
     }
 
@@ -683,8 +1119,13 @@ class DashboardController extends Controller
             $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
             $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
 
-            $getUserRanking = function ($start, $end = null) use ($user, $normalizedSalesCategories) {
-                if (!$user->branch_id && !$user->online_shop_id)
+            $accessibleBranchIds = $user->getAccessibleBranchIds();
+            $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
+            $primaryBranchId = $user->branch_id ?: ($accessibleBranchIds[0] ?? null);
+            $primaryOnlineShopId = $user->online_shop_id ?: ($accessibleOnlineShopIds[0] ?? null);
+
+            $getUserRanking = function ($start, $end = null) use ($user, $normalizedSalesCategories, $primaryBranchId, $primaryOnlineShopId) {
+                if (!$primaryBranchId && !$primaryOnlineShopId)
                     return collect();
 
                 $query = DB::table('stock_outs')
@@ -692,13 +1133,13 @@ class DashboardController extends Controller
                     ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $normalizedSalesCategories)
                     ->whereNull('stock_outs.deleted_at');
 
-                $query->where(function ($q) use ($user) {
-                    if ($user->branch_id) {
-                        $q->where('stock_outs.branch_id', $user->branch_id)
-                            ->orWhere('users.branch_id', $user->branch_id);
-                    } elseif ($user->online_shop_id) {
-                        $q->where('stock_outs.online_shop_id', $user->online_shop_id)
-                            ->orWhere('users.online_shop_id', $user->online_shop_id);
+                $query->where(function ($q) use ($primaryBranchId, $primaryOnlineShopId) {
+                    if ($primaryBranchId) {
+                        $q->where('stock_outs.branch_id', $primaryBranchId)
+                            ->orWhere('users.branch_id', $primaryBranchId);
+                    } elseif ($primaryOnlineShopId) {
+                        $q->where('stock_outs.online_shop_id', $primaryOnlineShopId)
+                            ->orWhere('users.online_shop_id', $primaryOnlineShopId);
                     }
                 });
 
@@ -851,8 +1292,8 @@ class DashboardController extends Controller
                 })->values();
             };
 
-            $myType = $user->branch_id ? 'branch' : 'online_shop';
-            $myId = $user->branch_id ?: $user->online_shop_id;
+            $myType = ($user->branch_id || !empty($accessibleBranchIds)) ? 'branch' : 'online_shop';
+            $myId = $user->branch_id ?: ($accessibleBranchIds[0] ?? ($user->online_shop_id ?: ($accessibleOnlineShopIds[0] ?? null)));
 
             $findMyRank = function ($ranking) use ($myType, $myId) {
                 $idx = $ranking->search(fn($r) => $r['type'] === $myType && $r['id'] == $myId);

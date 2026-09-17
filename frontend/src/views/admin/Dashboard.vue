@@ -27,7 +27,13 @@ import {
   Target,
   History,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  Scale,
+  Activity,
+  AlertTriangle,
+  ArrowUpRight,
+  BarChart3,
+  FileText
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -41,6 +47,11 @@ const typeSales = ref([]);
 const csPerformance = ref([]);
 const ranking = ref({ my_rank: '-', leaderboard: [] });
 const branchRanking = ref(null);
+
+const leaderBranches = ref([]);
+const leaderMonthSummary = ref(null);
+const leaderBalancingSummary = ref(null);
+const leaderBranchBreakdown = ref([]);
 
 const usersList = ref([]);
 const usersMap = computed(() => {
@@ -64,7 +75,9 @@ const fetchUsers = async () => {
 };
 
 // Determine initial role immediately to prevent flash of wrong dashboard
-if (authStore.hasRole('admin_produk')) {
+if (authStore.hasRole('leader')) {
+  dashboardRole.value = 'leader';
+} else if (authStore.hasRole('admin_produk')) {
   dashboardRole.value = 'admin_produk';
 } else if (authStore.hasRole('security')) {
   dashboardRole.value = 'security';
@@ -216,6 +229,27 @@ async function fetchDashboardData() {
       }));
       recentTypes.value = response.data.recent_types;
       recentPrices.value = response.data.recent_prices;
+    } else if (response.data.role === 'leader') {
+      dashboardRole.value = 'leader';
+      stats.value = response.data.stats.map(s => ({
+        ...s,
+        icon: resolveIcon(s.icon),
+        change: 0,
+        trend: 'neutral'
+      }));
+      recentTransactions.value = response.data.recentTransactions || [];
+      csPerformance.value = response.data.csPerformance || [];
+      typeSales.value = response.data.typeSales || [];
+      brandSales.value = response.data.brandSales || [];
+      branchRanking.value = response.data.branch_ranking || null;
+      leaderBranches.value = response.data.branches || [];
+      leaderMonthSummary.value = response.data.month_summary || null;
+      leaderBalancingSummary.value = response.data.balancing_summary || null;
+      leaderBranchBreakdown.value = response.data.branch_breakdown || [];
+      ranking.value = {
+        my_rank: '-',
+        leaderboard: response.data.csPerformance || []
+      };
     } else if (response.data.role === 'online_shop' || response.data.role === 'toko_online' || response.data.role === 'toko_offline') {
       dashboardRole.value = response.data.role === 'toko_online' ? 'online_shop' : response.data.role;
       stats.value = response.data.stats.map(s => ({
@@ -353,12 +387,23 @@ const currentLocalRank = computed(() => {
     <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between md:items-end gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-text-primary tracking-tight">
-          Executive Overview
-        </h1>
-        <p class="text-text-secondary mt-1">
-          Real-time data dari 60+ cabang •
-          <span class="text-emerald-500 dark:text-emerald-400">● Online</span> •
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <h1 class="text-2xl font-bold text-text-primary tracking-tight">
+            {{ dashboardRole === 'leader' ? 'Leader Dashboard' : 'Executive Overview' }}
+          </h1>
+          <span v-if="dashboardRole === 'leader'" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1">
+            <Store :size="12" />
+            Branch Leader
+          </span>
+        </div>
+        <p class="text-text-secondary mt-1 flex items-center flex-wrap gap-2 text-sm">
+          <span v-if="dashboardRole === 'leader' && leaderBranches.length > 0" class="inline-flex items-center gap-1 font-semibold text-text-primary">
+            <MapPin :size="14" class="text-primary-500" />
+            {{ leaderBranches.map(b => b.name).join(', ') }}
+            <span class="text-text-secondary font-normal">•</span>
+          </span>
+          <span v-else-if="dashboardRole !== 'leader'">Real-time data dari 60+ cabang •</span>
+          <span class="text-emerald-500 dark:text-emerald-400">● {{ dashboardRole === 'leader' ? 'Real-time Branch Scoped' : 'Online' }}</span> •
           <span>Reset 05:00</span>
         </p>
       </div>
@@ -519,7 +564,7 @@ const currentLocalRank = computed(() => {
         </div>
       </div>
     </div>
-    <div v-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'" class="space-y-6">
+    <div v-else-if="dashboardRole === 'online_shop' || dashboardRole === 'toko_offline'" class="space-y-6">
 
       <div class="grid grid-cols-1 gap-8">
         <!-- LEFT: Branch Competition Podium (NEW PREMIUM DESIGN) -->
@@ -1048,6 +1093,514 @@ const currentLocalRank = computed(() => {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Dashboard Khusus Leader -->
+    <div v-else-if="dashboardRole === 'leader'" class="space-y-6">
+
+      <!-- 1. Quick Operations / Menu Utama Leader -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <!-- History Balancing -->
+        <router-link to="/balancing/history" class="card group hover:border-amber-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <Scale :size="20" />
+            </div>
+            <span v-if="leaderBalancingSummary" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
+              {{ leaderBalancingSummary.month_count }} Trx
+            </span>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-text-primary group-hover:text-amber-400 transition-colors">History Balancing</h3>
+            <p class="text-[11px] text-text-secondary mt-0.5">Penyesuaian kasir cabang</p>
+          </div>
+        </router-link>
+
+        <!-- Data Inventory -->
+        <router-link to="/inventory" class="card group hover:border-primary-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <Box :size="20" />
+            </div>
+            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-primary-400 transition-all" />
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-text-primary group-hover:text-primary-400 transition-colors">Data Inventory</h3>
+            <p class="text-[11px] text-text-secondary mt-0.5">Ketersediaan unit fisik</p>
+          </div>
+        </router-link>
+
+        <!-- Cek Penjualan -->
+        <router-link to="/sales/check" class="card group hover:border-blue-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <ShoppingCart :size="20" />
+            </div>
+            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-blue-400 transition-all" />
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-text-primary group-hover:text-blue-400 transition-colors">Cek Penjualan</h3>
+            <p class="text-[11px] text-text-secondary mt-0.5">Monitoring transaksi kasir</p>
+          </div>
+        </router-link>
+
+        <!-- Kelola Staf CS -->
+        <router-link to="/users" class="card group hover:border-violet-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <Users :size="20" />
+            </div>
+            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">
+              {{ csPerformance.length }} CS
+            </span>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-text-primary group-hover:text-violet-400 transition-colors">Kelola Staf CS</h3>
+            <p class="text-[11px] text-text-secondary mt-0.5">Tambah & manajemen CS</p>
+          </div>
+        </router-link>
+
+        <!-- Analisa Stok -->
+        <router-link to="/inventory/stock-analysis" class="card group hover:border-emerald-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg col-span-2 sm:col-span-1">
+          <div class="flex items-center justify-between mb-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+              <BarChart3 :size="20" />
+            </div>
+            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-emerald-400 transition-all" />
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-text-primary group-hover:text-emerald-400 transition-colors">Analisa Stok</h3>
+            <p class="text-[11px] text-text-secondary mt-0.5">Perputaran umur stok unit</p>
+          </div>
+        </router-link>
+      </div>
+
+      <!-- 2. Monthly Performance Banner -->
+      <div v-if="leaderMonthSummary" class="card p-5 bg-gradient-to-r from-surface-800 via-surface-800/90 to-surface-700/40 border border-surface-700/60 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-primary-500/5 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
+          <div>
+            <span class="text-[10px] font-black uppercase tracking-widest text-primary-400">Ringkasan Bulan Berjalan</span>
+            <h2 class="text-xl font-black text-text-primary tracking-tight mt-0.5">{{ leaderMonthSummary.month_name }}</h2>
+            <p class="text-xs text-text-secondary mt-1">Akumulasi seluruh transaksi di cabang yang Anda pimpin bulan ini</p>
+          </div>
+          <div class="flex items-center gap-6 sm:gap-8 flex-wrap">
+            <div>
+              <p class="text-[10px] uppercase font-bold text-text-secondary">Omset Bulan Ini</p>
+              <p class="text-lg sm:text-xl font-black text-text-primary font-mono mt-0.5">{{ formatCurrency(leaderMonthSummary.revenue) }}</p>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase font-bold text-text-secondary">Omset Bersih</p>
+              <p class="text-lg sm:text-xl font-black font-mono mt-0.5" :class="leaderMonthSummary.net_revenue < 0 ? 'text-red-400' : 'text-emerald-400'">
+                {{ formatCurrency(leaderMonthSummary.net_revenue) }}
+              </p>
+            </div>
+            <div>
+              <p class="text-[10px] uppercase font-bold text-text-secondary">Total Transaksi</p>
+              <p class="text-lg sm:text-xl font-black text-primary-400 font-mono mt-0.5">{{ leaderMonthSummary.transactions }} Trx</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. CS Team Performance Leaderboard in Leader's Branch -->
+      <div class="card overflow-hidden p-0 border border-surface-700/60 shadow-xl">
+        <div class="p-5 border-b border-surface-700/50 bg-surface-700/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-inner">
+              <Trophy :size="20" />
+            </div>
+            <div>
+              <h2 class="text-base font-bold text-text-primary tracking-tight">Leaderboard Tim CS Cabang (Hari Ini)</h2>
+              <p class="text-xs text-text-secondary">Performa dan kontribusi closing akun CS di cabang yang Anda pimpin</p>
+            </div>
+          </div>
+          <router-link to="/users" class="btn btn-secondary text-xs py-1.5 px-3 self-start sm:self-auto flex items-center gap-1.5">
+            <Users :size="14" />
+            Kelola Staf CS
+          </router-link>
+        </div>
+        <div class="p-4 overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead>
+              <tr class="text-[10px] text-text-secondary uppercase tracking-widest font-black border-b border-surface-700/50">
+                <th class="pb-3 w-14">Rank</th>
+                <th class="pb-3">Nama CS</th>
+                <th class="pb-3 text-center">Unit HP</th>
+                <th class="pb-3 text-center">Non-HP</th>
+                <th class="pb-3 text-center">Total Unit</th>
+                <th class="pb-3 text-right">Total Omset</th>
+                <th class="pb-3 text-right">Omset Bersih</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-700/40">
+              <tr v-for="(cs, idx) in csPerformance" :key="cs.id || idx" class="group hover:bg-surface-700/20 transition-colors">
+                <td class="py-3">
+                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs"
+                    :class="idx === 0 ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : 'text-text-secondary bg-surface-700/50'))">
+                    {{ idx + 1 }}
+                  </div>
+                </td>
+                <td class="py-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
+                      <img :src="resolvePhoto(cs, cs.name)"
+                        class="w-full h-full object-cover"
+                        @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.name || 'CS')}&background=10b981&color=fff`" />
+                    </div>
+                    <div>
+                      <p class="font-bold text-text-primary text-sm group-hover:text-primary-400 transition-colors">{{ cs.name }}</p>
+                      <span class="text-[10px] text-text-secondary">{{ cs.branch_name || '-' }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="py-3 text-center">
+                  <span class="font-bold text-primary-400 font-mono">{{ cs.hp_count || 0 }}</span>
+                </td>
+                <td class="py-3 text-center">
+                  <span class="font-bold text-blue-400 font-mono">{{ cs.non_hp_count || 0 }}</span>
+                </td>
+                <td class="py-3 text-center">
+                  <span class="font-black text-text-primary font-mono text-base">{{ (cs.hp_count || 0) + (cs.non_hp_count || 0) }}</span>
+                </td>
+                <td class="py-3 text-right">
+                  <span class="font-semibold text-slate-300 font-mono">{{ formatCurrency(cs.total_sales || 0) }}</span>
+                </td>
+                <td class="py-3 text-right">
+                  <span class="font-bold font-mono" :class="(cs.net_sales || 0) < 0 ? 'text-red-400' : 'text-emerald-400'">
+                    {{ formatCurrency(cs.net_sales || 0) }}
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="!csPerformance || csPerformance.length === 0">
+                <td colspan="7" class="py-8 text-center text-text-secondary italic">
+                  Belum ada staf CS yang terdaftar di cabang ini
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 4. Balancing & Physical Stock Overview (2 Columns) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Balancing Summary Card -->
+        <div class="card p-5 flex flex-col justify-between border border-surface-700/60 shadow-xl">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <Scale :size="16" />
+                </div>
+                <h2 class="text-base font-bold text-text-primary">Balancing Cabang Bulan Ini</h2>
+              </div>
+              <router-link to="/balancing/history" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
+                Lihat History
+                <ArrowUpRight :size="12" />
+              </router-link>
+            </div>
+
+            <!-- Summary Numbers -->
+            <div class="grid grid-cols-3 gap-3 mb-5 p-3 rounded-xl bg-surface-700/20 border border-surface-700/40 text-center">
+              <div>
+                <p class="text-[10px] text-text-secondary font-bold uppercase">Net Balancing</p>
+                <p class="text-sm font-black font-mono mt-0.5" :class="(leaderBalancingSummary?.month_net || 0) < 0 ? 'text-red-400' : 'text-emerald-400'">
+                  {{ formatCurrency(leaderBalancingSummary?.month_net || 0) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-text-secondary font-bold uppercase">Total Plus (+)</p>
+                <p class="text-sm font-bold font-mono text-emerald-400 mt-0.5">
+                  +{{ formatCurrency(leaderBalancingSummary?.month_plus || 0) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-[10px] text-text-secondary font-bold uppercase">Total Minus (-)</p>
+                <p class="text-sm font-bold font-mono text-red-400 mt-0.5">
+                  {{ formatCurrency(leaderBalancingSummary?.month_minus || 0) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Recent Balancings list -->
+            <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">5 Riwayat Balancing Terbaru</h4>
+            <div class="space-y-2">
+              <div v-for="b in leaderBalancingSummary?.recent || []" :key="b.id" class="p-2.5 rounded-lg bg-surface-700/30 border border-surface-700/40 flex items-center justify-between text-xs">
+                <div>
+                  <p class="font-bold text-text-primary">{{ b.sub_category }}</p>
+                  <p class="text-[11px] text-text-secondary">{{ b.cs_name }} • {{ b.datetime }}</p>
+                </div>
+                <span class="font-mono font-bold" :class="b.amount < 0 ? 'text-red-400' : 'text-emerald-400'">
+                  {{ formatCurrency(b.amount) }}
+                </span>
+              </div>
+              <div v-if="!leaderBalancingSummary?.recent || leaderBalancingSummary.recent.length === 0" class="py-4 text-center text-text-secondary italic text-xs">
+                Belum ada catatan balancing di cabang ini bulan ini
+              </div>
+            </div>
+          </div>
+          <div class="pt-4 mt-4 border-t border-surface-700/50">
+            <router-link to="/balancing/history" class="btn btn-secondary w-full text-xs justify-center">
+              Buka Seluruh History Balancing
+            </router-link>
+          </div>
+        </div>
+
+        <!-- Physical Stock Breakdown Card -->
+        <div class="card p-5 flex flex-col justify-between border border-surface-700/60 shadow-xl">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center">
+                  <Package :size="16" />
+                </div>
+                <h2 class="text-base font-bold text-text-primary">Stok Fisik Cabang</h2>
+              </div>
+              <router-link to="/inventory" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
+                Lihat Inventory
+                <ArrowUpRight :size="12" />
+              </router-link>
+            </div>
+
+            <!-- Branch breakdown cards -->
+            <div class="space-y-3">
+              <div v-for="br in leaderBranchBreakdown" :key="br.id" class="p-4 rounded-xl bg-surface-700/30 border border-surface-700/40 space-y-3">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h3 class="font-bold text-sm text-text-primary flex items-center gap-1.5">
+                      <Store :size="14" class="text-primary-500" />
+                      {{ br.name }}
+                    </h3>
+                    <p class="text-[11px] text-text-secondary truncate max-w-xs">{{ br.address || '-' }}</p>
+                  </div>
+                  <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                    {{ br.total_stock }} Total Unit
+                  </span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-center pt-2 border-t border-surface-700/50">
+                  <div class="p-2.5 rounded-lg bg-surface-800/60 border border-surface-700/30">
+                    <p class="text-[10px] text-text-secondary uppercase font-bold">Stok HP Fisik</p>
+                    <p class="text-base font-black text-text-primary font-mono mt-0.5">{{ br.hp_stock }} Unit</p>
+                  </div>
+                  <div class="p-2.5 rounded-lg bg-surface-800/60 border border-surface-700/30">
+                    <p class="text-[10px] text-text-secondary uppercase font-bold">Stok Non-HP / Acc</p>
+                    <p class="text-base font-black text-text-primary font-mono mt-0.5">{{ br.non_hp_stock }} Pcs</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-4 mt-4 border-t border-surface-700/50 flex gap-2">
+            <router-link to="/inventory" class="btn btn-secondary flex-1 text-xs justify-center">
+              Data Inventory
+            </router-link>
+            <router-link to="/inventory/stock-analysis" class="btn btn-secondary flex-1 text-xs justify-center">
+              Analisa Stok
+            </router-link>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Branch Competition Podium (Global Rankings) -->
+      <div v-if="branchRanking" class="overflow-hidden bg-transparent border-none p-0 flex flex-col relative min-h-[500px]">
+        <div class="px-2 flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+          <div class="text-center md:text-left">
+            <p class="text-[10px] font-bold text-surface-500 uppercase tracking-[0.3em] mb-1">{{ leftPodiumTitle }}</p>
+            <h2 class="font-black text-2xl lg:text-3xl text-text-primary tracking-tight uppercase">
+              Kompetisi <span class="text-primary-500">Cabang Nasional</span>
+            </h2>
+          </div>
+          <div class="flex bg-surface-800/50 backdrop-blur-md p-1 rounded-2xl border border-surface-700/50 shadow-xl">
+            <button v-for="tab in [{ id: 'today', lab: 'Hari Ini' }, { id: 'this_month', lab: 'Bulan Ini' }]"
+              :key="tab.id" @click="podiumTab = tab.id"
+              class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300"
+              :class="podiumTab === tab.id ? 'bg-primary-500 text-black shadow-lg' : 'text-text-secondary hover:text-primary-500'">
+              {{ tab.lab }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Global & Branch Ranking Summary Bar -->
+        <div v-if="branchRanking?.summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div v-for="item in [
+            { label: 'Today Summary', global: branchRanking.summary.today_global, local: branchRanking.summary.today_local, icon: Target, color: 'emerald' },
+            { label: 'Yesterday Summary', global: branchRanking.summary.yesterday_global, local: branchRanking.summary.yesterday_local, icon: History, color: 'blue' },
+            { label: 'This Month Summary', global: branchRanking.summary.this_month_global, local: branchRanking.summary.this_month_local, icon: Calendar, color: 'purple' },
+            { label: 'Last Month Summary', global: branchRanking.summary.last_month_global, local: branchRanking.summary.last_month_local, icon: Award, color: 'amber' }
+          ]" :key="item.label" class="card group p-4 bg-white dark:bg-[#0d0d0d] border border-surface-700/40 shadow-lg relative overflow-hidden">
+            <div class="relative z-10 flex items-center justify-between">
+              <div class="flex-1">
+                <span class="text-[9px] font-black uppercase tracking-widest mb-2 block opacity-40">{{ item.label }}</span>
+                <div class="flex items-center gap-3">
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-[9px] font-bold opacity-40 uppercase mr-1">Global</span>
+                    <span class="text-xl font-black tracking-tight" :class="`text-${item.color}-500`"><span class="text-xs opacity-50">#</span>{{ item.global }}</span>
+                  </div>
+                  <div class="flex items-baseline gap-1">
+                    <span class="text-[9px] font-bold opacity-40 uppercase mr-1">Local</span>
+                    <span class="text-lg font-black tracking-tight opacity-70" :class="`text-${item.color}-500`"><span class="text-xs">#</span>{{ item.local }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ml-3" :class="`bg-${item.color}-500/10 text-${item.color}-500`">
+                <component :is="item.icon" :size="18" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. Top Selling Products & Brands (Today) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Type Sales -->
+        <div class="card border border-surface-700/60 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-text-primary">Top 5 Produk Laris Cabang (Hari Ini)</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+                <tr>
+                  <th class="px-4 py-2.5 rounded-l-lg">Produk / Model</th>
+                  <th class="px-4 py-2.5 rounded-r-lg text-right">Unit Terjual</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-700/40">
+                <tr v-if="typeSales.length === 0">
+                  <td colspan="2" class="px-4 py-6 text-center text-text-secondary italic text-xs">
+                    Belum ada penjualan type hari ini di cabang
+                  </td>
+                </tr>
+                <tr v-for="(item, idx) in typeSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
+                  <td class="px-4 py-3 font-medium text-text-primary text-xs">{{ item.name }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="font-bold text-emerald-400 font-mono">{{ item.count }}</span>
+                    <span class="text-xs text-text-secondary ml-1">Unit</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Brand Sales -->
+        <div class="card border border-surface-700/60 shadow-xl">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-text-primary">Total Brand Terjual Cabang (Hari Ini)</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+                <tr>
+                  <th class="px-4 py-2.5 rounded-l-lg">Brand / Kondisi</th>
+                  <th class="px-4 py-2.5 rounded-r-lg text-right">Unit Terjual</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-700/40">
+                <tr v-if="brandSales.length === 0">
+                  <td colspan="2" class="px-4 py-6 text-center text-text-secondary italic text-xs">
+                    Belum ada penjualan brand hari ini di cabang
+                  </td>
+                </tr>
+                <tr v-for="(item, idx) in brandSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
+                  <td class="px-4 py-3 font-medium text-text-primary text-xs">{{ item.name }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <span class="font-bold text-emerald-400 font-mono">{{ item.count }}</span>
+                    <span class="text-xs text-text-secondary ml-1">Unit</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Recent Transactions (Today) -->
+      <div class="card border border-surface-700/60 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <ShoppingCart :size="16" />
+            </div>
+            <h2 class="text-base font-bold text-text-primary">Transaksi Terakhir Cabang (Hari Ini)</h2>
+          </div>
+          <router-link to="/sales/check" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
+            Lihat Semua di Cek Penjualan
+            <ArrowUpRight :size="14" />
+          </router-link>
+        </div>
+
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="w-full text-sm text-left">
+            <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
+              <tr>
+                <th class="px-4 py-3 rounded-l-lg">ID Resi</th>
+                <th class="px-4 py-3">Customer</th>
+                <th class="px-4 py-3">Staf CS</th>
+                <th class="px-4 py-3">Item</th>
+                <th class="px-4 py-3 text-right">Total</th>
+                <th class="px-4 py-3">Waktu</th>
+                <th class="px-4 py-3 rounded-r-lg text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-surface-700/40">
+              <tr v-for="trx in recentTransactions" :key="trx.id" class="hover:bg-surface-700/30 transition-colors">
+                <td class="px-4 py-3 font-mono font-medium text-primary-400 text-xs">{{ trx.id }}</td>
+                <td class="px-4 py-3 text-text-primary font-medium text-xs">{{ trx.customer }}</td>
+                <td class="px-4 py-3 text-text-secondary text-xs">{{ trx.cs_name || '-' }}</td>
+                <td class="px-4 py-3 text-text-secondary text-xs max-w-xs truncate" :title="trx.items">{{ trx.items }}</td>
+                <td class="px-4 py-3 font-bold text-emerald-400 font-mono text-right text-xs">{{ formatCurrency(trx.total) }}</td>
+                <td class="px-4 py-3 text-text-secondary text-xs">
+                  <div class="flex flex-col">
+                    <span>{{ trx.datetime }}</span>
+                    <span class="text-[10px] opacity-70">{{ trx.time }}</span>
+                  </div>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                    SUKSES
+                  </span>
+                </td>
+              </tr>
+              <tr v-if="!recentTransactions || recentTransactions.length === 0">
+                <td colspan="7" class="px-4 py-8 text-center text-text-secondary italic text-xs">
+                  Belum ada transaksi hari ini di cabang yang Anda pimpin
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Card List -->
+        <div class="md:hidden space-y-2.5">
+          <div v-for="trx in recentTransactions" :key="trx.id" class="p-3 rounded-xl bg-surface-700/30 border border-surface-700/40 space-y-2">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-[10px] text-primary-400 font-mono">#{{ trx.id }}</p>
+                <p class="font-bold text-text-primary text-xs">{{ trx.customer }}</p>
+                <p class="text-[10px] text-text-secondary">CS: {{ trx.cs_name || '-' }}</p>
+              </div>
+              <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                SUKSES
+              </span>
+            </div>
+            <p class="text-[11px] text-text-secondary truncate">
+              <Package :size="12" class="inline mr-1" /> {{ trx.items }}
+            </p>
+            <div class="flex justify-between items-end pt-1.5 border-t border-surface-700/40 text-[10px]">
+              <span class="text-text-secondary">{{ trx.datetime }} ({{ trx.time }})</span>
+              <span class="font-bold text-emerald-400 font-mono text-xs">{{ formatCurrency(trx.total) }}</span>
+            </div>
+          </div>
+          <div v-if="!recentTransactions || recentTransactions.length === 0" class="py-6 text-center text-text-secondary italic text-xs">
+            Belum ada transaksi hari ini di cabang yang Anda pimpin
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Main Content Grid (General) -->
