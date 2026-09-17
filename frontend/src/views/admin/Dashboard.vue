@@ -33,7 +33,9 @@ import {
   AlertTriangle,
   ArrowUpRight,
   BarChart3,
-  FileText
+  FileText,
+  Zap,
+  ArrowRight
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -52,6 +54,63 @@ const leaderBranches = ref([]);
 const leaderMonthSummary = ref(null);
 const leaderBalancingSummary = ref(null);
 const leaderBranchBreakdown = ref([]);
+const leaderVelocityTab = ref('models');
+
+const leaderTotalRevenue = computed(() => {
+  const rev = stats.value.find(s => s.id === 'revenue');
+  return rev ? Number(rev.value || 0) : 0;
+});
+
+const leaderNetRevenue = computed(() => {
+  const net = stats.value.find(s => s.id === 'net_revenue');
+  return net ? Number(net.value || 0) : 0;
+});
+
+const leaderTransactionsCount = computed(() => {
+  const trx = stats.value.find(s => s.id === 'transactions');
+  return trx ? Number(trx.value || 0) : 0;
+});
+
+const leaderProductsSoldCount = computed(() => {
+  const sold = stats.value.find(s => s.id === 'sold');
+  return sold ? Number(sold.value || 0) : 0;
+});
+
+const leaderTotalStockCount = computed(() => {
+  const st = stats.value.find(s => s.id === 'stock');
+  return st ? Number(st.value || 0) : (leaderHpStock.value + leaderNonHpStock.value);
+});
+
+const leaderHpStock = computed(() => {
+  return leaderBranchBreakdown.value.reduce((acc, b) => acc + (b.hp_stock || 0), 0);
+});
+
+const leaderNonHpStock = computed(() => {
+  return leaderBranchBreakdown.value.reduce((acc, b) => acc + (b.non_hp_stock || 0), 0);
+});
+
+const leaderHpSold = computed(() => {
+  return csPerformance.value.reduce((acc, c) => acc + (c.hp_count || 0), 0);
+});
+
+const leaderNonHpSold = computed(() => {
+  return csPerformance.value.reduce((acc, c) => acc + (c.non_hp_count || 0), 0);
+});
+
+const hpStockPercentage = computed(() => {
+  const total = leaderTotalStockCount.value;
+  if (!total || total <= 0) return 50;
+  return Math.min(100, Math.max(0, Math.round((leaderHpStock.value / total) * 100)));
+});
+
+const nonHpStockPercentage = computed(() => {
+  return 100 - hpStockPercentage.value;
+});
+
+const maxTypeSalesCount = computed(() => {
+  if (!typeSales.value || typeSales.value.length === 0) return 1;
+  return Math.max(...typeSales.value.map(t => t.count || 1), 1);
+});
 
 const usersList = ref([]);
 const usersMap = computed(() => {
@@ -435,8 +494,8 @@ const currentLocalRank = computed(() => {
       </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" :class="stats.length === 5 ? 'md:grid-cols-3 lg:grid-cols-5' : 'lg:grid-cols-4'">
+    <!-- Stats Grid (Hidden for leader role to provide dedicated bespoke Bento Command Grid) -->
+    <div v-if="dashboardRole !== 'leader'" class="grid grid-cols-1 sm:grid-cols-2 gap-4" :class="stats.length === 5 ? 'md:grid-cols-3 lg:grid-cols-5' : 'lg:grid-cols-4'">
       <template v-if="isLoading && stats.length === 0">
         <div v-for="i in 5" :key="i" class="card h-32 animate-pulse bg-surface-700/50"></div>
       </template>
@@ -1095,508 +1154,634 @@ const currentLocalRank = computed(() => {
       </div>
     </div>
 
-    <!-- Dashboard Khusus Leader -->
+    <!-- Dashboard Khusus Leader (Handcrafted Bento Grid) -->
     <div v-else-if="dashboardRole === 'leader'" class="space-y-6">
 
-      <!-- 1. Quick Operations / Menu Utama Leader -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <!-- History Balancing -->
-        <router-link to="/balancing/history" class="card group hover:border-amber-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-              <Scale :size="20" />
-            </div>
-            <span v-if="leaderBalancingSummary" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">
-              {{ leaderBalancingSummary.month_count }} Trx
-            </span>
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-text-primary group-hover:text-amber-400 transition-colors">History Balancing</h3>
-            <p class="text-[11px] text-text-secondary mt-0.5">Penyesuaian kasir cabang</p>
-          </div>
-        </router-link>
+      <!-- BENTO ROW 1: Command Center Hero & CS Floor Roster (8 - 4 split) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- TILE 1: Branch Command Center (Hero Tile) (lg:col-span-7 xl:col-span-8) -->
+        <div class="lg:col-span-7 xl:col-span-8 card p-6 lg:p-7 relative overflow-hidden flex flex-col justify-between border border-surface-700/80 bg-gradient-to-br from-surface-800 via-surface-800 to-surface-800/90 shadow-2xl group">
+          <!-- Ambient lighting/glow mesh -->
+          <div class="absolute -right-16 -top-16 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none transition-all duration-700 group-hover:bg-emerald-500/15"></div>
+          <div class="absolute right-32 -bottom-10 w-48 h-48 bg-primary-500/5 rounded-full blur-2xl pointer-events-none"></div>
 
-        <!-- Data Inventory -->
-        <router-link to="/inventory" class="card group hover:border-primary-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-              <Box :size="20" />
-            </div>
-            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-primary-400 transition-all" />
-          </div>
           <div>
-            <h3 class="font-bold text-sm text-text-primary group-hover:text-primary-400 transition-colors">Data Inventory</h3>
-            <p class="text-[11px] text-text-secondary mt-0.5">Ketersediaan unit fisik</p>
-          </div>
-        </router-link>
+            <!-- Hero Top Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 relative z-10">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-bold text-emerald-600 dark:text-emerald-400 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>EXECUTIVE COMMAND • HARI INI</span>
+              </div>
+              <div class="flex items-center gap-2 text-xs text-text-secondary">
+                <span class="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded bg-surface-700/50">
+                  <History :size="12" class="text-surface-400" /> Reset 05:00 WIB
+                </span>
+                <span v-if="leaderBranches.length > 0" class="px-2.5 py-1 rounded-lg bg-surface-700/60 border border-surface-600/40 text-text-primary font-bold flex items-center gap-1.5 shadow-sm">
+                  <Store :size="13" class="text-primary-500" />
+                  <span>{{ leaderBranches.map(b => b.name).join(', ') }}</span>
+                </span>
+              </div>
+            </div>
 
-        <!-- Cek Penjualan -->
-        <router-link to="/sales/check" class="card group hover:border-blue-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-              <ShoppingCart :size="20" />
-            </div>
-            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-blue-400 transition-all" />
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-text-primary group-hover:text-blue-400 transition-colors">Cek Penjualan</h3>
-            <p class="text-[11px] text-text-secondary mt-0.5">Monitoring transaksi kasir</p>
-          </div>
-        </router-link>
+            <!-- Primary Metric Hero Area -->
+            <div class="mt-6 relative z-10">
+              <p class="text-xs font-bold uppercase tracking-wider text-text-secondary">Omset Bersih Cabang (Net Sales)</p>
+              <div class="flex flex-wrap items-baseline gap-3 mt-1.5">
+                <h2 class="text-3xl sm:text-4xl lg:text-5xl font-mono font-black tabular-nums tracking-tight"
+                  :class="leaderNetRevenue < 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'">
+                  {{ formatCurrency(leaderNetRevenue) }}
+                </h2>
+                <span v-if="leaderNetRevenue !== leaderTotalRevenue" class="text-xs font-mono font-semibold px-2 py-0.5 rounded"
+                  :class="leaderNetRevenue < leaderTotalRevenue ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'">
+                  Variance: {{ formatCurrency(leaderNetRevenue - leaderTotalRevenue) }}
+                </span>
+              </div>
 
-        <!-- Kelola Staf CS -->
-        <router-link to="/users" class="card group hover:border-violet-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-              <Users :size="20" />
+              <!-- Contextual Running Strip -->
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-text-secondary font-medium">
+                <span class="flex items-center gap-1.5">
+                  Gross Omset:
+                  <strong class="font-mono text-text-primary font-bold">{{ formatCurrency(leaderTotalRevenue) }}</strong>
+                </span>
+                <span class="text-surface-600">•</span>
+                <span class="flex items-center gap-1.5">
+                  Volume:
+                  <strong class="font-mono text-primary-600 dark:text-primary-400 font-bold">{{ leaderTransactionsCount }} Transaksi</strong>
+                </span>
+                <template v-if="leaderMonthSummary">
+                  <span class="text-surface-600">•</span>
+                  <span class="flex items-center gap-1.5">
+                    MTD ({{ leaderMonthSummary.month_name }}):
+                    <strong class="font-mono text-text-primary font-bold">{{ formatCurrency(leaderMonthSummary.net_revenue) }}</strong>
+                  </span>
+                </template>
+              </div>
             </div>
-            <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-400">
-              {{ csPerformance.length }} CS
-            </span>
           </div>
-          <div>
-            <h3 class="font-bold text-sm text-text-primary group-hover:text-violet-400 transition-colors">Kelola Staf CS</h3>
-            <p class="text-[11px] text-text-secondary mt-0.5">Tambah & manajemen CS</p>
-          </div>
-        </router-link>
 
-        <!-- Analisa Stok -->
-        <router-link to="/inventory/stock-analysis" class="card group hover:border-emerald-500/50 hover:bg-surface-700/30 transition-all p-4 flex flex-col justify-between relative overflow-hidden border border-surface-700/60 shadow-lg col-span-2 sm:col-span-1">
-          <div class="flex items-center justify-between mb-3">
-            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
-              <BarChart3 :size="20" />
+          <!-- Bottom Micro-Telemetry Dock (3 Columns) -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-surface-700/60 relative z-10">
+            <!-- Metric 1: Unit Terjual -->
+            <div class="p-3.5 rounded-xl bg-surface-700/30 border border-surface-700/50 hover:bg-surface-700/40 transition-colors">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary font-bold uppercase tracking-wide">
+                <span>Unit Terjual</span>
+                <Package :size="14" class="text-violet-500" />
+              </div>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-xl font-mono font-black text-text-primary">{{ leaderProductsSoldCount }}</span>
+                <span class="text-[11px] text-text-secondary">Hari Ini</span>
+              </div>
+              <div class="mt-2 flex items-center gap-1.5 text-[10px] font-mono">
+                <span class="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400 font-bold">HP: {{ leaderHpSold }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">Acc: {{ leaderNonHpSold }}</span>
+              </div>
             </div>
-            <ArrowUpRight :size="16" class="text-text-secondary opacity-40 group-hover:opacity-100 group-hover:text-emerald-400 transition-all" />
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-text-primary group-hover:text-emerald-400 transition-colors">Analisa Stok</h3>
-            <p class="text-[11px] text-text-secondary mt-0.5">Perputaran umur stok unit</p>
-          </div>
-        </router-link>
-      </div>
 
-      <!-- 2. Monthly Performance Banner -->
-      <div v-if="leaderMonthSummary" class="card p-5 bg-gradient-to-r from-surface-800 via-surface-800/90 to-surface-700/40 border border-surface-700/60 shadow-xl relative overflow-hidden">
-        <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-primary-500/5 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <span class="text-[10px] font-black uppercase tracking-widest text-primary-400">Ringkasan Bulan Berjalan</span>
-            <h2 class="text-xl font-black text-text-primary tracking-tight mt-0.5">{{ leaderMonthSummary.month_name }}</h2>
-            <p class="text-xs text-text-secondary mt-1">Akumulasi seluruh transaksi di cabang yang Anda pimpin bulan ini</p>
-          </div>
-          <div class="flex items-center gap-6 sm:gap-8 flex-wrap">
-            <div>
-              <p class="text-[10px] uppercase font-bold text-text-secondary">Omset Bulan Ini</p>
-              <p class="text-lg sm:text-xl font-black text-text-primary font-mono mt-0.5">{{ formatCurrency(leaderMonthSummary.revenue) }}</p>
+            <!-- Metric 2: Stok Fisik -->
+            <div class="p-3.5 rounded-xl bg-surface-700/30 border border-surface-700/50 hover:bg-surface-700/40 transition-colors">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary font-bold uppercase tracking-wide">
+                <span>Stok Fisik Cabang</span>
+                <Box :size="14" class="text-primary-500" />
+              </div>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-xl font-mono font-black text-text-primary">{{ leaderTotalStockCount }}</span>
+                <span class="text-[11px] text-text-secondary">Unit Ready</span>
+              </div>
+              <div class="mt-2 flex items-center gap-1.5 text-[10px] font-mono">
+                <span class="px-1.5 py-0.5 rounded bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold">HP: {{ leaderHpStock }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold">Acc: {{ leaderNonHpStock }}</span>
+              </div>
             </div>
-            <div>
-              <p class="text-[10px] uppercase font-bold text-text-secondary">Omset Bersih</p>
-              <p class="text-lg sm:text-xl font-black font-mono mt-0.5" :class="leaderMonthSummary.net_revenue < 0 ? 'text-red-400' : 'text-emerald-400'">
-                {{ formatCurrency(leaderMonthSummary.net_revenue) }}
-              </p>
-            </div>
-            <div>
-              <p class="text-[10px] uppercase font-bold text-text-secondary">Total Transaksi</p>
-              <p class="text-lg sm:text-xl font-black text-primary-400 font-mono mt-0.5">{{ leaderMonthSummary.transactions }} Trx</p>
+
+            <!-- Metric 3: Balancing Bulan Ini -->
+            <div class="p-3.5 rounded-xl bg-surface-700/30 border border-surface-700/50 hover:bg-surface-700/40 transition-colors">
+              <div class="flex items-center justify-between text-[11px] text-text-secondary font-bold uppercase tracking-wide">
+                <span>Net Balancing</span>
+                <Scale :size="14" class="text-amber-500" />
+              </div>
+              <div class="mt-2 flex items-baseline justify-between">
+                <span class="text-base font-mono font-black truncate"
+                  :class="(leaderBalancingSummary?.month_net || 0) < 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'">
+                  {{ formatCurrency(leaderBalancingSummary?.month_net || 0) }}
+                </span>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-[10px]">
+                <span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold font-mono">
+                  {{ leaderBalancingSummary?.month_count || 0 }} Trx
+                </span>
+                <router-link to="/balancing/history" class="text-primary-500 hover:text-primary-400 font-semibold flex items-center gap-0.5">
+                  Audit <ArrowUpRight :size="11" />
+                </router-link>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 3. CS Team Performance Leaderboard in Leader's Branch -->
-      <div class="card overflow-hidden p-0 border border-surface-700/60 shadow-xl">
-        <div class="p-5 border-b border-surface-700/50 bg-surface-700/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shadow-inner">
-              <Trophy :size="20" />
+        <!-- TILE 2: CS Floor Roster (lg:col-span-5 xl:col-span-4) -->
+        <div class="lg:col-span-5 xl:col-span-4 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl relative">
+          <div>
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shadow-inner">
+                  <Trophy :size="16" />
+                </div>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Roster CS Hari Ini</h3>
+                  <p class="text-[11px] text-text-secondary">Leaderboard Staf Cabang</p>
+                </div>
+              </div>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 font-mono">
+                {{ csPerformance.length }} CS Aktif
+              </span>
             </div>
-            <div>
-              <h2 class="text-base font-bold text-text-primary tracking-tight">Leaderboard Tim CS Cabang (Hari Ini)</h2>
-              <p class="text-xs text-text-secondary">Performa dan kontribusi closing akun CS di cabang yang Anda pimpin</p>
-            </div>
-          </div>
-          <router-link to="/users" class="btn btn-secondary text-xs py-1.5 px-3 self-start sm:self-auto flex items-center gap-1.5">
-            <Users :size="14" />
-            Kelola Staf CS
-          </router-link>
-        </div>
-        <div class="p-4 overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead>
-              <tr class="text-[10px] text-text-secondary uppercase tracking-widest font-black border-b border-surface-700/50">
-                <th class="pb-3 w-14">Rank</th>
-                <th class="pb-3">Nama CS</th>
-                <th class="pb-3 text-center">Unit HP</th>
-                <th class="pb-3 text-center">Non-HP</th>
-                <th class="pb-3 text-center">Total Unit</th>
-                <th class="pb-3 text-right">Total Omset</th>
-                <th class="pb-3 text-right">Omset Bersih</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-700/40">
-              <tr v-for="(cs, idx) in csPerformance" :key="cs.id || idx" class="group hover:bg-surface-700/20 transition-colors">
-                <td class="py-3">
-                  <div class="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs"
-                    :class="idx === 0 ? 'bg-amber-500 text-black shadow-md shadow-amber-500/20' : (idx === 1 ? 'bg-slate-300 text-black' : (idx === 2 ? 'bg-amber-700 text-white' : 'text-text-secondary bg-surface-700/50'))">
+
+            <!-- List of CS -->
+            <div class="mt-3.5 space-y-2.5 max-h-[310px] overflow-y-auto pr-1">
+              <div v-for="(cs, idx) in csPerformance" :key="cs.id || idx"
+                class="p-2.5 rounded-xl bg-surface-700/25 hover:bg-surface-700/50 border border-surface-700/40 transition-all flex items-center justify-between gap-3 group">
+                <!-- Left: Rank & Avatar & Info -->
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <!-- Rank Pill -->
+                  <div class="w-6 h-6 rounded-md flex items-center justify-center font-mono font-black text-xs shrink-0"
+                    :class="idx === 0
+                      ? 'bg-amber-500 text-black shadow-sm shadow-amber-500/30'
+                      : (idx === 1
+                        ? 'bg-slate-300 text-black'
+                        : (idx === 2
+                          ? 'bg-amber-700 text-white'
+                          : 'bg-surface-700 text-text-secondary text-[11px]'))">
                     {{ idx + 1 }}
                   </div>
-                </td>
-                <td class="py-3">
-                  <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-primary-500/10 flex items-center justify-center border border-primary-500/20 overflow-hidden shrink-0">
-                      <img :src="resolvePhoto(cs, cs.name)"
-                        class="w-full h-full object-cover"
-                        @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.name || 'CS')}&background=10b981&color=fff`" />
-                    </div>
-                    <div>
-                      <p class="font-bold text-text-primary text-sm group-hover:text-primary-400 transition-colors">{{ cs.name }}</p>
-                      <span class="text-[10px] text-text-secondary">{{ cs.branch_name || '-' }}</span>
-                    </div>
+
+                  <!-- Avatar -->
+                  <div class="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center overflow-hidden shrink-0 border border-surface-600/50">
+                    <img :src="resolvePhoto(cs, cs.name)"
+                      class="w-full h-full object-cover"
+                      @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(cs.name || 'CS')}&background=10b981&color=fff`" />
                   </div>
-                </td>
-                <td class="py-3 text-center">
-                  <span class="font-bold text-primary-400 font-mono">{{ cs.hp_count || 0 }}</span>
-                </td>
-                <td class="py-3 text-center">
-                  <span class="font-bold text-blue-400 font-mono">{{ cs.non_hp_count || 0 }}</span>
-                </td>
-                <td class="py-3 text-center">
-                  <span class="font-black text-text-primary font-mono text-base">{{ (cs.hp_count || 0) + (cs.non_hp_count || 0) }}</span>
-                </td>
-                <td class="py-3 text-right">
-                  <span class="font-semibold text-slate-300 font-mono">{{ formatCurrency(cs.total_sales || 0) }}</span>
-                </td>
-                <td class="py-3 text-right">
-                  <span class="font-bold font-mono" :class="(cs.net_sales || 0) < 0 ? 'text-red-400' : 'text-emerald-400'">
+
+                  <div class="min-w-0">
+                    <p class="font-bold text-xs text-text-primary truncate group-hover:text-primary-500 transition-colors">{{ cs.name }}</p>
+                    <p class="text-[10px] text-text-secondary truncate">{{ cs.branch_name || '-' }}</p>
+                  </div>
+                </div>
+
+                <!-- Right: Units & Sales -->
+                <div class="text-right shrink-0">
+                  <div class="flex items-baseline justify-end gap-1 font-mono">
+                    <span class="font-black text-xs text-text-primary">{{ (cs.hp_count || 0) + (cs.non_hp_count || 0) }}</span>
+                    <span class="text-[10px] text-text-secondary font-normal">Unit</span>
+                  </div>
+                  <p class="text-[11px] font-mono font-bold" :class="(cs.net_sales || 0) < 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'">
                     {{ formatCurrency(cs.net_sales || 0) }}
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="!csPerformance || csPerformance.length === 0">
-                <td colspan="7" class="py-8 text-center text-text-secondary italic">
-                  Belum ada staf CS yang terdaftar di cabang ini
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Empty state -->
+              <div v-if="!csPerformance || csPerformance.length === 0" class="py-10 text-center text-text-secondary italic text-xs">
+                Belum ada aktivitas staf CS hari ini di cabang
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Direct Action -->
+          <div class="pt-3.5 mt-2 border-t border-surface-700/50">
+            <router-link to="/users" class="btn btn-secondary w-full text-xs py-2 justify-center gap-2">
+              <Users :size="14" class="text-primary-500" />
+              <span>Kelola & Tambah Staf CS</span>
+              <ArrowRight :size="13" class="opacity-60" />
+            </router-link>
+          </div>
         </div>
+
       </div>
 
-      <!-- 4. Balancing & Physical Stock Overview (2 Columns) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Balancing Summary Card -->
-        <div class="card p-5 flex flex-col justify-between border border-surface-700/60 shadow-xl">
+      <!-- BENTO ROW 2: Operational Pillars (Balancing, Stock, Utility Dock) (3 Columns) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+        
+        <!-- TILE 3: Balancing Sentinel (Financial Discrepancies) (lg:col-span-4) -->
+        <div class="lg:col-span-4 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
                 <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
                   <Scale :size="16" />
                 </div>
-                <h2 class="text-base font-bold text-text-primary">Balancing Cabang Bulan Ini</h2>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Balancing Cabang</h3>
+                  <p class="text-[11px] text-text-secondary">Penyesuaian Buku Kasir</p>
+                </div>
               </div>
-              <router-link to="/balancing/history" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
-                Lihat History
-                <ArrowUpRight :size="12" />
+              <router-link to="/balancing/history" class="text-xs text-amber-500 hover:text-amber-400 flex items-center gap-1 font-semibold">
+                History <ArrowUpRight :size="12" />
               </router-link>
             </div>
 
-            <!-- Summary Numbers -->
-            <div class="grid grid-cols-3 gap-3 mb-5 p-3 rounded-xl bg-surface-700/20 border border-surface-700/40 text-center">
+            <!-- Dual Variance Pill Strip -->
+            <div class="grid grid-cols-2 gap-2 mt-4 p-3 rounded-xl bg-surface-700/30 border border-surface-700/50 text-center">
               <div>
-                <p class="text-[10px] text-text-secondary font-bold uppercase">Net Balancing</p>
-                <p class="text-sm font-black font-mono mt-0.5" :class="(leaderBalancingSummary?.month_net || 0) < 0 ? 'text-red-400' : 'text-emerald-400'">
-                  {{ formatCurrency(leaderBalancingSummary?.month_net || 0) }}
-                </p>
-              </div>
-              <div>
-                <p class="text-[10px] text-text-secondary font-bold uppercase">Total Plus (+)</p>
-                <p class="text-sm font-bold font-mono text-emerald-400 mt-0.5">
+                <p class="text-[10px] text-text-secondary font-bold uppercase tracking-wider">Total Plus (+)</p>
+                <p class="text-xs font-mono font-bold text-emerald-500 dark:text-emerald-400 mt-0.5">
                   +{{ formatCurrency(leaderBalancingSummary?.month_plus || 0) }}
                 </p>
               </div>
-              <div>
-                <p class="text-[10px] text-text-secondary font-bold uppercase">Total Minus (-)</p>
-                <p class="text-sm font-bold font-mono text-red-400 mt-0.5">
+              <div class="border-l border-surface-700/50">
+                <p class="text-[10px] text-text-secondary font-bold uppercase tracking-wider">Total Minus (-)</p>
+                <p class="text-xs font-mono font-bold text-red-500 dark:text-red-400 mt-0.5">
                   {{ formatCurrency(leaderBalancingSummary?.month_minus || 0) }}
                 </p>
               </div>
             </div>
 
-            <!-- Recent Balancings list -->
-            <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">5 Riwayat Balancing Terbaru</h4>
-            <div class="space-y-2">
-              <div v-for="b in leaderBalancingSummary?.recent || []" :key="b.id" class="p-2.5 rounded-lg bg-surface-700/30 border border-surface-700/40 flex items-center justify-between text-xs">
-                <div>
-                  <p class="font-bold text-text-primary">{{ b.sub_category }}</p>
-                  <p class="text-[11px] text-text-secondary">{{ b.cs_name }} • {{ b.datetime }}</p>
+            <!-- Recent Balancing Adjustments Stream -->
+            <div class="mt-4">
+              <p class="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Penyesuaian Terbaru (Bulan Ini)</p>
+              <div class="space-y-2 max-h-[170px] overflow-y-auto pr-1">
+                <div v-for="b in (leaderBalancingSummary?.recent || []).slice(0, 3)" :key="b.id"
+                  class="p-2.5 rounded-lg bg-surface-700/20 border border-surface-700/40 flex items-center justify-between text-xs">
+                  <div class="min-w-0 pr-2">
+                    <p class="font-bold text-text-primary text-[11px] truncate">{{ b.sub_category }}</p>
+                    <p class="text-[10px] text-text-secondary truncate">{{ b.cs_name }} • {{ b.time }}</p>
+                  </div>
+                  <span class="font-mono font-bold text-xs shrink-0" :class="b.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400'">
+                    {{ formatCurrency(b.amount) }}
+                  </span>
                 </div>
-                <span class="font-mono font-bold" :class="b.amount < 0 ? 'text-red-400' : 'text-emerald-400'">
-                  {{ formatCurrency(b.amount) }}
-                </span>
-              </div>
-              <div v-if="!leaderBalancingSummary?.recent || leaderBalancingSummary.recent.length === 0" class="py-4 text-center text-text-secondary italic text-xs">
-                Belum ada catatan balancing di cabang ini bulan ini
+                <div v-if="!leaderBalancingSummary?.recent || leaderBalancingSummary.recent.length === 0" class="py-6 text-center text-text-secondary italic text-xs">
+                  Belum ada penyesuaian balancing bulan ini
+                </div>
               </div>
             </div>
           </div>
-          <div class="pt-4 mt-4 border-t border-surface-700/50">
-            <router-link to="/balancing/history" class="btn btn-secondary w-full text-xs justify-center">
-              Buka Seluruh History Balancing
+
+          <div class="pt-3.5 mt-3 border-t border-surface-700/50">
+            <router-link to="/balancing/history" class="btn btn-secondary w-full text-xs py-2 justify-center">
+              Buka History Balancing Cabang
             </router-link>
           </div>
         </div>
 
-        <!-- Physical Stock Breakdown Card -->
-        <div class="card p-5 flex flex-col justify-between border border-surface-700/60 shadow-xl">
+        <!-- TILE 4: Physical Stock Matrix (lg:col-span-4) -->
+        <div class="lg:col-span-4 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl">
           <div>
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                  <Package :size="16" />
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                  <Box :size="16" />
                 </div>
-                <h2 class="text-base font-bold text-text-primary">Stok Fisik Cabang</h2>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Stok Fisik Cabang</h3>
+                  <p class="text-[11px] text-text-secondary">Komposisi Inventori Real</p>
+                </div>
               </div>
-              <router-link to="/inventory" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
-                Lihat Inventory
-                <ArrowUpRight :size="12" />
-              </router-link>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                {{ leaderTotalStockCount }} Total Unit
+              </span>
             </div>
 
-            <!-- Branch breakdown cards -->
-            <div class="space-y-3">
-              <div v-for="br in leaderBranchBreakdown" :key="br.id" class="p-4 rounded-xl bg-surface-700/30 border border-surface-700/40 space-y-3">
-                <div class="flex justify-between items-start">
-                  <div>
-                    <h3 class="font-bold text-sm text-text-primary flex items-center gap-1.5">
-                      <Store :size="14" class="text-primary-500" />
-                      {{ br.name }}
-                    </h3>
-                    <p class="text-[11px] text-text-secondary truncate max-w-xs">{{ br.address || '-' }}</p>
-                  </div>
-                  <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-primary-500/10 text-primary-400 border border-primary-500/20">
-                    {{ br.total_stock }} Total Unit
-                  </span>
-                </div>
+            <!-- Segmented Gauge Proportion Bar -->
+            <div class="mt-4">
+              <div class="flex justify-between items-center text-xs mb-1.5">
+                <span class="font-semibold text-primary-500 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-primary-500"></span> HP ({{ hpStockPercentage }}%)
+                </span>
+                <span class="font-semibold text-cyan-500 flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-cyan-500"></span> Acc ({{ nonHpStockPercentage }}%)
+                </span>
+              </div>
+              <div class="h-2.5 w-full bg-surface-700 rounded-full overflow-hidden flex">
+                <div class="bg-primary-500 h-full transition-all duration-500" :style="{ width: `${hpStockPercentage}%` }"></div>
+                <div class="bg-cyan-500 h-full transition-all duration-500" :style="{ width: `${nonHpStockPercentage}%` }"></div>
+              </div>
+            </div>
 
-                <div class="grid grid-cols-2 gap-2 text-center pt-2 border-t border-surface-700/50">
-                  <div class="p-2.5 rounded-lg bg-surface-800/60 border border-surface-700/30">
-                    <p class="text-[10px] text-text-secondary uppercase font-bold">Stok HP Fisik</p>
-                    <p class="text-base font-black text-text-primary font-mono mt-0.5">{{ br.hp_stock }} Unit</p>
-                  </div>
-                  <div class="p-2.5 rounded-lg bg-surface-800/60 border border-surface-700/30">
-                    <p class="text-[10px] text-text-secondary uppercase font-bold">Stok Non-HP / Acc</p>
-                    <p class="text-base font-black text-text-primary font-mono mt-0.5">{{ br.non_hp_stock }} Pcs</p>
-                  </div>
-                </div>
+            <!-- Detailed Stock Numbers -->
+            <div class="grid grid-cols-2 gap-2 mt-4">
+              <div class="p-3 rounded-xl bg-surface-700/25 border border-surface-700/40 text-center">
+                <p class="text-[10px] text-text-secondary uppercase font-bold tracking-wider">Unit Handphone</p>
+                <p class="text-xl font-mono font-black text-text-primary mt-0.5">{{ leaderHpStock }}</p>
+                <span class="text-[10px] text-primary-500 font-medium">Status Available</span>
+              </div>
+              <div class="p-3 rounded-xl bg-surface-700/25 border border-surface-700/40 text-center">
+                <p class="text-[10px] text-text-secondary uppercase font-bold tracking-wider">Aksesoris / Non-HP</p>
+                <p class="text-xl font-mono font-black text-text-primary mt-0.5">{{ leaderNonHpStock }}</p>
+                <span class="text-[10px] text-cyan-500 font-medium">Fisik Display & Box</span>
+              </div>
+            </div>
+
+            <!-- Branch breakdown snippet if multi branch -->
+            <div v-if="leaderBranchBreakdown.length > 1" class="mt-3 space-y-1.5 max-h-[85px] overflow-y-auto">
+              <div v-for="br in leaderBranchBreakdown" :key="br.id" class="flex items-center justify-between text-xs p-1.5 rounded bg-surface-700/20">
+                <span class="font-semibold text-text-primary truncate max-w-[150px]">{{ br.name }}</span>
+                <span class="font-mono text-text-secondary">{{ br.total_stock }} Unit (HP: {{ br.hp_stock }})</span>
               </div>
             </div>
           </div>
 
-          <div class="pt-4 mt-4 border-t border-surface-700/50 flex gap-2">
-            <router-link to="/inventory" class="btn btn-secondary flex-1 text-xs justify-center">
+          <div class="pt-3.5 mt-3 border-t border-surface-700/50 flex gap-2">
+            <router-link to="/inventory" class="btn btn-secondary flex-1 text-xs py-2 justify-center">
               Data Inventory
             </router-link>
-            <router-link to="/inventory/stock-analysis" class="btn btn-secondary flex-1 text-xs justify-center">
+            <router-link to="/inventory/stock-analysis" class="btn btn-secondary flex-1 text-xs py-2 justify-center">
               Analisa Stok
             </router-link>
           </div>
         </div>
+
+        <!-- TILE 5: Fast Action Utility Dock (lg:col-span-4 md:col-span-2) -->
+        <div class="lg:col-span-4 md:col-span-2 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-violet-500/10 text-violet-500 flex items-center justify-center">
+                  <Zap :size="16" />
+                </div>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Navigasi Operasional</h3>
+                  <p class="text-[11px] text-text-secondary">Menu Eksekutif Leader</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono text-text-secondary">5 Modul Utama</span>
+            </div>
+
+            <!-- 5 Linear-style Action Buttons -->
+            <div class="mt-3 space-y-1.5">
+              <!-- 1. History Balancing -->
+              <router-link to="/balancing/history"
+                class="flex items-center justify-between p-2.5 rounded-xl bg-surface-700/20 hover:bg-amber-500/10 border border-surface-700/40 hover:border-amber-500/30 transition-all group">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Scale :size="14" />
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-text-primary group-hover:text-amber-500 transition-colors">History Balancing</h4>
+                    <p class="text-[10px] text-text-secondary">Penyesuaian kasir cabang</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span v-if="leaderBalancingSummary" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500">
+                    {{ leaderBalancingSummary.month_count }} Trx
+                  </span>
+                  <ArrowRight :size="12" class="text-text-secondary group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </router-link>
+
+              <!-- 2. Data Inventory -->
+              <router-link to="/inventory"
+                class="flex items-center justify-between p-2.5 rounded-xl bg-surface-700/20 hover:bg-blue-500/10 border border-surface-700/40 hover:border-blue-500/30 transition-all group">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Box :size="14" />
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-text-primary group-hover:text-blue-500 transition-colors">Data Inventory</h4>
+                    <p class="text-[10px] text-text-secondary">Stok unit & cek IMEI</p>
+                  </div>
+                </div>
+                <ArrowRight :size="12" class="text-text-secondary group-hover:translate-x-0.5 transition-transform" />
+              </router-link>
+
+              <!-- 3. Cek Penjualan -->
+              <router-link to="/sales/check"
+                class="flex items-center justify-between p-2.5 rounded-xl bg-surface-700/20 hover:bg-emerald-500/10 border border-surface-700/40 hover:border-emerald-500/30 transition-all group">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ShoppingCart :size="14" />
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-text-primary group-hover:text-emerald-500 transition-colors">Cek Penjualan</h4>
+                    <p class="text-[10px] text-text-secondary">Monitoring transaksi kasir</p>
+                  </div>
+                </div>
+                <ArrowRight :size="12" class="text-text-secondary group-hover:translate-x-0.5 transition-transform" />
+              </router-link>
+
+              <!-- 4. Analisa Stok -->
+              <router-link to="/inventory/stock-analysis"
+                class="flex items-center justify-between p-2.5 rounded-xl bg-surface-700/20 hover:bg-purple-500/10 border border-surface-700/40 hover:border-purple-500/30 transition-all group">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <BarChart3 :size="14" />
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-text-primary group-hover:text-purple-500 transition-colors">Analisa Stok</h4>
+                    <p class="text-[10px] text-text-secondary">Perputaran umur unit cabang</p>
+                  </div>
+                </div>
+                <ArrowRight :size="12" class="text-text-secondary group-hover:translate-x-0.5 transition-transform" />
+              </router-link>
+
+              <!-- 5. Kelola Staf CS -->
+              <router-link to="/users"
+                class="flex items-center justify-between p-2.5 rounded-xl bg-surface-700/20 hover:bg-rose-500/10 border border-surface-700/40 hover:border-rose-500/30 transition-all group">
+                <div class="flex items-center gap-3">
+                  <div class="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Users :size="14" />
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-xs text-text-primary group-hover:text-rose-500 transition-colors">Kelola Staf CS</h4>
+                    <p class="text-[10px] text-text-secondary">Tambah staf cabang</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-500">
+                    {{ csPerformance.length }} CS
+                  </span>
+                  <ArrowRight :size="12" class="text-text-secondary group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </router-link>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- 5. Branch Competition Podium (Global Rankings) -->
-      <div v-if="branchRanking" class="overflow-hidden bg-transparent border-none p-0 flex flex-col relative min-h-[500px]">
-        <div class="px-2 flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-          <div class="text-center md:text-left">
-            <p class="text-[10px] font-bold text-surface-500 uppercase tracking-[0.3em] mb-1">{{ leftPodiumTitle }}</p>
-            <h2 class="font-black text-2xl lg:text-3xl text-text-primary tracking-tight uppercase">
-              Kompetisi <span class="text-primary-500">Cabang Nasional</span>
-            </h2>
+      <!-- BENTO ROW 3: Product Velocity & Live Transactions Stream (5 - 7 split) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- TILE 6: Product & Brand Velocity (lg:col-span-5) -->
+        <div class="lg:col-span-5 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <TrendingUp :size="16" />
+                </div>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Kecepatan Penjualan Produk</h3>
+                  <p class="text-[11px] text-text-secondary">Hari Ini di Cabang Anda</p>
+                </div>
+              </div>
+              <div class="flex p-0.5 rounded-lg bg-surface-700/40 border border-surface-600/30 text-[10px] font-bold">
+                <button @click="leaderVelocityTab = 'models'"
+                  class="px-2.5 py-1 rounded-md transition-all"
+                  :class="leaderVelocityTab === 'models' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                  Model (Top 5)
+                </button>
+                <button @click="leaderVelocityTab = 'brands'"
+                  class="px-2.5 py-1 rounded-md transition-all"
+                  :class="leaderVelocityTab === 'brands' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                  Brand
+                </button>
+              </div>
+            </div>
+
+            <!-- Content: Models Velocity -->
+            <div v-if="leaderVelocityTab === 'models'" class="mt-4 space-y-2.5">
+              <div v-for="(item, idx) in typeSales" :key="idx" class="relative overflow-hidden p-2.5 rounded-xl bg-surface-700/20 border border-surface-700/40">
+                <!-- Relative Progress Fill -->
+                <div class="absolute inset-y-0 left-0 bg-primary-500/10 rounded-l-xl transition-all duration-500 pointer-events-none"
+                  :style="{ width: `${Math.round((item.count / maxTypeSalesCount) * 100)}%` }"></div>
+
+                <div class="relative z-10 flex items-center justify-between gap-2 text-xs">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono font-bold bg-surface-700 text-text-secondary shrink-0">
+                      {{ idx + 1 }}
+                    </span>
+                    <span class="font-semibold text-text-primary truncate">{{ item.name }}</span>
+                  </div>
+                  <div class="flex items-center gap-1 font-mono shrink-0">
+                    <span class="font-black text-emerald-500 dark:text-emerald-400">{{ item.count }}</span>
+                    <span class="text-[10px] text-text-secondary">Unit</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="typeSales.length === 0" class="py-10 text-center text-text-secondary italic text-xs">
+                Belum ada produk terjual hari ini di cabang
+              </div>
+            </div>
+
+            <!-- Content: Brands Velocity -->
+            <div v-else class="mt-4 space-y-2.5">
+              <div v-for="(item, idx) in brandSales" :key="idx" class="p-2.5 rounded-xl bg-surface-700/20 border border-surface-700/40 flex items-center justify-between text-xs">
+                <span class="font-semibold text-text-primary truncate">{{ item.name }}</span>
+                <span class="font-mono font-bold text-primary-500">{{ item.count }} Unit</span>
+              </div>
+              <div v-if="brandSales.length === 0" class="py-10 text-center text-text-secondary italic text-xs">
+                Belum ada brand terjual hari ini di cabang
+              </div>
+            </div>
           </div>
-          <div class="flex bg-surface-800/50 backdrop-blur-md p-1 rounded-2xl border border-surface-700/50 shadow-xl">
+
+          <div class="pt-3 mt-3 border-t border-surface-700/50">
+            <router-link to="/inventory/stock-analysis" class="text-xs text-primary-500 hover:text-primary-400 flex items-center justify-center gap-1 font-semibold">
+              Buka Analisa Perputaran Stok Lengkap <ArrowUpRight :size="12" />
+            </router-link>
+          </div>
+        </div>
+
+        <!-- TILE 7: Live Transaction Feed (lg:col-span-7) -->
+        <div class="lg:col-span-7 card p-5 flex flex-col justify-between border border-surface-700/80 bg-surface-800 shadow-xl">
+          <div>
+            <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <Activity :size="16" />
+                </div>
+                <div>
+                  <h3 class="font-bold text-sm text-text-primary tracking-tight">Live Penjualan Cabang (Hari Ini)</h3>
+                  <p class="text-[11px] text-text-secondary">Transaksi Terakhir Kasir</p>
+                </div>
+              </div>
+              <router-link to="/sales/check" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
+                Cek Semua <ArrowUpRight :size="12" />
+              </router-link>
+            </div>
+
+            <!-- Transaction Feed List -->
+            <div class="mt-3.5 space-y-2 max-h-[310px] overflow-y-auto pr-1">
+              <div v-for="trx in recentTransactions" :key="trx.id"
+                class="p-3 rounded-xl bg-surface-700/20 hover:bg-surface-700/40 border border-surface-700/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-mono text-xs font-bold text-primary-500 dark:text-primary-400">#{{ trx.id }}</span>
+                    <span class="text-xs font-bold text-text-primary">{{ trx.customer }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-surface-700 text-text-secondary font-medium">CS: {{ trx.cs_name || '-' }}</span>
+                  </div>
+                  <p class="text-[11px] text-text-secondary mt-1 truncate" :title="trx.items">
+                    <Package :size="12" class="inline mr-1 text-surface-400" />
+                    {{ trx.items }}
+                  </p>
+                </div>
+
+                <div class="flex sm:flex-col items-center sm:items-end justify-between shrink-0 gap-0.5">
+                  <span class="font-mono font-bold text-xs text-emerald-500 dark:text-emerald-400">
+                    {{ formatCurrency(trx.total) }}
+                  </span>
+                  <span class="text-[10px] text-text-secondary font-mono">{{ trx.datetime }} ({{ trx.time }})</span>
+                </div>
+              </div>
+
+              <div v-if="!recentTransactions || recentTransactions.length === 0" class="py-12 text-center text-text-secondary italic text-xs">
+                Belum ada transaksi tercatat hari ini di cabang yang Anda pimpin
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 mt-3 border-t border-surface-700/50">
+            <router-link to="/sales/check" class="btn btn-secondary w-full text-xs py-2 justify-center gap-1.5">
+              <ShoppingCart :size="14" />
+              <span>Buka Menu Cek Penjualan Cabang</span>
+            </router-link>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BENTO ROW 4: National Branch League Standing (Collapsible / Compact) -->
+      <div v-if="branchRanking" class="card p-5 border border-surface-700/80 bg-surface-800 shadow-xl relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-700/60">
+          <div>
+            <div class="flex items-center gap-2">
+              <Trophy :size="18" class="text-amber-500" />
+              <h3 class="font-bold text-base text-text-primary tracking-tight">Kompetisi Cabang Nasional</h3>
+            </div>
+            <p class="text-xs text-text-secondary mt-0.5">Posisi ranking cabang Anda bersaing dengan seluruh cabang nasional</p>
+          </div>
+
+          <div class="flex bg-surface-700/40 p-1 rounded-xl border border-surface-600/30">
             <button v-for="tab in [{ id: 'today', lab: 'Hari Ini' }, { id: 'this_month', lab: 'Bulan Ini' }]"
               :key="tab.id" @click="podiumTab = tab.id"
-              class="px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300"
-              :class="podiumTab === tab.id ? 'bg-primary-500 text-black shadow-lg' : 'text-text-secondary hover:text-primary-500'">
+              class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+              :class="podiumTab === tab.id ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
               {{ tab.lab }}
             </button>
           </div>
         </div>
 
-        <!-- Global & Branch Ranking Summary Bar -->
-        <div v-if="branchRanking?.summary" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div v-for="item in [
-            { label: 'Today Summary', global: branchRanking.summary.today_global, local: branchRanking.summary.today_local, icon: Target, color: 'emerald' },
-            { label: 'Yesterday Summary', global: branchRanking.summary.yesterday_global, local: branchRanking.summary.yesterday_local, icon: History, color: 'blue' },
-            { label: 'This Month Summary', global: branchRanking.summary.this_month_global, local: branchRanking.summary.this_month_local, icon: Calendar, color: 'purple' },
-            { label: 'Last Month Summary', global: branchRanking.summary.last_month_global, local: branchRanking.summary.last_month_local, icon: Award, color: 'amber' }
-          ]" :key="item.label" class="card group p-4 bg-white dark:bg-[#0d0d0d] border border-surface-700/40 shadow-lg relative overflow-hidden">
-            <div class="relative z-10 flex items-center justify-between">
-              <div class="flex-1">
-                <span class="text-[9px] font-black uppercase tracking-widest mb-2 block opacity-40">{{ item.label }}</span>
-                <div class="flex items-center gap-3">
-                  <div class="flex items-baseline gap-1">
-                    <span class="text-[9px] font-bold opacity-40 uppercase mr-1">Global</span>
-                    <span class="text-xl font-black tracking-tight" :class="`text-${item.color}-500`"><span class="text-xs opacity-50">#</span>{{ item.global }}</span>
-                  </div>
-                  <div class="flex items-baseline gap-1">
-                    <span class="text-[9px] font-bold opacity-40 uppercase mr-1">Local</span>
-                    <span class="text-lg font-black tracking-tight opacity-70" :class="`text-${item.color}-500`"><span class="text-xs">#</span>{{ item.local }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ml-3" :class="`bg-${item.color}-500/10 text-${item.color}-500`">
-                <component :is="item.icon" :size="18" />
-              </div>
+        <!-- Summary Metric Cards -->
+        <div v-if="branchRanking?.summary" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+          <div class="p-3.5 rounded-xl bg-surface-700/25 border border-surface-700/40">
+            <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Today Global</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-xs text-text-secondary">#</span>
+              <span class="text-2xl font-mono font-black text-emerald-500 dark:text-emerald-400">{{ branchRanking.summary.today_global || '-' }}</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- 6. Top Selling Products & Brands (Today) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Type Sales -->
-        <div class="card border border-surface-700/60 shadow-xl">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-bold text-text-primary">Top 5 Produk Laris Cabang (Hari Ini)</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
-                <tr>
-                  <th class="px-4 py-2.5 rounded-l-lg">Produk / Model</th>
-                  <th class="px-4 py-2.5 rounded-r-lg text-right">Unit Terjual</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-surface-700/40">
-                <tr v-if="typeSales.length === 0">
-                  <td colspan="2" class="px-4 py-6 text-center text-text-secondary italic text-xs">
-                    Belum ada penjualan type hari ini di cabang
-                  </td>
-                </tr>
-                <tr v-for="(item, idx) in typeSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
-                  <td class="px-4 py-3 font-medium text-text-primary text-xs">{{ item.name }}</td>
-                  <td class="px-4 py-3 text-right">
-                    <span class="font-bold text-emerald-400 font-mono">{{ item.count }}</span>
-                    <span class="text-xs text-text-secondary ml-1">Unit</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Brand Sales -->
-        <div class="card border border-surface-700/60 shadow-xl">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-base font-bold text-text-primary">Total Brand Terjual Cabang (Hari Ini)</h2>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
-                <tr>
-                  <th class="px-4 py-2.5 rounded-l-lg">Brand / Kondisi</th>
-                  <th class="px-4 py-2.5 rounded-r-lg text-right">Unit Terjual</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-surface-700/40">
-                <tr v-if="brandSales.length === 0">
-                  <td colspan="2" class="px-4 py-6 text-center text-text-secondary italic text-xs">
-                    Belum ada penjualan brand hari ini di cabang
-                  </td>
-                </tr>
-                <tr v-for="(item, idx) in brandSales" :key="idx" class="hover:bg-surface-700/30 transition-colors">
-                  <td class="px-4 py-3 font-medium text-text-primary text-xs">{{ item.name }}</td>
-                  <td class="px-4 py-3 text-right">
-                    <span class="font-bold text-emerald-400 font-mono">{{ item.count }}</span>
-                    <span class="text-xs text-text-secondary ml-1">Unit</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7. Recent Transactions (Today) -->
-      <div class="card border border-surface-700/60 shadow-xl">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <ShoppingCart :size="16" />
-            </div>
-            <h2 class="text-base font-bold text-text-primary">Transaksi Terakhir Cabang (Hari Ini)</h2>
-          </div>
-          <router-link to="/sales/check" class="text-xs text-primary-500 hover:text-primary-400 flex items-center gap-1 font-semibold">
-            Lihat Semua di Cek Penjualan
-            <ArrowUpRight :size="14" />
-          </router-link>
-        </div>
-
-        <!-- Desktop Table -->
-        <div class="hidden md:block overflow-x-auto">
-          <table class="w-full text-sm text-left">
-            <thead class="text-xs text-text-secondary uppercase bg-surface-700/50">
-              <tr>
-                <th class="px-4 py-3 rounded-l-lg">ID Resi</th>
-                <th class="px-4 py-3">Customer</th>
-                <th class="px-4 py-3">Staf CS</th>
-                <th class="px-4 py-3">Item</th>
-                <th class="px-4 py-3 text-right">Total</th>
-                <th class="px-4 py-3">Waktu</th>
-                <th class="px-4 py-3 rounded-r-lg text-center">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-surface-700/40">
-              <tr v-for="trx in recentTransactions" :key="trx.id" class="hover:bg-surface-700/30 transition-colors">
-                <td class="px-4 py-3 font-mono font-medium text-primary-400 text-xs">{{ trx.id }}</td>
-                <td class="px-4 py-3 text-text-primary font-medium text-xs">{{ trx.customer }}</td>
-                <td class="px-4 py-3 text-text-secondary text-xs">{{ trx.cs_name || '-' }}</td>
-                <td class="px-4 py-3 text-text-secondary text-xs max-w-xs truncate" :title="trx.items">{{ trx.items }}</td>
-                <td class="px-4 py-3 font-bold text-emerald-400 font-mono text-right text-xs">{{ formatCurrency(trx.total) }}</td>
-                <td class="px-4 py-3 text-text-secondary text-xs">
-                  <div class="flex flex-col">
-                    <span>{{ trx.datetime }}</span>
-                    <span class="text-[10px] opacity-70">{{ trx.time }}</span>
-                  </div>
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                    SUKSES
-                  </span>
-                </td>
-              </tr>
-              <tr v-if="!recentTransactions || recentTransactions.length === 0">
-                <td colspan="7" class="px-4 py-8 text-center text-text-secondary italic text-xs">
-                  Belum ada transaksi hari ini di cabang yang Anda pimpin
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Mobile Card List -->
-        <div class="md:hidden space-y-2.5">
-          <div v-for="trx in recentTransactions" :key="trx.id" class="p-3 rounded-xl bg-surface-700/30 border border-surface-700/40 space-y-2">
-            <div class="flex justify-between items-start">
-              <div>
-                <p class="text-[10px] text-primary-400 font-mono">#{{ trx.id }}</p>
-                <p class="font-bold text-text-primary text-xs">{{ trx.customer }}</p>
-                <p class="text-[10px] text-text-secondary">CS: {{ trx.cs_name || '-' }}</p>
-              </div>
-              <span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                SUKSES
-              </span>
-            </div>
-            <p class="text-[11px] text-text-secondary truncate">
-              <Package :size="12" class="inline mr-1" /> {{ trx.items }}
-            </p>
-            <div class="flex justify-between items-end pt-1.5 border-t border-surface-700/40 text-[10px]">
-              <span class="text-text-secondary">{{ trx.datetime }} ({{ trx.time }})</span>
-              <span class="font-bold text-emerald-400 font-mono text-xs">{{ formatCurrency(trx.total) }}</span>
+          <div class="p-3.5 rounded-xl bg-surface-700/25 border border-surface-700/40">
+            <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Today Local</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-xs text-text-secondary">#</span>
+              <span class="text-2xl font-mono font-black text-blue-500 dark:text-blue-400">{{ branchRanking.summary.today_local || '-' }}</span>
             </div>
           </div>
-          <div v-if="!recentTransactions || recentTransactions.length === 0" class="py-6 text-center text-text-secondary italic text-xs">
-            Belum ada transaksi hari ini di cabang yang Anda pimpin
+          <div class="p-3.5 rounded-xl bg-surface-700/25 border border-surface-700/40">
+            <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Month Global</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-xs text-text-secondary">#</span>
+              <span class="text-2xl font-mono font-black text-purple-500 dark:text-purple-400">{{ branchRanking.summary.this_month_global || '-' }}</span>
+            </div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-surface-700/25 border border-surface-700/40">
+            <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Month Local</span>
+            <div class="flex items-baseline gap-1 mt-1">
+              <span class="text-xs text-text-secondary">#</span>
+              <span class="text-2xl font-mono font-black text-amber-500 dark:text-amber-400">{{ branchRanking.summary.this_month_local || '-' }}</span>
+            </div>
           </div>
         </div>
       </div>
