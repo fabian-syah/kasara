@@ -83,17 +83,24 @@ function isProcessing(userId) {
 const isAudit = computed(() => authStore.userRole === 'audit');
 const isSuperAdmin = computed(() => authStore.userRole === 'super_admin');
 const isLeader = computed(() => authStore.userRole === 'leader');
-const isReadOnlyAccess = computed(() => isLeader.value);
+const isReadOnlyAccess = computed(() => false);
 const currentUser = computed(() => authStore.user);
 
-// For audit: filter placement options to only the audit user's accessible placements
-const auditAccessibleBranchIds = computed(() => {
-  if (!isAudit.value) return null;
+// For audit & leader: filter placement options to only accessible placements
+const accessibleBranchIds = computed(() => {
+  if (!isAudit.value && !isLeader.value) return null;
   const user = currentUser.value;
-  if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p =>
-    Number(p.model_id));
+  if (!user) return [];
+  const ids = [];
+  if (user.branch_id) ids.push(Number(user.branch_id));
+  if (user.placements) {
+    user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p =>
+      ids.push(Number(p.model_id)));
+  }
+  return [...new Set(ids)];
 });
+const auditAccessibleBranchIds = accessibleBranchIds;
+
 const auditAccessibleWarehouseIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
@@ -116,11 +123,11 @@ const auditAccessibleDistributorIds = computed(() => {
     Number(p.model_id));
 });
 
-// Filtered data for modal form â€” audit only sees their assigned locations
+// Filtered data for modal form
 const availableBranches = computed(() => {
-  if (!isAudit.value || !auditAccessibleBranchIds.value) return branches.value;
-  if (auditAccessibleBranchIds.value.length === 0) return [];
-  return branches.value.filter(b => auditAccessibleBranchIds.value.includes(Number(b.id)));
+  if (!isAudit.value && !isLeader.value) return branches.value;
+  if (!accessibleBranchIds.value || accessibleBranchIds.value.length === 0) return [];
+  return branches.value.filter(b => accessibleBranchIds.value.includes(Number(b.id)));
 });
 const availableWarehouses = computed(() => {
   if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
@@ -138,8 +145,37 @@ const availableDistributors = computed(() => {
   return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(Number(d.id)));
 });
 
+function canManageUser(user) {
+  if (!user) return false;
+  if (isSuperAdmin.value) return true;
+  if (isLeader.value) {
+    if (user.id === currentUser.value?.id) return true;
+    const isStaff = user.roles?.some(r => r.name === 'inventory');
+    const inBranch = accessibleBranchIds.value?.includes(Number(user.branch_id));
+    return isStaff && inBranch;
+  }
+  if (isAudit.value) {
+    const forbiddenRolesToEdit = ['super_admin', 'audit', 'analist', 'admin_produk'];
+    return !user.roles?.some(r => forbiddenRolesToEdit.includes(r.name));
+  }
+  return true;
+}
+
 // Filtered Roles List for Add/Edit Modal
 const filteredRolesOptions = computed(() => {
+  if (isLeader.value) {
+    let filtered = rolesList.filter(r => r.value === 'inventory');
+    if (editingUser.value && form.value.role) {
+      if (!filtered.find(r => r.value === form.value.role)) {
+        const currentRoleObj = rolesList.find(r => r.value === form.value.role);
+        if (currentRoleObj) {
+          filtered.push(currentRoleObj);
+        }
+      }
+    }
+    return filtered;
+  }
+
   if (!isAudit.value) return rolesList;
 
   const user = currentUser.value;
@@ -284,8 +320,8 @@ function getAvatarUrl(user) {
 }
 
 function triggerFileInput(user) {
-  if (isReadOnlyAccess.value && user.id !== currentUser.value.id) {
-    toast.info("Anda hanya dapat mengubah foto profil akun sendiri.");
+  if (!canManageUser(user)) {
+    toast.info("Anda hanya dapat mengubah foto profil akun sendiri atau staff Anda.");
     return;
   }
   selectedUserForPhoto.value = user;
@@ -482,6 +518,13 @@ const stats = computed(() => {
 function openAddModal() {
   resetForm();
   editingUser.value = null;
+  if (isLeader.value) {
+    form.value.role = 'inventory';
+    inventoryPlacementType.value = 'branch';
+    if (availableBranches.value.length > 0) {
+      form.value.branch_id = availableBranches.value[0].id;
+    }
+  }
   showModal.value = true;
 }
 
@@ -596,7 +639,7 @@ async function saveUser() {
 }
 
 async function toggleStatus(user) {
-  if (isReadOnlyAccess.value || isProcessing(user.id)) return;
+  if (!canManageUser(user) || isProcessing(user.id)) return;
   startProcessing(user.id);
   try {
     const newStatus = !user.is_active;
@@ -886,10 +929,10 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-3">
-                  <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
+                  <button @click="toggleStatus(user)" :disabled="!canManageUser(user)"
                     class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0"
                     :style="{ backgroundColor: user.is_active ? '#10b981' : '#9ca3af' }"
-                    :class="[isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']"
+                    :class="[!canManageUser(user) ? 'opacity-50 cursor-not-allowed' : '']"
                     title="Klik untuk mengubah status">
                     <span class="sr-only">Toggle status</span>
                     <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
@@ -903,11 +946,11 @@ function getUserRoleName(user) {
               </td>
               <td class="px-6 py-4" v-if="!isReadOnlyAccess">
                 <div class="flex justify-end gap-2">
-                  <button @click="openEditModal(user)" :disabled="isProcessing(user.id)"
+                  <button v-if="canManageUser(user)" @click="openEditModal(user)" :disabled="isProcessing(user.id)"
                     class="p-2 hover:bg-surface-700 disabled:opacity-50 rounded-lg text-blue-400 transition-colors" title="Edit">
                     <Edit :size="16" />
                   </button>
-                  <button @click="permanentDeleteUser(user.id)" :disabled="isProcessing(user.id)"
+                  <button v-if="canManageUser(user) && user.id !== currentUser?.id" @click="permanentDeleteUser(user.id)" :disabled="isProcessing(user.id)"
                     class="p-2 hover:bg-surface-700 disabled:opacity-50 rounded-lg text-red-400 transition-colors" title="Hapus">
                     <Loader2 v-if="isProcessing(user.id)" :size="16" class="animate-spin" />
                     <Trash2 v-else :size="16" />
@@ -1022,10 +1065,10 @@ function getUserRoleName(user) {
               <span class="text-xs" :class="user.is_active ? 'text-emerald-400' : 'text-text-secondary'">
                 {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
               </span>
-              <button @click="toggleStatus(user)" :disabled="isReadOnlyAccess"
+              <button @click="toggleStatus(user)" :disabled="!canManageUser(user)"
                 class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0"
                 :style="{ backgroundColor: user.is_active ? '#10b981' : '#9ca3af' }"
-                :class="[isReadOnlyAccess ? 'opacity-50 cursor-not-allowed' : '']">
+                :class="[!canManageUser(user) ? 'opacity-50 cursor-not-allowed' : '']">
                 <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
                   :class="user.is_active ? 'translate-x-6' : 'translate-x-1'" />
               </button>
@@ -1043,12 +1086,12 @@ function getUserRoleName(user) {
           </div>
         </div>
 
-        <div v-if="!isReadOnlyAccess" class="flex items-center justify-end gap-2 pt-2 border-t border-surface-700/50">
+        <div v-if="!isReadOnlyAccess && canManageUser(user)" class="flex items-center justify-end gap-2 pt-2 border-t border-surface-700/50">
           <button @click="openEditModal(user)"
             class="btn-sm btn-outline text-blue-400 border-surface-700 hover:bg-surface-800">
             <Edit :size="14" class="mr-1" /> Edit
           </button>
-          <button @click="permanentDeleteUser(user.id)"
+          <button v-if="user.id !== currentUser?.id" @click="permanentDeleteUser(user.id)"
             class="btn-sm btn-outline text-red-400 border-surface-700 hover:bg-surface-800">
             <Trash2 :size="14" class="mr-1" /> Hapus
           </button>
@@ -1127,7 +1170,7 @@ function getUserRoleName(user) {
             </div>
 
             <!-- Inventory Placement Type Selector -->
-            <div v-if="form.role === 'inventory'" class="animate-in fade-in slide-in-from-top-2">
+            <div v-if="form.role === 'inventory' && !isLeader" class="animate-in fade-in slide-in-from-top-2">
               <label class="label">Tipe Penempatan Inventory</label>
               <select v-model="inventoryPlacementType" class="input">
                 <option value="branch">Cabang Fisik</option>

@@ -873,7 +873,7 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+        if (!$user->hasRole(['super_admin', 'analist', 'audit', 'leader'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -881,7 +881,7 @@ class InventoryController extends Controller
 
         // Role-based location filter closure
         $applyRoleFilter = function ($query, $tablePrefix) use ($user) {
-            if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+            if ($user->hasRole(['audit', 'leader']) && !$user->hasRole(['super_admin', 'analist'])) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -1750,7 +1750,7 @@ class InventoryController extends Controller
         $user = Auth::user();
 
         // Authorization check
-        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+        if (!$user->hasRole(['super_admin', 'analist', 'audit', 'leader'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -1803,8 +1803,8 @@ class InventoryController extends Controller
                     });
                 }
             }
-        } elseif ($user->hasRole('audit')) {
-            // Audit: only see their accessible locations
+        } elseif ($user->hasRole(['audit', 'leader'])) {
+            // Audit/Leader: only see their accessible locations
             $branchIds = $user->getAccessibleBranchIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -1890,7 +1890,7 @@ class InventoryController extends Controller
         // Apply role-based filtering to non-HP
         if ($user->hasRole(['super_admin', 'analist'])) {
             // no restriction
-        } elseif ($user->hasRole('audit')) {
+        } elseif ($user->hasRole(['audit', 'leader'])) {
             $branchIds = $user->getAccessibleBranchIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -2037,7 +2037,7 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+        if (!$user->hasRole(['super_admin', 'analist', 'audit', 'leader'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -2062,7 +2062,7 @@ class InventoryController extends Controller
         }
 
         // Apply Role Filter for location
-        if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+        if ($user->hasRole(['audit', 'leader']) && !$user->hasRole(['super_admin', 'analist'])) {
             $branchIds = $user->getAccessibleBranchIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -2185,7 +2185,7 @@ class InventoryController extends Controller
         /** @var \App\Models\User $user */
         $user = Auth::user();
 
-        if (!$user->hasRole(['super_admin', 'analist', 'audit'])) {
+        if (!$user->hasRole(['super_admin', 'analist', 'audit', 'leader'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -2238,7 +2238,7 @@ class InventoryController extends Controller
                 $query->whereYear('stock_outs.reporting_date', now()->year);
             }
 
-            if ($user->hasRole('audit') && !$user->hasRole(['super_admin', 'analist'])) {
+            if ($user->hasRole(['audit', 'leader']) && !$user->hasRole(['super_admin', 'analist'])) {
                 $branchIds = $user->getAccessibleBranchIds();
                 $warehouseIds = $user->getAccessibleWarehouseIds();
                 $onlineShopIds = $user->getAccessibleOnlineShopIds();

@@ -465,6 +465,7 @@ const editForm = ref({
 
 function canUserEditItem(item) {
   const role = (authStore.userRole || '').toLowerCase();
+  if (['audit', 'leader'].includes(role)) return false;
   const isAdmin = ['super_admin', 'audit', 'owner', 'admin_produk'].some(r => role.includes(r));
   if (isAdmin) return true;
   
@@ -1071,7 +1072,7 @@ async function exportInventory() {
         </button>
 
         <!-- Keluar Stok Button -->
-        <button v-if="authStore.userRole !== 'audit'" class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
+        <button v-if="!['audit', 'leader'].includes(authStore.userRole)" class="btn" :class="selectedItems.length > 0 ? 'btn-primary' : 'btn-secondary'"
           @click="openStockOutModal" :disabled="selectedItems.length === 0" aria-label="Keluarkan stok item terpilih">
           <ArrowDownUp :size="16" />
           Keluar Stok
@@ -1079,7 +1080,7 @@ async function exportInventory() {
             {{ selectedItems.length }}
           </span>
         </button>
-        <button v-if="authStore.userRole !== 'audit'" class="btn btn-primary" @click="router.push({ name: 'StockIn' })">
+        <button v-if="!['audit', 'leader'].includes(authStore.userRole)" class="btn btn-primary" @click="router.push({ name: 'StockIn' })">
           <Plus :size="16" />
           Tambah Stok Masuk
         </button>

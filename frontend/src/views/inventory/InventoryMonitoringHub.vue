@@ -462,6 +462,10 @@ watch(searchQuery, () => {
 
 function openModal(transfer) {
     selectedTransfer.value = transfer;
+    if (['audit', 'leader'].includes(authStore.userRole)) {
+        showDetailModal.value = true;
+        return;
+    }
     if (activeTab.value === "incoming_otw") {
         // Setup Receive Form
         const accepted = (transfer.items || []).map(i => i.id);

@@ -191,6 +191,20 @@ class UserController extends Controller
             }
         }
 
+        // Leader role restriction: can only create staff (role: inventory) within leader's branch
+        if ($currentUser->hasRole('leader')) {
+            if ($request->role !== 'inventory') {
+                return response()->json(['message' => 'Leader hanya dapat membuat akun staff (CS).'], 403);
+            }
+            $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+            if ($request->branch_id && !in_array($request->branch_id, $accessibleBranchIds)) {
+                return response()->json(['message' => 'Anda tidak memiliki akses ke cabang ini.'], 403);
+            }
+            if ($request->warehouse_id || $request->online_shop_id || $request->distributor_id) {
+                return response()->json(['message' => 'Leader hanya dapat menempatkan staff pada cabang fisik yang dikelola.'], 403);
+            }
+        }
+
         $request->validate([
             'username' => 'required|string|unique:users,username',
             'full_name' => 'required|string',
@@ -305,6 +319,36 @@ class UserController extends Controller
             $forbiddenRolesToEdit = ['super_admin', 'audit', 'analist', 'admin_produk'];
             if ($user->hasAnyRole($forbiddenRolesToEdit)) {
                 return response()->json(['message' => 'Anda tidak memiliki izin untuk mengedit user ini.'], 403);
+            }
+        }
+
+        // Leader role restriction on update
+        if ($currentUser->hasRole('leader')) {
+            // Leader can only edit staff (role inventory) in their accessible branches, OR their own profile
+            if ($currentUser->id !== $user->id) {
+                if (!$user->hasRole('inventory')) {
+                    return response()->json(['message' => 'Leader hanya dapat mengedit akun staff (CS).'], 403);
+                }
+                $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+                if (!$user->branch_id || !in_array($user->branch_id, $accessibleBranchIds)) {
+                    return response()->json(['message' => 'Anda tidak memiliki izin untuk mengedit staff di luar cabang Anda.'], 403);
+                }
+            }
+
+            // Leader cannot change the role of any user
+            if ($request->has('role')) {
+                $currentRole = $user->roles->first() ? $user->roles->first()->name : null;
+                if ($request->role !== $currentRole) {
+                    return response()->json(['message' => 'Leader tidak memiliki izin untuk mengubah Role.'], 403);
+                }
+            }
+
+            // Leader cannot change branch to an unaccessible branch
+            if ($request->has('branch_id') && $request->branch_id) {
+                $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+                if (!in_array($request->branch_id, $accessibleBranchIds)) {
+                    return response()->json(['message' => 'Cabang yang dipilih tidak valid untuk akun Anda.'], 403);
+                }
             }
         }
 
@@ -480,6 +524,14 @@ class UserController extends Controller
                 $hasAccess = true;
 
             if (!$hasAccess) {
+                return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus user ini.'], 403);
+            }
+        } elseif ($currentUser->hasRole('leader')) {
+            if (!$user->hasRole('inventory')) {
+                return response()->json(['message' => 'Leader hanya dapat menghapus akun staff (CS).'], 403);
+            }
+            $accessibleBranchIds = $currentUser->getAccessibleBranchIds();
+            if (!$user->branch_id || !in_array($user->branch_id, $accessibleBranchIds)) {
                 return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus user ini.'], 403);
             }
         } elseif (!$currentUser->hasRole('super_admin') && $currentUser->branch_id !== $user->branch_id) {

@@ -281,6 +281,8 @@ class BalancingController extends Controller
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             if (!empty($accessibleBranchIds)) {
                 $query->whereIn('branch_id', $accessibleBranchIds);
+            } else {
+                $query->whereRaw('1=0');
             }
         }
 
@@ -552,6 +554,8 @@ class BalancingController extends Controller
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             if (!empty($accessibleBranchIds)) {
                 $branchesQuery->whereIn('id', $accessibleBranchIds);
+            } else {
+                $branchesQuery->whereRaw('1=0');
             }
         }
         $branchesList = $branchesQuery->get(['id', 'name']);

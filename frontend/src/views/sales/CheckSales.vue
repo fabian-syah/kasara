@@ -1315,6 +1315,7 @@ const formatDate = (dateString, format = 'datetime', tz = null) => {
 const canCancel = (date) => {
     // Roles that can always cancel regardless of date
     const role = (authStore.userRole || '').toLowerCase();
+    if (['audit', 'leader', 'analist'].includes(role)) return false;
     if (role === 'super_admin' || role === 'owner') return true;
 
     if (!date) return false;
