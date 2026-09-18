@@ -58,8 +58,33 @@
                     </select>
                 </div>
 
-                <!-- Location Filter (Branch/OS) - Only for non-restricted users and audit -->
-                <div v-if="canChangeLocation"
+                <!-- Location Filter -->
+                <!-- 1. Leader with 1 branch: NO DROPDOWN (Direct Indicator) -->
+                <div v-if="isLeader && filteredBranches.length <= 1"
+                    class="flex items-center gap-2 px-3.5 py-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl shadow-sm">
+                    <MapPin :size="14" class="text-primary-500 shrink-0" />
+                    <span class="text-xs font-bold text-text-primary dark:text-white">
+                        {{ filteredBranches[0]?.name || authStore.user?.branch?.name || 'Cabang Saya' }}
+                    </span>
+                </div>
+
+                <!-- 2. Leader with multiple branches: Dropdown ONLY for their branches -->
+                <div v-else-if="isLeader && filteredBranches.length > 1"
+                    class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
+                    <div class="flex items-center gap-1.5 px-2">
+                        <MapPin :size="14" class="text-primary-500 shrink-0" />
+                        <span class="text-[10px] uppercase tracking-wider font-black text-text-secondary">Cabang</span>
+                    </div>
+                    <div class="w-px h-4 bg-gray-200 dark:bg-surface-700 mr-1"></div>
+                    <select v-model="filters.branch_id" @change="fetchData"
+                        class="bg-transparent border-none text-xs font-bold text-text-primary dark:text-white focus:ring-0 cursor-pointer min-w-[140px] appearance-none pr-8">
+                        <option v-for="b in filteredBranches" :key="b.id" :value="b.id"
+                            class="dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
+                    </select>
+                </div>
+
+                <!-- 3. Non-restricted roles (super_admin, analist, audit, owner) -->
+                <div v-else-if="canChangeLocation"
                     class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1 shadow-sm">
                     <div class="flex items-center gap-1 group">
                         <div
@@ -88,7 +113,7 @@
                             class="dark:bg-surface-800 dark:text-white">{{ s.name }}</option>
                     </select>
                 </div>
-                <!-- Restricted users see their location indicator -->
+                <!-- 4. Restricted users see their location indicator -->
                 <div v-else
                     class="flex items-center gap-2 px-4 py-2 bg-primary-500/5 border border-primary-500/20 rounded-xl">
                     <MapPin v-if="authStore.user?.branch_id" :size="14" class="text-primary-500" />
@@ -1259,26 +1284,67 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 const selectedMonth = ref(logicalToday.getMonth() + 1);
 const selectedYear = ref(currentYear);
 
+const isLeader = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return role === 'leader' || (authStore.hasRole && authStore.hasRole('leader')) || false;
+});
+
 const isRestricted = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    // Only super_admin and analist/analis are NOT restricted (can see ALL)
-    return !['super_admin', 'analist', 'analis'].some(r => role.includes(r));
+    // super_admin, analist, audit, leader, owner are NOT date-restricted
+    return !['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner'].some(r => role.includes(r));
 });
 
 const canChangeLocation = computed(() => {
+    if (isLeader.value) return false;
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner'].some(r => role.includes(r));
+    return ['super_admin', 'analist', 'analis', 'audit', 'owner'].some(r => role.includes(r));
+});
+
+const leaderBranchIds = computed(() => {
+    const user = authStore.user;
+    if (!user) return [];
+    const ids = [];
+    if (user.branch?.id) ids.push(Number(user.branch.id));
+    if (user.branch_id) ids.push(Number(user.branch_id));
+    if (user.placements && Array.isArray(user.placements)) {
+        user.placements.forEach(p => {
+            const type = (p.model_type || '').toLowerCase();
+            if (type === 'branch' || type.includes('branch')) {
+                const bId = p.model_id || p.branch_id;
+                if (bId) ids.push(Number(bId));
+            }
+        });
+    }
+    return [...new Set(ids)];
 });
 
 const filteredBranches = computed(() => {
-    const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
     const role = (authStore.userRole || '').toLowerCase();
-    let result = (branches.value || []).filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
-    
+    let result = branches.value || [];
+
+    // For leader: branches are already scoped by backend /branches endpoint
+    // We should NEVER filter out trial/test branches if the leader is assigned to them!
+    if (isLeader.value) {
+        if (leaderBranchIds.value.length > 0) {
+            const matches = result.filter(b => leaderBranchIds.value.includes(Number(b.id)));
+            if (matches.length > 0) return matches;
+        }
+        return result;
+    }
+
+    const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
+    result = result.filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
+
     // If they can't see all branches, filter by their placements
     if (!['super_admin', 'analist', 'analis'].some(r => role.includes(r))) {
-        const allowedBranches = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
-        result = result.filter(b => allowedBranches.includes(Number(b.id)));
+        const allowedBranches = [
+            authStore.user?.branch_id,
+            ...(authStore.user?.placements?.filter(p => (p.model_type || '').toLowerCase().includes('branch')).map(p => p.model_id || p.branch_id) || [])
+        ].filter(Boolean).map(Number);
+        if (allowedBranches.length > 0) {
+            result = result.filter(b => allowedBranches.includes(Number(b.id)));
+        }
     }
     return result;
 });
@@ -1290,8 +1356,13 @@ const filteredOnlineShops = computed(() => {
     
     // If they can't see all shops, filter by their placements
     if (!['super_admin', 'analist', 'analis'].some(r => role.includes(r))) {
-        const allowedShops = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
-        result = result.filter(s => allowedShops.includes(Number(s.id)));
+        const allowedShops = [
+            authStore.user?.online_shop_id,
+            ...(authStore.user?.placements?.filter(p => (p.model_type || '').toLowerCase().includes('online_shop')).map(p => p.model_id || p.online_shop_id) || [])
+        ].filter(Boolean).map(Number);
+        if (allowedShops.length > 0) {
+            result = result.filter(s => allowedShops.includes(Number(s.id)));
+        }
     }
     return result;
 });
@@ -2160,9 +2231,22 @@ const fetchLocations = async () => {
             });
         }
 
-        if (isRestricted.value) {
-            const allowedBranches = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
-            const allowedShops = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+        if (isLeader.value) {
+            locationType.value = 'branch';
+            const leaderBranches = filteredBranches.value.length > 0 ? filteredBranches.value : (branches.value || []);
+            if (leaderBranches.length > 0) {
+                filters.value.branch_id = leaderBranches[0].id;
+            }
+            filters.value.online_shop_id = null;
+        } else if (isRestricted.value) {
+            const allowedBranches = [
+                authStore.user?.branch_id,
+                ...(authStore.user?.placements?.filter(p => (p.model_type || '').toLowerCase().includes('branch')).map(p => p.model_id || p.branch_id) || [])
+            ].filter(Boolean).map(Number);
+            const allowedShops = [
+                authStore.user?.online_shop_id,
+                ...(authStore.user?.placements?.filter(p => (p.model_type || '').toLowerCase().includes('online_shop')).map(p => p.model_id || p.online_shop_id) || [])
+            ].filter(Boolean).map(Number);
             
             locs = locs.filter(l => {
                 if (l.type === 'branch') return allowedBranches.includes(Number(l.value));
@@ -2183,6 +2267,15 @@ const fetchLocations = async () => {
         console.error('Error fetching locations:', error);
     }
 }
+
+watch(filteredBranches, (newBranches) => {
+    if (isLeader.value && newBranches && newBranches.length > 0) {
+        locationType.value = 'branch';
+        if (!filters.value.branch_id || !newBranches.some(b => Number(b.id) === Number(filters.value.branch_id))) {
+            filters.value.branch_id = newBranches[0].id;
+        }
+    }
+}, { immediate: true });
 
 onMounted(async () => {
     fetchGlobalFilters() // Always fetch distributors and products for filtering

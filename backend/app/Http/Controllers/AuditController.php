@@ -137,6 +137,20 @@ class AuditController extends Controller
             $requestedProductTypeId = $request->product_type_id;
             $requestedCapacity = $request->capacity;
 
+            // Leader scoping: ensure leader is locked to their accessible branch(es)
+            if ($user->hasRole('leader')) {
+                if ($requestedBranchId && !in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
+                    $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
+                }
+                if (!$requestedBranchId && !empty($branchIds)) {
+                    $requestedBranchId = $branchIds[0];
+                }
+                $requestedLocationType = 'branch';
+                $onlineShopIds = [];
+                $warehouseIds = [];
+                $distributorIds = [];
+            }
+
             // Apply global partitioning based on location type
             if ($requestedLocationType === 'branch') {
                 $onlineShopIds = [];
