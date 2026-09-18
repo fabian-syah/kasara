@@ -137,7 +137,10 @@ class User extends Authenticatable
         if ($this->branch_id)
             $ids[] = $this->branch_id;
 
-        $extras = $this->placements()->whereIn('model_type', ['branch', 'App\Models\Branch'])->pluck('model_id')->toArray();
+        $extras = $this->placements()->where(function ($q) {
+            $q->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch', 'App\\Models\\Branch'])
+              ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+        })->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         // If this is an inventory account with no branches, inherit from creator

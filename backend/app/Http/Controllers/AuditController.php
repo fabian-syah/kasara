@@ -32,6 +32,9 @@ class AuditController extends Controller
         try {
             $user = $request->user();
             $branchIds = $user->getAccessibleBranchIds();
+            if ($user->hasRole('leader') && empty($branchIds) && $user->branch_id) {
+                $branchIds = [$user->branch_id];
+            }
             $onlineShopIds = $user->getAccessibleOnlineShopIds();
             $warehouseIds = $user->getAccessibleWarehouseIds();
             $distributorIds = $user->getAccessibleDistributorIds();
@@ -139,6 +142,9 @@ class AuditController extends Controller
 
             // Leader scoping: ensure leader is locked to their accessible branch(es)
             if ($user->hasRole('leader')) {
+                if (empty($branchIds) && $user->branch_id) {
+                    $branchIds = [$user->branch_id];
+                }
                 if ($requestedBranchId && !in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
                     $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
                 }

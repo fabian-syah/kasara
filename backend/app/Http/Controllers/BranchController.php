@@ -29,6 +29,9 @@ class BranchController extends Controller
         } else if ($user->hasAnyRole(['audit', 'leader'])) {
             // Assigned access
             $ids = $user->getAccessibleBranchIds();
+            if (empty($ids) && $user->branch_id) {
+                $ids = [$user->branch_id];
+            }
             $query->whereIn('id', $ids);
         } else {
             // Own assignment access

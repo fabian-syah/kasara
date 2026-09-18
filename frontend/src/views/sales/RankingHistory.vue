@@ -1285,19 +1285,33 @@ const selectedMonth = ref(logicalToday.getMonth() + 1);
 const selectedYear = ref(currentYear);
 
 const isLeader = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    return role === 'leader' || (authStore.hasRole && authStore.hasRole('leader')) || false;
+    const role = (authStore.userRole || '').toLowerCase().trim();
+    if (role === 'leader' || role.includes('leader')) return true;
+    if (authStore.user?.role && String(authStore.user.role).toLowerCase().includes('leader')) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        if (authStore.user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r?.name || '');
+            return name.toLowerCase().includes('leader');
+        })) return true;
+    }
+    if (typeof authStore.hasRole === 'function') {
+        try {
+            if (authStore.hasRole('leader')) return true;
+        } catch (e) {}
+    }
+    return false;
 });
 
 const isRestricted = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
+    const role = (authStore.userRole || '').toLowerCase().trim();
     // super_admin, analist, audit, leader, owner are NOT date-restricted
     return !['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner'].some(r => role.includes(r));
 });
 
 const canChangeLocation = computed(() => {
     if (isLeader.value) return false;
-    const role = (authStore.userRole || '').toLowerCase();
+    const role = (authStore.userRole || '').toLowerCase().trim();
+    if (role.includes('leader')) return false;
     return ['super_admin', 'analist', 'analis', 'audit', 'owner'].some(r => role.includes(r));
 });
 
@@ -1310,7 +1324,7 @@ const leaderBranchIds = computed(() => {
     if (user.placements && Array.isArray(user.placements)) {
         user.placements.forEach(p => {
             const type = (p.model_type || '').toLowerCase();
-            if (type === 'branch' || type.includes('branch')) {
+            if (type.includes('branch')) {
                 const bId = p.model_id || p.branch_id;
                 if (bId) ids.push(Number(bId));
             }
@@ -1320,7 +1334,6 @@ const leaderBranchIds = computed(() => {
 });
 
 const filteredBranches = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
     let result = branches.value || [];
 
     // For leader: branches are already scoped by backend /branches endpoint
@@ -1330,16 +1343,25 @@ const filteredBranches = computed(() => {
             const matches = result.filter(b => leaderBranchIds.value.includes(Number(b.id)));
             if (matches.length > 0) return matches;
         }
-        return result;
+        if (result.length > 0) return result;
+        if (authStore.user?.branch) return [authStore.user.branch];
+        if (authStore.user?.branch_id) return [{ id: authStore.user.branch_id, name: authStore.user.branch?.name || 'Cabang Saya' }];
+        return [];
     }
 
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
-    result = result.filter(b => !excluded.some(term => (b.name || '').toLowerCase().includes(term)));
+    const userBranchId = Number(authStore.user?.branch_id || authStore.user?.branch?.id || 0);
+    result = result.filter(b => {
+        if (Number(b.id) === userBranchId) return true;
+        return !excluded.some(term => (b.name || '').toLowerCase().includes(term));
+    });
 
+    const role = (authStore.userRole || '').toLowerCase().trim();
     // If they can't see all branches, filter by their placements
     if (!['super_admin', 'analist', 'analis'].some(r => role.includes(r))) {
         const allowedBranches = [
             authStore.user?.branch_id,
+            authStore.user?.branch?.id,
             ...(authStore.user?.placements?.filter(p => (p.model_type || '').toLowerCase().includes('branch')).map(p => p.model_id || p.branch_id) || [])
         ].filter(Boolean).map(Number);
         if (allowedBranches.length > 0) {
@@ -2233,9 +2255,15 @@ const fetchLocations = async () => {
 
         if (isLeader.value) {
             locationType.value = 'branch';
-            const leaderBranches = filteredBranches.value.length > 0 ? filteredBranches.value : (branches.value || []);
+            const leaderBranches = filteredBranches.value.length > 0
+                ? filteredBranches.value
+                : (branches.value && branches.value.length > 0
+                    ? branches.value
+                    : (authStore.user?.branch ? [authStore.user.branch] : []));
             if (leaderBranches.length > 0) {
                 filters.value.branch_id = leaderBranches[0].id;
+            } else if (authStore.user?.branch_id) {
+                filters.value.branch_id = authStore.user.branch_id;
             }
             filters.value.online_shop_id = null;
         } else if (isRestricted.value) {
