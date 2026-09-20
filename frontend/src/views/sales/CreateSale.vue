@@ -26,7 +26,8 @@ import {
     Loader2,
     Wallet,
     CheckSquare,
-    Undo2
+    Undo2,
+    Search
 } from "lucide-vue-next";
 import PasswordModal from "../../components/modals/PasswordModal.vue";
 import PinModal from "../../components/modals/PinModal.vue";
@@ -55,6 +56,16 @@ const currentStep = ref(1); // 1: Account, 2: Category, 3: Items/Form, 4: Paymen
 const salesAccount = ref("");
 const salesAccountId = ref(null);
 const salesAccounts = ref([]);
+const searchCS = ref("");
+const filteredSalesAccounts = computed(() => {
+    if (!searchCS.value.trim()) return salesAccounts.value;
+    const q = searchCS.value.toLowerCase().trim();
+    return salesAccounts.value.filter(acc => 
+        (acc.name && acc.name.toLowerCase().includes(q)) ||
+        (acc.full_name && acc.full_name.toLowerCase().includes(q)) ||
+        (acc.username && acc.username.toLowerCase().includes(q))
+    );
+});
 const transactionCategory = ref("penjualan_store");
 
 const allCategories = [
@@ -142,6 +153,23 @@ const loadingCreate = ref(false);
 const loadingStep3Data = ref(false);
 const isDataLoaded = ref(false);
 
+function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers) {
+    const listA = Array.isArray(rawAccounts) ? rawAccounts : (rawAccounts?.data || []);
+    const listB = Array.isArray(allInventoryUsers) ? allInventoryUsers : (allInventoryUsers?.data || []);
+    
+    const accountMap = new Map();
+    [...listA, ...listB].forEach(acc => {
+        if (!acc || !acc.id) return;
+        const existing = accountMap.get(acc.id) || {};
+        accountMap.set(acc.id, {
+            ...existing,
+            ...acc,
+            photo: acc.photo || acc.photo_inventory || existing.photo || null
+        });
+    });
+    salesAccounts.value = Array.from(accountMap.values());
+}
+
 async function refreshAccounts() {
     try {
         const [accRes, usersRes] = await Promise.all([
@@ -149,14 +177,7 @@ async function refreshAccounts() {
             api.get('/users', { params: { role: 'inventory', is_active: true } })
         ]);
         
-        const rawAccounts = accRes.data.data || accRes.data;
-        const allInventoryUsers = usersRes.data.data || usersRes.data || [];
-        
-        // Trust backend for data and photos
-        salesAccounts.value = rawAccounts.map(acc => ({
-            ...acc,
-            photo: acc.photo || acc.photo_inventory || null
-        }));
+        mergeAndSetSalesAccounts(accRes.data, usersRes.data);
     } catch (e) {
         console.error("Gagal refresh akun", e);
     }
@@ -251,15 +272,7 @@ onMounted(async () => {
             api.get('/user')
         ]);
 
-        // Process accounts with merged user data for photos
-        const rawAccounts = accountsRes.data.data || accountsRes.data;
-        const allInventoryUsers = usersRes.data.data || usersRes.data || [];
-        
-        // Trust backend for data and photos
-        salesAccounts.value = rawAccounts.map(acc => ({
-            ...acc,
-            photo: acc.photo || acc.photo_inventory || null
-        }));
+        mergeAndSetSalesAccounts(accountsRes.data, usersRes.data);
 
         // Auto-select user account
         const userData = userRes.data.data || userRes.data;
@@ -439,12 +452,23 @@ watch(transactionCategory, () => {
                                 <label class="block text-xs font-black text-text-secondary uppercase tracking-widest">
                                     Daftar Akun CS
                                 </label>
+                                <span class="text-xs text-text-secondary font-medium">
+                                    {{ filteredSalesAccounts.length }} akun
+                                </span>
                             </div>
 
+                            <!-- Search CS Input -->
+                            <div class="relative">
+                                <input v-model="searchCS" type="text" placeholder="Cari nama CS..."
+                                    class="w-full px-4 py-2.5 pl-10 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-primary-500 focus:outline-none transition-all" />
+                                <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                            </div>
 
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                <button v-for="acc in salesAccounts" :key="acc.id" @click="salesAccount = acc.name; salesAccountId = acc.id"
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[360px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div v-if="filteredSalesAccounts.length === 0" class="col-span-1 sm:col-span-2 py-8 text-center text-text-secondary text-xs">
+                                    Tidak ada akun CS yang ditemukan.
+                                </div>
+                                <button v-for="acc in filteredSalesAccounts" :key="acc.id" @click="salesAccount = acc.name; salesAccountId = acc.id"
                                     class="w-full p-3 sm:p-4 rounded-2xl border-2 transition-all flex flex-col justify-center gap-1 relative overflow-hidden group"
                                     :class="(salesAccountId === acc.id) || (!salesAccountId && salesAccount === acc.name) ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/10' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300'">
                                     

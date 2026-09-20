@@ -144,9 +144,32 @@ class UserController extends Controller
         if ($request->has('role')) {
             $query->role($request->role);
             
-            // Isolate Inventory Role: non-unrestricted users ONLY see inventory accounts they created
+            // Allow seeing inventory accounts created by user OR within user's accessible placements (e.g. created by Leader/Audit/Admin)
             if ($request->role === 'inventory' && !$user->hasRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
-                $query->where('created_by', $user->id);
+                $query->where(function ($q) use ($user) {
+                    $q->where('created_by', $user->id);
+
+                    $bIds = method_exists($user, 'getAccessibleBranchIds') ? array_map('intval', $user->getAccessibleBranchIds()) : [];
+                    if ($user->branch_id && !in_array((int) $user->branch_id, $bIds)) $bIds[] = (int) $user->branch_id;
+                    $bIds = array_filter(array_unique($bIds));
+                    if (!empty($bIds)) {
+                        $q->orWhereIn('branch_id', $bIds);
+                    }
+
+                    $osIds = method_exists($user, 'getAccessibleOnlineShopIds') ? array_map('intval', $user->getAccessibleOnlineShopIds()) : [];
+                    if ($user->online_shop_id && !in_array((int) $user->online_shop_id, $osIds)) $osIds[] = (int) $user->online_shop_id;
+                    $osIds = array_filter(array_unique($osIds));
+                    if (!empty($osIds)) {
+                        $q->orWhereIn('online_shop_id', $osIds);
+                    }
+
+                    $wIds = method_exists($user, 'getAccessibleWarehouseIds') ? array_map('intval', $user->getAccessibleWarehouseIds()) : [];
+                    if ($user->warehouse_id && !in_array((int) $user->warehouse_id, $wIds)) $wIds[] = (int) $user->warehouse_id;
+                    $wIds = array_filter(array_unique($wIds));
+                    if (!empty($wIds)) {
+                        $q->orWhereIn('warehouse_id', $wIds);
+                    }
+                });
             }
         }
 

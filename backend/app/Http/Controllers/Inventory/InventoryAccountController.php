@@ -224,13 +224,8 @@ class InventoryAccountController extends Controller
 
             $unrestrictedRoles = ['super_admin', 'owner', 'admin_produk', 'analist'];
             $isUnrestrictedUser = $user->hasRole($unrestrictedRoles);
-            
-            // Ownership isolation: non-unrestricted users ONLY see inventory accounts they created
-            if (!$isUnrestrictedUser) {
-                $query->where('created_by', $user->id);
-                // We SKIP the location filter if it's a restricted user, because they should always see their own inventory accounts
-                // regardless of whether the inventory account's location matches their current location.
-            } else {
+
+            if ($isUnrestrictedUser) {
                 // Location filter for UNRESTRICTED users (Super Admin, etc)
                 if ($branchId) {
                     $query->where('branch_id', $branchId);
@@ -240,10 +235,10 @@ class InventoryAccountController extends Controller
                     $query->where('warehouse_id', $warehouseId);
                 } else {
                     // Fallback for unrestricted users if no header passed
-                    $query->where(function($q) use ($user) {
+                    $query->where(function ($q) use ($user) {
                         $branchIds = $user->getAccessibleBranchIds();
                         if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
-                        
+
                         $onlineShopIds = $user->getAccessibleOnlineShopIds();
                         if (!empty($onlineShopIds)) $q->orWhereIn('online_shop_id', $onlineShopIds);
 
@@ -251,6 +246,62 @@ class InventoryAccountController extends Controller
                         if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
                     });
                 }
+            } else {
+                // For regular users (leader, sales/toko_offline, toko_online, audit, etc.):
+                // Show CS accounts they created OR CS accounts in the same placement / accessible placements (e.g. created by Leader/Audit/Admin)
+                $query->where(function ($q) use ($user, $branchId, $onlineShopId, $warehouseId) {
+                    // 1. Akun buatan sendiri
+                    $q->where('created_by', $user->id);
+
+                    // 2. Akun di placement yang sama / accessible placements
+                    $q->orWhere(function ($sub) use ($user, $branchId, $onlineShopId, $warehouseId) {
+                        $hasLocation = false;
+
+                        // Target branch IDs
+                        $targetBranchIds = [];
+                        if ($branchId) $targetBranchIds[] = (int) $branchId;
+                        if ($user->branch_id) $targetBranchIds[] = (int) $user->branch_id;
+                        if (method_exists($user, 'getAccessibleBranchIds')) {
+                            $targetBranchIds = array_merge($targetBranchIds, array_map('intval', $user->getAccessibleBranchIds()));
+                        }
+                        $targetBranchIds = array_filter(array_unique($targetBranchIds));
+
+                        // Target online shop IDs
+                        $targetOnlineShopIds = [];
+                        if ($onlineShopId) $targetOnlineShopIds[] = (int) $onlineShopId;
+                        if ($user->online_shop_id) $targetOnlineShopIds[] = (int) $user->online_shop_id;
+                        if (method_exists($user, 'getAccessibleOnlineShopIds')) {
+                            $targetOnlineShopIds = array_merge($targetOnlineShopIds, array_map('intval', $user->getAccessibleOnlineShopIds()));
+                        }
+                        $targetOnlineShopIds = array_filter(array_unique($targetOnlineShopIds));
+
+                        // Target warehouse IDs
+                        $targetWarehouseIds = [];
+                        if ($warehouseId) $targetWarehouseIds[] = (int) $warehouseId;
+                        if ($user->warehouse_id) $targetWarehouseIds[] = (int) $user->warehouse_id;
+                        if (method_exists($user, 'getAccessibleWarehouseIds')) {
+                            $targetWarehouseIds = array_merge($targetWarehouseIds, array_map('intval', $user->getAccessibleWarehouseIds()));
+                        }
+                        $targetWarehouseIds = array_filter(array_unique($targetWarehouseIds));
+
+                        if (!empty($targetBranchIds)) {
+                            $sub->orWhereIn('branch_id', $targetBranchIds);
+                            $hasLocation = true;
+                        }
+                        if (!empty($targetOnlineShopIds)) {
+                            $sub->orWhereIn('online_shop_id', $targetOnlineShopIds);
+                            $hasLocation = true;
+                        }
+                        if (!empty($targetWarehouseIds)) {
+                            $sub->orWhereIn('warehouse_id', $targetWarehouseIds);
+                            $hasLocation = true;
+                        }
+
+                        if (!$hasLocation) {
+                            $sub->whereRaw('0 = 1');
+                        }
+                    });
+                });
             }
         }
 
