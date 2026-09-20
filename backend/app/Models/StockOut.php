@@ -191,7 +191,7 @@ class StockOut extends Model
         'payment_proof_images' => 'array',
     ];
 
-    protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score'];
+    protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score', 'latest_auditor_name', 'audited_at'];
 
     public function getPaymentMethodNameAttribute()
     {
@@ -238,6 +238,26 @@ class StockOut extends Model
             $total = $answers->count();
             $yes = $answers->where('answer', true)->count();
             return $total > 0 ? round(($yes / $total) * 100) : 0;
+        }
+        return null;
+    }
+
+    public function getLatestAuditorNameAttribute()
+    {
+        if ($this->relationLoaded('auditAnswers')) {
+            $latest = $this->auditAnswers->sortByDesc('updated_at')->first();
+            if ($latest) {
+                return $latest->auditor?->name ?? $latest->auditor?->full_name ?? $latest->auditor?->username;
+            }
+        }
+        return null;
+    }
+
+    public function getAuditedAtAttribute()
+    {
+        if ($this->relationLoaded('auditAnswers')) {
+            $latest = $this->auditAnswers->sortByDesc('updated_at')->first();
+            return $latest?->updated_at?->toDateTimeString();
         }
         return null;
     }

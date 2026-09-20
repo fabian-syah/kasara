@@ -307,7 +307,7 @@ class AuditController extends Controller
                 // 1. Paginated Sales Query
                 function () use ($normalizedSalesCategories, $startDate, $endDate, $requestedCategory, $requestedSearch, $branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId, $isAnalist, $isInventoryRole, $userId, $userName) {
 
-                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'auditAnswers', 'paymentMethod', 'cancelledByUser'])
+                    return StockOut::with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'auditAnswers.auditor', 'paymentMethod', 'cancelledByUser'])
                         ->whereIn(DB::raw("LOWER(REPLACE(category, ' ', '_'))"), $normalizedSalesCategories)
                         ->where(function ($q) use ($startDate, $endDate) {
                             $startTS = $startDate . ' 05:00:00';
@@ -3286,8 +3286,8 @@ class AuditController extends Controller
             ->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        // Get existing answers for this transaction
-        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        // Get existing answers for this transaction with auditor
+        $existingAnswers = AuditAnswer::with('auditor')->where('stock_out_id', $stockOutId)->get();
 
         $checklist = collect();
         $answeredQuestionIds = [];
@@ -3295,12 +3295,15 @@ class AuditController extends Controller
         // 1. Add previously answered questions (use snapshotted content if available)
         foreach ($existingAnswers as $ans) {
             $answeredQuestionIds[] = $ans->question_id;
+            $auditor = $ans->auditor;
+            $ansAuditorName = $auditor ? ($auditor->name ?? $auditor->full_name ?? $auditor->username) : null;
             $checklist->push([
                 'question_id' => $ans->question_id,
                 'content' => $ans->question_content ?? optional(Question::find($ans->question_id))->content ?? 'Pertanyaan dihapus',
                 'answer' => (bool) $ans->answer,
                 'notes' => $ans->notes,
                 'answered_at' => $ans->updated_at?->toDateTimeString(),
+                'auditor_name' => $ansAuditorName,
                 'is_deleted' => $ans->question_id === null || !in_array($ans->question_id, $currentQuestionIds),
             ]);
         }
@@ -3316,6 +3319,7 @@ class AuditController extends Controller
                     'answer' => null,
                     'notes' => null,
                     'answered_at' => null,
+                    'auditor_name' => null,
                     'is_deleted' => false,
                 ]);
             } else {
@@ -3329,6 +3333,7 @@ class AuditController extends Controller
                         'answer' => null,
                         'notes' => null,
                         'answered_at' => null,
+                        'auditor_name' => null,
                         'is_deleted' => false,
                     ]);
                     // Mark the old answered version as edited
@@ -3345,7 +3350,12 @@ class AuditController extends Controller
         $answeredCount = $existingAnswers->count();
         $yesCount = $existingAnswers->where('answer', true)->count();
         $totalQuestions = $checklist->count();
-        $latestAnswer = $existingAnswers->max('updated_at');
+        
+        // Ambil audit terakhir saja (misal audit 1 udah, lalu audit 2 baru, yang ditampilkan audit 2)
+        $latestAnswer = $existingAnswers->sortByDesc('updated_at')->first();
+        $latestAuditor = $latestAnswer?->auditor;
+        $latestAuditorName = $latestAuditor ? ($latestAuditor->name ?? $latestAuditor->full_name ?? $latestAuditor->username) : null;
+        $latestAuditedAt = $latestAnswer?->updated_at ? \Carbon\Carbon::parse($latestAnswer->updated_at)->toDateTimeString() : null;
 
         // Sort by question_id so the order stays consistent before and after answering
         $checklist = $checklist->sortBy('question_id')->values();
@@ -3358,7 +3368,9 @@ class AuditController extends Controller
             'answered' => $answeredCount,
             'yes_count' => $yesCount,
             'score' => $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0,
-            'audited_at' => $latestAnswer ? \Carbon\Carbon::parse($latestAnswer)->toDateTimeString() : null,
+            'audited_at' => $latestAuditedAt,
+            'auditor_name' => $latestAuditorName,
+            'audited_by' => $latestAuditorName,
         ]);
     }
 
@@ -3396,11 +3408,15 @@ class AuditController extends Controller
             );
         }
 
-        // Return updated score
-        $allAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        // Return updated score and latest auditor
+        $allAnswers = AuditAnswer::with('auditor')->where('stock_out_id', $stockOutId)->get();
         $totalQuestions = $allAnswers->count();
         $yesCount = $allAnswers->where('answer', true)->count();
         $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
+        $latestAnswer = $allAnswers->sortByDesc('updated_at')->first();
+        $latestAuditor = $latestAnswer?->auditor ?? $user;
+        $latestAuditorName = $latestAuditor ? ($latestAuditor->name ?? $latestAuditor->full_name ?? $latestAuditor->username) : null;
+        $latestAuditedAt = $latestAnswer?->updated_at ? \Carbon\Carbon::parse($latestAnswer->updated_at)->toDateTimeString() : now()->toDateTimeString();
 
         return response()->json([
             'message' => 'Checklist berhasil disimpan',
@@ -3408,7 +3424,9 @@ class AuditController extends Controller
             'answered' => $totalQuestions,
             'yes_count' => $yesCount,
             'total' => $totalQuestions,
-            'audited_at' => now()->toDateTimeString(),
+            'audited_at' => $latestAuditedAt,
+            'auditor_name' => $latestAuditorName,
+            'audited_by' => $latestAuditorName,
         ]);
     }
 
@@ -3834,20 +3852,23 @@ class AuditController extends Controller
             ->get();
         $currentQuestionIds = $currentQuestions->pluck('id')->toArray();
 
-        // Load all answers for this transaction
-        $existingAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        // Load all answers for this transaction with auditor
+        $existingAnswers = AuditAnswer::with('auditor')->where('stock_out_id', $stockOutId)->get();
 
         $checklist = collect();
         $answeredQuestionIds = [];
 
         foreach ($existingAnswers as $ans) {
             $answeredQuestionIds[] = $ans->question_id;
+            $auditor = $ans->auditor;
+            $ansAuditorName = $auditor ? ($auditor->name ?? $auditor->full_name ?? $auditor->username) : null;
             $checklist->push([
                 'question_id' => $ans->question_id,
                 'content' => $ans->question_content ?? optional(Question::find($ans->question_id))->content ?? 'Pertanyaan dihapus',
                 'answer' => (bool) $ans->answer,
                 'notes' => $ans->notes,
                 'answered_at' => $ans->updated_at?->toDateTimeString(),
+                'auditor_name' => $ansAuditorName,
                 'is_deleted' => $ans->question_id === null || !in_array($ans->question_id, $currentQuestionIds),
             ]);
         }
@@ -3862,6 +3883,7 @@ class AuditController extends Controller
                     'answer' => null,
                     'notes' => null,
                     'answered_at' => null,
+                    'auditor_name' => null,
                     'is_deleted' => false,
                 ]);
             } else {
@@ -3873,6 +3895,7 @@ class AuditController extends Controller
                         'answer' => null,
                         'notes' => null,
                         'answered_at' => null,
+                        'auditor_name' => null,
                         'is_deleted' => false,
                     ]);
                     $checklist->transform(function ($item) use ($q, $existingAns) {
@@ -3888,7 +3911,12 @@ class AuditController extends Controller
         $answeredCount = $existingAnswers->count();
         $yesCount = $existingAnswers->where('answer', true)->count();
         $totalQuestions = $checklist->count();
-        $latestAnswer = $existingAnswers->max('updated_at');
+        
+        // Ambil audit terakhir saja
+        $latestAnswer = $existingAnswers->sortByDesc('updated_at')->first();
+        $latestAuditor = $latestAnswer?->auditor;
+        $latestAuditorName = $latestAuditor ? ($latestAuditor->name ?? $latestAuditor->full_name ?? $latestAuditor->username) : null;
+        $latestAuditedAt = $latestAnswer?->updated_at ? \Carbon\Carbon::parse($latestAnswer->updated_at)->toDateTimeString() : null;
 
         return response()->json([
             'stock_out_id' => (int) $stockOutId,
@@ -3898,7 +3926,9 @@ class AuditController extends Controller
             'answered' => $answeredCount,
             'yes_count' => $yesCount,
             'score' => $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0,
-            'audited_at' => $latestAnswer ? \Carbon\Carbon::parse($latestAnswer)->toDateTimeString() : null,
+            'audited_at' => $latestAuditedAt,
+            'auditor_name' => $latestAuditorName,
+            'audited_by' => $latestAuditorName,
         ]);
     }
 
@@ -3936,10 +3966,15 @@ class AuditController extends Controller
             );
         }
 
-        $allAnswers = AuditAnswer::where('stock_out_id', $stockOutId)->get();
+        // Return updated score and latest auditor
+        $allAnswers = AuditAnswer::with('auditor')->where('stock_out_id', $stockOutId)->get();
         $totalQuestions = $allAnswers->count();
         $yesCount = $allAnswers->where('answer', true)->count();
         $score = $totalQuestions > 0 ? round(($yesCount / $totalQuestions) * 100) : 0;
+        $latestAnswer = $allAnswers->sortByDesc('updated_at')->first();
+        $latestAuditor = $latestAnswer?->auditor ?? $user;
+        $latestAuditorName = $latestAuditor ? ($latestAuditor->name ?? $latestAuditor->full_name ?? $latestAuditor->username) : null;
+        $latestAuditedAt = $latestAnswer?->updated_at ? \Carbon\Carbon::parse($latestAnswer->updated_at)->toDateTimeString() : now()->toDateTimeString();
 
         return response()->json([
             'message' => 'Checklist profit berhasil disimpan',
@@ -3947,7 +3982,9 @@ class AuditController extends Controller
             'answered' => $totalQuestions,
             'yes_count' => $yesCount,
             'total' => $totalQuestions,
-            'audited_at' => now()->toDateTimeString(),
+            'audited_at' => $latestAuditedAt,
+            'auditor_name' => $latestAuditorName,
+            'audited_by' => $latestAuditorName,
         ]);
     }
 

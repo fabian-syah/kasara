@@ -453,9 +453,15 @@
                                 ({{ checklistData.score }}%)
                             </span>
                         </p>
-                        <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                            <Calendar :size="12" />
-                            Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
+                        <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                            <span class="inline-flex items-center gap-1">
+                                <Calendar :size="12" />
+                                Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
+                            </span>
+                            <span v-if="checklistData?.auditor_name || checklistData?.audited_by" class="inline-flex items-center gap-1 text-text-secondary font-medium">
+                                <span>•</span>
+                                <span>oleh <strong class="text-text-primary font-bold">{{ checklistData?.auditor_name || checklistData?.audited_by }}</strong></span>
+                            </span>
                         </p>
                         <p v-else class="text-xs text-amber-500 mt-1 font-medium">Belum pernah diaudit</p>
                     </div>
@@ -488,8 +494,11 @@
                                 <p class="text-sm font-medium text-text-primary">{{ q.content }}</p>
                                 <p v-if="q.is_deleted" class="text-[10px] text-red-400 mt-0.5 italic">Pertanyaan ini
                                     sudah dihapus/diubah</p>
-                                <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5">
-                                    Dijawab: {{ formatDate(q.answered_at) }}
+                                <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1 flex-wrap">
+                                    <span>Dijawab: {{ formatDate(q.answered_at) }}</span>
+                                    <span v-if="q.auditor_name" class="text-text-secondary font-medium">
+                                        • oleh <strong class="text-text-primary">{{ q.auditor_name }}</strong>
+                                    </span>
                                 </p>
                             </div>
 
@@ -759,18 +768,23 @@ const saveChecklist = async () => {
         }
         const res = await axios.post(`/audit/profit-checklist/${checklistStockOutId.value}`, payload)
 
-        // Update the score in the table
+        // Update the score and latest auditor in the table
         const item = profitRecords.value.daily_sales.data.find(s => s.id === checklistStockOutId.value)
         if (item) {
             item.audit_score = res.data.score
             item.audit_answered = res.data.answered
             item.audit_total = res.data.total
+            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by
+            item.audited_at = res.data.audited_at
         }
 
         // Update modal data
         checklistData.value.score = res.data.score
         checklistData.value.answered = res.data.answered
         checklistData.value.total = res.data.total
+        checklistData.value.audited_at = res.data.audited_at
+        checklistData.value.auditor_name = res.data.auditor_name || res.data.audited_by
+        checklistData.value.audited_by = res.data.audited_by || res.data.auditor_name
 
         toast.success('Checklist profit berhasil disimpan!')
         showChecklistModal.value = false
