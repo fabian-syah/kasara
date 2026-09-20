@@ -161,8 +161,19 @@ class User extends Authenticatable
             })->pluck('id')->toArray();
         }
 
-        // Audit role is handled above to return all branches if unrestricted.
-        // But if we want to support specific assignments for audit later, they would just not get the global role logic above if we remove them.
+        if ($this->hasRole('audit')) {
+            if (!empty($assignedIds)) {
+                return $assignedIds;
+            }
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
+            return \App\Models\Branch::where(function ($q) use ($excluded) {
+                foreach ($excluded as $term) {
+                    $q->where('name', 'not ilike', '%' . $term . '%');
+                }
+            })->pluck('id')->toArray();
+        }
+
         return $assignedIds;
     }
 
@@ -173,7 +184,10 @@ class User extends Authenticatable
         if ($this->online_shop_id)
             $ids[] = $this->online_shop_id;
 
-        $extras = $this->placements()->whereIn('model_type', ['online_shop', 'App\Models\OnlineShop'])->pluck('model_id')->toArray();
+        $extras = $this->placements()->where(function ($q) {
+            $q->whereIn('model_type', ['online_shop', 'OnlineShop', 'App\Models\OnlineShop', 'App\\Models\\OnlineShop'])
+              ->orWhereRaw("LOWER(model_type) LIKE '%online%'");
+        })->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by && $this->created_by !== $this->id) {
@@ -193,6 +207,19 @@ class User extends Authenticatable
             })->pluck('id')->toArray();
         }
 
+        if ($this->hasRole('audit')) {
+            if (!empty($assignedIds)) {
+                return $assignedIds;
+            }
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
+            return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
+                foreach ($excluded as $term) {
+                    $q->where('name', 'not ilike', '%' . $term . '%');
+                }
+            })->pluck('id')->toArray();
+        }
+
         return $assignedIds;
     }
 
@@ -203,7 +230,10 @@ class User extends Authenticatable
         if ($this->warehouse_id)
             $ids[] = $this->warehouse_id;
 
-        $extras = $this->placements()->whereIn('model_type', ['warehouse', 'App\Models\Warehouse'])->pluck('model_id')->toArray();
+        $extras = $this->placements()->where(function ($q) {
+            $q->whereIn('model_type', ['warehouse', 'Warehouse', 'App\Models\Warehouse', 'App\\Models\\Warehouse'])
+              ->orWhereRaw("LOWER(model_type) LIKE '%warehouse%'");
+        })->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if (empty($assignedIds) && $this->hasRole('inventory') && $this->created_by && $this->created_by !== $this->id) {
@@ -223,6 +253,19 @@ class User extends Authenticatable
             })->pluck('id')->toArray();
         }
 
+        if ($this->hasRole('audit')) {
+            if (!empty($assignedIds)) {
+                return $assignedIds;
+            }
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
+            return \App\Models\Warehouse::where(function ($q) use ($excluded) {
+                foreach ($excluded as $term) {
+                    $q->where('name', 'not ilike', '%' . $term . '%');
+                }
+            })->pluck('id')->toArray();
+        }
+
         return $assignedIds;
     }
 
@@ -233,10 +276,26 @@ class User extends Authenticatable
         if ($this->distributor_id)
             $ids[] = $this->distributor_id;
 
-        $extras = $this->placements()->whereIn('model_type', ['distributor', 'App\Models\Distributor'])->pluck('model_id')->toArray();
+        $extras = $this->placements()->where(function ($q) {
+            $q->whereIn('model_type', ['distributor', 'Distributor', 'App\Models\Distributor', 'App\\Models\\Distributor'])
+              ->orWhereRaw("LOWER(model_type) LIKE '%distributor%'");
+        })->pluck('model_id')->toArray();
         $assignedIds = array_unique(array_merge($ids, $extras));
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+            /** @var array $excluded */
+            $excluded = config('kasara.excluded_keywords', []);
+            return \App\Models\Distributor::where(function ($q) use ($excluded) {
+                foreach ($excluded as $term) {
+                    $q->where('name', 'not ilike', '%' . $term . '%');
+                }
+            })->pluck('id')->toArray();
+        }
+
+        if ($this->hasRole('audit')) {
+            if (!empty($assignedIds)) {
+                return $assignedIds;
+            }
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\Distributor::where(function ($q) use ($excluded) {

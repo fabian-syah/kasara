@@ -94,53 +94,71 @@ const accessibleBranchIds = computed(() => {
   const ids = [];
   if (user.branch_id) ids.push(Number(user.branch_id));
   if (user.placements) {
-    user.placements.filter(p => p.model_type === 'branch' || p.model_type?.includes('Branch')).map(p =>
-      ids.push(Number(p.model_id)));
+    user.placements
+      .filter(p => p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch'))
+      .forEach(p => ids.push(Number(p.model_id)));
   }
   return [...new Set(ids)];
 });
 const auditAccessibleBranchIds = accessibleBranchIds;
 
+// Helper to determine if audit user has ANY specific placements assigned
+const isUnrestrictedAudit = computed(() => {
+  if (!isAudit.value) return false;
+  const user = currentUser.value;
+  if (!user) return false;
+  const hasSpecific = !!user.branch_id || !!user.warehouse_id || !!user.online_shop_id || !!user.distributor_id ||
+    (user.placements && user.placements.length > 0);
+  return !hasSpecific;
+});
+
 const auditAccessibleWarehouseIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')).map(p =>
-    Number(p.model_id));
+  return user.placements
+    .filter(p => p.model_type === 'warehouse' || p.model_type?.toLowerCase().includes('warehouse'))
+    .map(p => Number(p.model_id));
 });
 const auditAccessibleOnlineShopIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')).map(p =>
-    Number(p.model_id));
+  return user.placements
+    .filter(p => p.model_type === 'online_shop' || p.model_type?.toLowerCase().includes('online'))
+    .map(p => Number(p.model_id));
 });
 const auditAccessibleDistributorIds = computed(() => {
   if (!isAudit.value) return null;
   const user = currentUser.value;
   if (!user?.placements) return [];
-  return user.placements.filter(p => p.model_type === 'distributor' || p.model_type?.includes('Distributor')).map(p =>
-    Number(p.model_id));
+  return user.placements
+    .filter(p => p.model_type === 'distributor' || p.model_type?.toLowerCase().includes('distributor'))
+    .map(p => Number(p.model_id));
 });
 
 // Filtered data for modal form
 const availableBranches = computed(() => {
   if (!isAudit.value && !isLeader.value) return branches.value;
+  if (isUnrestrictedAudit.value) return branches.value;
   if (!accessibleBranchIds.value || accessibleBranchIds.value.length === 0) return [];
   return branches.value.filter(b => accessibleBranchIds.value.includes(Number(b.id)));
 });
 const availableWarehouses = computed(() => {
   if (!isAudit.value || !auditAccessibleWarehouseIds.value) return warehouses.value;
+  if (isUnrestrictedAudit.value) return warehouses.value;
   if (auditAccessibleWarehouseIds.value.length === 0) return [];
   return warehouses.value.filter(w => auditAccessibleWarehouseIds.value.includes(Number(w.id)));
 });
 const availableOnlineShops = computed(() => {
   if (!isAudit.value || !auditAccessibleOnlineShopIds.value) return onlineShops.value;
+  if (isUnrestrictedAudit.value) return onlineShops.value;
   if (auditAccessibleOnlineShopIds.value.length === 0) return [];
   return onlineShops.value.filter(s => auditAccessibleOnlineShopIds.value.includes(Number(s.id)));
 });
 const availableDistributors = computed(() => {
   if (!isAudit.value || !auditAccessibleDistributorIds.value) return distributors.value;
+  if (isUnrestrictedAudit.value) return distributors.value;
   if (auditAccessibleDistributorIds.value.length === 0) return [];
   return distributors.value.filter(d => auditAccessibleDistributorIds.value.includes(Number(d.id)));
 });
@@ -148,10 +166,11 @@ const availableDistributors = computed(() => {
 function canManageUser(user) {
   if (!user) return false;
   if (isSuperAdmin.value) return true;
+  if (user.id === currentUser.value?.id) return true;
   if (isLeader.value) {
-    if (user.id === currentUser.value?.id) return true;
     const isStaff = user.roles?.some(r => r.name === 'inventory');
-    const inBranch = accessibleBranchIds.value?.includes(Number(user.branch_id));
+    const inBranch = accessibleBranchIds.value?.includes(Number(user.branch_id)) ||
+      user.placements?.some(p => (p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch')) && accessibleBranchIds.value?.includes(Number(p.model_id)));
     return isStaff && inBranch;
   }
   if (isAudit.value) {
@@ -183,20 +202,20 @@ const filteredRolesOptions = computed(() => {
 
 
   // Determine Access based on placements
-  const hasBranchAccess = !!user.branch_id || (user.placements?.some(p =>
-    p.model_type === 'branch' || p.model_type?.includes('Branch')
+  const hasBranchAccess = isUnrestrictedAudit.value || !!user.branch_id || (user.placements?.some(p =>
+    p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch')
   ) ?? false);
 
-  const hasWarehouseAccess = !!user.warehouse_id || (user.placements?.some(p =>
-    p.model_type === 'warehouse' || p.model_type?.includes('Warehouse')
+  const hasWarehouseAccess = isUnrestrictedAudit.value || !!user.warehouse_id || (user.placements?.some(p =>
+    p.model_type === 'warehouse' || p.model_type?.toLowerCase().includes('warehouse')
   ) ?? false);
 
-  const hasOnlineAccess = !!user.online_shop_id || (user.placements?.some(p =>
-    p.model_type === 'online_shop' || p.model_type?.includes('OnlineShop')
+  const hasOnlineAccess = isUnrestrictedAudit.value || !!user.online_shop_id || (user.placements?.some(p =>
+    p.model_type === 'online_shop' || p.model_type?.toLowerCase().includes('online')
   ) ?? false);
 
-  const hasDistributorAccess = !!user.distributor_id || (user.placements?.some(p =>
-    p.model_type === 'distributor' || p.model_type?.includes('Distributor')
+  const hasDistributorAccess = isUnrestrictedAudit.value || !!user.distributor_id || (user.placements?.some(p =>
+    p.model_type === 'distributor' || p.model_type?.toLowerCase().includes('distributor')
   ) ?? false);
 
   // Whitelist: only show roles matching audit's access types
@@ -444,6 +463,9 @@ const subAccountParentMap = computed(() => {
   return map;
 });
 
+const mainUsersCount = computed(() => (users.value || []).filter(u => u && !u.roles?.some(r => r.name === 'inventory')).length);
+const csUsersCount = computed(() => (users.value || []).filter(u => u && u.roles?.some(r => r.name === 'inventory')).length);
+
 const filteredUsers = computed(() => {
   if (!users.value) return [];
   let result = users.value;
@@ -471,14 +493,25 @@ const filteredUsers = computed(() => {
     result = result.filter(u => u && u.roles && u.roles.some(r => r.name === selectedRole.value));
   }
 
-  // Branch Filter â€” for sub-accounts without branch_id, match via their parent's branch
+  // Branch Filter — check branch_id, placements, and parent's branch & placements
   if (selectedBranch.value) {
     result = result.filter(u => {
       if (!u) return false;
       if (u.branch_id == selectedBranch.value) return true;
-      // Check if this is a sub-account whose parent belongs to the selected branch
+      if (u.placements && Array.isArray(u.placements)) {
+        if (u.placements.some(p => (p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch')) && p.model_id == selectedBranch.value)) {
+          return true;
+        }
+      }
       const parent = subAccountParentMap.value.get(u.id);
-      if (parent && parent.branch_id == selectedBranch.value) return true;
+      if (parent) {
+        if (parent.branch_id == selectedBranch.value) return true;
+        if (parent.placements && Array.isArray(parent.placements)) {
+          if (parent.placements.some(p => (p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch')) && p.model_id == selectedBranch.value)) {
+            return true;
+          }
+        }
+      }
       return false;
     });
   }
@@ -532,10 +565,10 @@ function openEditModal(user) {
   editingUser.value = user;
 
   // Parse placements if available
-  const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch').map(p => p.model_id);
-  const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop').map(p => p.model_id);
-  const warehousePlacements = (user.placements || []).filter(p => p.model_type === 'warehouse').map(p => p.model_id);
-  const distributorPlacements = (user.placements || []).filter(p => p.model_type === 'distributor').map(p => p.model_id);
+  const branchPlacements = (user.placements || []).filter(p => p.model_type === 'branch' || p.model_type?.toLowerCase().includes('branch')).map(p => Number(p.model_id));
+  const onlineShopPlacements = (user.placements || []).filter(p => p.model_type === 'online_shop' || p.model_type?.toLowerCase().includes('online')).map(p => Number(p.model_id));
+  const warehousePlacements = (user.placements || []).filter(p => p.model_type === 'warehouse' || p.model_type?.toLowerCase().includes('warehouse')).map(p => Number(p.model_id));
+  const distributorPlacements = (user.placements || []).filter(p => p.model_type === 'distributor' || p.model_type?.toLowerCase().includes('distributor')).map(p => Number(p.model_id));
 
   form.value = {
     full_name: user.full_name,
@@ -677,10 +710,11 @@ function getPlacementName(user) {
     const list = user.placements;
     if (list.length === 1) {
       const p = list[0];
-      if (p.model_type === 'branch') return branches.value.find(b => b.id == p.model_id)?.name || 'Cabang';
-      if (p.model_type === 'online_shop') return onlineShops.value.find(s => s.id == p.model_id)?.name || 'Online Shop';
-      if (p.model_type === 'warehouse') return warehouses.value.find(w => w.id == p.model_id)?.name || 'Gudang';
-      if (p.model_type === 'distributor') return distributors.value.find(d => d.id == p.model_id)?.name || 'Distributor';
+      const type = (p.model_type || '').toLowerCase();
+      if (type.includes('branch')) return branches.value.find(b => b.id == p.model_id)?.name || 'Cabang';
+      if (type.includes('online')) return onlineShops.value.find(s => s.id == p.model_id)?.name || 'Online Shop';
+      if (type.includes('warehouse')) return warehouses.value.find(w => w.id == p.model_id)?.name || 'Gudang';
+      if (type.includes('distributor')) return distributors.value.find(d => d.id == p.model_id)?.name || 'Distributor';
     }
     return `${list.length} Akses Lokasi`;
   }
@@ -781,13 +815,13 @@ function getUserRoleName(user) {
                     class="flex-1 md:px-6 py-2.5 md:py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     :class="selectedAccountType === 'main' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
               <Users :size="14" />
-              <span>Akun Login</span>
+              <span>Akun Login ({{ mainUsersCount }})</span>
             </button>
             <button @click="selectedAccountType = 'inventory'" 
                     class="flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                     :class="selectedAccountType === 'inventory' ? 'bg-orange-600 text-white shadow-lg shadow-orange-500/20' : 'text-text-secondary hover:text-text-primary hover:bg-surface-800'">
               <Shield :size="14" />
-              <span>Akun CS</span>
+              <span>Akun CS ({{ csUsersCount }})</span>
             </button>
           </div>
 

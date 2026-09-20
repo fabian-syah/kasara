@@ -88,31 +88,107 @@ class UserController extends Controller
             }
             // Untuk Branch/Warehouse/Gudang, kita tetap pakai logic placement sharing
             else {
-                if ($user->hasAnyRole(['audit', 'leader'])) {
+                if ($user->hasRole('audit') && !$user->hasAnySpecificAssignment()) {
+                    // Global unrestricted audit user has access to view all users
+                } elseif ($user->hasAnyRole(['audit', 'leader'])) {
                     // Logic sharing
                     $bIds = $user->getAccessibleBranchIds();
                     $wIds = $user->getAccessibleWarehouseIds();
                     $osIds = $user->getAccessibleOnlineShopIds();
                     $dIds = $user->getAccessibleDistributorIds();
 
-                    $query->where(function ($q) use ($bIds, $wIds, $osIds, $dIds) {
+                    $query->where(function ($q) use ($bIds, $wIds, $osIds, $dIds, $user) {
                         $hasConstraint = false;
                         if (!empty($bIds)) {
-                            $q->orWhereIn('branch_id', $bIds);
+                            $q->orWhereIn('branch_id', $bIds)
+                              ->orWhereHas('placements', function ($pq) use ($bIds) {
+                                  $pq->where(function ($typeQ) {
+                                      $typeQ->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch', 'App\\Models\\Branch'])
+                                            ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                                  })->whereIn('model_id', $bIds);
+                              })
+                              ->orWhere(function ($cq) use ($bIds) {
+                                  $cq->whereHas('createdBy', function ($creatorQ) use ($bIds) {
+                                      $creatorQ->whereIn('branch_id', $bIds)
+                                               ->orWhereHas('placements', function ($pq) use ($bIds) {
+                                                   $pq->where(function ($typeQ) {
+                                                       $typeQ->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch', 'App\\Models\\Branch'])
+                                                             ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                                                   })->whereIn('model_id', $bIds);
+                                               });
+                                  });
+                              });
                             $hasConstraint = true;
                         }
                         if (!empty($wIds)) {
-                            $q->orWhereIn('warehouse_id', $wIds);
+                            $q->orWhereIn('warehouse_id', $wIds)
+                              ->orWhereHas('placements', function ($pq) use ($wIds) {
+                                  $pq->where(function ($typeQ) {
+                                      $typeQ->whereIn('model_type', ['warehouse', 'Warehouse', 'App\Models\Warehouse', 'App\\Models\\Warehouse'])
+                                            ->orWhereRaw("LOWER(model_type) LIKE '%warehouse%'");
+                                  })->whereIn('model_id', $wIds);
+                              })
+                              ->orWhere(function ($cq) use ($wIds) {
+                                  $cq->whereHas('createdBy', function ($creatorQ) use ($wIds) {
+                                      $creatorQ->whereIn('warehouse_id', $wIds)
+                                               ->orWhereHas('placements', function ($pq) use ($wIds) {
+                                                   $pq->where(function ($typeQ) {
+                                                       $typeQ->whereIn('model_type', ['warehouse', 'Warehouse', 'App\Models\Warehouse', 'App\\Models\\Warehouse'])
+                                                             ->orWhereRaw("LOWER(model_type) LIKE '%warehouse%'");
+                                                   })->whereIn('model_id', $wIds);
+                                               });
+                                  });
+                              });
                             $hasConstraint = true;
                         }
                         if (!empty($osIds)) {
-                            $q->orWhereIn('online_shop_id', $osIds);
+                            $q->orWhereIn('online_shop_id', $osIds)
+                              ->orWhereHas('placements', function ($pq) use ($osIds) {
+                                  $pq->where(function ($typeQ) {
+                                      $typeQ->whereIn('model_type', ['online_shop', 'OnlineShop', 'App\Models\OnlineShop', 'App\\Models\\OnlineShop'])
+                                            ->orWhereRaw("LOWER(model_type) LIKE '%online%'");
+                                  })->whereIn('model_id', $osIds);
+                              })
+                              ->orWhere(function ($cq) use ($osIds) {
+                                  $cq->whereHas('createdBy', function ($creatorQ) use ($osIds) {
+                                      $creatorQ->whereIn('online_shop_id', $osIds)
+                                               ->orWhereHas('placements', function ($pq) use ($osIds) {
+                                                   $pq->where(function ($typeQ) {
+                                                       $typeQ->whereIn('model_type', ['online_shop', 'OnlineShop', 'App\Models\OnlineShop', 'App\\Models\\OnlineShop'])
+                                                             ->orWhereRaw("LOWER(model_type) LIKE '%online%'");
+                                                   })->whereIn('model_id', $osIds);
+                                               });
+                                  });
+                              });
                             $hasConstraint = true;
                         }
                         if (!empty($dIds)) {
-                            $q->orWhereIn('distributor_id', $dIds);
+                            $q->orWhereIn('distributor_id', $dIds)
+                              ->orWhereHas('placements', function ($pq) use ($dIds) {
+                                  $pq->where(function ($typeQ) {
+                                      $typeQ->whereIn('model_type', ['distributor', 'Distributor', 'App\Models\Distributor', 'App\\Models\\Distributor'])
+                                            ->orWhereRaw("LOWER(model_type) LIKE '%distributor%'");
+                                  })->whereIn('model_id', $dIds);
+                              })
+                              ->orWhere(function ($cq) use ($dIds) {
+                                  $cq->whereHas('createdBy', function ($creatorQ) use ($dIds) {
+                                      $creatorQ->whereIn('distributor_id', $dIds)
+                                               ->orWhereHas('placements', function ($pq) use ($dIds) {
+                                                   $pq->where(function ($typeQ) {
+                                                       $typeQ->whereIn('model_type', ['distributor', 'Distributor', 'App\Models\Distributor', 'App\\Models\\Distributor'])
+                                                             ->orWhereRaw("LOWER(model_type) LIKE '%distributor%'");
+                                                   })->whereIn('model_id', $dIds);
+                                               });
+                                  });
+                              });
                             $hasConstraint = true;
                         }
+
+                        // Always allow seeing own account and users created by oneself
+                        $q->orWhere('id', $user->id)
+                          ->orWhere('created_by', $user->id);
+                        $hasConstraint = true;
+
                         if (!$hasConstraint)
                             $q->whereRaw('0 = 1');
                     });
@@ -137,10 +213,30 @@ class UserController extends Controller
         }
 
         // Filters
-        if ($request->has('branch_id'))
-            $query->where('branch_id', $request->branch_id);
-        if ($request->has('warehouse_id'))
-            $query->where('warehouse_id', $request->warehouse_id);
+        if ($request->filled('branch_id')) {
+            $bId = $request->branch_id;
+            $query->where(function ($q) use ($bId) {
+                $q->where('branch_id', $bId)
+                  ->orWhereHas('placements', function ($pq) use ($bId) {
+                      $pq->where(function ($typeQ) {
+                          $typeQ->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch', 'App\\Models\\Branch'])
+                                ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                      })->where('model_id', $bId);
+                  });
+            });
+        }
+        if ($request->filled('warehouse_id')) {
+            $wId = $request->warehouse_id;
+            $query->where(function ($q) use ($wId) {
+                $q->where('warehouse_id', $wId)
+                  ->orWhereHas('placements', function ($pq) use ($wId) {
+                      $pq->where(function ($typeQ) {
+                          $typeQ->whereIn('model_type', ['warehouse', 'Warehouse', 'App\Models\Warehouse', 'App\\Models\\Warehouse'])
+                                ->orWhereRaw("LOWER(model_type) LIKE '%warehouse%'");
+                      })->where('model_id', $wId);
+                  });
+            });
+        }
         if ($request->has('role')) {
             $query->role($request->role);
             
@@ -546,6 +642,37 @@ class UserController extends Controller
             if ($user->distributor_id && in_array($user->distributor_id, $accessibleDistributorIds))
                 $hasAccess = true;
 
+            // Check multi-placements (for Leader, Audit, etc.)
+            if (!$hasAccess && method_exists($user, 'getAccessibleBranchIds')) {
+                $targetBranches = $user->getAccessibleBranchIds();
+                if (!empty(array_intersect($targetBranches, $accessibleBranchIds))) {
+                    $hasAccess = true;
+                }
+            }
+            if (!$hasAccess && method_exists($user, 'getAccessibleWarehouseIds')) {
+                $targetWarehouses = $user->getAccessibleWarehouseIds();
+                if (!empty(array_intersect($targetWarehouses, $accessibleWarehouseIds))) {
+                    $hasAccess = true;
+                }
+            }
+            if (!$hasAccess && method_exists($user, 'getAccessibleOnlineShopIds')) {
+                $targetOnlineShops = $user->getAccessibleOnlineShopIds();
+                if (!empty(array_intersect($targetOnlineShops, $accessibleOnlineShopIds))) {
+                    $hasAccess = true;
+                }
+            }
+            if (!$hasAccess && method_exists($user, 'getAccessibleDistributorIds')) {
+                $targetDistributors = $user->getAccessibleDistributorIds();
+                if (!empty(array_intersect($targetDistributors, $accessibleDistributorIds))) {
+                    $hasAccess = true;
+                }
+            }
+
+            // Also check if created by current user
+            if ($user->created_by === $currentUser->id) {
+                $hasAccess = true;
+            }
+
             if (!$hasAccess) {
                 return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus user ini.'], 403);
             }
@@ -582,13 +709,42 @@ class UserController extends Controller
                 $distributorIds = $user->getAccessibleDistributorIds();
 
                 $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
-                    if (!empty($branchIds)) $q->orWhereIn('branch_id', $branchIds);
-                    if (!empty($warehouseIds)) $q->orWhereIn('warehouse_id', $warehouseIds);
-                    if (!empty($distributorIds)) $q->orWhereIn('distributor_id', $distributorIds);
+                    if (!empty($branchIds)) {
+                        $q->orWhereIn('branch_id', $branchIds)
+                          ->orWhereHas('placements', function ($pq) use ($branchIds) {
+                              $pq->where(function ($typeQ) {
+                                  $typeQ->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch', 'App\\Models\\Branch'])
+                                        ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                              })->whereIn('model_id', $branchIds);
+                          });
+                    }
+                    if (!empty($warehouseIds)) {
+                        $q->orWhereIn('warehouse_id', $warehouseIds)
+                          ->orWhereHas('placements', function ($pq) use ($warehouseIds) {
+                              $pq->where(function ($typeQ) {
+                                  $typeQ->whereIn('model_type', ['warehouse', 'Warehouse', 'App\Models\Warehouse', 'App\\Models\\Warehouse'])
+                                        ->orWhereRaw("LOWER(model_type) LIKE '%warehouse%'");
+                              })->whereIn('model_id', $warehouseIds);
+                          });
+                    }
+                    if (!empty($distributorIds)) {
+                        $q->orWhereIn('distributor_id', $distributorIds)
+                          ->orWhereHas('placements', function ($pq) use ($distributorIds) {
+                              $pq->where(function ($typeQ) {
+                                  $typeQ->whereIn('model_type', ['distributor', 'Distributor', 'App\Models\Distributor', 'App\\Models\\Distributor'])
+                                        ->orWhereRaw("LOWER(model_type) LIKE '%distributor%'");
+                              })->whereIn('model_id', $distributorIds);
+                          });
+                    }
                     if (!empty($onlineShopIds)) {
                         $q->orWhere(function ($sub) use ($onlineShopIds) {
                             $sub->whereIn('online_shop_id', $onlineShopIds)
                                 ->whereNull('branch_id');
+                        })->orWhereHas('placements', function ($pq) use ($onlineShopIds) {
+                            $pq->where(function ($typeQ) {
+                                $typeQ->whereIn('model_type', ['online_shop', 'OnlineShop', 'App\Models\OnlineShop', 'App\\Models\\OnlineShop'])
+                                      ->orWhereRaw("LOWER(model_type) LIKE '%online%'");
+                            })->whereIn('model_id', $onlineShopIds);
                         });
                     }
                     if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds))
