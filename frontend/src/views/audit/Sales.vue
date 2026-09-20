@@ -120,8 +120,15 @@
                                         item.order_no }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">
                                     <div>{{ item.customer_name }}</div>
-                                    <div class="text-xs text-text-secondary">{{ item.customer_phone }}
-                                    </div>
+                                    <div class="text-xs text-text-secondary">{{ item.customer_phone }}</div>
+                                    <button 
+                                        v-if="item.customer_phone" 
+                                        @click="checkWhatsapp(item.customer_phone)" 
+                                        class="mt-1 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                                        title="Cek Nomor WhatsApp">
+                                        <MessageSquare :size="10" stroke-width="2.5" />
+                                        <span>Cek Nomer WhatsApp</span>
+                                    </button>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{{
                                     item.category }}</td>
@@ -274,13 +281,37 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { Loader2 } from 'lucide-vue-next'
+import { Loader2, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import ProfitReport from '../reports/ProfitReport.vue'
+import { useToast } from '../../composables/useToast'
 
 import { formatCurrency, formatNumber, getLogicalDate, getTodayLocal } from '../../utils/formatters'
 const authStore = useAuthStore()
+const toast = useToast()
+
+const formatWaNumber = (phone) => {
+    if (!phone) return ''
+    let clean = String(phone).replace(/\D/g, '')
+    if (clean.startsWith('0')) {
+        clean = '62' + clean.slice(1)
+    } else if (clean.startsWith('8')) {
+        clean = '62' + clean
+    } else if (!clean.startsWith('62')) {
+        clean = '62' + clean
+    }
+    return clean
+}
+
+const checkWhatsapp = (phone) => {
+    const clean = formatWaNumber(phone)
+    if (!clean || clean.length < 9) {
+        toast.error('Nomor HP/WhatsApp tidak valid atau terlalu pendek!')
+        return
+    }
+    window.open(`https://wa.me/${clean}`, '_blank')
+}
 
 const tabs = [
     { id: 'daily', name: 'Penjualan Harian' },

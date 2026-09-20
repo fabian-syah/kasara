@@ -123,6 +123,14 @@
                         </button>
                     </div>
 
+                    <!-- Cek Nomer WhatsApp Button -->
+                    <button @click="openCheckWaModal"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 shadow-sm hover:transform hover:-translate-y-0.5 transition-all cursor-pointer"
+                        title="Cek Nomor WhatsApp">
+                        <MessageSquare :size="16" />
+                        <span>Cek Nomer WhatsApp</span>
+                    </button>
+
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
                         class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
@@ -240,8 +248,17 @@
                                 <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name ||
                                     '-' }}</td>
                                 <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
-                                <td class="px-6 py-4 text-text-primary font-medium">{{
-                                    item.customer_phone }}</td>
+                                <td class="px-6 py-4 text-text-primary font-medium">
+                                    <div>{{ item.customer_phone || '-' }}</div>
+                                    <button 
+                                        v-if="item.customer_phone" 
+                                        @click="checkWhatsapp(item.customer_phone)" 
+                                        class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                                        title="Cek Nomor WhatsApp">
+                                        <MessageSquare :size="10" stroke-width="2.5" />
+                                        <span>Cek Nomer WhatsApp</span>
+                                    </button>
+                                </td>
                                 <td class="px-6 py-4">
                                     <div v-if="item.category === 'cancel_penjualan'" class="flex flex-col gap-1">
                                         <span class="inline-flex w-fit px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20">
@@ -640,12 +657,73 @@
     <!-- Cancel Sale Modal -->
     <CancelSaleModal :show="showCancelModal" :sale="selectedSaleForCancel" @close="showCancelModal = false"
         @success="fetchData" />
+
+    <!-- Cek Nomer WhatsApp Modal -->
+    <Teleport to="body">
+        <div v-if="showCheckWaModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="showCheckWaModal = false"></div>
+
+            <div class="relative w-full max-w-md bg-white dark:bg-surface-900 rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 border border-gray-200 dark:border-white/10">
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
+
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                <MessageSquare :size="20" />
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-text-primary">Cek Nomer WhatsApp</h3>
+                                <p class="text-xs text-text-secondary">Buka percakapan WhatsApp langsung</p>
+                            </div>
+                        </div>
+                        <button @click="showCheckWaModal = false"
+                            class="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors text-text-secondary">
+                            <X :size="18" />
+                        </button>
+                    </div>
+
+                    <form @submit.prevent="submitManualWa" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                                Nomor WhatsApp / HP
+                            </label>
+                            <input 
+                                ref="manualWaInputRef"
+                                v-model="manualWaInput" 
+                                type="text" 
+                                placeholder="Contoh: 08123456789 atau 628123456789"
+                                class="w-full bg-surface-50 dark:bg-surface-800 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-gray-900 dark:text-white"
+                                autofocus
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button 
+                                type="button" 
+                                @click="showCheckWaModal = false"
+                                class="px-4 py-2.5 rounded-xl text-sm font-medium text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-800 transition-colors">
+                                Batal
+                            </button>
+                            <button 
+                                type="submit"
+                                :disabled="!manualWaInput.trim()"
+                                class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                                <MessageSquare :size="16" />
+                                <span>Buka WhatsApp</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2, Search, X, Image, Wallet, TrendingUp, CreditCard } from 'lucide-vue-next'
+import { Loader2, Download, Eye, FileText, ChevronLeft, ChevronRight, ChevronDown, Calendar, ClipboardCheck, Trash2, Search, X, Image, Wallet, TrendingUp, CreditCard, MessageSquare } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import { debounce } from '../../utils/debounce'
@@ -662,6 +740,52 @@ const openScreenshot = (item) => {
     selectedSaleForScreenshot.value = item;
     showScreenshotModal.value = true;
 }
+
+// Cek WhatsApp Logic
+const showCheckWaModal = ref(false)
+const manualWaInput = ref('')
+const manualWaInputRef = ref(null)
+
+const formatWaNumber = (phone) => {
+    if (!phone) return ''
+    let clean = String(phone).replace(/\D/g, '')
+    if (clean.startsWith('0')) {
+        clean = '62' + clean.slice(1)
+    } else if (clean.startsWith('8')) {
+        clean = '62' + clean
+    } else if (!clean.startsWith('62')) {
+        clean = '62' + clean
+    }
+    return clean
+}
+
+const checkWhatsapp = (phone) => {
+    const clean = formatWaNumber(phone)
+    if (!clean || clean.length < 9) {
+        toast.error('Nomor HP/WhatsApp tidak valid atau terlalu pendek!')
+        return
+    }
+    window.open(`https://wa.me/${clean}`, '_blank')
+}
+
+const openCheckWaModal = () => {
+    showCheckWaModal.value = true
+    manualWaInput.value = ''
+    nextTick(() => {
+        manualWaInputRef.value?.focus()
+    })
+}
+
+const submitManualWa = () => {
+    if (!manualWaInput.value.trim()) return
+    checkWhatsapp(manualWaInput.value.trim())
+    showCheckWaModal.value = false
+    manualWaInput.value = ''
+}
+
+useEscapeKey(() => {
+    if (showCheckWaModal.value) showCheckWaModal.value = false
+})
 
 const authStore = useAuthStore()
 const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'leader')
