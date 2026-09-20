@@ -146,12 +146,31 @@ class AuthController extends Controller
     {
         $request->validate([
             'password' => 'required|string',
+            'inventory_user_id' => 'nullable|integer|exists:users,id',
+            'user_id' => 'nullable|integer|exists:users,id',
         ]);
 
-        if (!\Illuminate\Support\Facades\Hash::check($request->password, $request->user()->password)) {
+        $targetUser = $request->user();
+        $targetId = $request->inventory_user_id ?? $request->user_id;
+
+        if ($targetId && $targetId != $request->user()->id) {
+            $found = User::find($targetId);
+            if ($found) {
+                if (!$found->has_password) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Akun CS (' . $found->name . ') belum memasang password login.',
+                    ], 422);
+                }
+                $targetUser = $found;
+            }
+        }
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $targetUser->password)) {
+            $accountLabel = ($targetUser->id !== $request->user()->id) ? ' Akun CS (' . $targetUser->name . ')' : '';
             return response()->json([
                 'success' => false,
-                'message' => 'Password salah.',
+                'message' => 'Password' . $accountLabel . ' salah.',
             ], 422);
         }
 

@@ -40,7 +40,7 @@ const inputPlaceholder = computed(() => {
 
 const isClickLocked = ref(false);
 function handleSubmit() {
-    if (isClickLocked.value) return;
+    if (isClickLocked.value || props.loading || localLoading.value) return;
     if (!inputVal.value) return;
 
     isClickLocked.value = true;
@@ -49,9 +49,29 @@ function handleSubmit() {
     emit("success", inputVal.value);
     emit("verified", inputVal.value);
     
-    // We don't reset isClickLocked immediately because the parent will handle API request.
-    // If it fails, watch error will unlock it.
+    // Safety fallback: if parent doesn't reset loading/error within 15 seconds, unlock automatically
+    setTimeout(() => {
+        if (localLoading.value || isClickLocked.value) {
+            localLoading.value = false;
+            isClickLocked.value = false;
+        }
+    }, 15000);
 }
+
+watch(() => props.show, (newVal) => {
+    localLoading.value = false;
+    isClickLocked.value = false;
+    if (newVal) {
+        resetInput();
+    }
+});
+
+watch(() => props.loading, (newVal) => {
+    if (!newVal) {
+        localLoading.value = false;
+        isClickLocked.value = false;
+    }
+});
 
 watch(() => props.error, (newVal) => {
     if (newVal) {
@@ -70,15 +90,15 @@ function resetInput() {
 }
 
 function close() {
+    localLoading.value = false;
+    isClickLocked.value = false;
     resetInput();
     emit("close");
 }
 
 onMounted(() => {
     if (props.show) {
-        nextTick(() => {
-            if (inputRef.value) inputRef.value.focus();
-        });
+        resetInput();
     }
 });
 </script>

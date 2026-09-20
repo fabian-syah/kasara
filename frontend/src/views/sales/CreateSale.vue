@@ -147,6 +147,8 @@ const showInitialPinSetup = ref(false);
 const showPasswordModal = ref(false);
 const passwordModalMode = ref('password');
 const pendingPasswordCallback = ref(null);
+const passwordModalLoading = ref(false);
+const passwordModalError = ref('');
 const showCreateAccount = ref(false);
 const newAccountName = ref("");
 const loadingCreate = ref(false);
@@ -341,6 +343,8 @@ function handleTransactionComplete(transaction) {
 }
 
 function handleVerifyPin(callback) {
+    passwordModalError.value = '';
+    passwordModalLoading.value = false;
     if (authStore.hasRole('inventory')) {
         callback('skipped');
     } else {
@@ -356,12 +360,40 @@ function handleVerifyPin(callback) {
     }
 }
 
-function handlePasswordSuccess(password) {
-    showPasswordModal.value = false;
-    if (pendingPasswordCallback.value) {
-        pendingPasswordCallback.value(password);
-        pendingPasswordCallback.value = null;
+async function handlePasswordSuccess(password) {
+    passwordModalError.value = '';
+    passwordModalLoading.value = true;
+
+    try {
+        const targetId = selectedAccountObject.value?.id;
+        if (targetId && !authStore.hasRole('inventory')) {
+            // Verify password against backend first
+            await api.post('/verify-password', {
+                password: password,
+                inventory_user_id: targetId
+            });
+        }
+
+        // If verified successfully, close modal and execute callback
+        passwordModalLoading.value = false;
+        showPasswordModal.value = false;
+        if (pendingPasswordCallback.value) {
+            const cb = pendingPasswordCallback.value;
+            pendingPasswordCallback.value = null;
+            cb(password);
+        }
+    } catch (err) {
+        passwordModalLoading.value = false;
+        const msg = err.response?.data?.message || 'Password salah atau tidak valid.';
+        passwordModalError.value = msg;
     }
+}
+
+function closePasswordModal() {
+    showPasswordModal.value = false;
+    passwordModalError.value = '';
+    passwordModalLoading.value = false;
+    pendingPasswordCallback.value = null;
 }
 
 function closeSuccessModal() {
@@ -631,9 +663,11 @@ watch(transactionCategory, () => {
             :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun CS'"
             :description="passwordModalMode === 'alert' ? ('Akun CS (' + (selectedAccountObject?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.') : ('Masukkan PASSWORD LOGIN Akun CS (' + (selectedAccountObject?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
             :user="selectedAccountObject"
-            @close="showPasswordModal = false"
+            :loading="passwordModalLoading"
+            :error="passwordModalError"
+            @close="closePasswordModal"
             @success="handlePasswordSuccess" />
-        <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="showPasswordModal = false"
+        <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="closePasswordModal"
             @success="handlePasswordSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
             :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
