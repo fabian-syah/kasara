@@ -277,10 +277,24 @@ const loading = ref(false)
 const exporting = ref(false)
 const selectedPeriod = ref('daily')
 
-const isRestricted = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    return !['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+const isPrivileged = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase().trim();
+    const privilegedRoles = ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const isRestricted = computed(() => !isPrivileged.value);
 
 // Receipt Modal State
 const showReceiptModal = ref(false)
@@ -535,9 +549,7 @@ const handleMonthChange = () => {
 
 
 const canFilterBranch = computed(() => {
-    // Only Audit, Super Admin, Owner, Leader can filter branches
-    const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'leader'].some(r => role.includes(r));
+    return isPrivileged.value;
 })
 
 const formatCurrency = (value) => {
@@ -605,7 +617,7 @@ const fetchBranches = async () => {
 
         const hasAnyRestriction = allowedBranchIds.length > 0 || allowedShopIds.length > 0;
 
-        if (isGlobalRole || (role === 'audit' && !hasAnyRestriction)) {
+        if (isGlobalRole || (role.includes('audit') && !hasAnyRestriction)) {
             locations.value = allLocations;
         } else if (hasAnyRestriction) {
             locations.value = allLocations.filter(loc => {
@@ -617,6 +629,8 @@ const fetchBranches = async () => {
                 const loc = locations.value[0];
                 selectedLocationKey.value = `${loc.type === 'branch' ? 'B' : 'S'}:${loc.id}`;
             }
+        } else if (role.includes('audit') || role.includes('leader') || role.includes('analist')) {
+            locations.value = allLocations;
         } else {
             locations.value = [];
         }

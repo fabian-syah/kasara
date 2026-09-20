@@ -25,11 +25,24 @@ const pagination = ref({
 
 // Date Filter
 const filterMode = ref('month');
-const isRestricted = computed(() => {
+const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'analist', 'admin_produk'];
-    return !privilegedRoles.some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const isRestricted = computed(() => !isPrivileged.value);
 
 const canChangeLocation = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
@@ -52,7 +65,7 @@ const distributors = ref([]);
 const filteredBranches = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = branches.value;
-    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(b => allowed.includes(Number(b.id)));
     }
@@ -62,7 +75,7 @@ const filteredBranches = computed(() => {
 const filteredOnlineShops = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
     let result = onlineShops.value;
-    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
+    if (!['super_admin', 'analist', 'owner', 'admin_produk'].some(r => role.includes(r))) {
         const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(s => allowed.includes(Number(s.id)));
     }
@@ -147,10 +160,13 @@ const filterPresets = [
     { label: 'Kemarin', value: 'yesterday' },
     { label: 'Pilih Tanggal', value: 'date' },
     { label: 'Per Bulan', value: 'month' },
+    { label: 'Semua', value: 'all' },
 ];
 
 const getDateParam = () => {
-    if (filterMode.value === 'today') {
+    if (filterMode.value === 'all') {
+        return 'all';
+    } else if (filterMode.value === 'today') {
         const d = getLogicalDate();
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -183,7 +199,10 @@ const fetchData = async (page = 1) => {
         };
 
         const dateParam = getDateParam();
-        if (dateParam) {
+        if (dateParam === 'all') {
+            params.period = 'all';
+            params.all = 1;
+        } else if (dateParam) {
             params.date = dateParam;
         } else {
             params.month = selectedMonth.value.month;
@@ -340,6 +359,10 @@ onMounted(() => {
                         {{ option.label }}
                     </option>
                 </select>
+
+                <div v-if="filterMode === 'all'" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-primary-500/20 text-primary-400 border border-primary-500/30">
+                    Semua Tanggal
+                </div>
 
                 <span class="text-xs text-text-secondary ml-2">
                     Total: {{ pagination.total }} item

@@ -29,10 +29,10 @@
 
                 <div
                     class="flex items-center gap-2 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl p-1">
-                    <button v-for="p in ['daily', 'monthly']" :key="p" @click="selectedPeriod = p; handlePeriodChange()"
+                    <button v-for="p in ['daily', 'monthly', 'all']" :key="p" @click="selectedPeriod = p; handlePeriodChange()"
                         class="px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
                         :class="selectedPeriod === p ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                        {{ p === 'daily' ? 'Harian' : 'Bulanan' }}
+                        {{ p === 'daily' ? 'Harian' : p === 'monthly' ? 'Bulanan' : 'Semua' }}
                     </button>
                 </div>
 
@@ -47,7 +47,7 @@
                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                 </div>
 
-                <div v-else class="flex items-center gap-2">
+                <div v-else-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
                     <select v-model="selectedMonth" @change="handleMonthChange"
                         class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0 shadow-sm transition-all hover:border-primary-500">
                         <option v-for="m in availableMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
@@ -56,6 +56,10 @@
                         class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold cursor-pointer text-text-primary focus:ring-0 shadow-sm transition-all hover:border-primary-500">
                         <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
                     </select>
+                </div>
+
+                <div v-else-if="selectedPeriod === 'all'" class="px-3 py-2 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold text-xs rounded-xl border border-primary-100 dark:border-primary-500/20">
+                    Semua Tanggal
                 </div>
 
                 <!-- Location Filter -->
@@ -1302,11 +1306,24 @@ const isLeader = computed(() => {
     return false;
 });
 
-const isRestricted = computed(() => {
+const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase().trim();
-    // super_admin, analist, audit, leader, owner are NOT date-restricted
-    return !['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const isRestricted = computed(() => !isPrivileged.value);
 
 const canChangeLocation = computed(() => {
     if (isLeader.value) return false;
@@ -1454,6 +1471,9 @@ const filters = ref({
 })
 
 const formattedDateDisplay = computed(() => {
+    if (selectedPeriod.value === 'all') {
+        return 'Semua Tanggal';
+    }
     if (selectedPeriod.value === 'monthly') {
         return `${months[selectedMonth.value - 1]} ${selectedYear.value}`;
     }
@@ -1922,9 +1942,11 @@ const getBaseReportText = (isForCopy = false) => {
     const selectedShop = onlineShops.value.find(s => s.id === filters.value.online_shop_id);
 
     const storeName = selectedBranch?.name || selectedShop?.name || authStore.user?.branch?.name || authStore.user?.online_shop?.name || 'PSTORE';
-    const dateStr = selectedPeriod.value === 'monthly'
-        ? `${months[selectedMonth.value - 1]} ${selectedYear.value}`
-        : formatDateString(filters.value.start_date);
+    const dateStr = selectedPeriod.value === 'all'
+        ? 'Semua Tanggal'
+        : (selectedPeriod.value === 'monthly'
+            ? `${months[selectedMonth.value - 1]} ${selectedYear.value}`
+            : formatDateString(filters.value.start_date));
 
     let text = `*LAPORAN PENJUALAN *\n`;
     text += `${storeName.toUpperCase()}\n`;
@@ -2161,6 +2183,10 @@ const handlePeriodChange = () => {
         filters.value.start_date = today;
         filters.value.end_date = today;
         fetchData(); // Pastikan data harian langsung di-fetch
+    } else if (selectedPeriod.value === 'all') {
+        filters.value.start_date = null;
+        filters.value.end_date = null;
+        fetchData();
     } else {
         handleMonthChange();
     }
@@ -2187,8 +2213,6 @@ const fetchData = async () => {
     loading.value = true
     try {
         const params = {
-            start_date: filters.value.start_date,
-            end_date: filters.value.end_date,
             branch_id: filters.value.branch_id,
             online_shop_id: filters.value.online_shop_id,
             location_type: locationType.value,
@@ -2196,6 +2220,14 @@ const fetchData = async () => {
             condition: filters.value.condition,
             product_type_id: filters.value.product_type_id
         };
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        } else {
+            params.start_date = filters.value.start_date;
+            params.end_date = filters.value.end_date;
+        }
         const response = await axios.get('/audit/sales', { params })
         salesData.value = response.data
         // Populate filter dropdowns from actual sales data

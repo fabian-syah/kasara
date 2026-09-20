@@ -184,21 +184,34 @@ const toast = useToast();
 const authStore = useAuthStore();
 const loading = ref(false);
 
-// getLogicalDate is now imported
-
-const isRestricted = computed(() => {
+const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return !privilegedRoles.some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
 
+const isRestricted = computed(() => !isPrivileged.value);
+
 const getMinDate = () => {
+    if (!isRestricted.value) return undefined;
     const d = getLogicalDate();
     d.setDate(d.getDate() - 7); // Allow past 7 days
     return d.toISOString().split('T')[0];
 };
 
 const getMaxDate = () => {
+    if (!isRestricted.value) return undefined;
     const d = getLogicalDate();
     return d.toISOString().split('T')[0];
 };
@@ -239,11 +252,7 @@ const chartData = ref({
     breakdown: null
 });
 
-const canFilterBranch = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return privilegedRoles.some(r => role.includes(r));
-})
+const canFilterBranch = computed(() => isPrivileged.value);
 
 const lineChartOptions = {
     responsive: true,

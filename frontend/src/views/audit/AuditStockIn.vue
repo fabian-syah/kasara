@@ -21,6 +21,7 @@
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="daily">Harian</option>
                             <option value="monthly">Bulanan</option>
+                            <option value="all">Semua</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -41,6 +42,15 @@
                             :min="isPrivileged ? undefined : getMinDate()"
                             :max="isPrivileged ? undefined : getMaxDate()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                    </div>
+
+                    <!-- All: All Dates Indicator -->
+                    <div v-else-if="selectedPeriod === 'all'"
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm">
+                        <Calendar :size="18" class="text-primary-500" />
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            Semua Tanggal
+                        </span>
                     </div>
 
                     <!-- Monthly: Month & Year Selectors (Modern UI) -->
@@ -569,8 +579,19 @@ const getTodayLocal = () => {
 
 const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return privilegedRoles.some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
 
 const restrictedMonths = computed(() => {
@@ -593,12 +614,14 @@ const restrictedYears = computed(() => {
 });
 
 const getMinDate = () => {
+    if (isPrivileged.value) return undefined;
     const d = getLogicalDate();
     d.setDate(d.getDate() - 7); // Allow past 7 days
     return d.toISOString().split('T')[0];
 };
 
 const getMaxDate = () => {
+    if (isPrivileged.value) return undefined;
     const d = getLogicalDate();
     return d.toISOString().split('T')[0];
 };
@@ -612,7 +635,7 @@ const filters = ref({
 });
 
 // Daily vs Monthly state variables
-const selectedPeriod = ref('daily'); // 'daily' | 'monthly'
+const selectedPeriod = ref('daily'); // 'daily' | 'monthly' | 'all'
 const selectedMonth = ref(new Date().getMonth() + 1);
 const selectedYear = ref(new Date().getFullYear());
 
@@ -628,6 +651,7 @@ const locations = ref([]);
 const selectedLocationKey = ref('all');
 
 const formattedDateDisplay = computed(() => {
+    if (selectedPeriod.value === 'all') return 'Semua Tanggal';
     if (selectedPeriod.value === 'daily') {
         if (!filters.value.start_date) return 'Pilih Tanggal';
         const date = new Date(filters.value.start_date);
@@ -661,10 +685,13 @@ const handlePeriodChange = () => {
     if (selectedPeriod.value === 'daily') {
         filters.value.start_date = getTodayLocal();
         filters.value.end_date = getTodayLocal();
-    } else {
+    } else if (selectedPeriod.value === 'monthly') {
         selectedMonth.value = new Date().getMonth() + 1;
         selectedYear.value = new Date().getFullYear();
         handleMonthChange();
+    } else if (selectedPeriod.value === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchData();
 };
@@ -778,6 +805,11 @@ const fetchData = async (page = 1) => {
     loading.value = true;
     try {
         const params = { ...filters.value, page };
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
         if (selectedLocationKey.value !== 'all') {
             const [type, id] = selectedLocationKey.value.split(':');
             if (type === 'B') params.branch_id = id;

@@ -94,10 +94,24 @@ const setRange = (type) => {
     fetchReport();
 };
 
-const isRestricted = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    return !['super_admin', 'audit', 'owner', 'analist', 'leader', 'admin_produk'].some(r => role.includes(r));
+const isPrivileged = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase().trim();
+    const privilegedRoles = ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const isRestricted = computed(() => !isPrivileged.value);
 
 const getTodayLocal = () => {
     return formatDateStr(getLogicalDate());

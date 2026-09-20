@@ -47,29 +47,35 @@ const filters = ref({
 const branches = ref([]);
 const onlineShops = ref([]);
 
-const canChangeLocation = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'analist', 'audit', 'leader', 'owner', 'admin_produk'].some(r => role.includes(r));
+const isPrivileged = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase().trim();
+    const privilegedRoles = ['super_admin', 'analist', 'analis', 'audit', 'leader', 'owner', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
 
+const canChangeLocation = computed(() => isPrivileged.value);
+
 const filteredBranches = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    let result = branches.value;
-    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
-        const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
-        result = result.filter(b => allowed.includes(Number(b.id)));
-    }
-    return result;
+    if (isPrivileged.value) return branches.value;
+    const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+    return branches.value.filter(b => allowed.includes(Number(b.id)));
 });
 
 const filteredOnlineShops = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    let result = onlineShops.value;
-    if (!['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r))) {
-        const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
-        result = result.filter(s => allowed.includes(Number(s.id)));
-    }
-    return result;
+    if (isPrivileged.value) return onlineShops.value;
+    const allowed = [authStore.user?.online_shop_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'online_shop').map(p => p.model_id) || [])].filter(Boolean).map(Number);
+    return onlineShops.value.filter(s => allowed.includes(Number(s.id)));
 });
 
 const fetchLocations = async () => {

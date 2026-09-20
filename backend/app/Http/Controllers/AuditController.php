@@ -92,8 +92,13 @@ class AuditController extends Controller
                 ]);
             }
 
-            $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
-            $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
+            if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+                $startDate = '2000-01-01';
+                $endDate = now()->toDateString();
+            } else {
+                $startDate = $request->filled('start_date') ? $request->start_date : now()->startOfMonth()->toDateString();
+                $endDate = $request->filled('end_date') ? $request->end_date : now()->toDateString();
+            }
 
             // No more clipping logic here to prevent data loss on monthly reports.
             // Frontend will handle valid date ranges.
@@ -3427,8 +3432,13 @@ class AuditController extends Controller
         }
 
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+            $startDate = '2000-01-01';
+            $endDate = now()->toDateString();
+        } else {
+            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        }
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
@@ -3957,8 +3967,13 @@ class AuditController extends Controller
         }
 
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+            $startDate = '2000-01-01';
+            $endDate = now()->toDateString();
+        } else {
+            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        }
 
         // Role-based Date Restriction (similar to sales() method)
         if (!$user->hasAnyRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
@@ -4380,8 +4395,13 @@ class AuditController extends Controller
         $distributorIds = $user->getAccessibleDistributorIds();
 
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+            $startDate = '2000-01-01';
+            $endDate = now()->toDateString();
+        } else {
+            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        }
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
@@ -4644,8 +4664,13 @@ class AuditController extends Controller
         $distributorIds = $user->getAccessibleDistributorIds();
 
         $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-        $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+            $startDate = '2000-01-01';
+            $endDate = now()->toDateString();
+        } else {
+            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+        }
 
         // Role-based Date Restriction
         if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
@@ -4936,7 +4961,11 @@ class AuditController extends Controller
                 $branchName = $branch->name . ' [UPDATED]';
         }
 
-        $date = $request->start_date ? date('d F Y', strtotime($request->start_date)) : date('d F Y');
+        if ($request->query('period') === 'all' || $request->start_date === 'all' || $request->start_date === '2000-01-01') {
+            $date = 'SEMUA TANGGAL';
+        } else {
+            $date = $request->start_date ? date('d F Y', strtotime($request->start_date)) : date('d F Y');
+        }
         $payments = $data['payments'] ?? [];
         $pTotal = $data['payment_total'] ?? 0;
         $dMap = $data['dist_map'] ?? [];

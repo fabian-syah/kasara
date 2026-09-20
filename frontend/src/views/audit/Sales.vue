@@ -23,11 +23,20 @@
 
             <!-- Date Filter -->
             <div
-                class="flex items-center gap-2 bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm">
-                <input type="date" v-model="filters.start_date" :min="getMinDate" :max="getTodayLocal()"
+                class="flex items-center gap-2 bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-200 dark:border-surface-700 shadow-sm flex-wrap">
+                <button type="button" @click="toggleAllDates"
+                    :class="isAllDates ? 'bg-primary-600 text-white font-bold' : 'bg-gray-100 hover:bg-gray-200 dark:bg-surface-700 dark:hover:bg-surface-600 text-text-secondary'"
+                    class="px-3 py-2 rounded-md text-xs font-semibold transition-colors">
+                    Semua
+                </button>
+                <input type="date" v-model="filters.start_date" :min="getMinDate" :max="getTodayLocal()" @input="handleDateInput"
+                    :disabled="isAllDates"
+                    :class="{ 'opacity-50 cursor-not-allowed': isAllDates }"
                     class="border-gray-300 dark:border-surface-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent dark:bg-surface-700 text-gray-900 dark:text-white" />
                 <span class="text-gray-500 dark:text-gray-400">-</span>
-                <input type="date" v-model="filters.end_date" :min="getMinDate" :max="getTodayLocal()"
+                <input type="date" v-model="filters.end_date" :min="getMinDate" :max="getTodayLocal()" @input="handleDateInput"
+                    :disabled="isAllDates"
+                    :class="{ 'opacity-50 cursor-not-allowed': isAllDates }"
                     class="border-gray-300 dark:border-surface-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 bg-transparent dark:bg-surface-700 text-gray-900 dark:text-white" />
                 <button @click="fetchData"
                     class="px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
@@ -299,26 +308,52 @@ const filters = ref({
 const locations = ref([])
 const selectedLocationKey = ref('all')
 
-const canFilterBranch = computed(() => {
+const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return privilegedRoles.some(r => role.includes(r));
-})
-
-// formatCurrency and formatNumber are now imported
-
-const isRestricted = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    return !privilegedRoles.some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const canFilterBranch = computed(() => isPrivileged.value);
+const isRestricted = computed(() => !isPrivileged.value);
 
 const getMinDate = computed(() => {
     if (!isRestricted.value) return null;
     const d = getLogicalDate();
     d.setDate(d.getDate() - 7); // Allow past 7 days
-    return formatDateStr(d);
+    return d.toISOString().split('T')[0];
 });
+
+const isAllDates = ref(false);
+
+const toggleAllDates = () => {
+    isAllDates.value = !isAllDates.value;
+    if (isAllDates.value) {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
+    } else {
+        filters.value.start_date = getTodayLocal();
+        filters.value.end_date = getTodayLocal();
+    }
+    fetchData();
+};
+
+const handleDateInput = () => {
+    if (isAllDates.value) {
+        isAllDates.value = false;
+    }
+};
 
 const formatDate = (dateString) => {
     if (!dateString) return '-'
@@ -408,6 +443,11 @@ const fetchData = async () => {
     try {
         // Map selected location key to specific filter params
         const params = { ...filters.value };
+        if (isAllDates.value) {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;

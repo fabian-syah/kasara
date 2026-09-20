@@ -14,6 +14,7 @@
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="daily">Harian</option>
                             <option value="monthly">Bulanan</option>
+                            <option value="all">Semua</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -34,6 +35,15 @@
                             @click="$event.target.showPicker()" :min="getMinDate" :max="getTodayLocal()"
                             class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
 
+                    </div>
+
+                    <!-- All: All Dates Indicator -->
+                    <div v-else-if="selectedPeriod === 'all'"
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm">
+                        <Calendar :size="18" class="text-primary-500" />
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            Semua Tanggal
+                        </span>
                     </div>
 
                     <!-- Monthly: Month & Year Selectors (Modern UI) -->
@@ -890,14 +900,27 @@ const getLogicalDate = () => {
     return now;
 };
 
+const isPrivilegedUser = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
+});
+
 const years = computed(() => {
     const d = getLogicalDate();
     const currentYear = d.getFullYear();
-    const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
-
-    if (isRestricted) {
+    if (!isPrivilegedUser.value) {
         return [currentYear];
     }
     return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
@@ -907,11 +930,8 @@ const restrictedMonths = computed(() => {
     const d = getLogicalDate();
     const currentMonth = d.getMonth() + 1; // 1-indexed
     const currentYear = d.getFullYear();
-    const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
 
-    if (isRestricted && selectedYear.value === currentYear) {
+    if (!isPrivilegedUser.value && selectedYear.value === currentYear) {
         const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
         return months.map((m, i) => ({ name: m, value: i + 1 }))
             .filter(m => m.value === currentMonth || m.value === lastMonth);
@@ -920,9 +940,8 @@ const restrictedMonths = computed(() => {
 });
 
 const filteredBranches = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
     let result = branches.value || [];
-    if (!['super_admin', 'analist', 'admin_produk', 'owner', 'audit', 'leader'].some(r => role.includes(r))) {
+    if (!isPrivilegedUser.value) {
         const allowed = [authStore.user?.branch_id, ...(authStore.user?.placements?.filter(p => p.model_type === 'branch').map(p => p.model_id) || [])].filter(Boolean).map(Number);
         result = result.filter(b => allowed.includes(Number(b.id)));
     }
@@ -930,10 +949,7 @@ const filteredBranches = computed(() => {
 });
 
 const getMinDate = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
-    if (!isRestricted) return null;
+    if (isPrivilegedUser.value) return null;
 
     const d = getLogicalDate();
     d.setDate(d.getDate() - 7); // Allow past 7 days
@@ -1112,6 +1128,10 @@ const summaryStats = computed(() => {
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';
 
+    if (selectedPeriod.value === 'all') {
+        return 'Semua Tanggal';
+    }
+
     if (selectedPeriod.value === 'daily') {
         const date = new Date(filters.value.start_date);
         return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -1127,8 +1147,11 @@ const handlePeriodChange = () => {
         const today = getTodayLocal();
         filters.value.start_date = today;
         filters.value.end_date = today;
-    } else {
+    } else if (selectedPeriod.value === 'monthly') {
         handleMonthChange(); // This will set start_date and end_date for the selected month
+    } else if (selectedPeriod.value === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchData();
 }
@@ -1290,6 +1313,11 @@ const fetchData = async (page = 1) => {
     try {
         // Map selected location key to specific filter params
         const params = { ...filters.value, page, search: searchQuery.value };
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;

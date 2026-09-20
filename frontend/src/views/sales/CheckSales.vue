@@ -42,9 +42,15 @@
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer text-text-primary">
                         <option value="daily" class="dark:bg-surface-800 dark:text-white">Harian</option>
                         <option value="monthly" class="dark:bg-surface-800 dark:text-white">Bulanan</option>
+                        <option value="all" class="dark:bg-surface-800 dark:text-white">Semua</option>
                     </select>
                     <ChevronDown :size="16"
                         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- All: Badge -->
+                <div v-if="selectedPeriod === 'all'" class="px-4 py-2.5 bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold text-sm rounded-xl border border-primary-100 dark:border-primary-500/20">
+                    Semua Tanggal
                 </div>
 
                 <!-- Daily: Date Picker -->
@@ -792,7 +798,25 @@ const filteredLocations = computed(() => {
     const excluded = ['trial', 'huft', 'anu', 'test', 'testing'];
     return (locations.value || []).filter(loc => !excluded.some(term => (loc.name || '').toLowerCase().includes(term)));
 });
-const isRestrictedLocation = computed(() => { const role = (authStore.userRole || '').toLowerCase(); return !privilegedRoles.some(r => role.includes(r)); });
+const isPrivileged = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
+});
+
+const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+const isRestrictedLocation = computed(() => !isPrivileged.value);
 const selectedLocationKey = ref('all')
 const selectedBranchId = computed(() => {
     if (selectedLocationKey.value === 'all' || !selectedLocationKey.value.startsWith('B:')) return null;
@@ -804,12 +828,7 @@ const selectedOnlineShopId = computed(() => {
     return selectedLocationKey.value.split(':')[1];
 })
 
-const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'];
-
-const canFilterBranch = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    return privilegedRoles.some(r => role.includes(r));
-})
+const canFilterBranch = computed(() => isPrivileged.value);
 
 const fetchLocations = async () => {
     try {
@@ -964,10 +983,7 @@ const openScreenshot = (item) => {
 const years = computed(() => {
     const d = getLogicalDate();
     const currentYear = d.getFullYear();
-    const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
-
-    if (isRestricted) {
+    if (!isPrivileged.value) {
         return [currentYear];
     }
     return Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
@@ -977,10 +993,8 @@ const restrictedMonths = computed(() => {
     const d = getLogicalDate();
     const currentMonth = d.getMonth() + 1; // 1-indexed
     const currentYear = d.getFullYear();
-    const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
 
-    if (isRestricted && selectedYear.value === currentYear) {
+    if (!isPrivileged.value && selectedYear.value === currentYear) {
         const lastMonth = new Date(d.getFullYear(), d.getMonth() - 1, 1).getMonth() + 1;
         return months.map((m, i) => ({ name: m, value: i + 1 }))
             .filter(m => m.value === currentMonth || m.value === lastMonth);
@@ -989,9 +1003,7 @@ const restrictedMonths = computed(() => {
 });
 
 const getMinDate = computed(() => {
-    const role = (authStore.userRole || '').toLowerCase();
-    const isRestricted = !privilegedRoles.some(r => role.includes(r));
-    if (!isRestricted) return null;
+    if (isPrivileged.value) return null;
 
     const d = getLogicalDate();
     d.setDate(d.getDate() - 7); // Allow past 7 days
@@ -1007,6 +1019,7 @@ const filters = ref({
 })
 
 const formattedDateDisplay = computed(() => {
+    if (selectedPeriod.value === 'all') return 'Semua Tanggal';
     if (!filters.value.start_date) return 'Pilih Tanggal';
     if (selectedPeriod.value === 'daily') {
         const date = new Date(filters.value.start_date);
@@ -1250,15 +1263,18 @@ const handlePeriodChange = () => {
         const today = getTodayLocal();
         filters.value.start_date = today;
         filters.value.end_date = today;
-    } else {
+    } else if (selectedPeriod.value === 'monthly') {
         handleMonthChange();
+    } else if (selectedPeriod.value === 'all') {
+        filters.value.start_date = '';
+        filters.value.end_date = '';
     }
     fetchData(1);
 }
 
 const handleDateChange = () => {
     // Enforce min date restriction (iOS/Android ignore min attribute)
-    if (getMinDate.value && filters.value.start_date < getMinDate.value) {
+    if (!isPrivileged.value && getMinDate.value && filters.value.start_date < getMinDate.value) {
         alert('Anda hanya bisa melihat data 7 hari terakhir.');
         filters.value.start_date = getMinDate.value;
     }
@@ -1350,6 +1366,11 @@ const fetchData = async (page = 1) => {
             online_shop_id: selectedOnlineShopId.value,
             page: page
         };
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
         // Toko online only sees tukar_unit category
         const role = (authStore.userRole || '').toLowerCase();
         if (role.includes('toko_online') || role.includes('online')) {
@@ -1373,6 +1394,11 @@ const handleExport = async () => {
             branch_id: selectedBranchId.value,
             online_shop_id: selectedOnlineShopId.value
         };
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
 
         const response = await axios.get('/audit/sales/export', {
             params,
@@ -1382,7 +1408,8 @@ const handleExport = async () => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.xlsx`);
+        const exportFileName = selectedPeriod.value === 'all' ? 'Laporan-Penjualan-Semua.xlsx' : `Laporan-Penjualan-${filters.value.start_date}-to-${filters.value.end_date}.xlsx`;
+        link.setAttribute('download', exportFileName);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);

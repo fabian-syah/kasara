@@ -27,10 +27,24 @@ const searchQuery = ref('');
 const pagination = ref({ current_page: 1, last_page: 1, total: 0 });
 
 const filterMode = ref('month');
-const isRestricted = computed(() => {
+const isPrivileged = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return !['super_admin', 'analist', 'admin_produk'].some(r => role.includes(r));
+    const privilegedRoles = ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'];
+    if (privilegedRoles.some(r => role.includes(r))) return true;
+    const user = authStore.user;
+    if (!user) return false;
+    if (typeof user.role === 'string' && privilegedRoles.some(r => user.role.toLowerCase().includes(r))) return true;
+    if (Array.isArray(user.roles)) {
+        return user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r.name || '');
+            return privilegedRoles.some(priv => name.toLowerCase().includes(priv));
+        });
+    }
+    if (authStore.hasRole && (authStore.hasRole('audit') || authStore.hasRole('super_admin') || authStore.hasRole('leader'))) return true;
+    return false;
 });
+
+const isRestricted = computed(() => !isPrivileged.value);
 
 const canChangeLocation = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
@@ -150,10 +164,13 @@ const filterPresets = [
     { label: 'Kemarin', value: 'yesterday' },
     { label: 'Pilih Tanggal', value: 'date' },
     { label: 'Per Bulan', value: 'month' },
+    { label: 'Semua', value: 'all' },
 ];
 
 const getDateParam = () => {
-    if (filterMode.value === 'today') {
+    if (filterMode.value === 'all') {
+        return 'all';
+    } else if (filterMode.value === 'today') {
         const d = getLogicalDate();
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     } else if (filterMode.value === 'yesterday') {
@@ -179,7 +196,10 @@ const fetchData = async (page = 1) => {
             distributor_id: props.isEmbedded ? null : filters.value.distributor_id,
         };
         const dateParam = getDateParam();
-        if (dateParam) {
+        if (dateParam === 'all') {
+            params.period = 'all';
+            params.all = 1;
+        } else if (dateParam) {
             params.date = dateParam;
         } else {
             params.month = selectedMonth.value.month;
@@ -212,7 +232,10 @@ const exportExcel = async () => {
             distributor_id: props.isEmbedded ? null : filters.value.distributor_id,
         };
         const dateParam = getDateParam();
-        if (dateParam) {
+        if (dateParam === 'all') {
+            params.period = 'all';
+            params.all = 1;
+        } else if (dateParam) {
             params.date = dateParam;
         } else {
             params.month = selectedMonth.value.month;
@@ -249,7 +272,9 @@ const exportExcel = async () => {
         }
 
         let filename = `stok-masuk-${activeTab.value}-${locationName}`;
-        if (filterMode.value === 'month') {
+        if (filterMode.value === 'all') {
+            filename += `-semua`;
+        } else if (filterMode.value === 'month') {
             filename += `-${selectedMonth.value.month}-${selectedMonth.value.year}`;
         } else {
             filename += `-${dateParam || getTodayLocal()}`;
@@ -412,6 +437,9 @@ const handleVoid = async (item) => {
                     class="bg-surface-900 border border-surface-700 rounded-xl px-3 py-1.5 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/50">
                     <option v-for="(option, index) in monthOptions" :key="index" :value="option.value" class="bg-surface-800 text-text-primary">{{ option.label }}</option>
                 </select>
+                <div v-if="filterMode === 'all'" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-primary-500/20 text-primary-400 border border-primary-500/30">
+                    Semua Tanggal
+                </div>
                 <span class="text-xs text-text-secondary ml-2">Total: {{ pagination.total }} item</span>
             </div>
         </div>
