@@ -11,15 +11,30 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY || 'apexkey',
-    wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
-    wsPort: import.meta.env.VITE_REVERB_PORT || 80,
-    wssPort: import.meta.env.VITE_REVERB_PORT || 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-    enabledTransports: ['ws', 'wss'],
-});
+// Inisialisasi Echo HANYA jika VITE_ENABLE_REVERB diaktifkan dan VITE_REVERB_HOST didefinisikan.
+// Mencegah error koneksi WebSocket ke domain frontend (stokps.com) yang tidak memiliki server WebSocket.
+const isReverbEnabled = import.meta.env.VITE_ENABLE_REVERB === 'true';
+const reverbHost = import.meta.env.VITE_REVERB_HOST;
+const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
+
+if (isReverbEnabled && reverbHost && reverbKey) {
+    try {
+        window.Echo = new Echo({
+            broadcaster: 'reverb',
+            key: reverbKey,
+            wsHost: reverbHost,
+            wsPort: Number(import.meta.env.VITE_REVERB_PORT) || 80,
+            wssPort: Number(import.meta.env.VITE_REVERB_PORT) || 443,
+            forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+            enabledTransports: ['ws', 'wss'],
+        });
+    } catch (e) {
+        console.warn('Gagal menginisialisasi Laravel Echo:', e);
+        window.Echo = null;
+    }
+} else {
+    window.Echo = null;
+}
 // -------------------------------------------------
 
 // Konfigurasi Dasar Axios
