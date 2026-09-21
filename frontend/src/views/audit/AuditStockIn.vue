@@ -254,15 +254,19 @@
                                 <td class="px-4 py-4 text-xs font-medium">
                                     {{ item.source }}
                                 </td>
-                                <!-- Audit Score -->
                                 <td class="px-4 py-4 text-center">
                                     <span v-if="item.audit_score == null" class="text-xs text-gray-400">-</span>
-                                    <span v-else-if="item.audit_score === 100"
-                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
-                                        ✅</span>
-                                    <span v-else
-                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
-                                            item.audit_score }}% ⚠️</span>
+                                    <div v-else class="flex flex-col items-center gap-0.5">
+                                        <span v-if="item.audit_score === 100"
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
+                                            ✅</span>
+                                        <span v-else
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
+                                                item.audit_score }}% ⚠️</span>
+                                        <span v-if="item.latest_auditor_name || item.auditor_name || item.audited_by" class="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5 whitespace-nowrap" :title="'Terakhir diaudit oleh ' + (item.latest_auditor_name || item.auditor_name || item.audited_by)">
+                                            {{ item.latest_auditor_name || item.auditor_name || item.audited_by }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <!-- Actions -->
                                 <td class="px-4 py-4 text-center">
@@ -495,6 +499,10 @@ const openChecklist = async (item) => {
             ...res.data,
             notes: globalNote
         };
+        if (res.data.auditor_name || res.data.audited_by) {
+            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by;
+            item.audited_at = res.data.audited_at;
+        }
     } catch (e) {
         console.error('Failed to load stock-in checklist', e);
         alert(
@@ -545,6 +553,8 @@ const saveChecklist = async () => {
             item.audit_score = res.data.score;
             item.audit_answered = res.data.answered;
             item.audit_total = res.data.total;
+            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by;
+            item.audited_at = res.data.audited_at;
         }
 
         // Update modal data

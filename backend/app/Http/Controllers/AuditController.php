@@ -2753,6 +2753,8 @@ class AuditController extends Controller
                     'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
                     'audit_score' => $trx->audit_score,
+                    'latest_auditor_name' => $trx->latest_auditor_name,
+                    'audited_at' => $trx->audited_at,
                     'proof_images' => collect([
                         $trx->proof_image,
                         $exchangeInfo->photo_unit ?? null,
@@ -3549,7 +3551,7 @@ class AuditController extends Controller
 
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'pelunasan_dp'];
 
-        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'auditProfit', 'cancelledByUser'])
+        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers.auditor', 'auditProfit', 'cancelledByUser'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -3765,6 +3767,8 @@ class AuditController extends Controller
                 'profit' => $profit,
                 'outlet_name' => $outletName,
                 'audit_score' => $auditScore,
+                'latest_auditor_name' => $trx->latest_auditor_name,
+                'audited_at' => $trx->audited_at,
                 'audit_total' => $totalQuestions,
                 'audit_yes' => $yesCount,
                 'cancelled_by_name' => $trx->cancelledByUser?->name,
@@ -4472,7 +4476,7 @@ class AuditController extends Controller
 
         $categories = ['barang_masuk', 'pindah_cabang_masuk', 'pindah_cabang'];
 
-        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers', 'destination'])
+        $query = StockOut::with(['items.product', 'nonHpItems.product', 'user', 'inventoryUser', 'auditAnswers.auditor', 'destination'])
             ->whereIn('category', $categories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -4670,6 +4674,8 @@ class AuditController extends Controller
                 'source' => $sourceLabel,
                 'outlet_name' => $outletName,
                 'audit_score' => $score,
+                'latest_auditor_name' => $trx->latest_auditor_name,
+                'audited_at' => $trx->audited_at,
                 'audit_answered' => $auditAnsCount,
                 'audit_total' => $currentQuestions,
             ];
@@ -4761,7 +4767,7 @@ class AuditController extends Controller
             'cancel_penjualan',
         ];
 
-        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers', 'destination', 'cancelledByUser'])
+        $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers.auditor', 'destination', 'cancelledByUser'])
             ->whereIn('category', $categories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
@@ -4904,6 +4910,8 @@ class AuditController extends Controller
                 'outlet_name' => $outletName,
                 'input_location' => $inputOutletName,
                 'audit_score' => $score,
+                'latest_auditor_name' => $trx->latest_auditor_name,
+                'audited_at' => $trx->audited_at,
                 'audit_total' => $totalQuestions,
                 'cancelled_by_name' => $trx->category === 'kesalahan_input' ? ($trx->user?->name ?? '') : ($trx->cancelledByUser?->name ?? ''),
                 'cancel_reason' => $trx->category === 'kesalahan_input' ? $trx->deletion_reason : $trx->cancel_reason,

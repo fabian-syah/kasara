@@ -375,8 +375,8 @@
                                         <span v-else
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
                                                 item.audit_score }}% ⚠️</span>
-                                        <span v-if="item.latest_auditor_name" class="text-[10px] text-text-secondary font-medium mt-0.5 whitespace-nowrap" :title="'Terakhir diaudit oleh ' + item.latest_auditor_name">
-                                            {{ item.latest_auditor_name }}
+                                        <span v-if="item.latest_auditor_name || item.auditor_name || item.audited_by" class="text-[10px] text-text-secondary font-medium mt-0.5 whitespace-nowrap" :title="'Terakhir diaudit oleh ' + (item.latest_auditor_name || item.auditor_name || item.audited_by)">
+                                            {{ item.latest_auditor_name || item.auditor_name || item.audited_by }}
                                         </span>
                                     </div>
                                 </td>
@@ -964,6 +964,10 @@ const openChecklist = async (item) => {
             ...res.data,
             notes: globalNote
         };
+        if (res.data.auditor_name || res.data.audited_by) {
+            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by;
+            item.audited_at = res.data.audited_at;
+        }
     } catch (e) {
         console.error('Failed to load checklist', e)
         alert('Gagal memuat checklist: ' + (e.response?.data?.message || e.message))

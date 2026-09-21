@@ -244,10 +244,41 @@ class StockOut extends Model
 
     public function getLatestAuditorNameAttribute()
     {
-        if ($this->relationLoaded('auditAnswers')) {
-            $latest = $this->auditAnswers->sortByDesc('updated_at')->first();
+        $answers = $this->relationLoaded('auditAnswers') ? $this->auditAnswers : null;
+
+        if ($answers && $answers->isNotEmpty()) {
+            $latest = $answers->filter(fn($a) => !empty($a->auditor_id) || !empty($a->auditor))
+                ->sortByDesc(function ($a) {
+                    $ts = 0;
+                    if ($a->updated_at instanceof \Carbon\Carbon) {
+                        $ts = $a->updated_at->timestamp;
+                    } elseif (!empty($a->updated_at)) {
+                        $ts = strtotime($a->updated_at) ?: 0;
+                    }
+                    return [$ts, (int) $a->id];
+                })
+                ->first();
+
+            if (!$latest) {
+                $latest = $answers->sortByDesc(function ($a) {
+                    $ts = 0;
+                    if ($a->updated_at instanceof \Carbon\Carbon) {
+                        $ts = $a->updated_at->timestamp;
+                    } elseif (!empty($a->updated_at)) {
+                        $ts = strtotime($a->updated_at) ?: 0;
+                    }
+                    return [$ts, (int) $a->id];
+                })->first();
+            }
+
             if ($latest) {
-                return $latest->auditor?->name ?? $latest->auditor?->full_name ?? $latest->auditor?->username;
+                if ($latest->auditor) {
+                    return $latest->auditor->name ?? $latest->auditor->full_name ?? $latest->auditor->username;
+                }
+                if ($latest->auditor_id) {
+                    $u = \App\Models\User::find($latest->auditor_id);
+                    return $u?->name ?? $u?->full_name ?? $u?->username;
+                }
             }
         }
         return null;
@@ -255,9 +286,19 @@ class StockOut extends Model
 
     public function getAuditedAtAttribute()
     {
-        if ($this->relationLoaded('auditAnswers')) {
-            $latest = $this->auditAnswers->sortByDesc('updated_at')->first();
-            return $latest?->updated_at?->toDateTimeString();
+        $answers = $this->relationLoaded('auditAnswers') ? $this->auditAnswers : null;
+
+        if ($answers && $answers->isNotEmpty()) {
+            $latest = $answers->sortByDesc(function ($a) {
+                $ts = 0;
+                if ($a->updated_at instanceof \Carbon\Carbon) {
+                    $ts = $a->updated_at->timestamp;
+                } elseif (!empty($a->updated_at)) {
+                    $ts = strtotime($a->updated_at) ?: 0;
+                }
+                return [$ts, (int) $a->id];
+            })->first();
+            return $latest?->updated_at ? \Carbon\Carbon::parse($latest->updated_at)->toDateTimeString() : null;
         }
         return null;
     }
