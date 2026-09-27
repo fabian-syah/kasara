@@ -3250,7 +3250,15 @@ class StockOutController extends Controller
             foreach ($stockOut->items as $item) {
                 if ($stockOut->category === 'angkat_barang') {
                     // For Angkat Barang, the item in StockOut is the one we RECEIVED. Remove it.
-                    $item->forceDelete();
+                    try {
+                        $item->forceDelete();
+                    } catch (\Throwable $e) {
+                        $item->update([
+                            'status' => 'deleted',
+                            'notes' => ($item->notes ? $item->notes . "\n" : "") . "Batal Angkat Barang: " . $receiptId
+                        ]);
+                        $item->delete();
+                    }
                 } else {
                     // For normal sales/exchanges, the item in StockOut is the one we SOLD. Restore it.
                     $item->update(['status' => 'available']);
@@ -3264,14 +3272,14 @@ class StockOutController extends Controller
             }
 
             // Retrieve outgoing product detail IDs from transaction tables directly to be 100% safe
-            $ttOut = \App\Models\TukarTambah::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
-            if ($ttOut) $outgoingIds[] = $ttOut;
+            $ttOut = \App\Models\TukarTambah::where('receipt_id', $receiptId)->pluck('outgoing_product_detail_id')->filter()->toArray();
+            if (!empty($ttOut)) $outgoingIds = array_merge($outgoingIds, $ttOut);
 
-            $ueOut = \App\Models\UnitExchange::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
-            if ($ueOut) $outgoingIds[] = $ueOut;
+            $ueOut = \App\Models\UnitExchange::where('receipt_id', $receiptId)->pluck('outgoing_product_detail_id')->filter()->toArray();
+            if (!empty($ueOut)) $outgoingIds = array_merge($outgoingIds, $ueOut);
 
-            $dgOut = \App\Models\Downgrade::where('receipt_id', $receiptId)->value('outgoing_product_detail_id');
-            if ($dgOut) $outgoingIds[] = $dgOut;
+            $dgOut = \App\Models\Downgrade::where('receipt_id', $receiptId)->pluck('outgoing_product_detail_id')->filter()->toArray();
+            if (!empty($dgOut)) $outgoingIds = array_merge($outgoingIds, $dgOut);
 
             $outgoingIds = array_unique(array_filter($outgoingIds));
 
@@ -3307,14 +3315,15 @@ class StockOutController extends Controller
                     ->delete();
 
                 // Check if this incoming product detail is referenced as an outgoing unit in any other transactions
-                $isReferenced = \App\Models\TukarTambah::where('outgoing_product_detail_id', $inc->id)
-                    ->where('receipt_id', '!=', $receiptId)
+                // Query DB::table directly to account for soft-deleted transaction records enforcing PostgreSQL FK constraints
+                $isReferenced = DB::table('tukar_tambahs')
+                    ->where('outgoing_product_detail_id', $inc->id)
                     ->exists()
-                    || \App\Models\UnitExchange::where('outgoing_product_detail_id', $inc->id)
-                    ->where('receipt_id', '!=', $receiptId)
+                    || DB::table('unit_exchanges')
+                    ->where('outgoing_product_detail_id', $inc->id)
                     ->exists()
-                    || \App\Models\Downgrade::where('outgoing_product_detail_id', $inc->id)
-                    ->where('receipt_id', '!=', $receiptId)
+                    || DB::table('downgrades')
+                    ->where('outgoing_product_detail_id', $inc->id)
                     ->exists()
                     || DB::table('stock_out_items')
                     ->where('product_detail_id', $inc->id)
@@ -3331,11 +3340,27 @@ class StockOutController extends Controller
                         'downgrade_id' => null,
                         'trade_in_id' => null,
                         'refund_id' => null,
-                        'notes' => ($inc->notes ? $inc->notes . "\n" : "") . "Batal Tukar Tambah: " . $receiptId
+                        'notes' => ($inc->notes ? $inc->notes . "\n" : "") . "Batal Transaksi: " . $receiptId
                     ]);
                 } else {
-                    // It was newly created for this transaction. Safe to delete.
-                    $inc->forceDelete();
+                    // It was newly created for this transaction. Safely clear foreign keys and mark deleted.
+                    $inc->update([
+                        'status' => 'deleted',
+                        'tukar_tambah_id' => null,
+                        'unit_exchange_id' => null,
+                        'downgrade_id' => null,
+                        'trade_in_id' => null,
+                        'refund_id' => null,
+                        'notes' => ($inc->notes ? $inc->notes . "\n" : "") . "Batal Transaksi: " . $receiptId
+                    ]);
+
+                    // Attempt physical delete; if any database constraints prevent it, fallback to soft delete
+                    try {
+                        $inc->forceDelete();
+                    } catch (\Throwable $e) {
+                        \Log::warning("Could not forceDelete product detail ID {$inc->id} on cancel {$receiptId}, fell back to soft delete: " . $e->getMessage());
+                        $inc->delete();
+                    }
                 }
             }
 
