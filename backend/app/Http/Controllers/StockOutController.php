@@ -58,13 +58,7 @@ class StockOutController extends Controller
         } elseif ($type === 'non-hp') {
             $query->where(function ($q) {
                 $q->whereHas('nonHpDetails')
-                    ->orWhere(function ($sub) {
-                        $sub->whereNotNull('non_hp_items')
-                            ->where('non_hp_items', '!=', '[]')
-                            ->where('non_hp_items', '!=', '{}')
-                            ->where('non_hp_items', '!=', '""')
-                            ->where('non_hp_items', '!=', '');
-                    });
+                    ->orWhereNotNull('non_hp_items');
             });
         }
 
