@@ -26,7 +26,22 @@ class StockOutController extends Controller
     {
         /** @var \App\Models\User|null $user */
         $user = Auth::user();
-        $query = StockOut::with(['user', 'inventoryUser', 'destinationBranch', 'destination', 'items.product.brandRelation', 'nonHpDetails.product.brandRelation', 'paymentMethod']);
+        $query = StockOut::with([
+            'user.branch',
+            'user.onlineShop',
+            'inventoryUser.branch',
+            'inventoryUser.onlineShop',
+            'destinationBranch',
+            'destination',
+            'branch',
+            'onlineShop',
+            'warehouse',
+            'items.product.brandRelation',
+            'items.distributor',
+            'nonHpDetails.product.brandRelation',
+            'nonHpDetails.distributor',
+            'paymentMethod',
+        ]);
 
         if ($request->category) {
             $query->byCategory($request->category);
@@ -37,81 +52,102 @@ class StockOutController extends Controller
         }
 
         // Filter by Type (HP vs Non-HP)
-        if ($request->type === 'hp') {
+        $type = str_replace('_', '-', strtolower($request->type ?? ''));
+        if ($type === 'hp') {
             $query->whereHas('items');
-        } elseif ($request->type === 'non-hp') {
-            $query->where(function ($q) {
-                $q->whereHas('nonHpDetails')
-                    ->orWhereNotNull('non_hp_items');
-            });
-        }
-
-        // LOCATION FILTER (ISOLATION)
-        // Only show stock outs created by users in the same location
-        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
-        if ($user && !$user->hasRole($unrestrictedRoles)) {
-            $query->whereHas('user', function ($q) use ($user) {
-                $bIds = $user->getAccessibleBranchIds();
-                $wIds = $user->getAccessibleWarehouseIds();
-                $osIds = $user->getAccessibleOnlineShopIds();
-
-                $q->where(function ($sq) use ($bIds, $wIds, $osIds) {
-                    if (!empty($bIds)) $sq->orWhereIn('branch_id', $bIds);
-                    if (!empty($wIds)) $sq->orWhereIn('warehouse_id', $wIds);
-                    if (!empty($osIds)) $sq->orWhereIn('online_shop_id', $osIds);
-                });
-            });
-        }
-
-        // AUDIT BRANCH FILTER
-        if ($request->branch_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('branch_id', $request->branch_id);
-            });
-        }
-
-        // AUDIT ONLINE SHOP FILTER
-        if ($request->online_shop_id && $user->hasAnyRole(array_merge($unrestrictedRoles, ['audit', 'leader']))) {
-            $query->whereHas('user', function ($q) use ($request) {
-                $q->where('online_shop_id', $request->online_shop_id);
-            });
-        }
-
-        // DATE FILTER
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        if ($request->category !== 'recap_harian') {
-            if ($request->date) {
-                $query->where('reporting_date', $request->date);
-            } elseif ($request->month && $request->year) {
-                $m = (int) $request->month;
-                $y = (int) $request->year;
-                $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->startOfDay()->toDateTimeString();
-                $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->endOfDay()->toDateTimeString();
-                $query->whereBetween('reporting_date', [$start, $end]);
-            } elseif ($request->start_date && $request->end_date) {
-                $query->whereBetween('reporting_date', [$request->start_date, $request->end_date]);
-            }
-        }
-
-
-        // Filter by Type (HP vs Non-HP)
-        if ($request->type === 'hp') {
-            $query->whereHas('items');
-        } elseif ($request->type === 'non-hp') {
+        } elseif ($type === 'non-hp') {
             $query->where(function ($q) {
                 $q->whereHas('nonHpDetails')
                     ->orWhere(function ($sub) {
                         $sub->whereNotNull('non_hp_items')
-                            ->where('non_hp_items', 'not like', '[]')
-                            ->where('non_hp_items', 'not like', '{}')
-                            ->where('non_hp_items', 'not like', '""');
+                            ->where('non_hp_items', '!=', '[]')
+                            ->where('non_hp_items', '!=', '{}')
+                            ->where('non_hp_items', '!=', '""')
+                            ->where('non_hp_items', '!=', '');
                     });
             });
         }
 
-        $results = $query->with(['items.product', 'items.distributor', 'nonHpDetails.product', 'nonHpDetails.distributor', 'user.branch', 'user.onlineShop', 'inventoryUser.branch', 'inventoryUser.onlineShop', 'branch', 'onlineShop', 'destination', 'destinationBranch'])
-            ->latest()
-            ->paginate($request->per_page ?? 20);
+        // LOCATION FILTER (ISOLATION FOR NORMAL USERS)
+        $unrestrictedRoles = ['super_admin', 'admin_produk', 'owner'];
+        if ($user && !$user->hasRole($unrestrictedRoles)) {
+            $query->where(function ($q) use ($user) {
+                $bIds = $user->getAccessibleBranchIds();
+                $wIds = $user->getAccessibleWarehouseIds();
+                $osIds = $user->getAccessibleOnlineShopIds();
+
+                $hasConstraint = false;
+                if (!empty($bIds)) {
+                    $q->orWhereIn('branch_id', $bIds)
+                      ->orWhereHas('user', fn($sq) => $sq->whereIn('branch_id', $bIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($wIds)) {
+                    $q->orWhereIn('warehouse_id', $wIds)
+                      ->orWhereHas('user', fn($sq) => $sq->whereIn('warehouse_id', $wIds));
+                    $hasConstraint = true;
+                }
+                if (!empty($osIds)) {
+                    $q->orWhereIn('online_shop_id', $osIds)
+                      ->orWhereHas('user', fn($sq) => $sq->whereIn('online_shop_id', $osIds));
+                    $hasConstraint = true;
+                }
+                if (!$hasConstraint) {
+                    $q->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        // SPECIFIC LOCATION FILTERS (FOR AUDIT & PRIVILEGED ROLES)
+        $privilegedRoles = array_merge($unrestrictedRoles, ['audit', 'leader', 'analist', 'analis']);
+        if ($request->filled('branch_id') && $user && $user->hasAnyRole($privilegedRoles)) {
+            $bId = $request->branch_id;
+            $query->where(function ($q) use ($bId) {
+                $q->where('branch_id', $bId)
+                  ->orWhere(function ($sq) use ($bId) {
+                      $sq->whereNull('branch_id')->whereHas('user', fn($uq) => $uq->where('branch_id', $bId));
+                  });
+            });
+        } elseif ($request->filled('online_shop_id') && $user && $user->hasAnyRole($privilegedRoles)) {
+            $osId = $request->online_shop_id;
+            $query->where(function ($q) use ($osId) {
+                $q->where('online_shop_id', $osId)
+                  ->orWhere(function ($sq) use ($osId) {
+                      $sq->whereNull('online_shop_id')->whereHas('user', fn($uq) => $uq->where('online_shop_id', $osId));
+                  });
+            });
+        } elseif ($request->filled('warehouse_id') && $user && $user->hasAnyRole($privilegedRoles)) {
+            $wId = $request->warehouse_id;
+            $query->where(function ($q) use ($wId) {
+                $q->where('warehouse_id', $wId)
+                  ->orWhere(function ($sq) use ($wId) {
+                      $sq->whereNull('warehouse_id')->whereHas('user', fn($uq) => $uq->where('warehouse_id', $wId));
+                  });
+            });
+        } elseif ($request->filled('distributor_id') && $user && $user->hasAnyRole($privilegedRoles)) {
+            $dId = $request->distributor_id;
+            $query->where(function ($q) use ($dId) {
+                $q->whereHas('items', fn($iq) => $iq->where('distributor_id', $dId))
+                  ->orWhereHas('nonHpDetails', fn($nq) => $nq->where('distributor_id', $dId));
+            });
+        }
+
+        // DATE FILTER
+        if ($request->category !== 'recap_harian') {
+            if ($request->filled('date') && $request->date !== 'all') {
+                $query->where('reporting_date', $request->date);
+            } elseif ($request->filled('month') && $request->filled('year')) {
+                $m = (int) $request->month;
+                $y = (int) $request->year;
+                $start = \Carbon\Carbon::create($y, $m, 1)->startOfMonth()->toDateString();
+                $end = \Carbon\Carbon::create($y, $m, 1)->endOfMonth()->toDateString();
+                $query->whereBetween('reporting_date', [$start, $end]);
+            } elseif ($request->filled('start_date') && $request->filled('end_date')) {
+                $query->whereBetween('reporting_date', [$request->start_date, $request->end_date]);
+            }
+        }
+
+        $results = $query->latest()->paginate($request->per_page ?? 20);
 
         // Transform results to handle bundling consolidation
         $results->getCollection()->transform(function ($stockOut) {

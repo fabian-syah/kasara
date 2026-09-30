@@ -215,13 +215,16 @@ class StockOut extends Model
         if (count($splits) > 0 && isset($splits[0]['method_name']))
             return $splits;
 
-        $methodIds = array_column($splits, 'payment_method_id');
-        $methodNames = \App\Models\PaymentMethod::whereIn('id', $methodIds)->pluck('name', 'id');
+        static $paymentMethodCache = null;
+        if ($paymentMethodCache === null) {
+            $paymentMethodCache = \App\Models\PaymentMethod::pluck('name', 'id')->toArray();
+        }
 
         $result = [];
         foreach ($splits as $sp) {
+            $mId = $sp['payment_method_id'] ?? null;
             $result[] = [
-                'method_name' => $methodNames[$sp['payment_method_id']] ?? 'Unknown',
+                'method_name' => ($mId && isset($paymentMethodCache[$mId])) ? $paymentMethodCache[$mId] : 'Unknown',
                 'amount' => $sp['amount'] ?? 0
             ];
         }
