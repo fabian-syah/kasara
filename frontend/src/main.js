@@ -11,8 +11,10 @@ import Pusher from 'pusher-js';
 
 window.Pusher = Pusher;
 
-// Inisialisasi Echo HANYA jika VITE_ENABLE_REVERB diaktifkan dan VITE_REVERB_HOST didefinisikan.
-// Mencegah error koneksi WebSocket ke domain frontend (stokps.com) yang tidak memiliki server WebSocket.
+// -------------------------------------------------------------------------
+// Realtime (Laravel Reverb) – initialise only when explicitly enabled.
+// This prevents the client from trying to connect to a non‑existent WS endpoint.
+// -------------------------------------------------------------------------
 const isReverbEnabled = import.meta.env.VITE_ENABLE_REVERB === 'true';
 const reverbHost = import.meta.env.VITE_REVERB_HOST;
 const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
@@ -22,6 +24,7 @@ if (isReverbEnabled && reverbHost && reverbKey) {
         window.Echo = new Echo({
             broadcaster: 'reverb',
             key: reverbKey,
+            // The host must point to the API sub‑domain that runs Reverb.
             wsHost: reverbHost,
             wsPort: Number(import.meta.env.VITE_REVERB_PORT) || 80,
             wssPort: Number(import.meta.env.VITE_REVERB_PORT) || 443,
@@ -29,10 +32,11 @@ if (isReverbEnabled && reverbHost && reverbKey) {
             enabledTransports: ['ws', 'wss'],
         });
     } catch (e) {
-        console.warn('Gagal menginisialisasi Laravel Echo:', e);
+        console.warn('Failed to initialise Laravel Echo:', e);
         window.Echo = null;
     }
 } else {
+    // Reverb is disabled – ensure no stray WebSocket connection is attempted.
     window.Echo = null;
 }
 // -------------------------------------------------

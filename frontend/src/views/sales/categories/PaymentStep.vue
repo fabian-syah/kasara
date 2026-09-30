@@ -307,6 +307,13 @@ async function processPayment(pin = null) {
         if (props.selectedAccountObject?.id) {
             formData.append('inventory_user_id', props.selectedAccountObject.id);
         }
+        if (props.selectedAccountObject?.branch_id) {
+            formData.append('origin_branch_id', props.selectedAccountObject.branch_id);
+        } else if (props.selectedAccountObject?.warehouse_id) {
+            formData.append('origin_warehouse_id', props.selectedAccountObject.warehouse_id);
+        } else if (props.selectedAccountObject?.online_shop_id) {
+            formData.append('origin_online_shop_id', props.selectedAccountObject.online_shop_id);
+        }
         if (pin) {
             formData.append('transaction_pin', pin);
         }

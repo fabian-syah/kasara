@@ -516,20 +516,31 @@ class StockOutController extends Controller
                 $originWarehouseId = $request->origin_warehouse_id;
             } elseif ($request->origin_online_shop_id) {
                 $originOnlineShopId = $request->origin_online_shop_id;
-            } elseif ($user->branch_id) {
-                $originBranchId = $user->branch_id;
-            } elseif ($user->warehouse_id) {
-                $originWarehouseId = $user->warehouse_id;
-            } elseif ($user->online_shop_id) {
-                $originOnlineShopId = $user->online_shop_id;
-            } else {
-                // Fallback for super admins or users without a direct assignment
-                if (!empty($user->getAccessibleBranchIds())) {
-                    $originBranchId = $user->getAccessibleBranchIds()[0];
-                } elseif (!empty($user->getAccessibleWarehouseIds())) {
-                    $originWarehouseId = $user->getAccessibleWarehouseIds()[0];
-                } elseif (!empty($user->getAccessibleOnlineShopIds())) {
-                    $originOnlineShopId = $user->getAccessibleOnlineShopIds()[0];
+            } elseif ($request->inventory_user_id) {
+                $invUser = \App\Models\User::find($request->inventory_user_id);
+                if ($invUser) {
+                    $originBranchId = $invUser->branch_id;
+                    $originWarehouseId = $invUser->warehouse_id;
+                    $originOnlineShopId = $invUser->online_shop_id;
+                }
+            }
+
+            if (!$originBranchId && !$originWarehouseId && !$originOnlineShopId) {
+                if ($user->branch_id) {
+                    $originBranchId = $user->branch_id;
+                } elseif ($user->warehouse_id) {
+                    $originWarehouseId = $user->warehouse_id;
+                } elseif ($user->online_shop_id) {
+                    $originOnlineShopId = $user->online_shop_id;
+                } else {
+                    // Fallback for super admins or users without a direct assignment
+                    if (!empty($user->getAccessibleBranchIds())) {
+                        $originBranchId = $user->getAccessibleBranchIds()[0];
+                    } elseif (!empty($user->getAccessibleWarehouseIds())) {
+                        $originWarehouseId = $user->getAccessibleWarehouseIds()[0];
+                    } elseif (!empty($user->getAccessibleOnlineShopIds())) {
+                        $originOnlineShopId = $user->getAccessibleOnlineShopIds()[0];
+                    }
                 }
             }
 
@@ -576,9 +587,9 @@ class StockOutController extends Controller
                         $hpQuery = ProductDetail::where('product_id', $product->id)
                             ->where('status', 'available');
 
-                        $sourceBranch = $request->origin_branch_id ?? $user->branch_id;
-                        $sourceWarehouse = $request->origin_warehouse_id ?? $user->warehouse_id;
-                        $sourceOnlineShop = $request->origin_online_shop_id ?? $user->online_shop_id;
+                        $sourceBranch = $originBranchId ?? ($request->origin_branch_id ?? $user->branch_id);
+                        $sourceWarehouse = $originWarehouseId ?? ($request->origin_warehouse_id ?? $user->warehouse_id);
+                        $sourceOnlineShop = $originOnlineShopId ?? ($request->origin_online_shop_id ?? $user->online_shop_id);
 
                         if ($sourceBranch) {
                             $hpQuery->where('placement_type', 'branch')->where('placement_id', $sourceBranch);
@@ -604,12 +615,12 @@ class StockOutController extends Controller
                     }
                     // === END HP HANDLER ===
 
-                    // Identify Inventory Source based on User
+                    // Identify Inventory Source based on resolved origin location
                     $invQuery = Inventory::where('product_id', $item['product_id']);
 
-                    $reqBranch = $request->origin_branch_id;
-                    $reqWarehouse = $request->origin_warehouse_id;
-                    $reqOnlineShop = $request->origin_online_shop_id;
+                    $reqBranch = $originBranchId ?? $request->origin_branch_id;
+                    $reqWarehouse = $originWarehouseId ?? $request->origin_warehouse_id;
+                    $reqOnlineShop = $originOnlineShopId ?? $request->origin_online_shop_id;
 
                     if ($reqBranch) {
                         $invQuery->where('placement_type', 'branch')->where('placement_id', $reqBranch);
