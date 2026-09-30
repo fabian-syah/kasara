@@ -8,7 +8,7 @@ import {
     Eye, X, ChevronLeft, ChevronRight, Download, CheckCircle2,
     Clock, AlertCircle, FileText, ExternalLink, ChevronDown, Sparkles
 } from 'lucide-vue-next';
-
+    
 const router = useRouter();
 
 // State
@@ -92,9 +92,6 @@ async function fetchHistory() {
             if (res.data.filters) {
                 branches.value = res.data.filters.branches || [];
                 csUsers.value = res.data.filters.cs_users || [];
-                if (branches.value.length === 1 && selectedBranch.value === 'all') {
-                    selectedBranch.value = branches.value[0].id;
-                }
             }
         }
     } catch (err) {
@@ -135,11 +132,7 @@ function resetAllFilters() {
     dateFilterMode.value = 'month';
     startDate.value = '';
     endDate.value = '';
-    if (branches.value.length === 1) {
-        selectedBranch.value = branches.value[0].id;
-    } else {
-        selectedBranch.value = 'all';
-    }
+    selectedBranch.value = 'all';
     selectedCs.value = 'all';
     searchQuery.value = '';
     fetchHistory();
@@ -483,7 +476,7 @@ onMounted(() => {
 
                 <!-- Right: Reset button -->
                 <button
-                    v-if="(branches.length > 1 && selectedBranch !== 'all') || selectedCs !== 'all' || searchQuery || dateFilterMode !== 'month'"
+                    v-if="selectedBranch !== 'all' || selectedCs !== 'all' || searchQuery || dateFilterMode !== 'month'"
                     @click="resetAllFilters"
                     class="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:underline cursor-pointer self-start sm:self-auto"
                 >
@@ -493,10 +486,9 @@ onMounted(() => {
             </div>
 
             <!-- Second Row: Dropdown Filters & Search -->
-            <div class="grid gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800"
-                :class="branches.length > 1 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3'">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
                 <!-- Filter Cabang -->
-                <div v-if="branches.length > 1" class="relative">
+                <div class="relative">
                     <label class="block text-[11px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1.5">
                         Cabang
                     </label>
@@ -537,7 +529,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Search Input -->
-                <div :class="branches.length > 1 ? 'sm:col-span-2 lg:col-span-2' : 'sm:col-span-2'">
+                <div class="sm:col-span-2">
                     <label class="block text-[11px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-1.5">
                         Pencarian
                     </label>
