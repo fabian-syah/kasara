@@ -945,14 +945,14 @@ class AuditController extends Controller
                                 $inPrice = max(0, $outPrice - $price);
                             }
                             $dailyStats[$date]['total_omset'] += $outPrice;
-                            $dailyStats[$date]['omset_bersih'] += $inPrice;
+                            $dailyStats[$date]['omset_bersih'] += ($outPrice - $inPrice);
                         } elseif ($saleType === 'downgrade') {
                             $outDg = floatval($tx->dg_outgoing_price ?? 0);
                             $inDg = floatval($tx->dg_incoming_cost_price ?? 0);
 
                             if ($outDg > 0 || $inDg > 0) {
                                 $dailyStats[$date]['total_omset'] += $outDg;
-                                $dailyStats[$date]['omset_bersih'] += $inDg;
+                                $dailyStats[$date]['omset_bersih'] += ($outDg - $inDg);
                             } else {
                                 $dailyStats[$date]['omset_bersih'] -= $price;
                             }
