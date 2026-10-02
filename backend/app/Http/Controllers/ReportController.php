@@ -1152,12 +1152,12 @@ class ReportController extends Controller
                 $saleType = 'pelunasan_dp';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $saleType = 'downgrade';
             } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
                 $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
-            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
-                $saleType = 'downgrade';
             }
 
             if ($cat === 'dp') {

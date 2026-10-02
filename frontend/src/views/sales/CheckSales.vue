@@ -1073,21 +1073,21 @@ const summaryStats = computed(() => {
         }
 
         // If it's a standard sale category, do NOT override with deductions by notes
-        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah'].includes(cat)) {
+        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'downgrade'].includes(cat)) {
             return cat;
         }
 
-        if (n.includes('barang angkat') || n.includes('angkat barang') || n.includes('angkat_barang') || sa.includes('barang angkat') || sa.includes('angkat barang') || sa.includes('angkat_barang')) {
-            return 'angkat_barang';
-        }
-        if (n.includes('refund') || sa.includes('refund')) {
-            return 'refund';
-        }
         if (n.includes('downgrade') || sa.includes('downgrade')) {
             return 'downgrade';
         }
         if (n.includes('tukar tambah') || n.includes('tukar_tambah') || sa.includes('tukar tambah') || sa.includes('tukar_tambah')) {
             return 'tukar_tambah';
+        }
+        if (n.includes('barang angkat') || n.includes('angkat barang') || n.includes('angkat_barang') || sa.includes('barang angkat') || sa.includes('angkat barang') || sa.includes('angkat_barang')) {
+            return 'angkat_barang';
+        }
+        if (n.includes('refund') || sa.includes('refund')) {
+            return 'refund';
         }
         return cat;
     };
@@ -1121,15 +1121,45 @@ const summaryStats = computed(() => {
         if (isBaseSale) {
             baseSales += total;
         } else if (isTradeIn) {
-            // Universal Trade-In Extraction Logic
-            const outVal = Math.abs(parseFloat(item.price_out) || (cat === 'tukar_tambah' ? total : 0));
-            const inVal = Math.abs(parseFloat(item.price_in) || (cat === 'downgrade' ? (parseFloat(item.price_out) || 0) + total : 0));
+            // Universal Trade-In Extraction Logic: Total Omset = Base Sales + TT Out + DG Out
+            let outVal = 0;
+            let inVal = 0;
 
-            // Segregation rules satisfying user's distinct accounting logic for TT vs DG
-            if (cat === 'tukar_tambah' || cat === 'downgrade') {
-                tradeOutgoingTotal += outVal; 
-                tradeIncomingTotal += inVal;
+            if (item.price_out != null && !isNaN(parseFloat(item.price_out)) && parseFloat(item.price_out) > 0) {
+                outVal = Math.abs(parseFloat(item.price_out));
             }
+            if (item.price_in != null && !isNaN(parseFloat(item.price_in)) && parseFloat(item.price_in) > 0) {
+                inVal = Math.abs(parseFloat(item.price_in));
+            }
+
+            // If not found in price_out/price_in, extract cleanly from item.items
+            if (item.items && item.items.length > 0) {
+                let extractedOut = 0;
+                let extractedIn = 0;
+                item.items.forEach(detail => {
+                    const dName = (detail.name || '').toUpperCase();
+                    const dPrice = parseFloat(detail.price) || 0;
+                    const dQty = parseFloat(detail.qty || 1);
+                    if (dName.startsWith('OUT:')) {
+                        extractedOut += Math.abs(dPrice) * dQty;
+                    } else if (dName.startsWith('IN:')) {
+                        extractedIn += Math.abs(dPrice) * dQty;
+                    } else if (dPrice > 0) {
+                        extractedOut += dPrice * dQty;
+                    } else if (dPrice < 0) {
+                        extractedIn += Math.abs(dPrice) * dQty;
+                    }
+                });
+                if (outVal === 0 && extractedOut > 0) outVal = extractedOut;
+                if (inVal === 0 && extractedIn > 0) inVal = extractedIn;
+            }
+
+            if (outVal === 0) {
+                outVal = Math.abs(parseFloat(item.original_price || item.total_amount || item.grand_total) || 0);
+            }
+
+            tradeOutgoingTotal += outVal;
+            tradeIncomingTotal += inVal;
         }
 
         if (isDeduction) {
@@ -1181,7 +1211,7 @@ const summaryStats = computed(() => {
     });
 
     let finalOmset = hasSummary ? (summary.payment_total ?? 0) : (baseSales + tradeOutgoingTotal);
-    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (baseSales + tradeIncomingTotal - outlay);
+    let finalOmsetBersih = hasSummary ? (summary.omset_bersih ?? 0) : (baseSales + tradeOutgoingTotal - tradeIncomingTotal - outlay);
 
     if (hasSummary && summary.activities && summary.activities.details) {
         const acts = summary.activities.details;

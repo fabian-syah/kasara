@@ -188,12 +188,12 @@ class DashboardController extends Controller
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $saleType = 'downgrade';
             } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
                 $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
-            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
-                $saleType = 'downgrade';
             } elseif ($cat === 'balancing') {
                 $saleType = 'balancing';
             }
@@ -362,12 +362,12 @@ class DashboardController extends Controller
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $saleType = 'downgrade';
             } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
                 $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
-            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
-                $saleType = 'downgrade';
             } elseif ($cat === 'balancing') {
                 $saleType = 'balancing';
             }
@@ -639,12 +639,12 @@ class DashboardController extends Controller
                 $saleType = 'base_sale';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $saleType = 'downgrade';
             } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
                 $saleType = 'refund_dp';
             } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
                 $saleType = 'refund';
-            } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade') || $cat === 'downgrade') {
-                $saleType = 'downgrade';
             } elseif ($cat === 'balancing') {
                 $saleType = 'balancing';
             }
@@ -924,12 +924,12 @@ class DashboardController extends Controller
                         $cat = 'tukar_tambah';
                     }
                 } else {
-                    if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                    if ($origCat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                        $cat = 'downgrade';
+                    } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
                         $cat = 'angkat_barang';
                     } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
                         $cat = 'refund';
-                    } elseif (str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                        $cat = 'downgrade';
                     } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                         $cat = 'tukar_tambah';
                     }
