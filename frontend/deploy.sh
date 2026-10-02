@@ -8,6 +8,7 @@ cd ~/apex-pos/apex-frontend || exit
 
 # 2. Tarik kode terbaru dari GitHub
 echo "📥 Menarik kode terbaru dari GitHub..."
+git checkout -- frontend/public/version.json 2>/dev/null || true
 git pull origin main
 
 # 3. Backend: Jalankan migrasi database & bersihkan cache (Via Docker)
