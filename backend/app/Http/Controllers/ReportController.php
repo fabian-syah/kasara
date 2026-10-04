@@ -619,12 +619,13 @@ class ReportController extends Controller
 
         // 1. Get Payment Methods
         $paymentMethods = \App\Models\PaymentMethod::all();
+        $cashMethod = $paymentMethods->first(fn($pm) => stripos($pm->name, 'CASH') !== false);
+        $cashMethodId = $cashMethod?->id;
         
         // Let's get the base stats from DB
         $baseQuery = DB::table('stock_outs')
-            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $salesCategoriesExtended)
-            ->where('stock_outs.status', '!=', 'cancelled')
             ->whereNull('stock_outs.deleted_at');
 
         if ($startDate && $endDate) {
@@ -651,7 +652,7 @@ class ReportController extends Controller
             'stock_outs.receipt_id',
             DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
             DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id')
-        )->orderBy('stock_outs.id')->chunk(2000, function ($transactions) use (&$statsByLocation, $paymentMethods) {
+        )->orderBy('stock_outs.id')->chunk(2000, function ($transactions) use (&$statsByLocation, $paymentMethods, $cashMethodId) {
 
             $txIds = $transactions->pluck('id')->toArray();
             $receiptIds = $transactions->pluck('receipt_id')->filter()->unique()->toArray();
@@ -724,43 +725,25 @@ class ReportController extends Controller
             $account = strtolower($tx->sales_account ?? '');
 
             $saleType = 'ignored';
-            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($account, 'tukar tambah') || str_contains($account, 'tukar_tambah')) {
+            if ($cat === 'tukar_tambah') {
                 $saleType = 'tukar_tambah';
-            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($account, 'downgrade')) {
-                $saleType = 'downgrade';
-            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                 $saleType = 'base_sale';
-            } elseif ($cat === 'dp') {
-                $saleType = 'dp';
-            } elseif ($cat === 'pelunasan_dp') {
-                $saleType = 'pelunasan_dp';
-            } elseif ($cat === 'balancing') {
-                if ($subCat === 'balancing_penjualan_terlewat') {
-                    $saleType = 'balancing_penjualan';
-                } elseif ($subCat === 'balancing_metode_pembayaran') {
-                    $saleType = 'balancing_pembayaran';
-                } else {
-                    $saleType = 'balancing';
-                }
-            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($account, 'refund dp')) {
-                $saleType = 'refund_dp';
-            } elseif (str_contains($notes, 'refund') || str_contains($account, 'refund') || $cat === 'refund') {
-                $saleType = 'refund';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($account, 'barang angkat') || str_contains($account, 'angkat barang') || str_contains($account, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
-            } elseif ($cat === 'tukar_unit' || str_contains($notes, 'tukar unit') || str_contains($notes, 'tukar_unit') || str_contains($account, 'tukar unit') || str_contains($account, 'tukar_unit')) {
-                $saleType = 'tukar_unit';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($account, 'downgrade')) {
+                $saleType = 'downgrade';
+            } elseif ($cat === 'refund' || str_contains($notes, 'refund') || str_contains($account, 'refund')) {
+                $saleType = 'refund';
+            } elseif ($cat === 'balancing') {
+                $saleType = 'balancing';
             }
 
-            if ($cat === 'dp') {
-                $sellingPrice = max(0, abs((float) ($tx->dp_amount ?: ($tx->paid_amount ?: $tx->selling_price))));
-            } elseif ($cat === 'pelunasan_dp') {
-                $sellingPrice = max(0, abs((float) ($tx->paid_amount ?: $tx->selling_price)));
-            } elseif ($cat === 'balancing') {
-                $sellingPrice = (float) ($tx->selling_price ?? 0);
-            } else {
-                $sellingPrice = max(0, abs((float) ($tx->selling_price ?? 0)));
-            }
+            $sellingPrice = $cat === 'balancing' 
+                ? (float) ($tx->selling_price ?? 0) 
+                : (in_array($cat, ['dp', 'pelunasan_dp']) 
+                    ? max(0, abs((float) ($tx->paid_amount ?? 0))) 
+                    : max(0, abs((float) ($tx->selling_price ?? 0))));
 
             $spTotal = 0;
             if ($tx->split_payments) {
@@ -776,13 +759,9 @@ class ReportController extends Controller
                 }
             }
 
-            if ($cat === 'balancing') {
-                $effectivePrice = $sellingPrice;
-            } elseif ($spTotal > 0) {
-                $effectivePrice = ($sellingPrice > 0) ? min($spTotal, $sellingPrice) : $spTotal;
-            } else {
-                $effectivePrice = $sellingPrice;
-            }
+            // USER RULE: Omset strictly follows actual received payments (spTotal) over database selling_price.
+            // If spTotal exceeds price, it means there is kembalian (change), so we cap it to price.
+            $effectivePrice = ($spTotal > 0 && $cat !== 'balancing') ? min($spTotal, $sellingPrice) : $sellingPrice;
 
             $txOmset = 0;
             $txOmsetBersih = 0;
@@ -826,14 +805,14 @@ class ReportController extends Controller
                 }
                 $statsByLocation[$locKey]['downgrade_qty'] += 1;
                 $statsByLocation[$locKey]['downgrade_amt'] += $txOmset;
-            } elseif (in_array($saleType, ['base_sale', 'dp', 'pelunasan_dp', 'balancing_penjualan', 'balancing_pembayaran', 'balancing'])) {
+            } elseif ($saleType === 'base_sale' || $saleType === 'balancing') {
                 $txOmset = $effectivePrice;
                 $txOmsetBersih = $effectivePrice;
                 $txProfit = $effectivePrice - $txModal;
-                if ($saleType === 'dp') {
+                if ($cat === 'dp') {
                     $statsByLocation[$locKey]['dp_qty'] += 1;
                     $statsByLocation[$locKey]['dp_amt'] += $txOmset;
-                } elseif ($saleType === 'pelunasan_dp') {
+                } elseif ($cat === 'pelunasan_dp') {
                     $statsByLocation[$locKey]['pelunasan_dp_qty'] += 1;
                     $statsByLocation[$locKey]['pelunasan_dp_amt'] += $txOmset;
                 } elseif ($saleType === 'balancing_penjualan') {
@@ -874,12 +853,15 @@ class ReportController extends Controller
             $statsByLocation[$locKey]['profit'] += $txProfit;
 
             // Payments - match AuditController exactly
-            if (in_array($saleType, ['base_sale', 'dp', 'pelunasan_dp', 'balancing_penjualan', 'balancing_pembayaran', 'balancing', 'tukar_tambah'])) {
+            if (in_array($saleType, ['base_sale', 'balancing', 'tukar_tambah'])) {
                 $splits = json_decode($tx->split_payments, true);
                 if (is_array($splits) && count($splits) > 0) {
                     $remainingToAllocate = abs($sellingPrice);
                     foreach ($splits as $split) {
                         $pmId = $split['payment_method_id'] ?? ($split['method_id'] ?? null);
+                        if (!$pmId) {
+                            $pmId = $cashMethodId;
+                        }
                         $amt = abs((float) ($split['amount'] ?? 0));
                         $allocatedAmt = min($amt, $remainingToAllocate);
                         
@@ -888,9 +870,10 @@ class ReportController extends Controller
                         }
                         $remainingToAllocate -= $allocatedAmt;
                     }
-                } elseif ($tx->payment_method_id) {
-                    if (isset($statsByLocation[$locKey]['payments'][$tx->payment_method_id])) {
-                        $statsByLocation[$locKey]['payments'][$tx->payment_method_id] += abs($sellingPrice);
+                } else {
+                    $pmId = $tx->payment_method_id ?? $cashMethodId;
+                    if ($pmId && isset($statsByLocation[$locKey]['payments'][$pmId])) {
+                        $statsByLocation[$locKey]['payments'][$pmId] += abs($sellingPrice);
                     }
                 }
             }
@@ -1189,9 +1172,8 @@ class ReportController extends Controller
         $salesCategoriesExtended = array_merge($salesCategories, ['refund', 'balancing', 'refund_dp']);
 
         $baseQuery = DB::table('stock_outs')
-            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->whereIn(DB::raw("LOWER(REPLACE(stock_outs.category, ' ', '_'))"), $salesCategoriesExtended)
-            ->where('stock_outs.status', '!=', 'cancelled')
             ->whereNull('stock_outs.deleted_at');
 
         if ($startDate && $endDate) {
@@ -1242,41 +1224,27 @@ class ReportController extends Controller
             $sa = strtolower($tx->sales_account ?? '');
 
             $saleType = 'ignored';
-            if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+            if ($cat === 'tukar_tambah') {
                 $saleType = 'tukar_tambah';
-            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                $saleType = 'downgrade';
-            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship'])) {
+            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                 $saleType = 'base_sale';
-            } elseif ($cat === 'dp') {
-                $saleType = 'dp';
-            } elseif ($cat === 'pelunasan_dp') {
-                $saleType = 'pelunasan_dp';
-            } elseif ($cat === 'balancing') {
-                if ($subCat === 'balancing_penjualan_terlewat') {
-                    $saleType = 'balancing_penjualan';
-                } elseif ($subCat === 'balancing_metode_pembayaran') {
-                    $saleType = 'balancing_pembayaran';
-                } else {
-                    $saleType = 'balancing';
-                }
-            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
-                $saleType = 'refund_dp';
-            } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund') || $cat === 'refund') {
-                $saleType = 'refund';
             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                 $saleType = 'angkat_barang';
+            } elseif ($cat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                $saleType = 'downgrade';
+            } elseif ($cat === 'refund' || str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                $saleType = 'refund';
+            } elseif ($cat === 'balancing') {
+                $saleType = 'balancing';
+            } elseif ($cat === 'refund_dp' || str_contains($notes, 'refund dp') || str_contains($sa, 'refund dp')) {
+                $saleType = 'refund_dp';
             }
 
-            if ($cat === 'dp') {
-                $price = max(0, abs((float) ($tx->dp_amount ?: ($tx->paid_amount ?: $tx->selling_price))));
-            } elseif ($cat === 'pelunasan_dp') {
-                $price = max(0, abs((float) ($tx->paid_amount ?: $tx->selling_price)));
-            } elseif ($cat === 'balancing') {
-                $price = (float) ($tx->selling_price ?? 0);
-            } else {
-                $price = max(0, abs((float) ($tx->selling_price ?? 0)));
-            }
+            $price = $cat === 'balancing' 
+                ? (float) ($tx->selling_price ?? 0) 
+                : (in_array($cat, ['dp', 'pelunasan_dp']) 
+                    ? max(0, abs((float) ($tx->paid_amount ?? 0))) 
+                    : max(0, abs((float) ($tx->selling_price ?? 0))));
 
             $spTotal = 0;
             if ($tx->split_payments) {
@@ -1293,14 +1261,8 @@ class ReportController extends Controller
             }
             
             // USER RULE: Omset strictly follows actual received payments (spTotal) over database selling_price.
-            // When spTotal > 0, cap to price if price > 0 to handle customer cash excess (kembalian).
-            if ($cat === 'balancing') {
-                $effectivePrice = $price;
-            } elseif ($spTotal > 0) {
-                $effectivePrice = ($price > 0) ? min($spTotal, $price) : $spTotal;
-            } else {
-                $effectivePrice = $price;
-            }
+            // If spTotal exceeds price, it means there is kembalian (change), so we cap it to price.
+            $effectivePrice = ($spTotal > 0 && $cat !== 'balancing') ? min($spTotal, $price) : $price;
 
             $txOmset = 0;
             $txOmsetBersih = 0;
@@ -1314,34 +1276,19 @@ class ReportController extends Controller
             $refundAmt = 0;
             $abAmt = 0;
 
-            if ($saleType === 'base_sale') {
+            if ($saleType === 'base_sale' || $saleType === 'balancing') {
                 $txOmset = $effectivePrice;
                 $txOmsetBersih = $effectivePrice;
                 $isTransaction = true;
-            } elseif ($saleType === 'dp') {
-                $txOmset = $effectivePrice;
-                $txOmsetBersih = $effectivePrice;
-                $isTransaction = true;
-                $isDp = true;
-            } elseif ($saleType === 'pelunasan_dp') {
-                $txOmset = $effectivePrice;
-                $txOmsetBersih = $effectivePrice;
-                $isTransaction = true;
-                $isPelunasanDp = true;
-            } elseif ($saleType === 'balancing_penjualan') {
-                $txOmset = $effectivePrice;
-                $txOmsetBersih = $effectivePrice;
-                $isTransaction = true;
-                $isBalancingPenjualan = true;
-            } elseif ($saleType === 'balancing_pembayaran') {
-                $txOmset = $effectivePrice;
-                $txOmsetBersih = $effectivePrice;
-                $isTransaction = true;
-                $isBalancingPembayaran = true;
-            } elseif ($saleType === 'balancing') {
-                $txOmset = $effectivePrice;
-                $txOmsetBersih = $effectivePrice;
-                $isTransaction = true;
+                if ($cat === 'dp') {
+                    $isDp = true;
+                } elseif ($cat === 'pelunasan_dp') {
+                    $isPelunasanDp = true;
+                } elseif ($subCat === 'balancing_penjualan_terlewat') {
+                    $isBalancingPenjualan = true;
+                } elseif ($subCat === 'balancing_metode_pembayaran') {
+                    $isBalancingPembayaran = true;
+                }
             } elseif ($saleType === 'tukar_tambah') {
                 $tt = $ttData->get($tx->receipt_id);
                 $outPrice = $tt ? (float) $tt->sum('outgoing_price') : 0;
@@ -1426,7 +1373,7 @@ class ReportController extends Controller
 
         // 2. Get Item Counts (Iphone vs Android)
         $itemCountsQuery = DB::table('stock_outs')
-            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
@@ -1448,7 +1395,7 @@ class ReportController extends Controller
 
         // 3. Get Top Android Models
         $androidModelsQuery = DB::table('stock_outs')
-            ->join('users', 'stock_outs.user_id', '=', 'users.id')
+            ->leftJoin('users', 'stock_outs.user_id', '=', 'users.id')
             ->join('stock_out_items', 'stock_outs.id', '=', 'stock_out_items.stock_out_id')
             ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
             ->join('products', 'product_details.product_id', '=', 'products.id')
