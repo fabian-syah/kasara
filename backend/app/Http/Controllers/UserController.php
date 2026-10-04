@@ -494,21 +494,17 @@ class UserController extends Controller
             if ($user->photo || $user->photo_inventory) {
                 $photoStatus = "Direct DB Write to PENDING columns";
                 
-                // Pilih kolom berdasarkan Role agar tidak muncul dua kali di Audit
-                $updateData = [];
-                if ($user->hasRole('toko_offline')) {
-                    $updateData['pending_photo_inventory'] = $path;
-                    $updateData['pending_photo'] = null; // Hapus jika ada sisa duplikat
-                } else {
-                    $updateData['pending_photo'] = $path;
-                    $updateData['pending_photo_inventory'] = null; // Hapus jika ada sisa duplikat
-                }
+                // Simpan ke kolom pending
+                $updateData = [
+                    'pending_photo' => $path,
+                    'pending_photo_inventory' => $path
+                ];
                 
                 \Illuminate\Support\Facades\DB::table('users')->where('id', $id)->update($updateData);
                 
                 // Update in-memory for the response
-                $user->pending_photo = $updateData['pending_photo'] ?? null;
-                $user->pending_photo_inventory = $updateData['pending_photo_inventory'] ?? null;
+                $user->pending_photo = $path;
+                $user->pending_photo_inventory = $path;
                 
                 unset($validated['photo']);
             } else {
@@ -698,8 +694,11 @@ class UserController extends Controller
 
         // Check both pending columns to ensure visibility
         $query = User::with(['roles', 'branch', 'warehouse', 'onlineShop'])
-            ->whereNotNull('pending_photo')
-            ->select('id', 'name', 'full_name', 'username', 'photo', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id');
+            ->where(function ($q) {
+                $q->whereNotNull('pending_photo')
+                  ->orWhereNotNull('pending_photo_inventory');
+            })
+            ->select('id', 'name', 'full_name', 'username', 'photo', 'photo_inventory', 'pending_photo', 'pending_photo_inventory', 'branch_id', 'warehouse_id', 'online_shop_id');
 
         if (!$user->hasRole('super_admin')) {
             if ($user->hasAnyRole(['audit', 'leader'])) {
@@ -771,7 +770,8 @@ class UserController extends Controller
     public function approvePhoto($id)
     {
         $user = User::findOrFail($id);
-        if (!$user->pending_photo) {
+        $pending = $user->pending_photo ?: $user->pending_photo_inventory;
+        if (!$pending) {
             return response()->json(['message' => 'Tidak ada foto yang menunggu persetujuan.'], 400);
         }
 
@@ -779,10 +779,13 @@ class UserController extends Controller
         if ($user->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->photo)) {
             \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo);
         }
+        if ($user->photo_inventory && $user->photo_inventory !== $user->photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->photo_inventory)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->photo_inventory);
+        }
 
         // Pindahkan pending ke asli
-        $user->photo = $user->pending_photo;
-        $user->photo_inventory = $user->pending_photo; // Sync
+        $user->photo = $pending;
+        $user->photo_inventory = $pending; // Sync
         $user->pending_photo = null;
         $user->pending_photo_inventory = null; 
         $user->save();
@@ -794,8 +797,9 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         
-        if ($user->pending_photo && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->pending_photo)) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->pending_photo);
+        $pending = $user->pending_photo ?: $user->pending_photo_inventory;
+        if ($pending && \Illuminate\Support\Facades\Storage::disk('public')->exists($pending)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($pending);
         }
         
         $user->pending_photo = null;

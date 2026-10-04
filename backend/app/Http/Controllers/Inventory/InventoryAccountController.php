@@ -29,6 +29,9 @@ class InventoryAccountController extends Controller
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
+        if ($user->hasRole('toko_offline')) {
+            return response()->json(['message' => 'Akun Toko Offline tidak diizinkan membuat akun CS.'], 403);
+        }
         if (!$user->branch_id && !$user->warehouse_id && !$user->online_shop_id && !$user->distributor_id && !$user->hasRole('super_admin')) {
             return response()->json(['message' => 'Anda tidak memiliki lokasi fisik untuk membuat akun inventory.'], 403);
         }

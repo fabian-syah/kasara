@@ -178,15 +178,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const storageBaseUrl = computed(() => {
-        const url = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
+        const url = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
         return url.replace(/\/api\/?$/, '');
     });
 
     const userPhotoUrl = computed(() => {
-        if (!user.value?.photo) return null;
-        const baseUrl = user.value.photo.startsWith('http')
-            ? user.value.photo
-            : `${storageBaseUrl.value}/storage/${user.value.photo}`;
+        const rawPhoto = user.value?.photo || user.value?.photo_inventory || user.value?.avatar;
+        if (!rawPhoto) return null;
+        if (rawPhoto.startsWith('http')) return rawPhoto;
+
+        let path = rawPhoto;
+        if (path.startsWith('/')) path = path.substring(1);
+        if (path.startsWith('storage/')) path = path.substring(8);
+        const baseUrl = `${storageBaseUrl.value}/storage/${path}`;
         
         // Append timestamp to bust cache based on last update or current execution context
         const ts = user.value.updated_at 

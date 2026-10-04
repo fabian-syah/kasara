@@ -59,7 +59,7 @@ const props = defineProps({
   }
 });
 
-const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '';
+const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://api.stokps.com/api';
 const storageUrl = apiUrl.replace(/\/api\/?$/, '');
 import {
   Search,

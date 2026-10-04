@@ -42,19 +42,23 @@ const coverPhotoUrl = computed(() => {
         return localCoverPreview.value;
     }
     if (user.value?.cover_photo) {
-        return user.value.cover_photo.startsWith('http')
-            ? user.value.cover_photo
-            : `${authStore.storageBaseUrl}/storage/${user.value.cover_photo}?t=${coverTimestamp.value}`;
+        if (user.value.cover_photo.startsWith('http')) return user.value.cover_photo;
+        let path = user.value.cover_photo;
+        if (path.startsWith('/')) path = path.substring(1);
+        if (path.startsWith('storage/')) path = path.substring(8);
+        return `${authStore.storageBaseUrl}/storage/${path}?t=${coverTimestamp.value}`;
     }
     return null;
 });
 
 const displayPhotoUrl = computed(() => {
-    const rawPhoto = user.value?.pending_photo || user.value?.photo;
+    const rawPhoto = user.value?.pending_photo || user.value?.pending_photo_inventory || user.value?.photo || user.value?.photo_inventory;
     if (!rawPhoto) return null;
-    return rawPhoto.startsWith('http')
-        ? rawPhoto
-        : `${authStore.storageBaseUrl}/storage/${rawPhoto}?t=${photoTimestamp.value}`;
+    if (rawPhoto.startsWith('http')) return rawPhoto;
+    let path = rawPhoto;
+    if (path.startsWith('/')) path = path.substring(1);
+    if (path.startsWith('storage/')) path = path.substring(8);
+    return `${authStore.storageBaseUrl}/storage/${path}?t=${photoTimestamp.value}`;
 });
 
 function triggerCoverUpload() {

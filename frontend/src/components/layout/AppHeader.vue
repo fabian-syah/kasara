@@ -42,6 +42,7 @@ async function handleLogout() {
 // User info
 const userName = computed(() => authStore.userName);
 const userRole = computed(() => getRoleLabel(authStore.userRole));
+const isTokoOffline = computed(() => authStore.hasRole('toko_offline') || authStore.userRole === 'toko_offline');
 </script>
 
 <template>
@@ -154,7 +155,7 @@ const userRole = computed(() => getRoleLabel(authStore.userRole));
                                     <Settings :size="16" />
                                     <span>Pengaturan Toko</span>
                                 </router-link>
-                                <router-link to="/settings/inventory-account" @click="isUserMenuOpen = false"
+                                <router-link v-if="!isTokoOffline" to="/settings/inventory-account" @click="isUserMenuOpen = false"
                                     class="flex items-center gap-3 px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors">
                                     <Users :size="16" />
                                     <span>Akun CS</span>

@@ -14,6 +14,7 @@ git pull origin main
 # 3. Backend: Jalankan migrasi database & bersihkan cache (Via Docker)
 echo "🛠️ Menjalankan migrasi database..."
 docker exec apex-api-local php artisan migrate --force
+docker exec apex-api-local php artisan storage:link 2>/dev/null || true
 docker exec apex-api-local php artisan optimize:clear
 docker exec apex-api-local php artisan cache:clear
 docker exec apex-api-local php artisan octane:reload

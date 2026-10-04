@@ -10,6 +10,8 @@ import {
 const authStore = useAuthStore();
 const toast = useToast();
 
+const isTokoOffline = computed(() => authStore.hasRole('toko_offline') || authStore.userRole === 'toko_offline');
+
 const inventoryAccounts = ref([]);
 const isLoading = ref(true);
 
@@ -131,8 +133,8 @@ const accountsByBranch = computed(() => {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <!-- Left Side: Create Account Form -->
-            <div class="lg:col-span-6 space-y-6">
+            <!-- Left Side: Create Account Form (Hidden for Toko Offline) -->
+            <div v-if="!isTokoOffline" class="lg:col-span-6 space-y-6">
                 <!-- Create Inventory Account -->
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-5">
                     <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800/50">
@@ -182,7 +184,7 @@ const accountsByBranch = computed(() => {
             </div>
 
             <!-- Right Side: Accounts List Grouped by Branch -->
-            <div class="lg:col-span-6 space-y-6">
+            <div :class="isTokoOffline ? 'lg:col-span-12' : 'lg:col-span-6'" class="space-y-6">
                 <div class="card bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800/70 p-6 rounded-[2rem] shadow-xl space-y-6">
                     <div class="flex items-center gap-2.5 pb-4 border-b border-zinc-100 dark:border-zinc-800/50">
                         <User :size="18" class="text-primary-500" />
