@@ -226,9 +226,12 @@
                     </label>
                     <div class="relative">
                         <select v-model="selectedLocationKey" @change="fetchData"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8">
-                            <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Cabang/Toko</option>
-                            <option v-for="loc in locationsList" :key="`${loc.type}:${loc.id}`"
+                            :disabled="isRestrictedRole && filteredLocations.length <= 1"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8 disabled:opacity-80 disabled:cursor-not-allowed">
+                            <option v-if="isGlobalRole || filteredLocations.length > 1" value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">
+                                {{ isGlobalRole ? 'Semua Cabang/Toko' : 'Semua Cabang Saya' }}
+                            </option>
+                            <option v-for="loc in filteredLocations" :key="`${loc.type}:${loc.id}`"
                                 :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`"
                                 class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">
                                 {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Online]' : '[Distributor]' }} {{ loc.name }}
@@ -982,7 +985,7 @@ const filters = ref({
 
 // Dropdowns lists
 const distributorsList = ref([]);
-const locationsList = ref([]);
+const rawLocationsList = ref([]);
 const selectedLocationKey = ref('all');
 
 // Raw profit records from API
@@ -1017,10 +1020,74 @@ const canAccessAudit = computed(() => {
     return ['super_admin', 'audit', 'owner'].some(r => role.includes(r));
 });
 
+// Role Computations
+const isGlobalRole = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager'].some(r => role.includes(r));
+});
+
+const isRestrictedRole = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase();
+    return ['leader', 'audit'].some(r => role.includes(r)) && !isGlobalRole.value;
+});
+
 const canFilterBranch = computed(() => {
     const role = (authStore.userRole || '').toLowerCase();
-    return ['super_admin', 'audit', 'owner', 'leader', 'analist', 'admin_produk'].some(r => role.includes(r));
+    return ['super_admin', 'audit', 'owner', 'leader', 'analist', 'analis', 'admin_produk'].some(r => role.includes(r));
 });
+
+const allowedBranchIds = computed(() => {
+    if (isGlobalRole.value) return null;
+    const serverIds = profitRecords.value?.user_access?.branch_ids;
+    if (serverIds && serverIds.length > 0) {
+        return serverIds.map(Number);
+    }
+    const userBranchId = authStore.user?.branch_id;
+    const placementBranchIds = (authStore.user?.placements || [])
+        .map(p => p.branch_id)
+        .filter(Boolean);
+    const combined = [...new Set([userBranchId, ...placementBranchIds].filter(Boolean).map(Number))];
+    return combined.length > 0 ? combined : null;
+});
+
+const allowedShopIds = computed(() => {
+    if (isGlobalRole.value) return null;
+    const serverIds = profitRecords.value?.user_access?.online_shop_ids;
+    if (serverIds && serverIds.length > 0) {
+        return serverIds.map(Number);
+    }
+    const userShopId = authStore.user?.online_shop_id;
+    const placementShopIds = (authStore.user?.placements || [])
+        .map(p => p.online_shop_id)
+        .filter(Boolean);
+    const combined = [...new Set([userShopId, ...placementShopIds].filter(Boolean).map(Number))];
+    return combined.length > 0 ? combined : null;
+});
+
+const filteredLocations = computed(() => {
+    if (isGlobalRole.value) {
+        return rawLocationsList.value;
+    }
+    if (!allowedBranchIds.value && !allowedShopIds.value) {
+        return rawLocationsList.value;
+    }
+    return rawLocationsList.value.filter(loc => {
+        if (loc.type === 'branch') {
+            return allowedBranchIds.value ? allowedBranchIds.value.includes(Number(loc.id)) : false;
+        }
+        if (loc.type === 'online_shop') {
+            return allowedShopIds.value ? allowedShopIds.value.includes(Number(loc.id)) : false;
+        }
+        return false;
+    });
+});
+
+watch(filteredLocations, (newLocs) => {
+    if (isRestrictedRole.value && newLocs.length === 1) {
+        const single = newLocs[0];
+        selectedLocationKey.value = (single.type === 'branch' ? 'B:' : 'S:') + single.id;
+    }
+}, { immediate: true });
 
 // Helpers for dates
 const pad = (n) => String(n).padStart(2, '0');
@@ -1125,15 +1192,27 @@ const allFilteredSales = computed(() => {
 
 // Un-audited count from records or computed
 const unAuditedCount = computed(() => {
-    const globalCount = profitRecords.value?.audit_stats?.belum_diaudit;
-    if (globalCount !== undefined && globalCount !== null) {
-        return Number(globalCount);
+    if (!searchQuery.value.trim() && profitRecords.value?.audit_stats?.belum_diaudit !== undefined) {
+        return Number(profitRecords.value.audit_stats.belum_diaudit);
     }
-    return rawTransactions.value.filter(t => !t.is_audited && t.category !== 'cancel_penjualan').length;
+    return allFilteredSales.value.filter(t => !t.is_audited && t.audit_score == null && t.category !== 'cancel_penjualan').length;
 });
 
 // Summary Totals
 const summaryTotals = computed(() => {
+    if (!searchQuery.value.trim() && profitRecords.value?.summary_totals) {
+        const st = profitRecords.value.summary_totals;
+        return {
+            totalPenjualan: st.total_penjualan || 0,
+            totalModalSystem: st.total_modal_system || 0,
+            totalModalAudit: st.total_modal_audit || 0,
+            totalProfitSystem: st.total_profit_system || 0,
+            totalProfitAudit: st.total_profit_audit || 0,
+            totalTransaksi: st.total_transaksi || 0,
+            sudahDiaudit: st.sudah_diaudit || 0
+        };
+    }
+
     const list = allFilteredSales.value;
     let totalPenjualan = 0;
     let totalModalSystem = 0;
@@ -1182,7 +1261,7 @@ const dailyAggregations = computed(() => {
     allFilteredSales.value.forEach(item => {
         if (item.category === 'cancel_penjualan') return;
 
-        const dateStr = item.date ? item.date.slice(0, 10) : 'Tanpa Tanggal';
+        const dateStr = item.reporting_date || (item.date ? item.date.slice(0, 10) : 'Tanpa Tanggal');
         if (!grouped[dateStr]) {
             grouped[dateStr] = {
                 dateStr,
@@ -1359,7 +1438,12 @@ const fetchMetadata = async () => {
 
         const allBranches = (branchRes.data?.data || branchRes.data || []).map(b => ({ ...b, type: 'branch' }));
         const allShops = (shopRes.data?.data || shopRes.data || []).map(s => ({ ...s, type: 'online_shop' }));
-        locationsList.value = [...allBranches, ...allShops];
+        rawLocationsList.value = [...allBranches, ...allShops];
+
+        if (isRestrictedRole.value && filteredLocations.value.length === 1) {
+            const single = filteredLocations.value[0];
+            selectedLocationKey.value = (single.type === 'branch' ? 'B:' : 'S:') + single.id;
+        }
     } catch (e) {
         console.error('Error fetching metadata:', e);
     }
@@ -1374,7 +1458,7 @@ const fetchData = async () => {
             category: filters.value.category !== 'all' ? filters.value.category : undefined,
             distributor_id: filters.value.distributor_id !== 'all' ? filters.value.distributor_id : undefined,
             audit_status: filters.value.audit_status !== 'all' ? filters.value.audit_status : undefined,
-            per_page: 500
+            per_page: 'all'
         };
 
         if (selectedLocationKey.value !== 'all') {
@@ -1390,6 +1474,12 @@ const fetchData = async () => {
             audit_stats: { sudah_diaudit: 0, belum_diaudit: 0, total_transaksi: 0 },
             daily_sales: { data: [] }
         };
+
+        if (isRestrictedRole.value && filteredLocations.value.length === 1 && selectedLocationKey.value === 'all') {
+            const single = filteredLocations.value[0];
+            selectedLocationKey.value = (single.type === 'branch' ? 'B:' : 'S:') + single.id;
+        }
+
         currentPage.value = 1;
     } catch (e) {
         console.error('Error fetching profit data:', e);

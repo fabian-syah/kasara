@@ -3437,16 +3437,45 @@ class AuditController extends Controller
     public function profit(Request $request)
     {
         $user = $request->user();
+        $isGlobalRole = $user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager']);
+        $isRestrictedRole = $user->hasAnyRole(['leader', 'audit']) && !$isGlobalRole;
+
         $branchIds = $user->getAccessibleBranchIds();
         $onlineShopIds = $user->getAccessibleOnlineShopIds();
         $warehouseIds = $user->getAccessibleWarehouseIds();
         $distributorIds = $user->getAccessibleDistributorIds();
 
-        if (empty($branchIds) && empty($onlineShopIds) && empty($warehouseIds) && empty($distributorIds)) {
+        if ($isRestrictedRole && empty($branchIds) && empty($onlineShopIds)) {
             return response()->json([
-                'daily_sales' => [],
-                'brand_sales' => [],
-                'cs_sales' => []
+                'audit_stats' => [
+                    'sudah_diaudit' => 0,
+                    'belum_diaudit' => 0,
+                    'total_cancel' => 0,
+                    'total_transaksi' => 0
+                ],
+                'daily_recap' => [],
+                'summary_totals' => [
+                    'total_penjualan' => 0,
+                    'total_modal_system' => 0,
+                    'total_modal_audit' => 0,
+                    'total_profit_system' => 0,
+                    'total_profit_audit' => 0,
+                    'total_transaksi' => 0,
+                    'sudah_diaudit' => 0,
+                    'belum_diaudit' => 0
+                ],
+                'user_access' => [
+                    'is_global' => false,
+                    'branch_ids' => [],
+                    'online_shop_ids' => [],
+                ],
+                'daily_sales' => [
+                    'data' => [],
+                    'current_page' => 1,
+                    'last_page' => 1,
+                    'total' => 0,
+                    'per_page' => 50
+                ]
             ]);
         }
 
@@ -3460,7 +3489,7 @@ class AuditController extends Controller
         }
 
         // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist'])) {
+        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
             $today = $logicalNow->toDateString();
             $yesterday = $logicalNow->copy()->subDay()->toDateString();
             $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
@@ -3490,61 +3519,85 @@ class AuditController extends Controller
         $requestedDistributorId = $request->distributor_id;
 
         // Fallback: If ID is not numeric, it might be a name
-        if ($requestedBranchId && !is_numeric($requestedBranchId)) {
+        if ($requestedBranchId && !is_numeric($requestedBranchId) && $requestedBranchId !== 'all') {
             $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
             $requestedBranchId = $foundBranch ? $foundBranch->id : null;
         }
-        if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId)) {
+        if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId) && $requestedOnlineShopId !== 'all') {
             $foundOs = OnlineShop::where('name', 'ilike', '%' . $requestedOnlineShopId . '%')->first();
             $requestedOnlineShopId = $foundOs ? $foundOs->id : null;
         }
-        if ($requestedWarehouseId && !is_numeric($requestedWarehouseId)) {
+        if ($requestedWarehouseId && !is_numeric($requestedWarehouseId) && $requestedWarehouseId !== 'all') {
             $foundWarehouse = Warehouse::where('name', 'ilike', '%' . $requestedWarehouseId . '%')->first();
             $requestedWarehouseId = $foundWarehouse ? $foundWarehouse->id : null;
         }
-        if ($requestedDistributorId && !is_numeric($requestedDistributorId)) {
+        if ($requestedDistributorId && !is_numeric($requestedDistributorId) && $requestedDistributorId !== 'all') {
             $foundDistributor = Distributor::where('name', 'ilike', '%' . $requestedDistributorId . '%')->first();
             $requestedDistributorId = $foundDistributor ? $foundDistributor->id : null;
         }
 
-        $scopeToAccess = function ($query) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-            $query->whereHas('user', function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    if ($requestedBranchId) {
-                        if (empty($branchIds) || in_array($requestedBranchId, $branchIds)) {
-                            $sub->where('branch_id', $requestedBranchId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedOnlineShopId) {
-                        if (empty($onlineShopIds) || in_array($requestedOnlineShopId, $onlineShopIds)) {
-                            $sub->where('online_shop_id', $requestedOnlineShopId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedWarehouseId) {
-                        if (empty($warehouseIds) || in_array($requestedWarehouseId, $warehouseIds)) {
-                            $sub->where('warehouse_id', $requestedWarehouseId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } elseif ($requestedDistributorId) {
-                        if (empty($distributorIds) || in_array($requestedDistributorId, $distributorIds)) {
-                            $sub->where('distributor_id', $requestedDistributorId);
-                        } else {
-                            $sub->whereRaw('1=0');
-                        }
-                    } else {
-                        if (!empty($branchIds))
-                            $sub->orWhereIn('branch_id', $branchIds);
-                        if (!empty($onlineShopIds))
-                            $sub->orWhereIn('online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds))
-                            $sub->orWhereIn('warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds))
-                            $sub->orWhereIn('distributor_id', $distributorIds);
+        // Enforce restriction for Leader & Audit: strictly allow only their assigned branches/shops
+        if ($isRestrictedRole) {
+            if ($requestedBranchId && $requestedBranchId !== 'all') {
+                if (!in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
+                    $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
+                }
+            }
+            if ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
+                if (!in_array((int)$requestedOnlineShopId, array_map('intval', $onlineShopIds))) {
+                    $requestedOnlineShopId = !empty($onlineShopIds) ? $onlineShopIds[0] : null;
+                }
+            }
+        }
+
+        $scopeToAccess = function ($query) use (
+            $branchIds, $onlineShopIds, $warehouseIds, $distributorIds,
+            $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId,
+            $isGlobalRole, $isRestrictedRole
+        ) {
+            $query->where(function ($q) use (
+                $branchIds, $onlineShopIds, $warehouseIds, $distributorIds,
+                $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId,
+                $isGlobalRole, $isRestrictedRole
+            ) {
+                if ($requestedBranchId && $requestedBranchId !== 'all') {
+                    $q->where(function ($sq) use ($requestedBranchId) {
+                        $sq->where('stock_outs.branch_id', $requestedBranchId)
+                            ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                    });
+                } elseif ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
+                    $q->where(function ($sq) use ($requestedOnlineShopId) {
+                        $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                            ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                    });
+                } elseif ($requestedWarehouseId && $requestedWarehouseId !== 'all') {
+                    $q->where(function ($sq) use ($requestedWarehouseId) {
+                        $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                            ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
+                    });
+                } elseif ($requestedDistributorId && $requestedDistributorId !== 'all') {
+                    $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
+                } else {
+                    if ($isRestrictedRole) {
+                        $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                            $hasAny = false;
+                            if (!empty($branchIds)) {
+                                $hasAny = true;
+                                $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
+                            }
+                            if (!empty($onlineShopIds)) {
+                                $hasAny = true;
+                                $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
+                            }
+                            if (!$hasAny) {
+                                $sub->whereRaw('1=0');
+                            }
+                        });
                     }
-                });
+                    // For $isGlobalRole, no restriction when 'all' is chosen: they can see all branches/shops
+                }
             });
         };
 
@@ -3566,7 +3619,13 @@ class AuditController extends Controller
             'cancelledByUser'
         ])
             ->whereIn('category', $salesCategories)
-            ->whereBetween('reporting_date', [$startDate, $endDate])
+            ->where(function ($q) use ($startDate, $endDate) {
+                $q->whereBetween('reporting_date', [$startDate, $endDate])
+                    ->orWhere(function ($sq) use ($startDate, $endDate) {
+                        $sq->whereNull('reporting_date')
+                            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                    });
+            })
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
                 if ($request->category === 'orderan_online') {
                     $q->whereIn('category', ['shopee', 'orderan_online']);
@@ -3604,10 +3663,26 @@ class AuditController extends Controller
         $totalBelumDiaudit = (clone $dailySalesQuery)->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan')->count();
         $totalCancelGlobal = (clone $dailySalesQuery)->where('category', 'cancel_penjualan')->count();
         $totalTransactions = (clone $dailySalesQuery)->count();
-        $perPage = min((int) ($request->query('per_page', 50)), 500);
-        $paginatedProfit = $dailySalesQuery->latest()->paginate($perPage);
 
-        $dailySales = collect($paginatedProfit->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
+        $perPageParam = $request->query('per_page', 'all');
+        $isAll = $perPageParam === 'all' || (int)$perPageParam >= 5000 || (int)$perPageParam <= 0;
+
+        if ($isAll) {
+            $transactionsList = $dailySalesQuery->latest()->limit(15000)->get();
+            $currentPage = 1;
+            $lastPage = 1;
+            $totalCount = $transactionsList->count();
+            $perPage = $totalCount;
+        } else {
+            $perPage = min((int)$perPageParam, 1000);
+            $paginatedProfit = $dailySalesQuery->latest()->paginate($perPage);
+            $transactionsList = $paginatedProfit->items();
+            $currentPage = $paginatedProfit->currentPage();
+            $lastPage = $paginatedProfit->lastPage();
+            $totalCount = $paginatedProfit->total();
+        }
+
+        $dailySales = collect($transactionsList)->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
             $details = [];
             $calculatedTotal = 0;
 
@@ -3721,8 +3796,6 @@ class AuditController extends Controller
                 }
             }
 
-            // Gap handling removed because exact matching is achieved via proportional deduction
-
             // Outlet Name (Pre-fetched)
             $sourceUser = $trx->inventoryUser ?? $trx->user;
             $outletName = 'APEX POS';
@@ -3798,9 +3871,17 @@ class AuditController extends Controller
                 }
             }
 
+            $trxDateStr = $trx->reporting_date 
+                ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : $trx->reporting_date->format('Y-m-d'))
+                : ($trx->created_at ? $trx->created_at->format('Y-m-d') : date('Y-m-d'));
+            $trxTimeStr = $trx->created_at ? $trx->created_at->format('H:i:s') : '00:00:00';
+            $fullTrxDate = "{$trxDateStr} {$trxTimeStr}";
+
             return [
                 'id' => $trx->id,
-                'date' => $trx->created_at->toDateTimeString(),
+                'date' => $fullTrxDate,
+                'reporting_date' => $trxDateStr,
+                'created_at' => $trx->created_at?->toDateTimeString(),
                 'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
                 'order_no' => $trx->receipt_id,
                 'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
@@ -3830,6 +3911,66 @@ class AuditController extends Controller
             ];
         });
 
+        // Compute daily recap and summary totals across entire mapped dataset
+        $dailyRecap = [];
+        $summaryTotals = [
+            'total_penjualan' => 0,
+            'total_modal_system' => 0,
+            'total_modal_audit' => 0,
+            'total_profit_system' => 0,
+            'total_profit_audit' => 0,
+            'total_transaksi' => 0,
+            'sudah_diaudit' => 0,
+            'belum_diaudit' => 0,
+        ];
+
+        foreach ($dailySales as $item) {
+            if ($item['category'] === 'cancel_penjualan') {
+                continue;
+            }
+
+            $dateKey = $item['reporting_date'] ?: substr($item['date'], 0, 10);
+            if (!isset($dailyRecap[$dateKey])) {
+                $dailyRecap[$dateKey] = [
+                    'dateStr' => $dateKey,
+                    'count' => 0,
+                    'unAuditedCount' => 0,
+                    'totalPenjualan' => 0,
+                    'totalModalSystem' => 0,
+                    'totalModalAudit' => 0,
+                    'totalProfitSystem' => 0,
+                    'totalProfitAudit' => 0,
+                    'items' => []
+                ];
+            }
+
+            $dailyRecap[$dateKey]['count']++;
+            if (!$item['is_audited'] && $item['audit_score'] === null) {
+                $dailyRecap[$dateKey]['unAuditedCount']++;
+                $summaryTotals['belum_diaudit']++;
+            } else {
+                $summaryTotals['sudah_diaudit']++;
+            }
+
+            $dailyRecap[$dateKey]['totalPenjualan'] += $item['harga_jual'];
+            $dailyRecap[$dateKey]['totalModalSystem'] += $item['default_harga_modal'];
+            $effModal = ($item['harga_modal'] !== null) ? $item['harga_modal'] : $item['default_harga_modal'];
+            $dailyRecap[$dateKey]['totalModalAudit'] += $effModal;
+            $dailyRecap[$dateKey]['totalProfitSystem'] += $item['profit_system'];
+            $effProfit = ($item['profit_audit'] !== null) ? $item['profit_audit'] : $item['profit'];
+            $dailyRecap[$dateKey]['totalProfitAudit'] += $effProfit;
+            $dailyRecap[$dateKey]['items'][] = $item;
+
+            $summaryTotals['total_penjualan'] += $item['harga_jual'];
+            $summaryTotals['total_modal_system'] += $item['default_harga_modal'];
+            $summaryTotals['total_modal_audit'] += $effModal;
+            $summaryTotals['total_profit_system'] += $item['profit_system'];
+            $summaryTotals['total_profit_audit'] += $effProfit;
+            $summaryTotals['total_transaksi']++;
+        }
+
+        krsort($dailyRecap);
+
         return response()->json([
             'audit_stats' => [
                 'sudah_diaudit' => $totalSudahDiaudit,
@@ -3837,12 +3978,19 @@ class AuditController extends Controller
                 'total_cancel' => $totalCancelGlobal,
                 'total_transaksi' => $totalTransactions
             ],
+            'daily_recap' => array_values($dailyRecap),
+            'summary_totals' => $summaryTotals,
+            'user_access' => [
+                'is_global' => $isGlobalRole,
+                'branch_ids' => $branchIds,
+                'online_shop_ids' => $onlineShopIds,
+            ],
             'daily_sales' => [
-                'data' => $dailySales,
-                'current_page' => $paginatedProfit->currentPage(),
-                'last_page' => $paginatedProfit->lastPage(),
-                'total' => $paginatedProfit->total(),
-                'per_page' => $paginatedProfit->perPage(),
+                'data' => $dailySales->values()->all(),
+                'current_page' => $currentPage,
+                'last_page' => $lastPage,
+                'total' => $totalCount,
+                'per_page' => $perPage,
             ],
         ]);
         ;

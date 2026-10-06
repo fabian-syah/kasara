@@ -161,19 +161,6 @@ class User extends Authenticatable
             })->pluck('id')->toArray();
         }
 
-        if ($this->hasRole('audit')) {
-            if (!empty($assignedIds)) {
-                return $assignedIds;
-            }
-            /** @var array $excluded */
-            $excluded = config('kasara.excluded_keywords', []);
-            return \App\Models\Branch::where(function ($q) use ($excluded) {
-                foreach ($excluded as $term) {
-                    $q->where('name', 'not ilike', '%' . $term . '%');
-                }
-            })->pluck('id')->toArray();
-        }
-
         return $assignedIds;
     }
 
@@ -198,19 +185,6 @@ class User extends Authenticatable
         }
 
         if ($this->hasAnyRole(['super_admin', 'analist', 'analis'])) {
-            /** @var array $excluded */
-            $excluded = config('kasara.excluded_keywords', []);
-            return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
-                foreach ($excluded as $term) {
-                    $q->where('name', 'not ilike', '%' . $term . '%');
-                }
-            })->pluck('id')->toArray();
-        }
-
-        if ($this->hasRole('audit')) {
-            if (!empty($assignedIds)) {
-                return $assignedIds;
-            }
             /** @var array $excluded */
             $excluded = config('kasara.excluded_keywords', []);
             return \App\Models\OnlineShop::where(function ($q) use ($excluded) {
