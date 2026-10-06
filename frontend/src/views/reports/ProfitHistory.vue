@@ -4,8 +4,8 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <div class="flex items-center gap-3">
-                    <h1 class="text-2xl font-black text-text-primary uppercase tracking-tight">Riwayat Profit</h1>
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary-500/10 text-primary-500 border border-primary-500/20">
+                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Riwayat Profit</h1>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-500/20">
                         Default Bulanan
                     </span>
                 </div>
@@ -17,14 +17,14 @@
             <div class="flex items-center gap-2.5 flex-wrap">
                 <!-- Refresh Button -->
                 <button @click="fetchData" :disabled="loading"
-                    class="p-2.5 rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-text-secondary hover:text-text-primary transition-all disabled:opacity-50"
+                    class="p-2.5 rounded-xl border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-800 text-text-secondary hover:text-text-primary shadow-sm transition-all disabled:opacity-50"
                     title="Segarkan Data">
                     <RefreshCw :size="16" :class="{ 'animate-spin': loading }" />
                 </button>
 
                 <!-- Export Excel -->
                 <button @click="exportDataExcel" :disabled="loading || exporting || allFilteredSales.length === 0"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-bold shadow hover:opacity-90 transition-all disabled:opacity-40">
+                    class="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50">
                     <Download :size="15" :class="{ 'animate-bounce': exporting }" />
                     <span>{{ exporting ? 'Mengunduh...' : 'Export Excel' }}</span>
                 </button>
@@ -33,21 +33,21 @@
 
         <!-- Notification Banner: Transaksi Belum Dikerjakan -->
         <div v-if="unAuditedCount > 0"
-            class="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-text-primary transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            class="p-4 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-text-primary transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div class="flex items-start sm:items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                     <AlertTriangle :size="20" />
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-sm font-bold text-amber-700 dark:text-amber-400">
+                        <h2 class="text-sm font-bold text-amber-800 dark:text-amber-300">
                             Perhatian: Transaksi Belum Selesai Audit Profit
                         </h2>
                         <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white">
                             {{ unAuditedCount }} Transaksi
                         </span>
                     </div>
-                    <p class="text-xs text-text-secondary mt-0.5">
+                    <p class="text-xs text-amber-700/80 dark:text-amber-200/70 mt-0.5">
                         Terdapat {{ unAuditedCount }} transaksi pada periode ini yang belum dikerjakan harga modal dan profitnya oleh tim Audit.
                     </p>
                 </div>
@@ -55,49 +55,49 @@
 
             <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
                 <button @click="togglePendingFilter"
-                    class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                    class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border"
                     :class="filters.audit_status === 'belum'
                         ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
-                        : 'bg-white dark:bg-surface-800 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/10'">
+                        : 'bg-white dark:!bg-surface-800 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-500/30 hover:bg-amber-100/50 dark:hover:bg-amber-500/20'">
                     {{ filters.audit_status === 'belum' ? 'Tampilkan Semua Status' : 'Filter Belum Dikerjakan' }}
                 </button>
 
                 <router-link v-if="canAccessAudit" to="/audit/uc/profit"
-                    class="px-3 py-1.5 rounded-lg text-xs font-bold text-text-secondary hover:text-text-primary bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 transition-all">
+                    class="px-3.5 py-1.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-200 bg-gray-100 dark:!bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 transition-all">
                     Buka Audit Profit
                 </router-link>
             </div>
         </div>
 
         <!-- Filter & Control Card -->
-        <div class="bg-white dark:bg-surface-800 p-5 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm space-y-4">
+        <div class="bg-white dark:!bg-surface-800 p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
             <!-- Row 1: Period Presets & Date Selection -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <!-- Preset Buttons -->
-                <div class="flex flex-wrap items-center bg-surface-100 dark:bg-surface-900/60 p-1 rounded-xl border border-surface-200 dark:border-surface-700">
+                <div class="flex flex-wrap items-center bg-gray-100 dark:!bg-surface-900/60 p-1 rounded-xl border border-gray-200 dark:border-surface-700">
                     <button @click="setPeriodMode('month')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        :class="activePeriodMode === 'month' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        :class="activePeriodMode === 'month' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                         Bulan Ini (Default)
                     </button>
                     <button @click="setPeriodMode('last_month')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        :class="activePeriodMode === 'last_month' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        :class="activePeriodMode === 'last_month' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                         Bulan Lalu
                     </button>
                     <button @click="setPeriodMode('today')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        :class="activePeriodMode === 'today' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        :class="activePeriodMode === 'today' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                         Hari Ini
                     </button>
                     <button @click="setPeriodMode('yesterday')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        :class="activePeriodMode === 'yesterday' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        :class="activePeriodMode === 'yesterday' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                         Kemarin
                     </button>
                     <button @click="setPeriodMode('custom')"
                         class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                        :class="activePeriodMode === 'custom' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                        :class="activePeriodMode === 'custom' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                         Kustom
                     </button>
                 </div>
@@ -105,20 +105,20 @@
                 <!-- Calculation View Mode: By Sistem vs By Audit vs Perbandingan -->
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-semibold text-text-secondary hidden sm:inline">Mode Perhitungan:</span>
-                    <div class="inline-flex bg-surface-100 dark:bg-surface-900/60 p-1 rounded-xl border border-surface-200 dark:border-surface-700">
+                    <div class="inline-flex bg-gray-100 dark:!bg-surface-900/60 p-1 rounded-xl border border-gray-200 dark:border-surface-700">
                         <button @click="calcMode = 'compare'"
                             class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                            :class="calcMode === 'compare' ? 'bg-primary-500 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                            :class="calcMode === 'compare' ? 'bg-primary-500 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                             Perbandingan
                         </button>
                         <button @click="calcMode = 'system'"
                             class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                            :class="calcMode === 'system' ? 'bg-blue-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                            :class="calcMode === 'system' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                             By Sistem
                         </button>
                         <button @click="calcMode = 'audit'"
                             class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                            :class="calcMode === 'audit' ? 'bg-emerald-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'">
+                            :class="calcMode === 'audit' ? 'bg-emerald-600 text-white shadow-sm' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'">
                             By Audit
                         </button>
                     </div>
@@ -126,26 +126,28 @@
             </div>
 
             <!-- Row 2: Date Selector Details (Month/Year Picker or Custom Range) -->
-            <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-surface-100 dark:border-surface-700/60">
+            <div class="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-100 dark:border-surface-700/60">
                 <!-- If Monthly Mode -->
                 <div v-if="activePeriodMode === 'month' || activePeriodMode === 'last_month'" class="flex items-center gap-2">
-                    <div class="flex items-center gap-1.5 bg-surface-50 dark:bg-surface-700/50 px-3 py-1.5 rounded-xl border border-surface-200 dark:border-surface-700">
+                    <div class="flex items-center gap-1.5 bg-gray-50 dark:!bg-surface-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-surface-600">
                         <Calendar :size="15" class="text-primary-500" />
                         <span class="text-xs font-semibold text-text-secondary">Pilih Bulan:</span>
                         <select v-model="selectedMonth" @change="onMonthOrYearChange"
                             class="bg-transparent text-xs font-bold text-text-primary outline-none cursor-pointer">
-                            <option v-for="(name, idx) in monthNames" :key="idx" :value="idx + 1">{{ name }}</option>
+                            <option v-for="(name, idx) in monthNames" :key="idx" :value="idx + 1"
+                                class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">{{ name }}</option>
                         </select>
                         <select v-model="selectedYear" @change="onMonthOrYearChange"
                             class="bg-transparent text-xs font-bold text-text-primary outline-none cursor-pointer ml-1">
-                            <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+                            <option v-for="y in availableYears" :key="y" :value="y"
+                                class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">{{ y }}</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- If Custom Date Range Mode -->
                 <div v-else class="flex items-center gap-2">
-                    <div class="flex items-center gap-1.5 bg-surface-50 dark:bg-surface-700/50 px-3 py-1.5 rounded-xl border border-surface-200 dark:border-surface-700">
+                    <div class="flex items-center gap-1.5 bg-gray-50 dark:!bg-surface-800 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-surface-600">
                         <Calendar :size="15" class="text-primary-500" />
                         <input type="date" v-model="filters.start_date"
                             class="bg-transparent text-xs font-bold text-text-primary outline-none" />
@@ -153,7 +155,7 @@
                         <input type="date" v-model="filters.end_date"
                             class="bg-transparent text-xs font-bold text-text-primary outline-none" />
                         <button @click="fetchData"
-                            class="ml-2 px-2.5 py-1 bg-primary-500 text-white rounded-md text-[11px] font-bold hover:bg-primary-600 transition-all">
+                            class="ml-2 px-2.5 py-1 bg-primary-500 text-white rounded-lg text-[11px] font-bold hover:bg-primary-600 transition-all">
                             Terapkan
                         </button>
                     </div>
@@ -165,7 +167,7 @@
                         class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5"
                         :class="isTradeInFilterActive
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-surface-50 dark:bg-surface-700/50 text-text-secondary hover:text-text-primary border-surface-200 dark:border-surface-700'">
+                            : 'bg-gray-50 dark:!bg-surface-800 text-text-secondary hover:text-text-primary border-gray-200 dark:border-surface-600'">
                         <PackageOpen :size="14" />
                         <span>Barang Angkat & Tukar Tambah</span>
                     </button>
@@ -181,13 +183,14 @@
                     </label>
                     <div class="relative">
                         <select v-model="filters.distributor_id" @change="fetchData"
-                            class="w-full appearance-none bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all pr-8">
-                            <option value="all">Semua Distributor</option>
-                            <option v-for="dist in distributorsList" :key="dist.id" :value="dist.id">
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8">
+                            <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Distributor</option>
+                            <option v-for="dist in distributorsList" :key="dist.id" :value="dist.id"
+                                class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">
                                 {{ dist.name }}
                             </option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
 
@@ -198,21 +201,21 @@
                     </label>
                     <div class="relative">
                         <select v-model="filters.category" @change="onCategoryChange"
-                            class="w-full appearance-none bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all pr-8">
-                            <option value="all">Semua Kategori</option>
-                            <option value="angkat_tukar_tambah">Angkat & Tukar Tambah</option>
-                            <option value="penjualan_store">Penjualan Store</option>
-                            <option value="angkat_barang">Angkat Barang</option>
-                            <option value="tukar_tambah">Tukar Tambah</option>
-                            <option value="tukar_unit">Tukar Unit</option>
-                            <option value="downgrade">Downgrade</option>
-                            <option value="refund">Refund</option>
-                            <option value="dp">DP (Down Payment)</option>
-                            <option value="pelunasan_dp">Pelunasan DP</option>
-                            <option value="refund_dp">Refund DP</option>
-                            <option value="orderan_online">Orderan Online (Shopee)</option>
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8">
+                            <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Kategori</option>
+                            <option value="angkat_tukar_tambah" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Angkat & Tukar Tambah</option>
+                            <option value="penjualan_store" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Penjualan Store</option>
+                            <option value="angkat_barang" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Angkat Barang</option>
+                            <option value="tukar_tambah" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Tukar Tambah</option>
+                            <option value="tukar_unit" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Tukar Unit</option>
+                            <option value="downgrade" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Downgrade</option>
+                            <option value="refund" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Refund</option>
+                            <option value="dp" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">DP (Down Payment)</option>
+                            <option value="pelunasan_dp" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Pelunasan DP</option>
+                            <option value="refund_dp" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Refund DP</option>
+                            <option value="orderan_online" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Orderan Online (Shopee)</option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
 
@@ -223,14 +226,15 @@
                     </label>
                     <div class="relative">
                         <select v-model="selectedLocationKey" @change="fetchData"
-                            class="w-full appearance-none bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all pr-8">
-                            <option value="all">Semua Cabang/Toko</option>
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8">
+                            <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Cabang/Toko</option>
                             <option v-for="loc in locationsList" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`"
+                                class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">
                                 {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Online]' : '[Distributor]' }} {{ loc.name }}
                             </option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
 
@@ -241,12 +245,12 @@
                     </label>
                     <div class="relative">
                         <select v-model="filters.audit_status" @change="fetchData"
-                            class="w-full appearance-none bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-700 rounded-xl px-3 py-2 text-xs font-bold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all pr-8">
-                            <option value="all">Semua Status</option>
-                            <option value="sudah">Sudah Dikerjakan</option>
-                            <option value="belum">Belum Dikerjakan</option>
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-3 py-2 text-xs font-semibold text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer pr-8">
+                            <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Status</option>
+                            <option value="sudah" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Sudah Dikerjakan</option>
+                            <option value="belum" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Belum Dikerjakan</option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
 
@@ -256,144 +260,156 @@
                         Pencarian Cepat
                     </label>
                     <div class="relative">
-                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
+                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                         <input type="text" v-model="searchQuery"
                             placeholder="Cari nota, customer, IMEI..."
-                            class="w-full bg-surface-50 dark:bg-surface-700/50 border border-surface-200 dark:border-surface-700 rounded-xl pl-8 pr-3 py-2 text-xs font-medium text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none" />
+                            class="w-full bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl pl-8 pr-3 py-2 text-xs font-medium text-text-primary placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all outline-none" />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Summary Metric Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <!-- Total Penjualan -->
-            <div class="bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm">
-                <div class="flex items-center justify-between text-text-secondary mb-1">
-                    <span class="text-xs font-bold uppercase tracking-wider">Total Penjualan</span>
-                    <ShoppingCart :size="16" class="text-blue-500" />
-                </div>
-                <div class="text-lg sm:text-xl font-black text-text-primary tracking-tight">
-                    {{ formatCurrency(summaryTotals.totalPenjualan) }}
-                </div>
-                <div class="text-[11px] text-text-secondary font-medium mt-1">
-                    {{ formatNumber(summaryTotals.totalTransaksi) }} Transaksi Penjualan
+            <div class="bg-white dark:!bg-surface-800 p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <ShoppingCart :size="14" class="text-blue-500" />
+                        Total Penjualan
+                    </p>
+                    <p class="text-2xl font-black text-text-primary mt-2 tracking-tight">
+                        {{ formatCurrency(summaryTotals.totalPenjualan) }}
+                    </p>
+                    <p class="text-[10px] text-text-secondary mt-1 font-medium">
+                        {{ formatNumber(summaryTotals.totalTransaksi) }} Transaksi Penjualan
+                    </p>
                 </div>
             </div>
 
             <!-- Total Modal (Sistem & Audit) -->
-            <div class="bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm">
-                <div class="flex items-center justify-between text-text-secondary mb-1">
-                    <span class="text-xs font-bold uppercase tracking-wider">Total Modal</span>
-                    <Box :size="16" class="text-amber-500" />
-                </div>
-                <!-- If By Sistem Mode -->
-                <div v-if="calcMode === 'system'">
-                    <div class="text-lg sm:text-xl font-black text-text-primary tracking-tight">
-                        {{ formatCurrency(summaryTotals.totalModalSystem) }}
+            <div class="bg-white dark:!bg-surface-800 p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Box :size="14" class="text-amber-500" />
+                        Total Modal
+                    </p>
+                    <!-- If By Sistem Mode -->
+                    <div v-if="calcMode === 'system'" class="mt-2">
+                        <p class="text-2xl font-black text-text-primary tracking-tight">
+                            {{ formatCurrency(summaryTotals.totalModalSystem) }}
+                        </p>
+                        <p class="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-1">
+                            Modal Berdasarkan Sistem (HPP)
+                        </p>
                     </div>
-                    <div class="text-[11px] text-blue-500 font-bold mt-1">
-                        Modal Berdasarkan Sistem (HPP)
+                    <!-- If By Audit Mode -->
+                    <div v-else-if="calcMode === 'audit'" class="mt-2">
+                        <p class="text-2xl font-black text-text-primary tracking-tight">
+                            {{ formatCurrency(summaryTotals.totalModalAudit) }}
+                        </p>
+                        <p class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
+                            Modal Berdasarkan Audit
+                        </p>
                     </div>
-                </div>
-                <!-- If By Audit Mode -->
-                <div v-else-if="calcMode === 'audit'">
-                    <div class="text-lg sm:text-xl font-black text-text-primary tracking-tight">
-                        {{ formatCurrency(summaryTotals.totalModalAudit) }}
-                    </div>
-                    <div class="text-[11px] text-emerald-500 font-bold mt-1">
-                        Modal Berdasarkan Audit
-                    </div>
-                </div>
-                <!-- If Compare Mode -->
-                <div v-else>
-                    <div class="flex items-baseline justify-between">
-                        <span class="text-sm font-bold text-text-primary">Sistem:</span>
-                        <span class="text-sm font-mono font-bold text-text-primary">{{ formatCurrency(summaryTotals.totalModalSystem) }}</span>
-                    </div>
-                    <div class="flex items-baseline justify-between mt-0.5">
-                        <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">Audit:</span>
-                        <span class="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ formatCurrency(summaryTotals.totalModalAudit) }}</span>
+                    <!-- If Compare Mode -->
+                    <div v-else class="mt-2 space-y-1">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-xs font-bold text-text-secondary">Sistem:</span>
+                            <span class="text-base font-mono font-black text-text-primary">{{ formatCurrency(summaryTotals.totalModalSystem) }}</span>
+                        </div>
+                        <div class="flex items-baseline justify-between border-t border-gray-100 dark:border-surface-700/60 pt-1">
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Audit:</span>
+                            <span class="text-base font-mono font-black text-emerald-600 dark:text-emerald-400">{{ formatCurrency(summaryTotals.totalModalAudit) }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Total Profit (Sistem & Audit) -->
-            <div class="bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm">
-                <div class="flex items-center justify-between text-text-secondary mb-1">
-                    <span class="text-xs font-bold uppercase tracking-wider">Total Profit</span>
-                    <TrendingUp :size="16" class="text-emerald-500" />
-                </div>
-                <!-- If By Sistem Mode -->
-                <div v-if="calcMode === 'system'">
-                    <div class="text-lg sm:text-xl font-black tracking-tight"
-                        :class="summaryTotals.totalProfitSystem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                        {{ formatCurrency(summaryTotals.totalProfitSystem) }}
-                    </div>
-                    <div class="text-[11px] font-bold text-text-secondary mt-1">
-                        Margin: {{ formatPercent(summaryTotals.totalProfitSystem, summaryTotals.totalPenjualan) }}
-                    </div>
-                </div>
-                <!-- If By Audit Mode -->
-                <div v-else-if="calcMode === 'audit'">
-                    <div class="text-lg sm:text-xl font-black tracking-tight"
-                        :class="summaryTotals.totalProfitAudit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                        {{ formatCurrency(summaryTotals.totalProfitAudit) }}
-                    </div>
-                    <div class="text-[11px] font-bold text-text-secondary mt-1">
-                        Margin: {{ formatPercent(summaryTotals.totalProfitAudit, summaryTotals.totalPenjualan) }}
-                    </div>
-                </div>
-                <!-- If Compare Mode -->
-                <div v-else>
-                    <div class="flex items-baseline justify-between">
-                        <span class="text-sm font-bold text-text-primary">Sistem:</span>
-                        <span class="text-sm font-mono font-bold"
+            <div class="bg-white dark:!bg-surface-800 p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <TrendingUp :size="14" class="text-emerald-500" />
+                        Total Profit
+                    </p>
+                    <!-- If By Sistem Mode -->
+                    <div v-if="calcMode === 'system'" class="mt-2">
+                        <p class="text-2xl font-black tracking-tight"
                             :class="summaryTotals.totalProfitSystem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                             {{ formatCurrency(summaryTotals.totalProfitSystem) }}
-                        </span>
+                        </p>
+                        <p class="text-[10px] font-bold text-text-secondary mt-1">
+                            Margin: {{ formatPercent(summaryTotals.totalProfitSystem, summaryTotals.totalPenjualan) }}
+                        </p>
                     </div>
-                    <div class="flex items-baseline justify-between mt-0.5">
-                        <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400">Audit:</span>
-                        <span class="text-sm font-mono font-bold"
+                    <!-- If By Audit Mode -->
+                    <div v-else-if="calcMode === 'audit'" class="mt-2">
+                        <p class="text-2xl font-black tracking-tight"
                             :class="summaryTotals.totalProfitAudit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                             {{ formatCurrency(summaryTotals.totalProfitAudit) }}
-                        </span>
+                        </p>
+                        <p class="text-[10px] font-bold text-text-secondary mt-1">
+                            Margin: {{ formatPercent(summaryTotals.totalProfitAudit, summaryTotals.totalPenjualan) }}
+                        </p>
+                    </div>
+                    <!-- If Compare Mode -->
+                    <div v-else class="mt-2 space-y-1">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-xs font-bold text-text-secondary">Sistem:</span>
+                            <span class="text-base font-mono font-black"
+                                :class="summaryTotals.totalProfitSystem >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                {{ formatCurrency(summaryTotals.totalProfitSystem) }}
+                            </span>
+                        </div>
+                        <div class="flex items-baseline justify-between border-t border-gray-100 dark:border-surface-700/60 pt-1">
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">Audit:</span>
+                            <span class="text-base font-mono font-black"
+                                :class="summaryTotals.totalProfitAudit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                {{ formatCurrency(summaryTotals.totalProfitAudit) }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Status Pengerjaan Audit -->
-            <div class="bg-white dark:bg-surface-800 p-4 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-sm">
-                <div class="flex items-center justify-between text-text-secondary mb-1">
-                    <span class="text-xs font-bold uppercase tracking-wider">Progress Audit</span>
-                    <Clock :size="16" class="text-purple-500" />
-                </div>
-                <div class="flex items-center gap-2 mt-1">
-                    <span class="text-lg sm:text-xl font-black text-emerald-600 dark:text-emerald-400">
-                        {{ summaryTotals.sudahDiaudit }}
-                    </span>
-                    <span class="text-xs text-text-secondary font-bold">/ {{ summaryTotals.totalTransaksi }} Selesai</span>
-                </div>
-                <div class="w-full bg-surface-100 dark:bg-surface-700 h-2 rounded-full overflow-hidden mt-2">
-                    <div class="bg-emerald-500 h-full rounded-full transition-all"
-                        :style="{ width: `${summaryTotals.totalTransaksi ? Math.round((summaryTotals.sudahDiaudit / summaryTotals.totalTransaksi) * 100) : 0}%` }">
+            <div class="bg-white dark:!bg-surface-800 p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-500"></div>
+                <div class="relative">
+                    <p class="text-text-secondary text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Clock :size="14" class="text-purple-500" />
+                        Progress Audit
+                    </p>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <span class="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                            {{ summaryTotals.sudahDiaudit }}
+                        </span>
+                        <span class="text-xs text-text-secondary font-bold">/ {{ summaryTotals.totalTransaksi }} Selesai</span>
+                    </div>
+                    <div class="w-full bg-gray-100 dark:!bg-surface-700 h-2 rounded-full overflow-hidden mt-3">
+                        <div class="bg-emerald-500 h-full rounded-full transition-all"
+                            :style="{ width: `${summaryTotals.totalTransaksi ? Math.round((summaryTotals.sudahDiaudit / summaryTotals.totalTransaksi) * 100) : 0}%` }">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- View Tabs: Rekapitulasi per Tanggal vs Daftar Transaksi -->
-        <div class="flex items-center justify-between border-b border-surface-200 dark:border-surface-700">
+        <div class="flex items-center justify-between border-b border-gray-200 dark:border-surface-700">
             <div class="flex items-center gap-2">
                 <button @click="activeTab = 'daily_summary'"
                     class="px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2"
                     :class="activeTab === 'daily_summary'
-                        ? 'border-primary-500 text-primary-500'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'">
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
                     <Calendar :size="14" />
                     <span>Rekapitulasi per Tanggal (Bulanan)</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-surface-100 dark:bg-surface-700 font-bold">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:!bg-surface-700 text-gray-700 dark:text-gray-300 font-bold">
                         {{ dailyAggregations.length }} Hari
                     </span>
                 </button>
@@ -401,11 +417,11 @@
                 <button @click="activeTab = 'transaction_list'"
                     class="px-4 py-3 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-2"
                     :class="activeTab === 'transaction_list'
-                        ? 'border-primary-500 text-primary-500'
-                        : 'border-transparent text-text-secondary hover:text-text-primary'">
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'">
                     <Receipt :size="14" />
                     <span>Rincian Semua Transaksi</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-surface-100 dark:bg-surface-700 font-bold">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-gray-100 dark:!bg-surface-700 text-gray-700 dark:text-gray-300 font-bold">
                         {{ allFilteredSales.length }} Trx
                     </span>
                 </button>
@@ -413,10 +429,10 @@
         </div>
 
         <!-- TAB 1: REKAPITULASI PER TANGGAL (BULANAN) -->
-        <div v-if="activeTab === 'daily_summary'" class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm">
+        <div v-if="activeTab === 'daily_summary'" class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                    <thead class="bg-surface-50 dark:bg-surface-900/50 border-b border-surface-200 dark:border-surface-700 uppercase font-bold text-text-secondary text-[11px]">
+                    <thead class="bg-gray-50 dark:!bg-surface-700/50 border-b border-gray-200 dark:border-surface-700 uppercase font-bold text-gray-600 dark:text-gray-300 text-[11px]">
                         <tr>
                             <th class="px-4 py-3.5 w-12 text-center">No</th>
                             <th class="px-4 py-3.5">Tanggal</th>
@@ -440,7 +456,7 @@
                             <th class="px-4 py-3.5 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-surface-100 dark:divide-surface-700/60 text-text-primary">
+                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-text-primary">
                         <!-- Loading State -->
                         <tr v-if="loading">
                             <td colspan="10" class="py-16 text-center text-text-secondary">
@@ -455,7 +471,9 @@
                         <tr v-else-if="dailyAggregations.length === 0">
                             <td colspan="10" class="py-16 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center gap-2">
-                                    <TrendingUp :size="32" class="text-surface-400" />
+                                    <div class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-1">
+                                        <TrendingUp :size="24" class="text-gray-400" />
+                                    </div>
                                     <span class="text-sm font-bold text-text-primary">Tidak Ada Data Profit</span>
                                     <span class="text-xs">Tidak ditemukan transaksi pada rentang periode ini.</span>
                                 </div>
@@ -464,7 +482,7 @@
 
                         <!-- Data Rows -->
                         <template v-else v-for="(day, idx) in dailyAggregations" :key="day.dateStr">
-                            <tr class="hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors font-medium">
+                            <tr class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors font-medium">
                                 <td class="px-4 py-3.5 text-center text-text-secondary">{{ idx + 1 }}</td>
                                 <td class="px-4 py-3.5">
                                     <div class="font-bold text-text-primary">{{ formatDateLabel(day.dateStr) }}</div>
@@ -474,7 +492,7 @@
                                     <div class="inline-flex items-center gap-1.5">
                                         <span class="font-bold font-mono">{{ day.count }}</span>
                                         <span v-if="day.unAuditedCount > 0"
-                                            class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                                            class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20"
                                             :title="`${day.unAuditedCount} transaksi belum diaudit`">
                                             {{ day.unAuditedCount }} blm audit
                                         </span>
@@ -505,8 +523,8 @@
                                     <button @click="toggleExpandDay(day.dateStr)"
                                         class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all inline-flex items-center gap-1"
                                         :class="expandedDays.includes(day.dateStr)
-                                            ? 'bg-primary-500 text-white border-primary-500'
-                                            : 'bg-surface-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary border-surface-200 dark:border-surface-600'">
+                                            ? 'bg-primary-600 text-white border-primary-600'
+                                            : 'bg-gray-100 dark:!bg-surface-700 text-text-secondary hover:text-text-primary border-gray-200 dark:border-surface-600'">
                                         <span>{{ expandedDays.includes(day.dateStr) ? 'Tutup' : 'Lihat' }}</span>
                                         <ChevronDown :size="12" :class="{ 'rotate-180': expandedDays.includes(day.dateStr) }" />
                                     </button>
@@ -514,16 +532,16 @@
                             </tr>
 
                             <!-- Inline Expanded Day Details -->
-                            <tr v-if="expandedDays.includes(day.dateStr)" class="bg-surface-50/50 dark:bg-surface-900/30">
+                            <tr v-if="expandedDays.includes(day.dateStr)" class="bg-gray-50/60 dark:bg-surface-900/30">
                                 <td colspan="10" class="p-3">
-                                    <div class="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-3 space-y-2">
+                                    <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-200 dark:border-surface-700 p-3 space-y-2 shadow-sm">
                                         <div class="flex items-center justify-between text-xs font-bold text-text-secondary px-2">
                                             <span>Rincian Transaksi {{ formatDateLabel(day.dateStr) }}</span>
                                             <span>{{ day.items.length }} Transaksi</span>
                                         </div>
                                         <div class="overflow-x-auto">
                                             <table class="w-full text-left text-[11px]">
-                                                <thead class="bg-surface-100 dark:bg-surface-700/60 uppercase text-text-secondary font-bold">
+                                                <thead class="bg-gray-100 dark:!bg-surface-700/60 uppercase text-gray-600 dark:text-gray-300 font-bold">
                                                     <tr>
                                                         <th class="px-3 py-2">No Nota</th>
                                                         <th class="px-3 py-2">Cabang</th>
@@ -537,8 +555,8 @@
                                                         <th class="px-3 py-2 text-center">Detail</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody class="divide-y divide-surface-100 dark:divide-surface-700/40">
-                                                    <tr v-for="trx in day.items" :key="trx.id" class="hover:bg-surface-50 dark:hover:bg-surface-700/20">
+                                                <tbody class="divide-y divide-gray-100 dark:divide-surface-700/40">
+                                                    <tr v-for="trx in day.items" :key="trx.id" class="hover:bg-gray-50 dark:hover:bg-surface-700/20 transition-colors">
                                                         <td class="px-3 py-2 font-mono font-bold">{{ trx.order_no }}</td>
                                                         <td class="px-3 py-2">{{ trx.outlet_name }}</td>
                                                         <td class="px-3 py-2">{{ trx.customer_name }}</td>
@@ -556,17 +574,17 @@
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
                                                             <span v-if="trx.is_audited || trx.audit_score != null"
-                                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                                                                 Sudah Diaudit
                                                             </span>
                                                             <span v-else
-                                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                                class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
                                                                 Belum Audit
                                                             </span>
                                                         </td>
                                                         <td class="px-3 py-2 text-center">
                                                             <button @click="openDetailModal(trx)"
-                                                                class="p-1 rounded text-primary-500 hover:bg-primary-500/10 transition-colors"
+                                                                class="p-1 rounded text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors"
                                                                 title="Lihat Detail Transaksi">
                                                                 <Eye :size="13" />
                                                             </button>
@@ -585,10 +603,10 @@
         </div>
 
         <!-- TAB 2: DAFTAR TRANSAKSI DETAIL -->
-        <div v-if="activeTab === 'transaction_list'" class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 overflow-hidden shadow-sm">
+        <div v-if="activeTab === 'transaction_list'" class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                    <thead class="bg-surface-50 dark:bg-surface-900/50 border-b border-surface-200 dark:border-surface-700 uppercase font-bold text-text-secondary text-[11px]">
+                    <thead class="bg-gray-50 dark:!bg-surface-700/50 border-b border-gray-200 dark:border-surface-700 uppercase font-bold text-gray-600 dark:text-gray-300 text-[11px]">
                         <tr>
                             <th class="px-4 py-3.5 w-12 text-center">No</th>
                             <th class="px-4 py-3.5">Waktu</th>
@@ -614,7 +632,7 @@
                             <th class="px-4 py-3.5 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-surface-100 dark:divide-surface-700/60 text-text-primary">
+                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-text-primary">
                         <!-- Loading State -->
                         <tr v-if="loading">
                             <td colspan="14" class="py-16 text-center text-text-secondary">
@@ -629,7 +647,9 @@
                         <tr v-else-if="paginatedTransactions.length === 0">
                             <td colspan="14" class="py-16 text-center text-text-secondary">
                                 <div class="flex flex-col items-center justify-center gap-2">
-                                    <Receipt :size="32" class="text-surface-400" />
+                                    <div class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-1">
+                                        <Receipt :size="24" class="text-gray-400" />
+                                    </div>
                                     <span class="text-sm font-bold text-text-primary">Tidak Ada Transaksi</span>
                                     <span class="text-xs">Tidak ditemukan transaksi yang sesuai dengan kriteria filter.</span>
                                 </div>
@@ -638,7 +658,7 @@
 
                         <!-- Transaction Rows -->
                         <tr v-else v-for="(item, index) in paginatedTransactions" :key="item.id"
-                            class="hover:bg-surface-50 dark:hover:bg-surface-700/30 transition-colors font-medium">
+                            class="hover:bg-gray-50 dark:hover:bg-surface-700/30 transition-colors font-medium">
                             <td class="px-4 py-4 text-center text-text-secondary font-mono">
                                 {{ (currentPage - 1) * perPage + index + 1 }}
                             </td>
@@ -649,7 +669,7 @@
                             <td class="px-4 py-4">
                                 <div class="font-mono font-bold text-text-primary">{{ item.order_no }}</div>
                                 <button v-if="item.receipt_id || item.order_no" @click="openScreenshot(item)"
-                                    class="mt-1 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded transition-colors">
+                                    class="mt-1 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors">
                                     Bukti Nota
                                 </button>
                             </td>
@@ -672,7 +692,7 @@
                                         <div class="font-bold text-text-primary flex items-center gap-1">
                                             <span>{{ detail.name }}</span>
                                             <span v-if="detail.distributor && detail.distributor !== '-'"
-                                                class="px-1 py-0.2 rounded text-[9px] bg-purple-500/10 text-purple-500 font-normal">
+                                                class="px-1 py-0.2 rounded text-[9px] bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 font-normal">
                                                 {{ detail.distributor }}
                                             </span>
                                         </div>
@@ -681,7 +701,7 @@
                                             <span v-if="detail.storage">{{ detail.storage }}</span>
                                         </div>
                                     </div>
-                                    <div v-if="item.items.length > 2" class="text-[10px] text-primary-500 font-bold">
+                                    <div v-if="item.items.length > 2" class="text-[10px] text-primary-600 dark:text-primary-400 font-bold">
                                         +{{ item.items.length - 2 }} item lainnya
                                     </div>
                                 </div>
@@ -707,11 +727,11 @@
                             <td class="px-4 py-4 text-center">
                                 <div class="inline-flex flex-col items-center gap-1">
                                     <span v-if="item.is_audited || item.audit_score != null"
-                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                                         Sudah Diaudit
                                     </span>
                                     <span v-else
-                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
                                         Belum Dikerjakan
                                     </span>
                                     <span v-if="item.audit_score != null" class="text-[10px] text-text-secondary font-mono">
@@ -721,7 +741,7 @@
                             </td>
                             <td class="px-4 py-4 text-center">
                                 <button @click="openDetailModal(item)"
-                                    class="p-2 rounded-xl text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
+                                    class="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors"
                                     title="Rincian Lengkap">
                                     <Eye :size="16" />
                                 </button>
@@ -732,29 +752,29 @@
             </div>
 
             <!-- Pagination Bar -->
-            <div class="px-4 py-3 bg-surface-50 dark:bg-surface-900/50 border-t border-surface-200 dark:border-surface-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div class="px-4 py-3 bg-gray-50 dark:!bg-surface-900/50 border-t border-gray-200 dark:border-surface-700 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 <div class="text-text-secondary font-medium">
                     Menampilkan {{ allFilteredSales.length ? (currentPage - 1) * perPage + 1 : 0 }} - {{ Math.min(currentPage * perPage, allFilteredSales.length) }} dari {{ allFilteredSales.length }} transaksi
                 </div>
 
                 <div class="flex items-center gap-2">
                     <select v-model="perPage"
-                        class="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-lg px-2 py-1 text-xs font-bold text-text-primary outline-none">
-                        <option :value="25">25 per halaman</option>
-                        <option :value="50">50 per halaman</option>
-                        <option :value="100">100 per halaman</option>
+                        class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-700 rounded-lg px-2.5 py-1 text-xs font-bold text-text-primary outline-none cursor-pointer">
+                        <option :value="25" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">25 per halaman</option>
+                        <option :value="50" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">50 per halaman</option>
+                        <option :value="100" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">100 per halaman</option>
                     </select>
 
                     <div class="flex items-center gap-1">
                         <button @click="currentPage = Math.max(1, currentPage - 1)" :disabled="currentPage === 1"
-                            class="p-1.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-text-secondary hover:text-text-primary disabled:opacity-30 transition-all">
+                            class="p-1.5 rounded-lg border border-gray-200 dark:border-surface-700 bg-white dark:!bg-surface-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-30 transition-all">
                             <ChevronLeft :size="14" />
                         </button>
                         <span class="px-3 py-1 font-bold font-mono text-text-primary">
                             {{ currentPage }} / {{ totalPages || 1 }}
                         </span>
                         <button @click="currentPage = Math.min(totalPages, currentPage + 1)" :disabled="currentPage >= totalPages"
-                            class="p-1.5 rounded-lg border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-text-secondary hover:text-text-primary disabled:opacity-30 transition-all">
+                            class="p-1.5 rounded-lg border border-gray-200 dark:border-surface-700 bg-white dark:!bg-surface-800 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white disabled:opacity-30 transition-all">
                             <ChevronRight :size="14" />
                         </button>
                     </div>
@@ -769,19 +789,19 @@
                     class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
                     @click.self="selectedTransaction = null"
                     @keydown.esc="selectedTransaction = null">
-                    <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+                    <div class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
                         <!-- Modal Header -->
-                        <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between">
+                        <div class="px-6 py-4 border-b border-gray-200 dark:border-surface-700 flex items-center justify-between">
                             <div>
                                 <h3 class="text-base font-black text-text-primary uppercase tracking-tight">Detail Profit Transaksi</h3>
                                 <div class="flex items-center gap-2 mt-0.5 text-xs text-text-secondary">
                                     <span class="font-mono font-bold">{{ selectedTransaction.order_no }}</span>
-                                    <span>-</span>
+                                    <span>•</span>
                                     <span>{{ selectedTransaction.outlet_name }}</span>
                                 </div>
                             </div>
                             <button @click="selectedTransaction = null"
-                                class="p-1.5 text-text-secondary hover:text-text-primary rounded-lg transition-colors">
+                                class="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg transition-colors">
                                 <X :size="18" />
                             </button>
                         </div>
@@ -789,7 +809,7 @@
                         <!-- Modal Body -->
                         <div class="p-6 overflow-y-auto space-y-5 text-xs">
                             <!-- Info Cards -->
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-surface-50 dark:bg-surface-900/60 p-4 rounded-xl border border-surface-200 dark:border-surface-700">
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50 dark:!bg-surface-900/60 p-4 rounded-xl border border-gray-200 dark:border-surface-700">
                                 <div>
                                     <div class="text-[10px] text-text-secondary font-bold uppercase">Customer</div>
                                     <div class="font-bold text-text-primary mt-0.5">{{ selectedTransaction.customer_name || '-' }}</div>
@@ -817,9 +837,9 @@
                             <!-- Items Table -->
                             <div>
                                 <h4 class="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">Rincian Barang & Modal</h4>
-                                <div class="overflow-x-auto border border-surface-200 dark:border-surface-700 rounded-xl">
+                                <div class="overflow-x-auto border border-gray-200 dark:border-surface-700 rounded-xl">
                                     <table class="w-full text-left text-xs">
-                                        <thead class="bg-surface-50 dark:bg-surface-900/50 uppercase font-bold text-text-secondary text-[10px] border-b border-surface-200 dark:border-surface-700">
+                                        <thead class="bg-gray-50 dark:!bg-surface-900/50 uppercase font-bold text-gray-600 dark:text-gray-300 text-[10px] border-b border-gray-200 dark:border-surface-700">
                                             <tr>
                                                 <th class="px-3 py-2.5">Barang</th>
                                                 <th class="px-3 py-2.5">Distributor</th>
@@ -831,14 +851,14 @@
                                                 <th class="px-3 py-2.5 text-right">Profit Audit</th>
                                             </tr>
                                         </thead>
-                                        <tbody class="divide-y divide-surface-100 dark:divide-surface-700/60 font-medium text-text-primary">
+                                        <tbody class="divide-y divide-gray-100 dark:divide-surface-700/60 font-medium text-text-primary">
                                             <tr v-for="(detail, didx) in selectedTransaction.items" :key="didx">
                                                 <td class="px-3 py-2.5">
                                                     <div class="font-bold text-text-primary">{{ detail.name }}</div>
                                                     <div class="text-[10px] text-text-secondary font-mono">
                                                         <span v-if="detail.imei && detail.imei !== '-'">IMEI: {{ detail.imei }}</span>
-                                                        <span v-if="detail.brand"> | {{ detail.brand }}</span>
-                                                        <span v-if="detail.condition"> | {{ detail.condition }}</span>
+                                                        <span v-if="detail.brand"> • {{ detail.brand }}</span>
+                                                        <span v-if="detail.condition"> • {{ detail.condition }}</span>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2.5 text-[11px] text-text-secondary font-semibold">
@@ -869,21 +889,21 @@
                                 <h4 class="text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">Metode Pembayaran</h4>
                                 <div class="flex flex-wrap gap-2">
                                     <div v-for="(pm, pidx) in selectedTransaction.split_payments_data" :key="pidx"
-                                        class="bg-surface-50 dark:bg-surface-900/50 border border-surface-200 dark:border-surface-700 px-3 py-2 rounded-xl text-xs">
+                                        class="bg-gray-50 dark:!bg-surface-900/50 border border-gray-200 dark:border-surface-700 px-3 py-2 rounded-xl text-xs">
                                         <span class="font-bold text-text-primary">{{ pm.method_name }}: </span>
-                                        <span class="font-mono text-primary-500 font-bold">{{ formatCurrency(pm.amount) }}</span>
+                                        <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{{ formatCurrency(pm.amount) }}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Modal Footer -->
-                        <div class="px-6 py-3 bg-surface-50 dark:bg-surface-900/50 border-t border-surface-200 dark:border-surface-700 flex items-center justify-between">
+                        <div class="px-6 py-3.5 bg-gray-50 dark:!bg-surface-900/50 border-t border-gray-200 dark:border-surface-700 flex items-center justify-between">
                             <div class="text-xs font-bold text-text-secondary">
                                 Auditor: {{ selectedTransaction.latest_auditor_name || '-' }}
                             </div>
                             <button @click="selectedTransaction = null"
-                                class="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-bold hover:opacity-90 transition-all">
+                                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-surface-700 dark:hover:bg-surface-600 dark:text-white rounded-xl text-xs font-bold transition-all">
                                 Tutup
                             </button>
                         </div>
@@ -1302,27 +1322,27 @@ const formatCategoryLabel = (cat) => {
 const getCategoryBadgeClass = (cat) => {
     switch (cat) {
         case 'penjualan_store':
-            return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20';
+            return 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20';
         case 'angkat_barang':
-            return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
+            return 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20';
         case 'tukar_tambah':
-            return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20';
+            return 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20';
         case 'tukar_unit':
-            return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20';
+            return 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-500/20';
         case 'downgrade':
-            return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20';
+            return 'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20';
         case 'refund':
         case 'refund_dp':
         case 'cancel_penjualan':
-            return 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20';
+            return 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-500/20';
         case 'dp':
         case 'pelunasan_dp':
-            return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20';
+            return 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20';
         case 'orderan_online':
         case 'shopee':
-            return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
+            return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20';
         default:
-            return 'bg-gray-500/10 text-text-secondary border border-gray-500/20';
+            return 'bg-gray-50 dark:bg-surface-700/50 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600';
     }
 };
 
