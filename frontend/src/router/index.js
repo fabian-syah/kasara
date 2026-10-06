@@ -83,6 +83,20 @@ const routes = [
                 }
             },
             {
+                path: 'reports/profit-history',
+                name: 'ProfitHistory',
+                component: () => import('../views/reports/ProfitHistory.vue'),
+                meta: {
+                    title: 'Riwayat Profit',
+                    menu: 'reports',
+                    permissions: ['reports.profit', 'super_admin', 'analist', 'leader', 'audit']
+                }
+            },
+            {
+                path: 'reports/riwayat-profit',
+                redirect: { name: 'ProfitHistory' }
+            },
+            {
                 path: 'reports/ranking',
                 name: 'BranchRanking',
                 component: () => import('../views/reports/BranchRanking.vue'),

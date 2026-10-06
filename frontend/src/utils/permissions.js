@@ -151,6 +151,7 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.TRANSACTIONS_VIEW,
         PERMISSIONS.USERS_VIEW,
         PERMISSIONS.USERS_CREATE,
+        PERMISSIONS.REPORTS_PROFIT,
         'track.view'
     ],
 
@@ -214,10 +215,10 @@ export const ROLE_PERMISSIONS = {
 
 // Sidebar menu configuration per role
 export const ROLE_MENUS = {
-    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'pos', 'inventory', 'master_data_group', 'monitoring_group', 'support_group', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'retur_items', 'users', 'warehouses', 'online_shops', 'brands', 'types', 'prices', 'categories', 'distributors', 'payment_methods', 'audit_sales', 'audit', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_sales', 'report_ranking', 'report_brand', 'report_type', 'stock_in_history', 'stock_out_history', 'settings', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'branches', 'questions', 'track', 'sales_check', 'sales_check_main', 'sales_ranking', 'custom_nota', 'analysis_group', 'stock_analysis', 'sold_analysis', 'branch_league', 'balancing_group', 'balancing_history', 'balancing_payment', 'balancing_missed'],
-    [ROLES.ANALIST]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'reports', 'report_ranking', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis', 'sold_analysis'],
+    [ROLES.SUPER_ADMIN]: ['dashboard', 'online_sales_group', 'online_sales', 'shopee_history', 'online_scan', 'online_analysis', 'pos', 'inventory', 'master_data_group', 'monitoring_group', 'support_group', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'retur_items', 'users', 'warehouses', 'online_shops', 'brands', 'types', 'prices', 'categories', 'distributors', 'payment_methods', 'audit_sales', 'audit', 'audit_cabang', 'audit_sales_sub', 'audit_inventory_sub', 'audit_analysis_sub', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_sales', 'report_profit_history', 'report_ranking', 'report_brand', 'report_type', 'stock_in_history', 'stock_out_history', 'settings', 'distributor_monitoring', 'online_monitoring', 'warehouse_monitoring', 'stock_summary', 'channels', 'branches', 'questions', 'track', 'sales_check', 'sales_check_main', 'sales_ranking', 'custom_nota', 'analysis_group', 'stock_analysis', 'sold_analysis', 'branch_league', 'balancing_group', 'balancing_history', 'balancing_payment', 'balancing_missed'],
+    [ROLES.ANALIST]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'reports', 'report_profit_history', 'report_ranking', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis', 'sold_analysis'],
     [ROLES.ADMIN_PRODUK]: ['dashboard', 'master_data_group', 'brands', 'types', 'prices', 'support_group', 'track'],
-    [ROLES.AUDIT]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'audit_input_transfer', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'master_data_group', 'users', 'support_group', 'track', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis', 'balancing_group', 'balancing_history'],
+    [ROLES.AUDIT]: ['dashboard', 'inventory', 'inventory_main', 'inventory_opname', 'download_center', 'inventory_monitoring_hub', 'audit_input_transfer', 'audit', 'audit_sales_report', 'audit_profit_uc', 'audit_stock_in_uc', 'audit_stock_out_uc', 'audit_photo_approvals', 'reports', 'report_profit_history', 'master_data_group', 'users', 'support_group', 'track', 'sales_check', 'sales_ranking', 'analysis_group', 'stock_analysis', 'balancing_group', 'balancing_history'],
     [ROLES.SECURITY]: ['dashboard', 'security_scan', 'security_history', 'track'],
     [ROLES.LEADER]: [
         'dashboard',
@@ -226,6 +227,8 @@ export const ROLE_MENUS = {
         'inventory_opname',
         'download_center',
         'inventory_monitoring_hub',
+        'reports',
+        'report_profit_history',
         'sales_check',
         'sales_check_main',
         'sales_ranking',

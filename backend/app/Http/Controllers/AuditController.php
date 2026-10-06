@@ -3548,17 +3548,48 @@ class AuditController extends Controller
             });
         };
 
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'pelunasan_dp'];
+        $salesCategories = [
+            'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
+            'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
+            'pelunasan_dp', 'angkat_barang', 'refund', 'dp', 'refund_dp'
+        ];
 
-        $dailySalesQuery = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers.auditor', 'auditProfit', 'cancelledByUser'])
+        $dailySalesQuery = StockOut::with([
+            'items.product.brandRelation', 
+            'items.distributor', 
+            'nonHpItems.product.brandRelation', 
+            'nonHpItems.distributor', 
+            'user.distributor', 
+            'inventoryUser', 
+            'auditAnswers.auditor', 
+            'auditProfit', 
+            'cancelledByUser'
+        ])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
                 if ($request->category === 'orderan_online') {
                     $q->whereIn('category', ['shopee', 'orderan_online']);
+                } elseif ($request->category === 'angkat_tukar_tambah') {
+                    $q->whereIn('category', ['angkat_barang', 'tukar_tambah']);
                 } else {
                     $q->where('category', $request->category);
                 }
+            })
+            ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
+                if ($request->audit_status === 'belum') {
+                    $q->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan');
+                } elseif ($request->audit_status === 'sudah') {
+                    $q->whereHas('auditProfit');
+                }
+            })
+            ->when($request->distributor_id && $request->distributor_id !== 'all', function ($q) use ($request) {
+                $distId = $request->distributor_id;
+                $q->where(function($sub) use ($distId) {
+                    $sub->whereHas('user', fn($uq) => $uq->where('distributor_id', $distId))
+                        ->orWhereHas('items', fn($iq) => $iq->where('product_details.distributor_id', $distId))
+                        ->orWhereHas('nonHpItems', fn($nq) => $nq->where('stock_out_non_hp_items.distributor_id', $distId));
+                });
             });
 
         $scopeToAccess($dailySalesQuery);
@@ -3568,13 +3599,13 @@ class AuditController extends Controller
         $onlineShops = OnlineShop::all()->keyBy('id');
         $questions = Question::where('category', 'profit')->get();
         $paymentMethods = PaymentMethod::all()->keyBy('id');
-        $paymentMethods = PaymentMethod::all()->keyBy('id');
 
         $totalSudahDiaudit = (clone $dailySalesQuery)->whereHas('auditProfit')->count();
         $totalBelumDiaudit = (clone $dailySalesQuery)->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan')->count();
         $totalCancelGlobal = (clone $dailySalesQuery)->where('category', 'cancel_penjualan')->count();
         $totalTransactions = (clone $dailySalesQuery)->count();
-        $paginatedProfit = $dailySalesQuery->latest()->paginate(50);
+        $perPage = min((int) ($request->query('per_page', 50)), 500);
+        $paginatedProfit = $dailySalesQuery->latest()->paginate($perPage);
 
         $dailySales = collect($paginatedProfit->items())->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
             $details = [];
@@ -3634,6 +3665,8 @@ class AuditController extends Controller
                     'imei' => $item->imei ?? '-',
                     'storage' => $item->storage ?? null,
                     'condition' => $item->condition ?? 'second',
+                    'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
+                    'distributor_id' => $item->distributor_id ?? null,
                     'raw_cost_price' => (float) ($item->cost_price ?? 0),
                 ];
                 $calculatedTotal += $price;
@@ -3659,6 +3692,8 @@ class AuditController extends Controller
                         'is_fixed' => true,
                         'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
                         'type' => 'Non-HP',
+                        'distributor' => '-',
+                        'distributor_id' => null,
                         'raw_cost_price' => (float) ($product?->cost_price ?? 0)
                     ];
                     $calculatedTotal += ($price * $qty);
@@ -3678,6 +3713,8 @@ class AuditController extends Controller
                         'is_fixed' => true,
                         'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
                         'type' => 'Non-HP',
+                        'distributor' => $nhp->distributor?->name ?? '-',
+                        'distributor_id' => $nhp->distributor_id ?? null,
                         'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0)
                     ];
                     $calculatedTotal += ($price * $nhp->quantity);
@@ -3700,6 +3737,7 @@ class AuditController extends Controller
             $savedProfit = $trx->auditProfit;
             $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
             $totalHargaModal = 0;
+            $totalDefaultModal = 0;
             foreach ($details as &$detail) {
                 $itemJualTotal = $detail['price'] * $detail['qty'];
                 $defaultItemModal = ($detail['raw_cost_price'] > 0) ? $detail['raw_cost_price'] : ($itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0);
@@ -3709,8 +3747,11 @@ class AuditController extends Controller
                 $detail['default_harga_modal'] = $defaultItemModal;
                 $detail['harga_modal'] = $savedItemModal;
                 $detail['profit'] = $itemJualTotal - $effectiveItemModal;
+                $detail['profit_system'] = $itemJualTotal - $defaultItemModal;
+                $detail['profit_audit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : null;
                 $detail['has_saved_modal'] = $savedItemModal !== null;
                 $totalHargaModal += $effectiveItemModal;
+                $totalDefaultModal += $defaultItemModal;
             }
             unset($detail);
 
@@ -3719,12 +3760,18 @@ class AuditController extends Controller
 
             $hargaJual = (float) ($trx->selling_price ?? 0);
             $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
-            $defaultHargaModal = $hargaJual > 0 ? round($hargaJual * 0.95) : 0;
+            $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
             $profit = $hargaJual - $totalHargaModal;
+            $profitSystem = $hargaJual - $defaultHargaModal;
+            $profitAudit = $hargaModal !== null ? ($hargaJual - $hargaModal) : null;
 
             if ($isNeg) {
                 $hargaJual = -abs($hargaJual);
                 $profit = -abs($profit);
+                $profitSystem = -abs($profitSystem);
+                if ($profitAudit !== null) {
+                    $profitAudit = -abs($profitAudit);
+                }
             }
 
             $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
@@ -3764,6 +3811,11 @@ class AuditController extends Controller
                 'harga_modal' => $hargaModal,
                 'default_harga_modal' => $defaultHargaModal,
                 'profit' => $profit,
+                'profit_system' => $profitSystem,
+                'profit_audit' => $profitAudit,
+                'total_modal_system' => $defaultHargaModal,
+                'total_modal_audit' => $hargaModal,
+                'is_audited' => $savedProfit !== null,
                 'outlet_name' => $outletName,
                 'audit_score' => $auditScore,
                 'latest_auditor_name' => $trx->latest_auditor_name,
