@@ -3436,564 +3436,684 @@ class AuditController extends Controller
      */
     public function profit(Request $request)
     {
-        $user = $request->user();
-        $isGlobalRole = $user->hasAnyRole(['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager']);
-        $isRestrictedRole = $user->hasAnyRole(['leader', 'audit']) && !$isGlobalRole;
+        try {
+            $user = $request->user();
+            $userRoleNames = $user->roles->pluck('name')->map('strtolower')->toArray();
+            $isGlobalRole = !empty(array_intersect($userRoleNames, ['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager']));
+            $isRestrictedRole = !empty(array_intersect($userRoleNames, ['leader', 'audit'])) && !$isGlobalRole;
 
-        $branchIds = $user->getAccessibleBranchIds();
-        $onlineShopIds = $user->getAccessibleOnlineShopIds();
-        $warehouseIds = $user->getAccessibleWarehouseIds();
-        $distributorIds = $user->getAccessibleDistributorIds();
+            $branchIds = $user->getAccessibleBranchIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $distributorIds = $user->getAccessibleDistributorIds();
 
-        if ($isRestrictedRole && empty($branchIds) && empty($onlineShopIds)) {
-            return response()->json([
-                'audit_stats' => [
-                    'sudah_diaudit' => 0,
-                    'belum_diaudit' => 0,
-                    'total_cancel' => 0,
-                    'total_transaksi' => 0
-                ],
-                'daily_recap' => [],
-                'summary_totals' => [
-                    'total_penjualan' => 0,
-                    'total_modal_system' => 0,
-                    'total_modal_audit' => 0,
-                    'total_profit_system' => 0,
-                    'total_profit_audit' => 0,
-                    'total_transaksi' => 0,
-                    'sudah_diaudit' => 0,
-                    'belum_diaudit' => 0
-                ],
-                'user_access' => [
-                    'is_global' => false,
-                    'branch_ids' => [],
-                    'online_shop_ids' => [],
-                ],
-                'daily_sales' => [
-                    'data' => [],
-                    'current_page' => 1,
-                    'last_page' => 1,
-                    'total' => 0,
-                    'per_page' => 50
-                ]
-            ]);
-        }
+            if ($isRestrictedRole && empty($branchIds) && empty($onlineShopIds)) {
+                return response()->json([
+                    'audit_stats' => [
+                        'sudah_diaudit' => 0,
+                        'belum_diaudit' => 0,
+                        'total_cancel' => 0,
+                        'total_transaksi' => 0
+                    ],
+                    'daily_recap' => [],
+                    'summary_totals' => [
+                        'total_penjualan' => 0,
+                        'total_modal_system' => 0,
+                        'total_modal_audit' => 0,
+                        'total_profit_system' => 0,
+                        'total_profit_audit' => 0,
+                        'total_transaksi' => 0,
+                        'sudah_diaudit' => 0,
+                        'belum_diaudit' => 0
+                    ],
+                    'user_access' => [
+                        'is_global' => false,
+                        'branch_ids' => [],
+                        'online_shop_ids' => [],
+                    ],
+                    'daily_sales' => [
+                        'data' => [],
+                        'current_page' => 1,
+                        'last_page' => 1,
+                        'total' => 0,
+                        'per_page' => 50
+                    ]
+                ]);
+            }
 
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
-            $startDate = '2000-01-01';
-            $endDate = now()->toDateString();
-        } else {
-            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
-        }
-
-        // Role-based Date Restriction
-        if (!$user->hasRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
-            $today = $logicalNow->toDateString();
-            $yesterday = $logicalNow->copy()->subDay()->toDateString();
-            $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
-            $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
-
-            if ($startDate === $endDate) {
-                if ($startDate < $yesterday) {
-                    $startDate = $today;
-                    $endDate = $today;
-                }
+            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+            if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+                $startDate = '2000-01-01';
+                $endDate = now()->toDateString();
             } else {
-                if ($startDate < $startOfLastMonth) {
-                    $startDate = $startOfThisMonth;
-                    if ($endDate < $startOfThisMonth) {
-                        $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
+                $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+                $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+            }
+
+            // Role-based Date Restriction: Only apply if user is NOT in an authorized analytical/audit role
+            $canViewHistorical = !empty(array_intersect($userRoleNames, ['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis', 'developer']));
+            if (!$canViewHistorical) {
+                $today = $logicalNow->toDateString();
+                $yesterday = $logicalNow->copy()->subDay()->toDateString();
+                $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+                $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
+
+                if ($startDate === $endDate) {
+                    if ($startDate < $yesterday) {
+                        $startDate = $today;
+                        $endDate = $today;
+                    }
+                } else {
+                    if ($startDate < $startOfLastMonth) {
+                        $startDate = $startOfThisMonth;
+                        if ($endDate < $startOfThisMonth) {
+                            $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
+                        }
+                    }
+                    if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
+                        $startDate = $startOfThisMonth;
                     }
                 }
-                if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
-                    $startDate = $startOfThisMonth;
+            }
+
+            $requestedBranchId = $request->branch_id;
+            $requestedOnlineShopId = $request->online_shop_id;
+            $requestedWarehouseId = $request->warehouse_id;
+            $requestedDistributorId = $request->distributor_id;
+
+            // Fallback: If ID is not numeric, it might be a name
+            if ($requestedBranchId && !is_numeric($requestedBranchId) && $requestedBranchId !== 'all') {
+                $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
+                $requestedBranchId = $foundBranch ? $foundBranch->id : null;
+            }
+            if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId) && $requestedOnlineShopId !== 'all') {
+                $foundOs = OnlineShop::where('name', 'ilike', '%' . $requestedOnlineShopId . '%')->first();
+                $requestedOnlineShopId = $foundOs ? $foundOs->id : null;
+            }
+            if ($requestedWarehouseId && !is_numeric($requestedWarehouseId) && $requestedWarehouseId !== 'all') {
+                $foundWarehouse = Warehouse::where('name', 'ilike', '%' . $requestedWarehouseId . '%')->first();
+                $requestedWarehouseId = $foundWarehouse ? $foundWarehouse->id : null;
+            }
+            if ($requestedDistributorId && !is_numeric($requestedDistributorId) && $requestedDistributorId !== 'all') {
+                $foundDistributor = Distributor::where('name', 'ilike', '%' . $requestedDistributorId . '%')->first();
+                $requestedDistributorId = $foundDistributor ? $foundDistributor->id : null;
+            }
+
+            // Enforce restriction for Leader & Audit: strictly allow only their assigned branches/shops
+            if ($isRestrictedRole) {
+                if ($requestedBranchId && $requestedBranchId !== 'all') {
+                    if (!in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
+                        $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
+                    }
+                }
+                if ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
+                    if (!in_array((int)$requestedOnlineShopId, array_map('intval', $onlineShopIds))) {
+                        $requestedOnlineShopId = !empty($onlineShopIds) ? $onlineShopIds[0] : null;
+                    }
                 }
             }
-        }
 
-        $requestedBranchId = $request->branch_id;
-        $requestedOnlineShopId = $request->online_shop_id;
-        $requestedWarehouseId = $request->warehouse_id;
-        $requestedDistributorId = $request->distributor_id;
+            $salesCategories = [
+                'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
+                'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
+                'pelunasan_dp', 'angkat_barang', 'refund', 'dp', 'refund_dp'
+            ];
 
-        // Fallback: If ID is not numeric, it might be a name
-        if ($requestedBranchId && !is_numeric($requestedBranchId) && $requestedBranchId !== 'all') {
-            $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
-            $requestedBranchId = $foundBranch ? $foundBranch->id : null;
-        }
-        if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId) && $requestedOnlineShopId !== 'all') {
-            $foundOs = OnlineShop::where('name', 'ilike', '%' . $requestedOnlineShopId . '%')->first();
-            $requestedOnlineShopId = $foundOs ? $foundOs->id : null;
-        }
-        if ($requestedWarehouseId && !is_numeric($requestedWarehouseId) && $requestedWarehouseId !== 'all') {
-            $foundWarehouse = Warehouse::where('name', 'ilike', '%' . $requestedWarehouseId . '%')->first();
-            $requestedWarehouseId = $foundWarehouse ? $foundWarehouse->id : null;
-        }
-        if ($requestedDistributorId && !is_numeric($requestedDistributorId) && $requestedDistributorId !== 'all') {
-            $foundDistributor = Distributor::where('name', 'ilike', '%' . $requestedDistributorId . '%')->first();
-            $requestedDistributorId = $foundDistributor ? $foundDistributor->id : null;
-        }
-
-        // Enforce restriction for Leader & Audit: strictly allow only their assigned branches/shops
-        if ($isRestrictedRole) {
-            if ($requestedBranchId && $requestedBranchId !== 'all') {
-                if (!in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
-                    $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
-                }
-            }
-            if ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
-                if (!in_array((int)$requestedOnlineShopId, array_map('intval', $onlineShopIds))) {
-                    $requestedOnlineShopId = !empty($onlineShopIds) ? $onlineShopIds[0] : null;
-                }
-            }
-        }
-
-        $scopeToAccess = function ($query) use (
-            $branchIds, $onlineShopIds, $warehouseIds, $distributorIds,
-            $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId,
-            $isGlobalRole, $isRestrictedRole
-        ) {
-            $query->where(function ($q) use (
+            // Common scope query applicator
+            $applyAccessScope = function ($query) use (
                 $branchIds, $onlineShopIds, $warehouseIds, $distributorIds,
                 $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId,
                 $isGlobalRole, $isRestrictedRole
             ) {
                 if ($requestedBranchId && $requestedBranchId !== 'all') {
-                    $q->where(function ($sq) use ($requestedBranchId) {
+                    $query->where(function ($sq) use ($requestedBranchId) {
                         $sq->where('stock_outs.branch_id', $requestedBranchId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                            ->orWhereExists(function ($uq) use ($requestedBranchId) {
+                                $uq->select(DB::raw(1))->from('users')
+                                    ->whereColumn('users.id', 'stock_outs.user_id')
+                                    ->where('users.branch_id', $requestedBranchId);
+                            });
                     });
                 } elseif ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
-                    $q->where(function ($sq) use ($requestedOnlineShopId) {
+                    $query->where(function ($sq) use ($requestedOnlineShopId) {
                         $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                            ->orWhereExists(function ($uq) use ($requestedOnlineShopId) {
+                                $uq->select(DB::raw(1))->from('users')
+                                    ->whereColumn('users.id', 'stock_outs.user_id')
+                                    ->where('users.online_shop_id', $requestedOnlineShopId);
+                            });
                     });
                 } elseif ($requestedWarehouseId && $requestedWarehouseId !== 'all') {
-                    $q->where(function ($sq) use ($requestedWarehouseId) {
+                    $query->where(function ($sq) use ($requestedWarehouseId) {
                         $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
+                            ->orWhereExists(function ($uq) use ($requestedWarehouseId) {
+                                $uq->select(DB::raw(1))->from('users')
+                                    ->whereColumn('users.id', 'stock_outs.user_id')
+                                    ->where('users.warehouse_id', $requestedWarehouseId);
+                            });
                     });
                 } elseif ($requestedDistributorId && $requestedDistributorId !== 'all') {
-                    $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
-                } else {
-                    if ($isRestrictedRole) {
-                        $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                            $hasAny = false;
-                            if (!empty($branchIds)) {
-                                $hasAny = true;
-                                $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
-                            }
-                            if (!empty($onlineShopIds)) {
-                                $hasAny = true;
-                                $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
-                            }
-                            if (!$hasAny) {
-                                $sub->whereRaw('1=0');
-                            }
-                        });
-                    }
-                    // For $isGlobalRole, no restriction when 'all' is chosen: they can see all branches/shops
-                }
-            });
-        };
-
-        $salesCategories = [
-            'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
-            'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
-            'pelunasan_dp', 'angkat_barang', 'refund', 'dp', 'refund_dp'
-        ];
-
-        $dailySalesQuery = StockOut::with([
-            'items.product.brandRelation', 
-            'items.distributor', 
-            'nonHpItems.product.brandRelation', 
-            'nonHpItems.distributor', 
-            'user.distributor', 
-            'inventoryUser', 
-            'auditAnswers.auditor', 
-            'auditProfit', 
-            'cancelledByUser'
-        ])
-            ->whereIn('category', $salesCategories)
-            ->where(function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('reporting_date', [$startDate, $endDate])
-                    ->orWhere(function ($sq) use ($startDate, $endDate) {
-                        $sq->whereNull('reporting_date')
-                            ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                    $query->whereExists(function ($uq) use ($requestedDistributorId) {
+                        $uq->select(DB::raw(1))->from('users')
+                            ->whereColumn('users.id', 'stock_outs.user_id')
+                            ->where('users.distributor_id', $requestedDistributorId);
                     });
-            })
-            ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
-                if ($request->category === 'orderan_online') {
-                    $q->whereIn('category', ['shopee', 'orderan_online']);
-                } elseif ($request->category === 'angkat_tukar_tambah') {
-                    $q->whereIn('category', ['angkat_barang', 'tukar_tambah']);
-                } else {
-                    $q->where('category', $request->category);
+                } elseif ($isRestrictedRole) {
+                    $query->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                        $hasAny = false;
+                        if (!empty($branchIds)) {
+                            $hasAny = true;
+                            $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                ->orWhereExists(function ($uq) use ($branchIds) {
+                                    $uq->select(DB::raw(1))->from('users')
+                                        ->whereColumn('users.id', 'stock_outs.user_id')
+                                        ->whereIn('users.branch_id', $branchIds);
+                                });
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $hasAny = true;
+                            $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                ->orWhereExists(function ($uq) use ($onlineShopIds) {
+                                    $uq->select(DB::raw(1))->from('users')
+                                        ->whereColumn('users.id', 'stock_outs.user_id')
+                                        ->whereIn('users.online_shop_id', $onlineShopIds);
+                                });
+                        }
+                        if (!$hasAny) {
+                            $sub->whereRaw('1=0');
+                        }
+                    });
                 }
-            })
-            ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
-                if ($request->audit_status === 'belum') {
-                    $q->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan');
-                } elseif ($request->audit_status === 'sudah') {
-                    $q->whereHas('auditProfit');
-                }
-            })
-            ->when($request->distributor_id && $request->distributor_id !== 'all', function ($q) use ($request) {
-                $distId = $request->distributor_id;
-                $q->where(function($sub) use ($distId) {
-                    $sub->whereHas('user', fn($uq) => $uq->where('distributor_id', $distId))
-                        ->orWhereHas('items', fn($iq) => $iq->where('product_details.distributor_id', $distId))
-                        ->orWhereHas('nonHpItems', fn($nq) => $nq->where('stock_out_non_hp_items.distributor_id', $distId));
+            };
+
+            // 1. FAST LIGHTWEIGHT AGGREGATION QUERY for entire period (Monthly Summary & Daily Recap)
+            // Does NOT load heavy models with 9 relationships into memory; computes in <100ms
+            $recapBaseQuery = DB::table('stock_outs')
+                ->leftJoin('audit_profits', 'stock_outs.id', '=', 'audit_profits.stock_out_id')
+                ->whereIn('stock_outs.category', $salesCategories)
+                ->whereNull('stock_outs.deleted_at')
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
+                        ->orWhere(function ($sq) use ($startDate, $endDate) {
+                            $sq->whereNull('stock_outs.reporting_date')
+                                ->whereBetween('stock_outs.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                        });
                 });
-            });
 
-        $scopeToAccess($dailySalesQuery);
+            if ($request->category && $request->category !== 'all') {
+                if ($request->category === 'orderan_online') {
+                    $recapBaseQuery->whereIn('stock_outs.category', ['shopee', 'orderan_online']);
+                } elseif ($request->category === 'angkat_tukar_tambah') {
+                    $recapBaseQuery->whereIn('stock_outs.category', ['angkat_barang', 'tukar_tambah']);
+                } else {
+                    $recapBaseQuery->where('stock_outs.category', $request->category);
+                }
+            }
 
-        // Optimization: Pre-fetch meta data to avoid N+1 in loops
-        $branches = Branch::all()->keyBy('id');
-        $onlineShops = OnlineShop::all()->keyBy('id');
-        $questions = Question::where('category', 'profit')->get();
-        $paymentMethods = PaymentMethod::all()->keyBy('id');
+            if ($request->audit_status && $request->audit_status !== 'all') {
+                if ($request->audit_status === 'belum') {
+                    $recapBaseQuery->whereNull('audit_profits.id')->where('stock_outs.category', '!=', 'cancel_penjualan');
+                } elseif ($request->audit_status === 'sudah') {
+                    $recapBaseQuery->whereNotNull('audit_profits.id');
+                }
+            }
 
-        $totalSudahDiaudit = (clone $dailySalesQuery)->whereHas('auditProfit')->count();
-        $totalBelumDiaudit = (clone $dailySalesQuery)->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan')->count();
-        $totalCancelGlobal = (clone $dailySalesQuery)->where('category', 'cancel_penjualan')->count();
-        $totalTransactions = (clone $dailySalesQuery)->count();
+            if ($request->distributor_id && $request->distributor_id !== 'all') {
+                $distId = $request->distributor_id;
+                $recapBaseQuery->where(function($sub) use ($distId) {
+                    $sub->whereExists(function($uq) use ($distId) {
+                        $uq->select(DB::raw(1))->from('users')
+                            ->whereColumn('users.id', 'stock_outs.user_id')
+                            ->where('users.distributor_id', $distId);
+                    })->orWhereExists(function($iq) use ($distId) {
+                        $iq->select(DB::raw(1))->from('stock_out_items')
+                            ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
+                            ->whereColumn('stock_out_items.stock_out_id', 'stock_outs.id')
+                            ->where('product_details.distributor_id', $distId);
+                    })->orWhereExists(function($nq) use ($distId) {
+                        $nq->select(DB::raw(1))->from('stock_out_non_hp_items')
+                            ->whereColumn('stock_out_non_hp_items.stock_out_id', 'stock_outs.id')
+                            ->where('stock_out_non_hp_items.distributor_id', $distId);
+                    });
+                });
+            }
 
-        $perPageParam = $request->query('per_page', 'all');
-        $isAll = $perPageParam === 'all' || (int)$perPageParam >= 5000 || (int)$perPageParam <= 0;
+            $applyAccessScope($recapBaseQuery);
 
-        if ($isAll) {
-            $transactionsList = $dailySalesQuery->latest()->limit(15000)->get();
-            $currentPage = 1;
-            $lastPage = 1;
-            $totalCount = $transactionsList->count();
-            $perPage = $totalCount;
-        } else {
-            $perPage = min((int)$perPageParam, 1000);
+            $recapRows = $recapBaseQuery
+                ->select([
+                    'stock_outs.id',
+                    'stock_outs.category',
+                    'stock_outs.reporting_date',
+                    'stock_outs.created_at',
+                    'stock_outs.selling_price',
+                    'stock_outs.paid_amount',
+                    'stock_outs.split_payments',
+                    'audit_profits.id as audit_profit_id',
+                    'audit_profits.harga_modal as audit_cost',
+                    DB::raw('(SELECT COALESCE(SUM(pd.cost_price), 0) FROM stock_out_items soi JOIN product_details pd ON soi.product_detail_id = pd.id WHERE soi.stock_out_id = stock_outs.id) as hp_cost')
+                ])
+                ->get();
+
+            $dailyRecap = [];
+            $summaryTotals = [
+                'total_penjualan' => 0,
+                'total_modal_system' => 0,
+                'total_modal_audit' => 0,
+                'total_profit_system' => 0,
+                'total_profit_audit' => 0,
+                'total_transaksi' => 0,
+                'sudah_diaudit' => 0,
+                'belum_diaudit' => 0,
+            ];
+            $totalCancelGlobal = 0;
+
+            foreach ($recapRows as $row) {
+                if ($row->category === 'cancel_penjualan') {
+                    $totalCancelGlobal++;
+                    continue;
+                }
+
+                $dateKey = $row->reporting_date 
+                    ? substr($row->reporting_date, 0, 10) 
+                    : ($row->created_at ? substr($row->created_at, 0, 10) : date('Y-m-d'));
+
+                $catLower = strtolower($row->category);
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+
+                $spTotal = 0;
+                if ($row->split_payments) {
+                    $sData = is_string($row->split_payments) ? json_decode($row->split_payments, true) : $row->split_payments;
+                    if (is_array($sData)) {
+                        foreach ($sData as $sp) {
+                            $spTotal += abs((float)($sp['amount'] ?? 0));
+                        }
+                    }
+                }
+                $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? (float)($row->paid_amount ?? 0) : (float)($row->selling_price ?? 0));
+
+                $hpCost = (float)($row->hp_cost ?? 0);
+                $defaultHargaModal = ($hpCost > 0) ? $hpCost : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
+
+                $isAudited = !empty($row->audit_profit_id);
+                $effectiveModalAudit = $isAudited ? (float)$row->audit_cost : $defaultHargaModal;
+
+                $profitSystem = $hargaJual - $defaultHargaModal;
+                $profitAudit = $hargaJual - $effectiveModalAudit;
+
+                if ($isNeg) {
+                    $hargaJual = -abs($hargaJual);
+                    $defaultHargaModal = -abs($defaultHargaModal);
+                    $effectiveModalAudit = -abs($effectiveModalAudit);
+                    $profitSystem = -abs($profitSystem);
+                    $profitAudit = -abs($profitAudit);
+                }
+
+                if (!isset($dailyRecap[$dateKey])) {
+                    $dailyRecap[$dateKey] = [
+                        'dateStr' => $dateKey,
+                        'count' => 0,
+                        'unAuditedCount' => 0,
+                        'totalPenjualan' => 0,
+                        'totalModalSystem' => 0,
+                        'totalModalAudit' => 0,
+                        'totalProfitSystem' => 0,
+                        'totalProfitAudit' => 0,
+                        'items' => []
+                    ];
+                }
+
+                $dailyRecap[$dateKey]['count']++;
+                if (!$isAudited) {
+                    $dailyRecap[$dateKey]['unAuditedCount']++;
+                    $summaryTotals['belum_diaudit']++;
+                } else {
+                    $summaryTotals['sudah_diaudit']++;
+                }
+
+                $dailyRecap[$dateKey]['totalPenjualan'] += $hargaJual;
+                $dailyRecap[$dateKey]['totalModalSystem'] += $defaultHargaModal;
+                $dailyRecap[$dateKey]['totalModalAudit'] += $effectiveModalAudit;
+                $dailyRecap[$dateKey]['totalProfitSystem'] += $profitSystem;
+                $dailyRecap[$dateKey]['totalProfitAudit'] += $profitAudit;
+
+                $summaryTotals['total_penjualan'] += $hargaJual;
+                $summaryTotals['total_modal_system'] += $defaultHargaModal;
+                $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
+                $summaryTotals['total_profit_system'] += $profitSystem;
+                $summaryTotals['total_profit_audit'] += $profitAudit;
+                $summaryTotals['total_transaksi']++;
+            }
+
+            krsort($dailyRecap);
+
+            // 2. DETAILED TRANSACTIONS QUERY (Paginated or Day-Specific)
+            $dailySalesQuery = StockOut::with([
+                'items.product.brandRelation', 
+                'items.distributor', 
+                'nonHpItems.product.brandRelation', 
+                'nonHpItems.distributor', 
+                'user.distributor', 
+                'inventoryUser', 
+                'auditAnswers.auditor', 
+                'auditProfit', 
+                'cancelledByUser',
+                'paymentMethod'
+            ])
+                ->whereIn('category', $salesCategories)
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->orWhere(function ($sq) use ($startDate, $endDate) {
+                            $sq->whereNull('reporting_date')
+                                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                        });
+                })
+                ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
+                    if ($request->category === 'orderan_online') {
+                        $q->whereIn('category', ['shopee', 'orderan_online']);
+                    } elseif ($request->category === 'angkat_tukar_tambah') {
+                        $q->whereIn('category', ['angkat_barang', 'tukar_tambah']);
+                    } else {
+                        $q->where('category', $request->category);
+                    }
+                })
+                ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
+                    if ($request->audit_status === 'belum') {
+                        $q->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan');
+                    } elseif ($request->audit_status === 'sudah') {
+                        $q->whereHas('auditProfit');
+                    }
+                })
+                ->when($request->distributor_id && $request->distributor_id !== 'all', function ($q) use ($request) {
+                    $distId = $request->distributor_id;
+                    $q->where(function($sub) use ($distId) {
+                        $sub->whereHas('user', fn($uq) => $uq->where('distributor_id', $distId))
+                            ->orWhereHas('items', fn($iq) => $iq->where('product_details.distributor_id', $distId))
+                            ->orWhereHas('nonHpItems', fn($nq) => $nq->where('stock_out_non_hp_items.distributor_id', $distId));
+                    });
+                });
+
+            $applyAccessScope($dailySalesQuery);
+
+            $branches = Branch::all()->keyBy('id');
+            $onlineShops = OnlineShop::all()->keyBy('id');
+            $questions = Question::where('category', 'profit')->get();
+            $paymentMethods = PaymentMethod::all()->keyBy('id');
+
+            $perPageParam = $request->query('per_page', '50');
+            // If querying a single specific date (like expand day), allow fetching all up to 500
+            if ($startDate === $endDate && ($perPageParam === 'all' || (int)$perPageParam >= 500)) {
+                $perPage = 500;
+            } elseif ($perPageParam === 'all') {
+                $perPage = 100;
+            } else {
+                $perPage = min(max((int)$perPageParam, 10), 300);
+            }
+
             $paginatedProfit = $dailySalesQuery->latest()->paginate($perPage);
             $transactionsList = $paginatedProfit->items();
             $currentPage = $paginatedProfit->currentPage();
             $lastPage = $paginatedProfit->lastPage();
             $totalCount = $paginatedProfit->total();
-        }
 
-        $dailySales = collect($transactionsList)->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
-            $details = [];
-            $calculatedTotal = 0;
+            $dailySales = collect($transactionsList)->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
+                $details = [];
+                $calculatedTotal = 0;
 
-            // Pre-calculate exact discrepancy to match Omset exactly
-            $catLower = strtolower($trx->category);
-            $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
+                // Pre-calculate exact discrepancy to match Omset exactly
+                $catLower = strtolower($trx->category);
+                $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
 
-            $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
-            $spTotal = 0;
-            if ($trx->split_payments) {
-                $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
-                if (is_array($sData)) {
-                    foreach ($sData as $sp) {
-                        $spTotal += abs((float) ($sp['amount'] ?? 0));
+                $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
+                $spTotal = 0;
+                if ($trx->split_payments) {
+                    $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                    if (is_array($sData)) {
+                        foreach ($sData as $sp) {
+                            $spTotal += abs((float) ($sp['amount'] ?? 0));
+                        }
                     }
                 }
-            }
-            $targetTrxOmset = ($spTotal > 0) ? $spTotal : $dbSellingPrice;
+                $targetTrxOmset = ($spTotal > 0) ? $spTotal : $dbSellingPrice;
 
-            $trxItemsTotal = 0;
-            foreach ($trx->items as $item) {
-                $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-            }
-            $jsonItems = $trx->non_hp_items;
-            if (is_array($jsonItems) && count($jsonItems) > 0) {
-                foreach ($jsonItems as $itemData) {
-                    $trxItemsTotal += (($itemData['selling_price'] ?? 0) * ($itemData['quantity'] ?? 1));
+                $trxItemsTotal = 0;
+                foreach ($trx->items as $item) {
+                    $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
                 }
-            } else {
-                foreach ($trx->nonHpItems as $nhp) {
-                    $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                $jsonItems = $trx->non_hp_items;
+                if (is_array($jsonItems) && count($jsonItems) > 0) {
+                    foreach ($jsonItems as $itemData) {
+                        $trxItemsTotal += (($itemData['selling_price'] ?? 0) * ($itemData['quantity'] ?? 1));
+                    }
+                } else {
+                    foreach ($trx->nonHpItems as $nhp) {
+                        $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                    }
                 }
-            }
 
-            $discrepancy = 0;
-            if ($isNormalSales && $trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
-                $discrepancy = $trxItemsTotal - $targetTrxOmset;
-            }
-
-            // HP Items
-            foreach ($trx->items as $item) {
-                $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-                $price = $basePrice;
-                if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                    $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                $discrepancy = 0;
+                if ($isNormalSales && $trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
+                    $discrepancy = $trxItemsTotal - $targetTrxOmset;
                 }
-                $details[] = [
-                    'id' => 'hp_' . $item->id,
-                    'name' => $item->product?->name ?? 'Unknown HP',
-                    'qty' => 1,
-                    'price' => $price,
-                    'is_fixed' => true,
-                    'brand' => $item->product?->brand ?? $item->product?->brandRelation?->name ?? '-',
-                    'type' => 'HP',
-                    'imei' => $item->imei ?? '-',
-                    'storage' => $item->storage ?? null,
-                    'condition' => $item->condition ?? 'second',
-                    'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
-                    'distributor_id' => $item->distributor_id ?? null,
-                    'raw_cost_price' => (float) ($item->cost_price ?? 0),
-                ];
-                $calculatedTotal += $price;
-            }
 
-            // Non-HP Items
-            $jsonItems = $trx->non_hp_items;
-            if (is_array($jsonItems) && count($jsonItems) > 0) {
-                $productMap = $trx->nonHpItems->pluck('product', 'product_id');
-                foreach ($jsonItems as $idx => $itemData) {
-                    $product = $productMap[$itemData['product_id'] ?? null] ?? null;
-                    $basePrice = $itemData['selling_price'] ?? 0;
-                    $qty = $itemData['quantity'] ?? 1;
+                // HP Items
+                foreach ($trx->items as $item) {
+                    $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
                     $price = $basePrice;
                     if ($discrepancy != 0 && $trxItemsTotal > 0) {
                         $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                     }
                     $details[] = [
-                        'id' => 'nonhp_json_' . $idx,
-                        'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
-                        'qty' => $qty,
+                        'id' => 'hp_' . $item->id,
+                        'name' => $item->product?->name ?? 'Unknown HP',
+                        'qty' => 1,
                         'price' => $price,
                         'is_fixed' => true,
-                        'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
-                        'type' => 'Non-HP',
-                        'distributor' => '-',
-                        'distributor_id' => null,
-                        'raw_cost_price' => (float) ($product?->cost_price ?? 0)
+                        'brand' => $item->product?->brand ?? $item->product?->brandRelation?->name ?? '-',
+                        'type' => 'HP',
+                        'imei' => $item->imei ?? '-',
+                        'storage' => $item->storage ?? null,
+                        'condition' => $item->condition ?? 'second',
+                        'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
+                        'distributor_id' => $item->distributor_id ?? null,
+                        'raw_cost_price' => (float) ($item->cost_price ?? 0),
                     ];
-                    $calculatedTotal += ($price * $qty);
+                    $calculatedTotal += $price;
                 }
-            } else {
-                foreach ($trx->nonHpItems as $nhp) {
-                    $basePrice = $nhp->product?->price ?? 0;
-                    $price = $basePrice;
-                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+
+                // Non-HP Items
+                $jsonItems = $trx->non_hp_items;
+                if (is_array($jsonItems) && count($jsonItems) > 0) {
+                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                    foreach ($jsonItems as $idx => $itemData) {
+                        $product = $productMap[$itemData['product_id'] ?? null] ?? null;
+                        $basePrice = $itemData['selling_price'] ?? 0;
+                        $qty = $itemData['quantity'] ?? 1;
+                        $price = $basePrice;
+                        if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                            $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                        }
+                        $details[] = [
+                            'id' => 'nonhp_json_' . $idx,
+                            'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
+                            'qty' => $qty,
+                            'price' => $price,
+                            'is_fixed' => true,
+                            'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'distributor' => '-',
+                            'distributor_id' => null,
+                            'raw_cost_price' => (float) ($product?->cost_price ?? 0)
+                        ];
+                        $calculatedTotal += ($price * $qty);
                     }
-                    $details[] = [
-                        'id' => 'nonhp_' . $nhp->id,
-                        'name' => $nhp->product?->name ?? 'Unknown Item',
-                        'qty' => $nhp->quantity,
-                        'price' => $price,
-                        'is_fixed' => true,
-                        'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
-                        'type' => 'Non-HP',
-                        'distributor' => $nhp->distributor?->name ?? '-',
-                        'distributor_id' => $nhp->distributor_id ?? null,
-                        'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0)
-                    ];
-                    $calculatedTotal += ($price * $nhp->quantity);
+                } else {
+                    foreach ($trx->nonHpItems as $nhp) {
+                        $basePrice = $nhp->product?->price ?? 0;
+                        $price = $basePrice;
+                        if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                            $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                        }
+                        $details[] = [
+                            'id' => 'nonhp_' . $nhp->id,
+                            'name' => $nhp->product?->name ?? 'Unknown Item',
+                            'qty' => $nhp->quantity,
+                            'price' => $price,
+                            'is_fixed' => true,
+                            'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'distributor' => $nhp->distributor?->name ?? '-',
+                            'distributor_id' => $nhp->distributor_id ?? null,
+                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0)
+                        ];
+                        $calculatedTotal += ($price * $nhp->quantity);
+                    }
                 }
-            }
 
-            // Outlet Name (Pre-fetched)
-            $sourceUser = $trx->inventoryUser ?? $trx->user;
-            $outletName = 'APEX POS';
-            if ($sourceUser) {
-                if ($sourceUser->branch_id && isset($branches[$sourceUser->branch_id]))
-                    $outletName = $branches[$sourceUser->branch_id]->name;
-                elseif ($sourceUser->online_shop_id && isset($onlineShops[$sourceUser->online_shop_id]))
-                    $outletName = $onlineShops[$sourceUser->online_shop_id]->name;
-            }
-
-            // Profit & Audit Logic
-            $savedProfit = $trx->auditProfit;
-            $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
-            $totalHargaModal = 0;
-            $totalDefaultModal = 0;
-            foreach ($details as &$detail) {
-                $itemJualTotal = $detail['price'] * $detail['qty'];
-                $defaultItemModal = ($detail['raw_cost_price'] > 0) ? $detail['raw_cost_price'] : ($itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0);
-                $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
-                $effectiveItemModal = $savedItemModal ?? $defaultItemModal;
-                $detail['harga_jual'] = $itemJualTotal;
-                $detail['default_harga_modal'] = $defaultItemModal;
-                $detail['harga_modal'] = $savedItemModal;
-                $detail['profit'] = $itemJualTotal - $effectiveItemModal;
-                $detail['profit_system'] = $itemJualTotal - $defaultItemModal;
-                $detail['profit_audit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : null;
-                $detail['has_saved_modal'] = $savedItemModal !== null;
-                $totalHargaModal += $effectiveItemModal;
-                $totalDefaultModal += $defaultItemModal;
-            }
-            unset($detail);
-
-            $catLower = strtolower($trx->category);
-            $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
-
-            $hargaJual = (float) ($trx->selling_price ?? 0);
-            $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
-            $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
-            $profit = $hargaJual - $totalHargaModal;
-            $profitSystem = $hargaJual - $defaultHargaModal;
-            $profitAudit = $hargaModal !== null ? ($hargaJual - $hargaModal) : null;
-
-            if ($isNeg) {
-                $hargaJual = -abs($hargaJual);
-                $profit = -abs($profit);
-                $profitSystem = -abs($profitSystem);
-                if ($profitAudit !== null) {
-                    $profitAudit = -abs($profitAudit);
+                // Outlet Name (Pre-fetched)
+                $sourceUser = $trx->inventoryUser ?? $trx->user;
+                $outletName = 'APEX POS';
+                if ($sourceUser) {
+                    if ($sourceUser->branch_id && isset($branches[$sourceUser->branch_id]))
+                        $outletName = $branches[$sourceUser->branch_id]->name;
+                    elseif ($sourceUser->online_shop_id && isset($onlineShops[$sourceUser->online_shop_id]))
+                        $outletName = $onlineShops[$sourceUser->online_shop_id]->name;
                 }
-            }
 
-            $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
-            $yesCount = $answers->where('answer', true)->count();
-            $totalQuestions = $questions->count();
-            foreach ($questions as $cq) {
-                $existingAns = $answers->firstWhere('question_id', $cq->id);
-                if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $cq->content)
-                    $totalQuestions++;
-            }
-            foreach ($answers as $ans)
-                if ($ans->question_id === null || !$questions->contains('id', $ans->question_id))
-                    $totalQuestions++;
-
-            $auditScore = ($answers->isNotEmpty() && $totalQuestions > 0) ? round(($yesCount / $totalQuestions) * 100) : null;
-
-            // Split Payments (Pre-fetched)
-            $processedSplitPayments = [];
-            if ($trx->split_payments) {
-                $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
-                foreach ((array) $splits as $sp) {
-                    $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
-                    $processedSplitPayments[] = ['method_name' => $paymentMethods[$mid]->name ?? 'Unknown', 'amount' => (float) ($sp['amount'] ?? 0)];
+                // Profit & Audit Logic
+                $savedProfit = $trx->auditProfit;
+                $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
+                $totalHargaModal = 0;
+                $totalDefaultModal = 0;
+                foreach ($details as &$detail) {
+                    $itemJualTotal = $detail['price'] * $detail['qty'];
+                    $defaultItemModal = ($detail['raw_cost_price'] > 0) ? $detail['raw_cost_price'] : ($itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0);
+                    $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
+                    $effectiveItemModal = $savedItemModal ?? $defaultItemModal;
+                    $detail['harga_jual'] = $itemJualTotal;
+                    $detail['default_harga_modal'] = $defaultItemModal;
+                    $detail['harga_modal'] = $savedItemModal;
+                    $detail['profit'] = $itemJualTotal - $effectiveItemModal;
+                    $detail['profit_system'] = $itemJualTotal - $defaultItemModal;
+                    $detail['profit_audit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : null;
+                    $detail['has_saved_modal'] = $savedItemModal !== null;
+                    $totalHargaModal += $effectiveItemModal;
+                    $totalDefaultModal += $defaultItemModal;
                 }
-            }
+                unset($detail);
 
-            $trxDateStr = $trx->reporting_date 
-                ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : $trx->reporting_date->format('Y-m-d'))
-                : ($trx->created_at ? $trx->created_at->format('Y-m-d') : date('Y-m-d'));
-            $trxTimeStr = $trx->created_at ? $trx->created_at->format('H:i:s') : '00:00:00';
-            $fullTrxDate = "{$trxDateStr} {$trxTimeStr}";
+                $catLower = strtolower($trx->category);
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
 
-            return [
-                'id' => $trx->id,
-                'date' => $fullTrxDate,
-                'reporting_date' => $trxDateStr,
-                'created_at' => $trx->created_at?->toDateTimeString(),
-                'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
-                'order_no' => $trx->receipt_id,
-                'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
-                'category' => $trx->category,
-                'qty' => count($details),
-                'items' => $details,
-                'harga_jual' => $hargaJual,
-                'harga_modal' => $hargaModal,
-                'default_harga_modal' => $defaultHargaModal,
-                'profit' => $profit,
-                'profit_system' => $profitSystem,
-                'profit_audit' => $profitAudit,
-                'total_modal_system' => $defaultHargaModal,
-                'total_modal_audit' => $hargaModal,
-                'is_audited' => $savedProfit !== null,
-                'outlet_name' => $outletName,
-                'audit_score' => $auditScore,
-                'latest_auditor_name' => $trx->latest_auditor_name,
-                'audited_at' => $trx->audited_at,
-                'audit_total' => $totalQuestions,
-                'audit_yes' => $yesCount,
-                'cancelled_by_name' => $trx->cancelledByUser?->name,
-                'cancel_reason' => $trx->cancel_reason,
-                'inventory_account_name' => $trx->inventoryUser->full_name ?? $trx->user->full_name ?? '-',
-                'split_payments_data' => $processedSplitPayments,
-                'selling_price' => $hargaJual,
-            ];
-        });
+                $hargaJual = (float) ($trx->selling_price ?? 0);
+                $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
+                $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
+                $profit = $hargaJual - $totalHargaModal;
+                $profitSystem = $hargaJual - $defaultHargaModal;
+                $profitAudit = $hargaModal !== null ? ($hargaJual - $hargaModal) : null;
 
-        // Compute daily recap and summary totals across entire mapped dataset
-        $dailyRecap = [];
-        $summaryTotals = [
-            'total_penjualan' => 0,
-            'total_modal_system' => 0,
-            'total_modal_audit' => 0,
-            'total_profit_system' => 0,
-            'total_profit_audit' => 0,
-            'total_transaksi' => 0,
-            'sudah_diaudit' => 0,
-            'belum_diaudit' => 0,
-        ];
+                if ($isNeg) {
+                    $hargaJual = -abs($hargaJual);
+                    $profit = -abs($profit);
+                    $profitSystem = -abs($profitSystem);
+                    if ($profitAudit !== null) {
+                        $profitAudit = -abs($profitAudit);
+                    }
+                }
 
-        foreach ($dailySales as $item) {
-            if ($item['category'] === 'cancel_penjualan') {
-                continue;
-            }
+                $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
+                $yesCount = $answers->where('answer', true)->count();
+                $totalQuestions = $questions->count();
+                foreach ($questions as $cq) {
+                    $existingAns = $answers->firstWhere('question_id', $cq->id);
+                    if ($existingAns && $existingAns->question_content && $existingAns->question_content !== $cq->content)
+                        $totalQuestions++;
+                }
+                foreach ($answers as $ans)
+                    if ($ans->question_id === null || !$questions->contains('id', $ans->question_id))
+                        $totalQuestions++;
 
-            $dateKey = $item['reporting_date'] ?: substr($item['date'], 0, 10);
-            if (!isset($dailyRecap[$dateKey])) {
-                $dailyRecap[$dateKey] = [
-                    'dateStr' => $dateKey,
-                    'count' => 0,
-                    'unAuditedCount' => 0,
-                    'totalPenjualan' => 0,
-                    'totalModalSystem' => 0,
-                    'totalModalAudit' => 0,
-                    'totalProfitSystem' => 0,
-                    'totalProfitAudit' => 0,
-                    'items' => []
+                $auditScore = ($answers->isNotEmpty() && $totalQuestions > 0) ? round(($yesCount / $totalQuestions) * 100) : null;
+
+                // Split Payments (Pre-fetched)
+                $processedSplitPayments = [];
+                if ($trx->split_payments) {
+                    $splits = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                    foreach ((array) $splits as $sp) {
+                        $mid = $sp['payment_method_id'] ?? ($sp['method_id'] ?? null);
+                        $processedSplitPayments[] = ['method_name' => $paymentMethods[$mid]->name ?? 'Unknown', 'amount' => (float) ($sp['amount'] ?? 0)];
+                    }
+                }
+
+                $trxDateStr = $trx->reporting_date 
+                    ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : $trx->reporting_date->format('Y-m-d'))
+                    : ($trx->created_at ? $trx->created_at->format('Y-m-d') : date('Y-m-d'));
+                $trxTimeStr = $trx->created_at ? $trx->created_at->format('H:i:s') : '00:00:00';
+                $fullTrxDate = "{$trxDateStr} {$trxTimeStr}";
+
+                return [
+                    'id' => $trx->id,
+                    'date' => $fullTrxDate,
+                    'reporting_date' => $trxDateStr,
+                    'created_at' => $trx->created_at?->toDateTimeString(),
+                    'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
+                    'order_no' => $trx->receipt_id,
+                    'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
+                    'category' => $trx->category,
+                    'qty' => count($details),
+                    'items' => $details,
+                    'harga_jual' => $hargaJual,
+                    'harga_modal' => $hargaModal,
+                    'default_harga_modal' => $defaultHargaModal,
+                    'profit' => $profit,
+                    'profit_system' => $profitSystem,
+                    'profit_audit' => $profitAudit,
+                    'total_modal_system' => $defaultHargaModal,
+                    'total_modal_audit' => $hargaModal,
+                    'is_audited' => $savedProfit !== null,
+                    'outlet_name' => $outletName,
+                    'audit_score' => $auditScore,
+                    'latest_auditor_name' => $trx->latest_auditor_name,
+                    'audited_at' => $trx->audited_at,
+                    'audit_total' => $totalQuestions,
+                    'audit_yes' => $yesCount,
+                    'cancelled_by_name' => $trx->cancelledByUser?->name,
+                    'cancel_reason' => $trx->cancel_reason,
+                    'inventory_account_name' => $trx->inventoryUser->full_name ?? $trx->user->full_name ?? '-',
+                    'split_payments_data' => $processedSplitPayments,
+                    'selling_price' => $hargaJual,
                 ];
-            }
+            });
 
-            $dailyRecap[$dateKey]['count']++;
-            if (!$item['is_audited'] && $item['audit_score'] === null) {
-                $dailyRecap[$dateKey]['unAuditedCount']++;
-                $summaryTotals['belum_diaudit']++;
-            } else {
-                $summaryTotals['sudah_diaudit']++;
-            }
-
-            $dailyRecap[$dateKey]['totalPenjualan'] += $item['harga_jual'];
-            $dailyRecap[$dateKey]['totalModalSystem'] += $item['default_harga_modal'];
-            $effModal = ($item['harga_modal'] !== null) ? $item['harga_modal'] : $item['default_harga_modal'];
-            $dailyRecap[$dateKey]['totalModalAudit'] += $effModal;
-            $dailyRecap[$dateKey]['totalProfitSystem'] += $item['profit_system'];
-            $effProfit = ($item['profit_audit'] !== null) ? $item['profit_audit'] : $item['profit'];
-            $dailyRecap[$dateKey]['totalProfitAudit'] += $effProfit;
-            $dailyRecap[$dateKey]['items'][] = $item;
-
-            $summaryTotals['total_penjualan'] += $item['harga_jual'];
-            $summaryTotals['total_modal_system'] += $item['default_harga_modal'];
-            $summaryTotals['total_modal_audit'] += $effModal;
-            $summaryTotals['total_profit_system'] += $item['profit_system'];
-            $summaryTotals['total_profit_audit'] += $effProfit;
-            $summaryTotals['total_transaksi']++;
+            return response()->json([
+                'audit_stats' => [
+                    'sudah_diaudit' => $summaryTotals['sudah_diaudit'],
+                    'belum_diaudit' => $summaryTotals['belum_diaudit'],
+                    'total_cancel' => $totalCancelGlobal,
+                    'total_transaksi' => $summaryTotals['total_transaksi']
+                ],
+                'daily_recap' => array_values($dailyRecap),
+                'summary_totals' => $summaryTotals,
+                'user_access' => [
+                    'is_global' => $isGlobalRole,
+                    'branch_ids' => $branchIds,
+                    'online_shop_ids' => $onlineShopIds,
+                ],
+                'daily_sales' => [
+                    'data' => $dailySales->values()->all(),
+                    'current_page' => $currentPage,
+                    'last_page' => $lastPage,
+                    'total' => $totalCount,
+                    'per_page' => $perPage,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Profit API Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat memproses data profit: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        krsort($dailyRecap);
-
-        return response()->json([
-            'audit_stats' => [
-                'sudah_diaudit' => $totalSudahDiaudit,
-                'belum_diaudit' => $totalBelumDiaudit,
-                'total_cancel' => $totalCancelGlobal,
-                'total_transaksi' => $totalTransactions
-            ],
-            'daily_recap' => array_values($dailyRecap),
-            'summary_totals' => $summaryTotals,
-            'user_access' => [
-                'is_global' => $isGlobalRole,
-                'branch_ids' => $branchIds,
-                'online_shop_ids' => $onlineShopIds,
-            ],
-            'daily_sales' => [
-                'data' => $dailySales->values()->all(),
-                'current_page' => $currentPage,
-                'last_page' => $lastPage,
-                'total' => $totalCount,
-                'per_page' => $perPage,
-            ],
-        ]);
-        ;
     }
 
     /**

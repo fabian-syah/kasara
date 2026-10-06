@@ -540,9 +540,22 @@
                                     <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-200 dark:border-surface-700 p-3 space-y-2 shadow-sm">
                                         <div class="flex items-center justify-between text-xs font-bold text-text-secondary px-2">
                                             <span>Rincian Transaksi {{ formatDateLabel(day.dateStr) }}</span>
-                                            <span>{{ day.items.length }} Transaksi</span>
+                                            <span v-if="loadingDay[day.dateStr]" class="inline-flex items-center gap-1 text-primary-500 font-medium">
+                                                <Loader2 :size="12" class="animate-spin" /> Memuat rincian transaksi...
+                                            </span>
+                                            <span v-else>{{ (dayTransactions[day.dateStr] || day.items || []).length }} Transaksi</span>
                                         </div>
-                                        <div class="overflow-x-auto">
+
+                                        <div v-if="loadingDay[day.dateStr]" class="py-8 flex items-center justify-center gap-2 text-xs text-text-secondary">
+                                            <Loader2 :size="18" class="animate-spin text-primary-500" />
+                                            <span>Memuat rincian transaksi tanggal {{ formatDateLabel(day.dateStr) }}...</span>
+                                        </div>
+
+                                        <div v-else-if="!(dayTransactions[day.dateStr] || day.items) || (dayTransactions[day.dateStr] || day.items).length === 0" class="py-6 text-center text-xs text-text-secondary">
+                                            Tidak ada rincian transaksi ditemukan untuk tanggal ini.
+                                        </div>
+
+                                        <div v-else class="overflow-x-auto">
                                             <table class="w-full text-left text-[11px]">
                                                 <thead class="bg-gray-100 dark:!bg-surface-700/60 uppercase text-gray-600 dark:text-gray-300 font-bold">
                                                     <tr>
@@ -559,7 +572,7 @@
                                                     </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-gray-100 dark:divide-surface-700/40">
-                                                    <tr v-for="trx in day.items" :key="trx.id" class="hover:bg-gray-50 dark:hover:bg-surface-700/20 transition-colors">
+                                                    <tr v-for="trx in (dayTransactions[day.dateStr] || day.items)" :key="trx.id" class="hover:bg-gray-50 dark:hover:bg-surface-700/20 transition-colors">
                                                         <td class="px-3 py-2 font-mono font-bold">{{ trx.order_no }}</td>
                                                         <td class="px-3 py-2">{{ trx.outlet_name }}</td>
                                                         <td class="px-3 py-2">{{ trx.customer_name }}</td>
@@ -1008,6 +1021,8 @@ const perPage = ref(50);
 
 // Expandable rows for Tab 1
 const expandedDays = ref([]);
+const loadingDay = ref({});
+const dayTransactions = ref({});
 
 // Modals
 const selectedTransaction = ref(null);
@@ -1256,6 +1271,11 @@ const summaryTotals = computed(() => {
 
 // Daily Aggregations (Grouped by Date for Tab 1)
 const dailyAggregations = computed(() => {
+    // If backend provides pre-aggregated daily_recap for the entire period, use it directly!
+    if (!searchQuery.value.trim() && profitRecords.value?.daily_recap && Array.isArray(profitRecords.value.daily_recap) && profitRecords.value.daily_recap.length > 0) {
+        return profitRecords.value.daily_recap;
+    }
+
     const grouped = {};
 
     allFilteredSales.value.forEach(item => {
@@ -1310,12 +1330,54 @@ const paginatedTransactions = computed(() => {
 });
 
 // UI Actions
-const toggleExpandDay = (dateStr) => {
+const toggleExpandDay = async (dateStr) => {
     const idx = expandedDays.value.indexOf(dateStr);
     if (idx >= 0) {
         expandedDays.value.splice(idx, 1);
-    } else {
-        expandedDays.value.push(dateStr);
+        return;
+    }
+
+    expandedDays.value.push(dateStr);
+
+    if (dayTransactions.value[dateStr] && dayTransactions.value[dateStr].length > 0) {
+        return;
+    }
+
+    // Check if daily_sales already contains all transactions for this date
+    const fromDailySales = rawTransactions.value.filter(t => (t.reporting_date || (t.date ? t.date.slice(0, 10) : '')) === dateStr);
+    const targetDayRecap = profitRecords.value?.daily_recap?.find(d => d.dateStr === dateStr);
+    if (fromDailySales.length > 0 && targetDayRecap && fromDailySales.length >= targetDayRecap.count) {
+        dayTransactions.value[dateStr] = fromDailySales;
+        return;
+    }
+
+    // Fetch transactions on-demand for this specific single date
+    loadingDay.value[dateStr] = true;
+    try {
+        const params = {
+            start_date: dateStr,
+            end_date: dateStr,
+            category: filters.value.category !== 'all' ? filters.value.category : undefined,
+            distributor_id: filters.value.distributor_id !== 'all' ? filters.value.distributor_id : undefined,
+            audit_status: filters.value.audit_status !== 'all' ? filters.value.audit_status : undefined,
+            per_page: 500
+        };
+
+        if (selectedLocationKey.value !== 'all') {
+            const [type, id] = selectedLocationKey.value.split(':');
+            if (type === 'B') params.branch_id = id;
+            if (type === 'S') params.online_shop_id = id;
+            if (type === 'W') params.warehouse_id = id;
+            if (type === 'D') params.distributor_id = id;
+        }
+
+        const res = await axios.get('/audit/profit', { params });
+        dayTransactions.value[dateStr] = res.data?.daily_sales?.data || [];
+    } catch (e) {
+        console.error('Error fetching transactions for date:', dateStr, e);
+        dayTransactions.value[dateStr] = fromDailySales;
+    } finally {
+        loadingDay.value[dateStr] = false;
     }
 };
 
@@ -1451,6 +1513,8 @@ const fetchMetadata = async () => {
 
 const fetchData = async () => {
     loading.value = true;
+    dayTransactions.value = {};
+    expandedDays.value = [];
     try {
         const params = {
             start_date: filters.value.start_date,
@@ -1458,7 +1522,7 @@ const fetchData = async () => {
             category: filters.value.category !== 'all' ? filters.value.category : undefined,
             distributor_id: filters.value.distributor_id !== 'all' ? filters.value.distributor_id : undefined,
             audit_status: filters.value.audit_status !== 'all' ? filters.value.audit_status : undefined,
-            per_page: 'all'
+            per_page: 100
         };
 
         if (selectedLocationKey.value !== 'all') {
@@ -1472,6 +1536,7 @@ const fetchData = async () => {
         const res = await axios.get('/audit/profit', { params });
         profitRecords.value = res.data || {
             audit_stats: { sudah_diaudit: 0, belum_diaudit: 0, total_transaksi: 0 },
+            daily_recap: [],
             daily_sales: { data: [] }
         };
 
@@ -1494,42 +1559,75 @@ const exportDataExcel = () => {
     exporting.value = true;
 
     try {
-        const headers = [
-            'No',
-            'Tanggal',
-            'No Pesanan',
-            'Cabang/Outlet',
-            'Customer',
-            'Akun CS',
-            'Kategori',
-            'Rincian Barang',
-            'Harga Jual',
-            'Modal Sistem',
-            'Modal Audit',
-            'Profit Sistem',
-            'Profit Audit',
-            'Status Audit'
-        ];
+        let headers = [];
+        let rows = [];
+        let filename = '';
 
-        const rows = allFilteredSales.value.map((trx, idx) => {
-            const itemNames = (trx.items || []).map(i => `${i.name} (Qty:${i.qty})`).join('; ');
-            return [
-                idx + 1,
-                trx.date || '',
-                `"${trx.order_no || ''}"`,
-                `"${trx.outlet_name || ''}"`,
-                `"${trx.customer_name || ''}"`,
-                `"${trx.inventory_account_name || ''}"`,
-                formatCategoryLabel(trx.category),
-                `"${itemNames}"`,
-                trx.harga_jual || 0,
-                trx.default_harga_modal || 0,
-                trx.harga_modal ?? trx.default_harga_modal ?? 0,
-                trx.profit_system || 0,
-                trx.profit_audit ?? trx.profit ?? 0,
-                trx.is_audited ? 'Sudah Diaudit' : 'Belum Dikerjakan'
+        if (activeTab.value === 'daily_summary') {
+            headers = [
+                'No',
+                'Tanggal',
+                'Jumlah Transaksi',
+                'Belum Diaudit',
+                'Total Penjualan',
+                'Modal Sistem',
+                'Modal Audit',
+                'Profit Sistem',
+                'Profit Audit',
+                'Selisih Profit'
             ];
-        });
+            rows = dailyAggregations.value.map((day, idx) => [
+                idx + 1,
+                day.dateStr,
+                day.count || 0,
+                day.unAuditedCount || 0,
+                day.totalPenjualan || 0,
+                day.totalModalSystem || 0,
+                day.totalModalAudit || 0,
+                day.totalProfitSystem || 0,
+                day.totalProfitAudit || 0,
+                (day.totalProfitAudit || 0) - (day.totalProfitSystem || 0)
+            ]);
+            filename = `Rekap_Profit_Bulanan_${filters.value.start_date}_sd_${filters.value.end_date}.csv`;
+        } else {
+            headers = [
+                'No',
+                'Tanggal',
+                'No Pesanan',
+                'Cabang/Outlet',
+                'Customer',
+                'Akun CS',
+                'Kategori',
+                'Rincian Barang',
+                'Harga Jual',
+                'Modal Sistem',
+                'Modal Audit',
+                'Profit Sistem',
+                'Profit Audit',
+                'Status Audit'
+            ];
+
+            rows = allFilteredSales.value.map((trx, idx) => {
+                const itemNames = (trx.items || []).map(i => `${i.name} (Qty:${i.qty})`).join('; ');
+                return [
+                    idx + 1,
+                    trx.date || '',
+                    `"${trx.order_no || ''}"`,
+                    `"${trx.outlet_name || ''}"`,
+                    `"${trx.customer_name || ''}"`,
+                    `"${trx.inventory_account_name || ''}"`,
+                    formatCategoryLabel(trx.category),
+                    `"${itemNames}"`,
+                    trx.harga_jual || 0,
+                    trx.default_harga_modal || 0,
+                    trx.harga_modal ?? trx.default_harga_modal ?? 0,
+                    trx.profit_system || 0,
+                    trx.profit_audit ?? trx.profit ?? 0,
+                    trx.is_audited ? 'Sudah Diaudit' : 'Belum Dikerjakan'
+                ];
+            });
+            filename = `Riwayat_Profit_Transaksi_${filters.value.start_date}_sd_${filters.value.end_date}.csv`;
+        }
 
         const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' +
             [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
@@ -1537,7 +1635,7 @@ const exportDataExcel = () => {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement('a');
         link.setAttribute('href', encodedUri);
-        link.setAttribute('download', `Riwayat_Profit_${filters.value.start_date}_sd_${filters.value.end_date}.csv`);
+        link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
