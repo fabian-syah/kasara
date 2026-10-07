@@ -573,9 +573,10 @@
                                                             <th class="px-3 py-2">Customer/CS</th>
                                                             <th class="px-3 py-2">Kategori</th>
                                                             <th class="px-3 py-2 text-right">Jual</th>
-                                                            <th class="px-3 py-2 text-right">Modal Sis</th>
-                                                            <th class="px-3 py-2 text-right">Modal Aud</th>
-                                                            <th class="px-3 py-2 text-right">Profit Aud</th>
+                                                            <th v-if="calcMode === 'compare' || calcMode === 'system'" class="px-3 py-2 text-right">Modal Sis</th>
+                                                            <th v-if="calcMode === 'compare' || calcMode === 'audit'" class="px-3 py-2 text-right">Modal Aud</th>
+                                                            <th v-if="calcMode === 'compare' || calcMode === 'system'" class="px-3 py-2 text-right">Profit Sis</th>
+                                                            <th v-if="calcMode === 'compare' || calcMode === 'audit'" class="px-3 py-2 text-right">Profit Aud</th>
                                                             <th class="px-3 py-2 text-center">Status</th>
                                                             <th class="px-3 py-2 text-center">Detail</th>
                                                         </tr>
@@ -591,9 +592,13 @@
                                                                 </span>
                                                             </td>
                                                             <td class="px-3 py-2 text-right font-mono">{{ formatCurrency(trx.harga_jual) }}</td>
-                                                            <td class="px-3 py-2 text-right font-mono">{{ formatCurrency(trx.default_harga_modal) }}</td>
-                                                            <td class="px-3 py-2 text-right font-mono">{{ formatCurrency(trx.harga_modal ?? trx.default_harga_modal) }}</td>
-                                                            <td class="px-3 py-2 text-right font-mono font-bold"
+                                                            <td v-if="calcMode === 'compare' || calcMode === 'system'" class="px-3 py-2 text-right font-mono">{{ formatCurrency(trx.default_harga_modal) }}</td>
+                                                            <td v-if="calcMode === 'compare' || calcMode === 'audit'" class="px-3 py-2 text-right font-mono">{{ formatCurrency(trx.harga_modal ?? trx.default_harga_modal) }}</td>
+                                                            <td v-if="calcMode === 'compare' || calcMode === 'system'" class="px-3 py-2 text-right font-mono font-bold"
+                                                                :class="trx.profit_system >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                                {{ formatCurrency(trx.profit_system) }}
+                                                            </td>
+                                                            <td v-if="calcMode === 'compare' || calcMode === 'audit'" class="px-3 py-2 text-right font-mono font-bold"
                                                                 :class="(trx.profit_audit ?? trx.profit) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                                                 {{ formatCurrency(trx.profit_audit ?? trx.profit) }}
                                                             </td>
@@ -748,21 +753,51 @@
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-1.5 text-[11px] bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-100 dark:border-surface-700">
-                                    <div>
+                                    <div class="col-span-2 flex items-center justify-between pb-1 border-b border-gray-100 dark:border-surface-700/60">
                                         <div class="text-[9px] text-text-secondary uppercase">Jual</div>
                                         <div class="font-mono font-bold text-text-primary truncate">{{ formatCurrency(trx.harga_jual) }}</div>
                                     </div>
-                                    <div>
-                                        <div class="text-[9px] text-text-secondary uppercase">Modal Aud</div>
-                                        <div class="font-mono text-text-primary truncate">{{ formatCurrency(trx.harga_modal ?? trx.default_harga_modal) }}</div>
-                                    </div>
-                                    <div class="col-span-2 pt-1 border-t border-gray-100 dark:border-surface-700/60 flex items-center justify-between">
-                                        <div class="text-[9px] text-text-secondary uppercase font-bold text-emerald-700 dark:text-emerald-300">Profit Aud</div>
-                                        <div class="font-mono font-bold truncate"
-                                            :class="(trx.profit_audit ?? trx.profit) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                            {{ formatCurrency(trx.profit_audit ?? trx.profit) }}
+                                    <!-- By Sistem Mode -->
+                                    <template v-if="calcMode === 'system'">
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase">Modal Sis</div>
+                                            <div class="font-mono text-text-primary truncate">{{ formatCurrency(trx.default_harga_modal) }}</div>
                                         </div>
-                                    </div>
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase font-bold text-blue-600 dark:text-blue-400">Profit Sis</div>
+                                            <div class="font-mono font-bold truncate"
+                                                :class="trx.profit_system >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                {{ formatCurrency(trx.profit_system) }}
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <!-- By Audit Mode -->
+                                    <template v-else-if="calcMode === 'audit'">
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase">Modal Aud</div>
+                                            <div class="font-mono text-text-primary truncate">{{ formatCurrency(trx.harga_modal ?? trx.default_harga_modal) }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase font-bold text-emerald-700 dark:text-emerald-300">Profit Aud</div>
+                                            <div class="font-mono font-bold truncate"
+                                                :class="(trx.profit_audit ?? trx.profit) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                {{ formatCurrency(trx.profit_audit ?? trx.profit) }}
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <!-- Compare Mode -->
+                                    <template v-else>
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase">Modal Sis / Aud</div>
+                                            <div class="font-mono text-[10px] text-text-primary truncate">{{ formatCurrency(trx.default_harga_modal) }} / {{ formatCurrency(trx.harga_modal ?? trx.default_harga_modal) }}</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-text-secondary uppercase font-bold">Profit Sis / Aud</div>
+                                            <div class="font-mono text-[10px] font-bold truncate text-emerald-600 dark:text-emerald-400">
+                                                {{ formatCurrency(trx.profit_system) }} / {{ formatCurrency(trx.profit_audit ?? trx.profit) }}
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
 
                                 <div class="flex items-center justify-between pt-1">
