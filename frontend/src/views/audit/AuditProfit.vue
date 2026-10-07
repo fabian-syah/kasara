@@ -99,6 +99,11 @@
                             <option value="tukar_unit">Tukar Unit</option>
                             <option value="tukar_tambah">Tukar Tambah</option>
                             <option value="downgrade">Downgrade</option>
+                            <option value="dp">DP (Down Payment)</option>
+                            <option value="pelunasan_dp">Pelunasan DP</option>
+                            <option value="refund_dp">Refund DP</option>
+                            <option value="refund">Refund</option>
+                            <option value="angkat_barang">Angkat Barang</option>
                             <option value="cancel_penjualan">Cancel Penjualan</option>
                         </select>
                         <ChevronDown :size="16"
@@ -244,8 +249,9 @@
                                         <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
                                     </div>
                                     <span v-else
-                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                                        {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : item.category }}
+                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg border"
+                                        :class="getCategoryBadgeClass(item.category)">
+                                        {{ formatCategoryLabel(item.category) }}
                                     </span>
                                 </td>
                                 <td colspan="4" class="p-0 align-top">
@@ -834,6 +840,56 @@ const saveChecklist = async () => {
 const editableModal = reactive({})
 const detailPresets = reactive({})
 const savingModalId = ref(null)
+
+const formatCategoryLabel = (category) => {
+    const cat = (category || '').toLowerCase();
+    switch (cat) {
+        case 'penjualan_store':
+        case 'pos':
+        case 'sale':
+            return 'Penjualan Store';
+        case 'shopee':
+        case 'orderan_online':
+            return 'Orderan Online';
+        case 'tukar_unit':
+            return 'Tukar Unit';
+        case 'tukar_tambah':
+            return 'Tukar Tambah';
+        case 'downgrade':
+            return 'Downgrade';
+        case 'dp':
+            return 'DP';
+        case 'pelunasan_dp':
+            return 'Pelunasan DP';
+        case 'refund_dp':
+            return 'Refund DP';
+        case 'refund':
+            return 'Refund';
+        case 'angkat_barang':
+            return 'Angkat Barang';
+        case 'cancel_penjualan':
+            return 'Dibatalkan';
+        default:
+            return category || '-';
+    }
+};
+
+const getCategoryBadgeClass = (category) => {
+    const cat = (category || '').toLowerCase();
+    if (cat === 'dp' || cat === 'pelunasan_dp') {
+        return 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border-purple-200 dark:border-purple-500/20';
+    }
+    if (cat === 'refund_dp' || cat === 'refund') {
+        return 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border-rose-200 dark:border-rose-500/20';
+    }
+    if (cat === 'cancel_penjualan') {
+        return 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border-red-200 dark:border-red-500/20';
+    }
+    if (cat === 'tukar_tambah' || cat === 'tukar_unit' || cat === 'downgrade') {
+        return 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
+    }
+    return 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
+};
 
 const isItemHp = (detail) => {
     if (!detail) return false;

@@ -101,9 +101,12 @@
                             <option value="tukar_unit">Tukar Unit</option>
                             <option value="tukar_tambah">Tukar Tambah</option>
                             <option value="downgrade">Downgrade</option>
-                            <option value="cancel_penjualan">Cancel Penjualan</option>
+                            <option value="dp">DP (Down Payment)</option>
+                            <option value="pelunasan_dp">Pelunasan DP</option>
+                            <option value="refund_dp">Refund DP</option>
                             <option value="refund">Refund</option>
                             <option value="angkat_barang">Angkat Barang</option>
+                            <option value="cancel_penjualan">Cancel Penjualan</option>
                         </select>
                         <ChevronDown :size="16"
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -273,9 +276,13 @@
                                             'px-2.5 py-1 text-xs font-semibold rounded-lg border',
                                             item.category === 'balancing' 
                                                 ? 'bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 border-orange-100 dark:border-orange-500/20' 
-                                                : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/20'
+                                                : (item.category === 'dp' || item.category === 'pelunasan_dp')
+                                                    ? 'bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400 border-purple-100 dark:border-purple-500/20'
+                                                    : (item.category === 'refund_dp' || item.category === 'refund')
+                                                        ? 'bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border-rose-100 dark:border-rose-500/20'
+                                                        : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 border-blue-100 dark:border-blue-500/20'
                                           ]">
-                                          {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : item.category }}
+                                          {{ (item.category === 'shopee' || item.category === 'orderan_online') ? 'Orderan Online' : (item.category === 'dp' ? 'DP' : (item.category === 'pelunasan_dp' ? 'Pelunasan DP' : item.category)) }}
                                     </span>
                                 </td>
                                 <td colspan="3" class="p-0 align-top">

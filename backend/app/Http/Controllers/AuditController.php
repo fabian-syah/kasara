@@ -3689,6 +3689,7 @@ class AuditController extends Controller
                     'stock_outs.created_at',
                     'stock_outs.selling_price',
                     'stock_outs.paid_amount',
+                    'stock_outs.dp_amount',
                     'stock_outs.split_payments',
                     'audit_profits.id as audit_profit_id',
                     'audit_profits.harga_modal as audit_cost',
@@ -3720,7 +3721,7 @@ class AuditController extends Controller
                     : ($row->created_at ? substr($row->created_at, 0, 10) : date('Y-m-d'));
 
                 $catLower = strtolower($row->category);
-                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'refund_dp', 'angkat_barang']);
 
                 $spTotal = 0;
                 if ($row->split_payments) {
@@ -3731,7 +3732,11 @@ class AuditController extends Controller
                         }
                     }
                 }
-                $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? (float)($row->paid_amount ?? 0) : (float)($row->selling_price ?? 0));
+                $dpVal = (float)($row->dp_amount ?? 0);
+                $paidVal = (float)($row->paid_amount ?? 0);
+                $sellVal = (float)($row->selling_price ?? 0);
+                $effectiveDpVal = ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal));
+                $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? $effectiveDpVal : $sellVal);
 
                 $hpCost = (float)($row->hp_cost ?? 0);
                 $defaultHargaModal = ($hpCost > 0) ? $hpCost : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
@@ -4061,6 +4066,109 @@ class AuditController extends Controller
                     }
                 }
 
+                // Fallback for DP, Refund DP, and transactions where items are not in items/nonHpItems
+                if (empty($details) && $catLower === 'dp') {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $actualNote = isset($noteParts[1]) ? trim($noteParts[1]) : (trim($noteParts[0]) ?: null);
+
+                    $dpDate = $trx->created_at ? $trx->created_at->format('d M Y') : '-';
+                    $custName = trim($trx->customer_name ?? $trx->receiver_name ?? '');
+
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    if (!$productNameStr || strtolower($productNameStr) === 'dp') {
+                        $itemName = "DP : " . ($custName ? $custName . " " : "") . $dpDate;
+                    } else {
+                        $itemName = str_ireplace('pstore unit', '', $productNameStr);
+                    }
+
+                    $dpAmt = (float) ($trx->dp_amount ?? 0);
+                    $paidAmt = (float) ($trx->paid_amount ?? 0);
+                    $sellAmt = (float) ($trx->selling_price ?? 0);
+                    $finalItemPrice = $targetTrxOmset > 0 ? $targetTrxOmset : ($dpAmt > 0 ? $dpAmt : ($paidAmt > 0 ? $paidAmt : $sellAmt));
+
+                    $brand = '-';
+                    $lowerName = strtolower($itemName);
+                    if (str_contains($lowerName, 'iphone') || str_contains($lowerName, 'apple') || str_contains($lowerName, 'ipad')) {
+                        $brand = 'iPhone';
+                    } elseif (str_contains($lowerName, 'realme')) {
+                        $brand = 'Realme';
+                    } elseif (str_contains($lowerName, 'samsung')) {
+                        $brand = 'Samsung';
+                    } elseif (str_contains($lowerName, 'xiaomi') || str_contains($lowerName, 'redmi') || str_contains($lowerName, 'poco')) {
+                        $brand = 'Xiaomi';
+                    } elseif (str_contains($lowerName, 'oppo')) {
+                        $brand = 'Oppo';
+                    } elseif (str_contains($lowerName, 'vivo')) {
+                        $brand = 'Vivo';
+                    } elseif (str_contains($lowerName, 'infinix')) {
+                        $brand = 'Infinix';
+                    }
+
+                    $details[] = [
+                        'id' => 'dp_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => $finalItemPrice,
+                        'is_fixed' => true,
+                        'brand' => $brand,
+                        'type' => 'DP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => 'second',
+                        'distributor' => '-',
+                        'distributor_id' => null,
+                        'raw_cost_price' => 0,
+                    ];
+                    $calculatedTotal += $finalItemPrice;
+                } elseif (empty($details) && $catLower === 'refund_dp') {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    $itemName = "Refund DP: " . ($productNameStr ?: ($trx->customer_name ?: ''));
+
+                    $dpAmt = (float) ($trx->dp_amount ?? 0);
+                    $paidAmt = (float) ($trx->paid_amount ?? 0);
+                    $sellAmt = (float) ($trx->selling_price ?? 0);
+                    $finalItemPrice = $targetTrxOmset > 0 ? $targetTrxOmset : ($dpAmt > 0 ? $dpAmt : ($paidAmt > 0 ? $paidAmt : $sellAmt));
+
+                    $details[] = [
+                        'id' => 'refund_dp_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => -$finalItemPrice,
+                        'is_fixed' => true,
+                        'brand' => '-',
+                        'type' => 'Refund DP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => '-',
+                        'distributor' => '-',
+                        'distributor_id' => null,
+                        'raw_cost_price' => 0,
+                    ];
+                    $calculatedTotal += -$finalItemPrice;
+                } elseif (empty($details)) {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    $itemName = $productNameStr ?: ($trx->category ?: 'Item Transaksi');
+                    $price = $targetTrxOmset > 0 ? $targetTrxOmset : (float) ($trx->selling_price ?: $trx->paid_amount ?: 0);
+                    $details[] = [
+                        'id' => 'trx_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => $price,
+                        'is_fixed' => true,
+                        'brand' => '-',
+                        'type' => strtoupper($trx->category ?: 'Item'),
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => '-',
+                        'distributor' => '-',
+                        'distributor_id' => null,
+                        'raw_cost_price' => 0,
+                    ];
+                    $calculatedTotal += $price;
+                }
+
                 // Outlet Name (Pre-fetched)
                 $sourceUser = $trx->inventoryUser ?? $trx->user;
                 $outletName = 'APEX POS';
@@ -4138,9 +4246,16 @@ class AuditController extends Controller
                 unset($detail);
 
                 $catLower = strtolower($trx->category);
-                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
+                $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'refund_dp', 'angkat_barang']);
 
-                $hargaJual = (float) ($trx->selling_price ?? 0);
+                $dpVal = (float)($trx->dp_amount ?? 0);
+                $paidVal = (float)($trx->paid_amount ?? 0);
+                $sellVal = (float)($trx->selling_price ?? 0);
+                $effectiveDpVal = ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal));
+                $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? $effectiveDpVal : $sellVal);
+                if ($hargaJual == 0 && $calculatedTotal != 0) {
+                    $hargaJual = $calculatedTotal;
+                }
                 $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
                 $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
                 $profit = $hargaJual - $totalHargaModal;
@@ -4275,7 +4390,15 @@ class AuditController extends Controller
             ]
         );
 
-        $profit = $stockOut->selling_price - $totalModal;
+        $catLower = strtolower($stockOut->category ?? '');
+        $dpVal = (float)($stockOut->dp_amount ?? 0);
+        $paidVal = (float)($stockOut->paid_amount ?? 0);
+        $sellVal = (float)($stockOut->selling_price ?? 0);
+        $effectiveSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp'])
+            ? ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal))
+            : $sellVal;
+
+        $profit = $effectiveSellingPrice - $totalModal;
 
         return response()->json([
             'message' => 'Harga modal berhasil disimpan',
