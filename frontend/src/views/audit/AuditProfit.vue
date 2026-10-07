@@ -360,31 +360,10 @@
                                         </template>
                                     </div>
                                     <div v-if="!isLeader"
-                                        class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[850px]">
-                                        <!-- Batch apply preset for all items in this transaction -->
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-medium text-text-secondary whitespace-nowrap">Terapkan Semua:</span>
-                                            <select v-model="batchPresets[item.id]"
-                                                class="text-xs py-1 px-2.5 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 cursor-pointer">
-                                                <option value="" disabled>Pilih Opsi Hitung</option>
-                                                <option value="pct_2">2%</option>
-                                                <option value="pct_5">5%</option>
-                                                <option value="pct_10">10%</option>
-                                                <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
-                                                <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
-                                                <option value="range_iphone">Range (Khusus iPhone)</option>
-                                                <option value="admin_harga">Admin Harga</option>
-                                                <option value="default">Default (Input Awal)</option>
-                                            </select>
-                                            <button @click="applyBatchPreset(item)" :disabled="!batchPresets[item.id]"
-                                                class="px-2.5 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:!bg-surface-700 text-text-primary hover:bg-gray-200 dark:hover:bg-surface-600 border border-gray-200 dark:border-surface-600 transition-all disabled:opacity-40">
-                                                Terapkan
-                                            </button>
-                                        </div>
-
+                                        class="flex items-center justify-end p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[850px]">
                                         <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
                                             class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
-                                            title="Simpan Semua Harga Modal Transaksi Ini">
+                                            title="Simpan Harga Modal Transaksi Ini">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
                                             <Loader2 v-else :size="14" class="animate-spin" />
                                             <span>Simpan Rincian Modal</span>
@@ -854,7 +833,6 @@ const saveChecklist = async () => {
 // editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
 const editableModal = reactive({})
 const detailPresets = reactive({})
-const batchPresets = reactive({})
 const savingModalId = ref(null)
 
 // iPhone second range profit rules:
@@ -928,27 +906,6 @@ const handlePresetChange = (item, detail, presetKey) => {
         if (!editableModal[item.id]) editableModal[item.id] = {};
         editableModal[item.id][detail.id] = modalVal;
     }
-};
-
-const applyBatchPreset = (item) => {
-    const presetKey = batchPresets[item.id];
-    if (!presetKey || !item.items) return;
-
-    item.items.forEach(detail => {
-        handlePresetChange(item, detail, presetKey);
-    });
-
-    const labels = {
-        pct_2: '2%',
-        pct_5: '5%',
-        pct_10: '10%',
-        pct_20_nonhp: '20% (Khusus Non-HP)',
-        pct_30_nonhp: '30% (Khusus Non-HP)',
-        range_iphone: 'Range (Khusus iPhone)',
-        admin_harga: 'Admin Harga',
-        default: 'Default (Input Awal)',
-    };
-    toast.success(`Preset "${labels[presetKey] || presetKey}" berhasil diterapkan ke semua item!`);
 };
 
 const initEditableModal = () => {
