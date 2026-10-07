@@ -14,6 +14,7 @@
                 </p>
             </div>
 
+            <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
                 <!-- Buka Audit Profit Link -->
                 <router-link v-if="canAccessAudit" to="/audit/uc/profit"
                     class="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 min-h-[42px] rounded-xl text-xs font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm whitespace-nowrap">
