@@ -2,7 +2,7 @@
     <div class="space-y-8">
         <!-- Section: Audit Profit -->
         <div
-            class="bg-surface-50 dark:bg-surface-900/50 p-6 rounded-2xl border border-surface-200 dark:border-surface-700">
+            class="bg-surface-50 dark:bg-surface-900/50 p-3.5 sm:p-6 rounded-xl sm:rounded-2xl border border-surface-200 dark:border-surface-700">
             <!-- Header & Filters -->
             <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                 <div>
@@ -10,9 +10,9 @@
                     <p class="text-sm text-gray-500 mt-1">Analisis profit per transaksi penjualan</p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
                     <!-- Period Filter -->
-                    <div class="relative min-w-[140px]">
+                    <div class="relative w-full sm:w-auto min-w-[130px]">
                         <select v-model="selectedPeriod" @change="handlePeriodChange"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="daily">Harian</option>
@@ -24,7 +24,7 @@
                     </div>
 
                     <!-- Daily: Date Picker -->
-                    <div v-if="selectedPeriod === 'daily'" class="relative group">
+                    <div v-if="selectedPeriod === 'daily'" class="relative group w-full sm:w-auto">
                         <div
                             class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
                             <Calendar :size="18"
@@ -42,7 +42,7 @@
 
                     <!-- All: All Dates Indicator -->
                     <div v-else-if="selectedPeriod === 'all'"
-                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm">
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm w-full sm:w-auto">
                         <Calendar :size="18" class="text-primary-500" />
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
                             Semua Tanggal
@@ -50,8 +50,8 @@
                     </div>
 
                     <!-- Monthly: Month & Year Selectors -->
-                    <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2">
-                        <div class="relative min-w-[140px]">
+                    <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                        <div class="relative flex-1 sm:flex-initial min-w-[130px]">
                             <select v-model="selectedMonth" @change="handleMonthChange"
                                 class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                                 <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
@@ -70,7 +70,7 @@
                     </div>
 
                     <!-- Branch Filter -->
-                    <div v-if="canFilterBranch && locations.length > 1" class="relative min-w-[200px]">
+                    <div v-if="canFilterBranch && locations.length > 1" class="relative w-full sm:w-auto min-w-[160px] sm:min-w-[200px]">
                         <select v-model="selectedLocationKey" @change="fetchData()"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option v-if="isAlwaysGlobal" value="all">Semua Cabang/Toko</option>
@@ -84,13 +84,13 @@
                     </div>
                     <!-- Single Branch Display -->
                     <div v-else-if="canFilterBranch && locations.length === 1"
-                        class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2">
+                        class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2 w-full sm:w-auto">
                         <div class="w-2 h-2 rounded-full bg-primary-500"></div>
                         <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
                     </div>
 
                     <!-- Category Filter -->
-                    <div class="relative min-w-[160px]">
+                    <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[160px]">
                         <select v-model="filters.category" @change="fetchData"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Kategori</option>
@@ -112,14 +112,14 @@
 
                     <!-- Riwayat Profit Link -->
                     <router-link to="/reports/profit-history"
-                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm">
+                        class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm w-full sm:w-auto">
                         <TrendingUp :size="18" />
                         <span>Riwayat Profit</span>
                     </router-link>
 
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
-                        class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
+                        class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50 w-full sm:w-auto"
                         :style="{ backgroundColor: '#10b981', color: '#ffffff' }">
                         <Download :size="18" :class="{ 'animate-bounce': exporting }" />
                         <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
@@ -128,34 +128,34 @@
             </div>
 
             <!-- Summary Cards (Current Page) -->
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Transaksi</p>
-                    <p class="text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Transaksi</p>
+                    <p class="text-sm sm:text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total Cancel</p>
-                    <p class="text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Cancel</p>
+                    <p class="text-sm sm:text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Belum Diaudit (Global)</p>
-                    <p class="text-lg font-bold text-amber-500">{{ summaryStats.belumDiaudit }}</p>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Belum Diaudit</p>
+                    <p class="text-sm sm:text-lg font-bold text-amber-500">{{ summaryStats.belumDiaudit }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Sudah Diaudit (Global)</p>
-                    <p class="text-lg font-bold text-emerald-500">{{ summaryStats.sudahDiaudit }}</p>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Sudah Diaudit</p>
+                    <p class="text-sm sm:text-lg font-bold text-emerald-500">{{ summaryStats.sudahDiaudit }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Jual (Hal ini)</p>
-                    <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaJual) }}</p>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Harga Jual</p>
+                    <p class="text-sm sm:text-lg font-bold text-text-primary truncate">{{ formatCurrency(totalHargaJual) }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Harga Modal (Hal ini)</p>
-                    <p class="text-lg font-bold text-text-primary">{{ formatCurrency(totalHargaModal) }}</p>
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Harga Modal</p>
+                    <p class="text-sm sm:text-lg font-bold text-text-primary truncate">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
-                    <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Profit (Hal ini)</p>
-                    <p class="text-lg font-bold"
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4 col-span-2 sm:col-span-1">
+                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Profit</p>
+                    <p class="text-sm sm:text-lg font-bold truncate"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                         {{ formatCurrency(totalProfit) }}
                     </p>
@@ -164,7 +164,13 @@
 
             <!-- Table -->
             <div
-                class="bg-white dark:!bg-surface-800 rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                class="bg-white dark:!bg-surface-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 dark:border-surface-700 overflow-hidden">
+                <!-- Mobile Horizontal Scroll Hint -->
+                <div class="xl:hidden px-3.5 py-2 bg-gray-50/80 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700 flex items-center justify-between text-[11px] text-text-secondary">
+                    <span class="flex items-center gap-1.5 font-medium">
+                        <span>👉</span> Geser tabel ke kanan untuk melihat rincian barang, modal & aksi
+                    </span>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead
@@ -437,8 +443,8 @@
 
                 <!-- Pagination -->
                 <div v-if="profitRecords.daily_sales.total > 0"
-                    class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-between items-center bg-gray-50/50 dark:bg-surface-700/30">
-                    <span class="text-xs text-text-secondary font-medium">
+                    class="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100 dark:border-surface-700 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-50/50 dark:bg-surface-700/30">
+                    <span class="text-xs text-text-secondary font-medium text-center sm:text-left">
                         Menampilkan {{ (profitRecords.daily_sales.current_page - 1) * profitRecords.daily_sales.per_page +
                             1 }} -
                         {{ Math.min(profitRecords.daily_sales.current_page * profitRecords.daily_sales.per_page,
