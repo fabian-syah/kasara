@@ -3848,7 +3848,7 @@ class AuditController extends Controller
                         'type' => 'HP',
                         'imei' => $item->imei ?? '-',
                         'storage' => $item->storage ?? null,
-                        'condition' => $item->condition ?? 'second',
+                        'condition' => strtolower(trim((string) ($item->condition ?? 'second'))),
                         'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
                         'distributor_id' => $item->distributor_id ?? null,
                         'raw_cost_price' => (float) ($item->cost_price ?? 0),
@@ -4054,12 +4054,17 @@ class AuditController extends Controller
                                 $brandLower = strtolower($detail['brand'] ?? '');
                                 $nameLower = strtolower($detail['name'] ?? '');
                                 $isApple = str_contains($brandLower, 'apple') || str_contains($nameLower, 'iphone') || str_contains($nameLower, 'ipad');
-                                $cond = strtolower($detail['condition'] ?? 'second');
+                                
+                                // Status New dan Second diambil dari kolom condition database (product_details.condition)
+                                $cond = strtolower(trim((string) ($detail['condition'] ?? 'second')));
+                                $isNew = ($cond === 'new' || str_contains($cond, 'baru'));
 
-                                if ($isApple && $cond === 'new') {
-                                    $defaultItemModal = round($itemJualTotal * 0.97);
+                                if ($isApple) {
+                                    // iPhone: New = 3% (modal 97%), Second = 6% (modal 94%)
+                                    $defaultItemModal = $isNew ? round($itemJualTotal * 0.97) : round($itemJualTotal * 0.94);
                                 } else {
-                                    $defaultItemModal = round($itemJualTotal * 0.94);
+                                    // Android: New = 3% (modal 97%), Second = 6% (modal 94%)
+                                    $defaultItemModal = $isNew ? round($itemJualTotal * 0.97) : round($itemJualTotal * 0.94);
                                 }
                             }
                         } else {

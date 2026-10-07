@@ -309,7 +309,7 @@
                                                         <option value="pct_10">10%</option>
                                                         <option v-if="isItemNonHp(detail)" value="pct_20_nonhp">20% (Khusus Non-HP)</option>
                                                         <option v-if="isItemNonHp(detail)" value="pct_30_nonhp">30% (Khusus Non-HP)</option>
-                                                        <option v-if="isItemIphone(detail)" value="range_iphone">Range (Khusus iPhone)</option>
+                                                        <option v-if="isItemIphoneSecond(detail)" value="range_iphone">Range (Khusus iPhone)</option>
                                                         <option value="admin_harga">Admin Harga</option>
                                                         <option value="default">Default (Input Awal)</option>
                                                         <option value="manual">Input Manual</option>
@@ -908,6 +908,12 @@ const isItemIphone = (detail) => {
     const name = (detail.name || '').toLowerCase();
     const isApple = brand.includes('apple') || brand.includes('iphone') || name.includes('iphone') || name.includes('ipad');
     return isApple && isItemHp(detail);
+};
+
+const isItemIphoneSecond = (detail) => {
+    if (!isItemIphone(detail)) return false;
+    const cond = (detail?.condition || '').toLowerCase().trim();
+    return cond !== 'new' && !cond.includes('baru');
 };
 
 // iPhone second range profit rules:

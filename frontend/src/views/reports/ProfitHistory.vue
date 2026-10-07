@@ -1230,7 +1230,7 @@
                                                     <div class="text-[10px] text-text-secondary font-mono">
                                                         <span v-if="detail.imei && detail.imei !== '-'">IMEI: {{ detail.imei }}</span>
                                                         <span v-if="detail.brand"> • {{ detail.brand }}</span>
-                                                        <span v-if="detail.condition"> • {{ detail.condition }}</span>
+                                                        <span v-if="detail.condition && detail.condition !== '-'"> • {{ formatConditionLabel(detail.condition) }}</span>
                                                     </div>
                                                 </td>
                                                 <td class="px-3 py-2.5 text-[11px] text-text-secondary font-semibold">
@@ -1267,6 +1267,7 @@
                                         </div>
                                         <div class="text-[10px] text-text-secondary font-mono">
                                             <span v-if="detail.imei && detail.imei !== '-'">IMEI: {{ detail.imei }}</span>
+                                            <span v-if="detail.condition && detail.condition !== '-'"> • {{ formatConditionLabel(detail.condition) }}</span>
                                             <span v-if="detail.distributor && detail.distributor !== '-'"> • Dist: {{ detail.distributor }}</span>
                                         </div>
                                         <div class="grid grid-cols-2 gap-1.5 bg-white dark:!bg-surface-800 p-2 rounded-lg border border-gray-100 dark:border-surface-700 text-[11px]">
@@ -1274,12 +1275,23 @@
                                                 <span class="text-[9px] text-text-secondary uppercase block">Harga Jual</span>
                                                 <span class="font-mono font-bold text-text-primary">{{ formatCurrency(detail.harga_jual) }}</span>
                                             </div>
-                                            <div>
-                                                <span class="text-[9px] text-text-secondary uppercase block">Modal Audit</span>
+                                            <div v-if="calcMode === 'compare' || calcMode === 'system'">
+                                                <span class="text-[9px] text-text-secondary uppercase block">Modal Sis</span>
+                                                <span class="font-mono text-text-primary">{{ formatCurrency(detail.default_harga_modal) }}</span>
+                                            </div>
+                                            <div v-if="calcMode === 'compare' || calcMode === 'audit'">
+                                                <span class="text-[9px] text-text-secondary uppercase block">Modal Aud</span>
                                                 <span class="font-mono text-text-primary">{{ formatCurrency(detail.harga_modal ?? detail.default_harga_modal) }}</span>
                                             </div>
-                                            <div class="col-span-2 pt-1 border-t border-gray-100 dark:border-surface-700/60 flex items-center justify-between">
-                                                <span class="text-[9px] text-text-secondary uppercase font-bold text-emerald-700 dark:text-emerald-300">Profit Audit</span>
+                                            <div v-if="calcMode === 'compare' || calcMode === 'system'" class="col-span-2 pt-1 border-t border-gray-100 dark:border-surface-700/60 flex items-center justify-between">
+                                                <span class="text-[9px] text-text-secondary uppercase font-bold text-emerald-700 dark:text-emerald-300">Profit Sis</span>
+                                                <span class="font-mono font-bold"
+                                                    :class="detail.profit_system >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                    {{ formatCurrency(detail.profit_system) }}
+                                                </span>
+                                            </div>
+                                            <div v-if="calcMode === 'compare' || calcMode === 'audit'" class="col-span-2 pt-1 border-t border-gray-100 dark:border-surface-700/60 flex items-center justify-between">
+                                                <span class="text-[9px] text-text-secondary uppercase font-bold text-emerald-700 dark:text-emerald-300">Profit Aud</span>
                                                 <span class="font-mono font-bold"
                                                     :class="(detail.profit_audit ?? detail.profit) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                                     {{ formatCurrency(detail.profit_audit ?? detail.profit) }}
@@ -1849,6 +1861,15 @@ const formatCategoryLabel = (cat) => {
         'cancel_penjualan': 'Dibatalkan'
     };
     return map[cat] || cat;
+};
+
+const formatConditionLabel = (cond) => {
+    if (!cond || cond === '-') return '';
+    const c = String(cond).toLowerCase().trim();
+    if (c === 'new') return 'Baru';
+    if (c === 'ex_ibox') return 'Ex iBox';
+    if (c === 'second') return 'Second';
+    return cond;
 };
 
 const getCategoryBadgeClass = (cat) => {
