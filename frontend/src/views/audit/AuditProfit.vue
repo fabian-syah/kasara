@@ -171,14 +171,10 @@
             </div>
 
             <!-- Summary Cards (Current Page & Filter) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-4 mb-6" v-if="displayedSales && displayedSales.length > 0">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4 mb-6" v-if="displayedSales && displayedSales.length > 0">
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Transaksi</p>
                     <p class="text-sm sm:text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
-                </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
-                    <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Cancel</p>
-                    <p class="text-sm sm:text-lg font-bold text-red-500">{{ summaryStats.totalCancel }}</p>
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Belum Diaudit</p>
@@ -196,7 +192,7 @@
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Harga Modal</p>
                     <p class="text-sm sm:text-lg font-bold text-text-primary truncate">{{ formatCurrency(totalHargaModal) }}</p>
                 </div>
-                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4 col-span-2 sm:col-span-1">
+                <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Profit</p>
                     <p class="text-sm sm:text-lg font-bold truncate"
                         :class="totalProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
@@ -426,13 +422,13 @@
                                                 </div>
                                                 <div class="flex items-center gap-4">
                                                     <span class="font-mono text-[10px] text-gray-500">Jual: {{
-                                                        formatCurrency(getItemDisplayJual(item)) }}</span>
+                                                        formatCurrency(isRowAudited(item) ? getItemDisplayJual(item) : 0) }}</span>
                                                     <span class="font-mono text-[10px] text-gray-500">Modal: {{
-                                                        formatCurrency(getItemDisplayModal(item))
+                                                        formatCurrency(isRowAudited(item) ? getItemDisplayModal(item) : 0)
                                                     }}</span>
                                                     <span class="font-bold font-mono text-[11px]"
                                                         :class="getItemDisplayProfit(item) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                                        Profit: {{ formatCurrency(getItemDisplayProfit(item)) }}</span>
+                                                        Profit: {{ formatCurrency(isRowAudited(item) ? getItemDisplayProfit(item) : 0) }}</span>
                                                 </div>
                                             </div>
                                         </template>
@@ -1465,15 +1461,24 @@ const summaryStats = computed(() => {
     }
 })
 
-// Summary computeds based on displayedSales
+// Summary computeds based on displayedSales (hanya menghitung transaksi yang sudah diaudit)
 const totalHargaJual = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayJual(item), 0)
+    (displayedSales.value || []).reduce((sum, item) => {
+        if (!isRowAudited(item)) return sum;
+        return sum + getItemDisplayJual(item);
+    }, 0)
 )
 const totalHargaModal = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayModal(item), 0)
+    (displayedSales.value || []).reduce((sum, item) => {
+        if (!isRowAudited(item)) return sum;
+        return sum + getItemDisplayModal(item);
+    }, 0)
 )
 const totalProfit = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayProfit(item), 0)
+    (displayedSales.value || []).reduce((sum, item) => {
+        if (!isRowAudited(item)) return sum;
+        return sum + getItemDisplayProfit(item);
+    }, 0)
 )
 
 const formattedDateDisplay = computed(() => {

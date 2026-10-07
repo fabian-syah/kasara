@@ -4272,7 +4272,7 @@ class AuditController extends Controller
                     }
 
                     $dailyRecap[$trxDateStr]['count']++;
-                    $dailyRecap[$trxDateStr]['totalPenjualan'] += $hargaJual;
+                    $dailyRecap[$trxDateStr]['totalPenjualan'] += ($savedProfit ? $hargaJual : 0);
                     $dailyRecap[$trxDateStr]['totalModalSystem'] += $defaultHargaModal;
                     $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
                     $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
@@ -4286,7 +4286,7 @@ class AuditController extends Controller
                         $summaryTotals['sudah_diaudit']++;
                     }
 
-                    $summaryTotals['total_penjualan'] += $hargaJual;
+                    $summaryTotals['total_penjualan'] += ($savedProfit ? $hargaJual : 0);
                     $summaryTotals['total_modal_system'] += $defaultHargaModal;
                     $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
                     $summaryTotals['total_profit_system'] += $profitSystem;
