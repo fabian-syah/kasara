@@ -298,14 +298,14 @@
                                                         @change="handlePresetChange(item, detail, $event.target.value)"
                                                         :disabled="isLeader"
                                                         class="w-full text-[11px] font-medium py-1 px-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 transition-all cursor-pointer">
-                                                        <option value="default">Default (Input Awal)</option>
-                                                        <option value="admin_harga">Admin Harga</option>
-                                                        <option value="range_iphone">Range (Khusus iPhone)</option>
                                                         <option value="pct_2">2%</option>
                                                         <option value="pct_5">5%</option>
                                                         <option value="pct_10">10%</option>
                                                         <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
                                                         <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
+                                                        <option value="range_iphone">Range (Khusus iPhone)</option>
+                                                        <option value="admin_harga">Admin Harga</option>
+                                                        <option value="default">Default (Input Awal)</option>
                                                         <option value="manual">Input Manual</option>
                                                     </select>
 
@@ -367,14 +367,14 @@
                                             <select v-model="batchPresets[item.id]"
                                                 class="text-xs py-1 px-2.5 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 cursor-pointer">
                                                 <option value="" disabled>Pilih Opsi Hitung</option>
-                                                <option value="default">Default (Input Awal)</option>
-                                                <option value="admin_harga">Admin Harga</option>
-                                                <option value="range_iphone">Range (Khusus iPhone)</option>
                                                 <option value="pct_2">2%</option>
                                                 <option value="pct_5">5%</option>
                                                 <option value="pct_10">10%</option>
                                                 <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
                                                 <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
+                                                <option value="range_iphone">Range (Khusus iPhone)</option>
+                                                <option value="admin_harga">Admin Harga</option>
+                                                <option value="default">Default (Input Awal)</option>
                                             </select>
                                             <button @click="applyBatchPreset(item)" :disabled="!batchPresets[item.id]"
                                                 class="px-2.5 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:!bg-surface-700 text-text-primary hover:bg-gray-200 dark:hover:bg-surface-600 border border-gray-200 dark:border-surface-600 transition-all disabled:opacity-40">
@@ -938,7 +938,17 @@ const applyBatchPreset = (item) => {
         handlePresetChange(item, detail, presetKey);
     });
 
-    toast.success(`Preset "${presetKey}" berhasil diterapkan ke semua item!`);
+    const labels = {
+        pct_2: '2%',
+        pct_5: '5%',
+        pct_10: '10%',
+        pct_20_nonhp: '20% (Khusus Non-HP)',
+        pct_30_nonhp: '30% (Khusus Non-HP)',
+        range_iphone: 'Range (Khusus iPhone)',
+        admin_harga: 'Admin Harga',
+        default: 'Default (Input Awal)',
+    };
+    toast.success(`Preset "${labels[presetKey] || presetKey}" berhasil diterapkan ke semua item!`);
 };
 
 const initEditableModal = () => {
