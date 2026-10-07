@@ -301,9 +301,9 @@
                                                         <option value="pct_2">2%</option>
                                                         <option value="pct_5">5%</option>
                                                         <option value="pct_10">10%</option>
-                                                        <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
-                                                        <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
-                                                        <option value="range_iphone">Range (Khusus iPhone)</option>
+                                                        <option v-if="isItemNonHp(detail)" value="pct_20_nonhp">20% (Khusus Non-HP)</option>
+                                                        <option v-if="isItemNonHp(detail)" value="pct_30_nonhp">30% (Khusus Non-HP)</option>
+                                                        <option v-if="isItemIphone(detail)" value="range_iphone">Range (Khusus iPhone)</option>
                                                         <option value="admin_harga">Admin Harga</option>
                                                         <option value="default">Default (Input Awal)</option>
                                                         <option value="manual">Input Manual</option>
@@ -834,6 +834,25 @@ const saveChecklist = async () => {
 const editableModal = reactive({})
 const detailPresets = reactive({})
 const savingModalId = ref(null)
+
+const isItemHp = (detail) => {
+    if (!detail) return false;
+    if (detail.imei && detail.imei !== '-' && detail.imei.toString().trim() !== '') return true;
+    const type = (detail.type || '').toUpperCase();
+    return type === 'HP';
+};
+
+const isItemNonHp = (detail) => {
+    return !isItemHp(detail);
+};
+
+const isItemIphone = (detail) => {
+    if (!detail) return false;
+    const brand = (detail.brand || '').toLowerCase();
+    const name = (detail.name || '').toLowerCase();
+    const isApple = brand.includes('apple') || brand.includes('iphone') || name.includes('iphone') || name.includes('ipad');
+    return isApple && isItemHp(detail);
+};
 
 // iPhone second range profit rules:
 // 0-2 jt: 100rb
