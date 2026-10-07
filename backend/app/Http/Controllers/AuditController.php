@@ -3556,8 +3556,8 @@ class AuditController extends Controller
 
             $salesCategories = [
                 'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
-                'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
-                'pelunasan_dp', 'angkat_barang', 'refund', 'dp', 'refund_dp',
+                'bundling', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
+                'pelunasan_dp', 'dp',
                 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'
             ];
 
@@ -3608,8 +3608,8 @@ class AuditController extends Controller
                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
                                 ->orWhereExists(function ($uq) use ($branchIds) {
                                     $uq->select(DB::raw(1))->from('users')
-                                        ->whereColumn('users.id', 'stock_outs.user_id')
-                                        ->whereIn('users.branch_id', $branchIds);
+                                    ->whereColumn('users.id', 'stock_outs.user_id')
+                                    ->whereIn('users.branch_id', $branchIds);
                                 });
                         }
                         if (!empty($onlineShopIds)) {
@@ -3617,8 +3617,8 @@ class AuditController extends Controller
                             $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
                                 ->orWhereExists(function ($uq) use ($onlineShopIds) {
                                     $uq->select(DB::raw(1))->from('users')
-                                        ->whereColumn('users.id', 'stock_outs.user_id')
-                                        ->whereIn('users.online_shop_id', $onlineShopIds);
+                                    ->whereColumn('users.id', 'stock_outs.user_id')
+                                    ->whereIn('users.online_shop_id', $onlineShopIds);
                                 });
                         }
                         if (!$hasAny) {
@@ -3727,12 +3727,17 @@ class AuditController extends Controller
             $dailySalesQuery = StockOut::with([
                 'items.product.brandRelation', 
                 'items.distributor', 
+                'items.tradeIn',
+                'items.refund',
+                'items.unitExchange',
+                'items.tukarTambah',
+                'items.downgrade',
                 'nonHpItems.product.brandRelation', 
                 'nonHpItems.distributor', 
                 'user.distributor', 
                 'inventoryUser', 
                 'auditAnswers.auditor', 
-                'auditProfit', 
+                'auditProfit.auditor', 
                 'cancelledByUser',
                 'paymentMethod'
             ])
@@ -3747,8 +3752,6 @@ class AuditController extends Controller
                 ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
                     if ($request->category === 'orderan_online') {
                         $q->whereIn('category', ['shopee', 'orderan_online']);
-                    } elseif ($request->category === 'angkat_tukar_tambah') {
-                        $q->whereIn('category', ['angkat_barang', 'tukar_tambah']);
                     } else {
                         $q->where('category', $request->category);
                     }
@@ -3758,6 +3761,33 @@ class AuditController extends Controller
                         $q->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan');
                     } elseif ($request->audit_status === 'sudah') {
                         $q->whereHas('auditProfit');
+                    }
+                })
+                ->when($request->source && $request->source !== 'all', function ($q) use ($request) {
+                    $src = $request->source;
+                    if ($src === 'angkat_barang') {
+                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('trade_in_id')
+                            ->orWhere('supplier_name', 'ilike', '%trade-in%')
+                            ->orWhere('supplier_name', 'ilike', '%angkat barang%')
+                            ->orWhere('notes', 'ilike', '%angkat barang%'));
+                    } elseif ($src === 'refund') {
+                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('refund_id')->orWhere('notes', 'ilike', '%refund%'));
+                    } elseif ($src === 'tukar_tambah') {
+                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('tukar_tambah_id')->orWhere('notes', 'ilike', '%tukar tambah%'));
+                    } elseif ($src === 'downgrade') {
+                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('downgrade_id')->orWhere('notes', 'ilike', '%downgrade%'));
+                    } elseif ($src === 'tukar_unit') {
+                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('unit_exchange_id')->orWhere('notes', 'ilike', '%tukar unit%'));
+                    } elseif ($src === 'store') {
+                        $q->where(function ($sub) {
+                            $sub->whereHas('items', fn($iq) => $iq->whereNull('trade_in_id')
+                                ->whereNull('refund_id')
+                                ->whereNull('tukar_tambah_id')
+                                ->whereNull('downgrade_id')
+                                ->whereNull('unit_exchange_id'))
+                            ->orWhereHas('nonHpItems')
+                            ->orWhere('category', 'dp');
+                        });
                     }
                 })
                 ->when($request->distributor_id && $request->distributor_id !== 'all', function ($q) use ($request) {
@@ -3838,6 +3868,38 @@ class AuditController extends Controller
                     if ($discrepancy != 0 && $trxItemsTotal > 0) {
                         $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                     }
+
+                    $notesLower = strtolower(($item->notes ?? '') . ' ' . ($item->supplier_name ?? ''));
+                    $sourceType = 'store';
+                    $sourceLabel = 'In Store';
+                    $defaultPresetLabel = 'Default (input awal)';
+
+                    if ($item->trade_in_id || str_contains($notesLower, 'angkat barang') || str_contains($notesLower, 'trade-in') || str_contains($notesLower, 'trade in') || str_contains($notesLower, 'angkat_barang')) {
+                        $sourceType = 'angkat_barang';
+                        $sourceLabel = 'In Angkat Barang';
+                        $defaultPresetLabel = 'Default (in angkat barang)';
+                    } elseif ($item->refund_id || str_contains($notesLower, 'refund')) {
+                        $sourceType = 'refund';
+                        $sourceLabel = 'In Refund';
+                        $defaultPresetLabel = 'Default (in refund)';
+                    } elseif ($item->tukar_tambah_id || str_contains($notesLower, 'tukar tambah') || str_contains($notesLower, 'tukar_tambah')) {
+                        $sourceType = 'tukar_tambah';
+                        $sourceLabel = 'In Tukar Tambah';
+                        $defaultPresetLabel = 'Default (in tukar tambah)';
+                    } elseif ($item->downgrade_id || str_contains($notesLower, 'downgrade')) {
+                        $sourceType = 'downgrade';
+                        $sourceLabel = 'In Downgrade';
+                        $defaultPresetLabel = 'Default (in downgrade)';
+                    } elseif ($item->unit_exchange_id || str_contains($notesLower, 'tukar unit') || str_contains($notesLower, 'tukar_unit')) {
+                        $sourceType = 'tukar_unit';
+                        $sourceLabel = 'In Tukar Unit';
+                        $defaultPresetLabel = 'Default (in tukar unit)';
+                    } else {
+                        $sourceType = 'store';
+                        $sourceLabel = 'In Store';
+                        $defaultPresetLabel = 'Default (input awal)';
+                    }
+
                     $details[] = [
                         'id' => 'hp_' . $item->id,
                         'name' => $item->product?->name ?? 'Unknown HP',
@@ -3852,6 +3914,9 @@ class AuditController extends Controller
                         'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
                         'distributor_id' => $item->distributor_id ?? null,
                         'raw_cost_price' => (float) ($item->cost_price ?? 0),
+                        'source_type' => $sourceType,
+                        'source_label' => $sourceLabel,
+                        'default_preset_label' => $defaultPresetLabel,
                     ];
                     $calculatedTotal += $price;
                 }
@@ -3878,7 +3943,10 @@ class AuditController extends Controller
                             'type' => 'Non-HP',
                             'distributor' => '-',
                             'distributor_id' => null,
-                            'raw_cost_price' => (float) ($product?->cost_price ?? 0)
+                            'raw_cost_price' => (float) ($product?->cost_price ?? 0),
+                            'source_type' => 'store',
+                            'source_label' => 'In Store',
+                            'default_preset_label' => 'Default (input awal)',
                         ];
                         $calculatedTotal += ($price * $qty);
                     }
@@ -3899,7 +3967,10 @@ class AuditController extends Controller
                             'type' => 'Non-HP',
                             'distributor' => $nhp->distributor?->name ?? '-',
                             'distributor_id' => $nhp->distributor_id ?? null,
-                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0)
+                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                            'source_type' => 'store',
+                            'source_label' => 'In Store',
+                            'default_preset_label' => 'Default (input awal)',
                         ];
                         $calculatedTotal += ($price * $nhp->quantity);
                     }
@@ -3957,6 +4028,9 @@ class AuditController extends Controller
                         'distributor' => '-',
                         'distributor_id' => null,
                         'raw_cost_price' => 0,
+                        'source_type' => 'store',
+                        'source_label' => 'In Store',
+                        'default_preset_label' => 'Default (input awal)',
                     ];
                     $calculatedTotal += $finalItemPrice;
                 } elseif (empty($details) && $catLower === 'refund_dp') {
@@ -3983,6 +4057,9 @@ class AuditController extends Controller
                         'distributor' => '-',
                         'distributor_id' => null,
                         'raw_cost_price' => 0,
+                        'source_type' => 'store',
+                        'source_label' => 'In Store',
+                        'default_preset_label' => 'Default (input awal)',
                     ];
                     $calculatedTotal += -$finalItemPrice;
                 } elseif (empty($details)) {
@@ -4004,6 +4081,9 @@ class AuditController extends Controller
                         'distributor' => '-',
                         'distributor_id' => null,
                         'raw_cost_price' => 0,
+                        'source_type' => 'store',
+                        'source_label' => 'In Store',
+                        'default_preset_label' => 'Default (input awal)',
                     ];
                     $calculatedTotal += $price;
                 }
@@ -4079,7 +4159,7 @@ class AuditController extends Controller
                     $detail['harga_jual'] = $itemJualTotal;
                     $detail['default_harga_modal'] = $defaultItemModal;
                     $detail['harga_modal'] = $savedItemModal;
-                    $detail['profit'] = $itemJualTotal - $effectiveItemModal;
+                    $detail['profit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : 0;
                     $detail['profit_system'] = $itemJualTotal - $defaultItemModal;
                     $detail['profit_audit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : null;
                     $detail['has_saved_modal'] = $savedItemModal !== null;
@@ -4102,23 +4182,12 @@ class AuditController extends Controller
                 }
                 $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
                 $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
-                $effectiveModalAudit = $hargaModal !== null ? $hargaModal : $totalHargaModal;
-
-                if ($isRefund) {
-                    $hargaJual = -abs($hargaJual);
-                    $defaultHargaModal = -abs($defaultHargaModal);
-                    $effectiveModalAudit = -abs($effectiveModalAudit);
-                    $profit = $hargaJual - $effectiveModalAudit;
-                    $profitSystem = $hargaJual - $defaultHargaModal;
-                    $profitAudit = $hargaJual - $effectiveModalAudit;
-                } else {
-                    $hargaJual = abs($hargaJual);
-                    $defaultHargaModal = abs($defaultHargaModal);
-                    $effectiveModalAudit = abs($effectiveModalAudit);
-                    $profit = $hargaJual - $effectiveModalAudit;
-                    $profitSystem = $hargaJual - $defaultHargaModal;
-                    $profitAudit = $hargaModal !== null ? ($hargaJual - $hargaModal) : $profit;
-                }
+                
+                // Ketika belum diaudit, nilai modal audit & profit audit bernilai NOL
+                $effectiveModalAudit = $savedProfit ? $hargaModal : 0;
+                $profitSystem = $hargaJual - $defaultHargaModal;
+                $profitAudit = $savedProfit ? ($hargaJual - $hargaModal) : 0;
+                $profit = $savedProfit ? ($hargaJual - $hargaModal) : 0;
 
                 $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
                 $yesCount = $answers->where('answer', true)->count();
@@ -4168,14 +4237,16 @@ class AuditController extends Controller
                     'default_harga_modal' => $defaultHargaModal,
                     'profit' => $profit,
                     'profit_system' => $profitSystem,
-                    'profit_audit' => $profitAudit,
+                    'profit_audit' => $savedProfit ? $profitAudit : null,
                     'total_modal_system' => $defaultHargaModal,
                     'total_modal_audit' => $effectiveModalAudit,
                     'is_audited' => $isAudited,
                     'outlet_name' => $outletName,
                     'audit_score' => $auditScore,
                     'latest_auditor_name' => $trx->latest_auditor_name,
-                    'audited_at' => $trx->audited_at,
+                    'auditor_name' => $savedProfit?->auditor?->name ?? $trx->latest_auditor_name,
+                    'audited_at' => $savedProfit?->updated_at ? $savedProfit->updated_at->toDateTimeString() : $trx->audited_at,
+                    'source_types' => array_values(array_unique(array_filter(array_column($details, 'source_type')))),
                     'audit_total' => $totalQuestions,
                     'audit_yes' => $yesCount,
                     'cancelled_by_name' => $trx->cancelledByUser?->name,
@@ -4312,6 +4383,8 @@ class AuditController extends Controller
             'harga_modal' => $totalModal,
             'items_modal' => $itemsModal,
             'profit' => $profit,
+            'auditor_name' => $user->name,
+            'audited_at' => $auditProfit->updated_at->toDateTimeString(),
         ]);
     }
 

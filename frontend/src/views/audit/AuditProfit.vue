@@ -4,131 +4,174 @@
         <div
             class="bg-surface-50 dark:bg-surface-900/50 p-3.5 sm:p-6 rounded-xl sm:rounded-2xl border border-surface-200 dark:border-surface-700">
             <!-- Header & Filters -->
-            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
                 <div>
                     <h2 class="text-xl font-bold text-text-primary">Audit Profit</h2>
                     <p class="text-sm text-gray-500 mt-1">Analisis profit per transaksi penjualan</p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full lg:w-auto">
-                    <!-- Period Filter -->
-                    <div class="relative w-full sm:w-auto min-w-[130px]">
-                        <select v-model="selectedPeriod" @change="handlePeriodChange"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option value="daily">Harian</option>
-                            <option value="monthly">Bulanan</option>
-                            <option value="all">Semua</option>
-                        </select>
-                        <ChevronDown :size="16"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-
-                    <!-- Daily: Date Picker -->
-                    <div v-if="selectedPeriod === 'daily'" class="relative group w-full sm:w-auto">
-                        <div
-                            class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
-                            <Calendar :size="18"
-                                class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[100px]">
-                                {{ formattedDateDisplay }}
-                            </span>
-                        </div>
-                        <input type="date" v-model="filters.start_date" @change="handleDateChange"
-                            @click="$event.target.showPicker()"
-                            :min="getMinDate" :max="getTodayLocal()"
-                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
-
-                    </div>
-
-                    <!-- All: All Dates Indicator -->
-                    <div v-else-if="selectedPeriod === 'all'"
-                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm w-full sm:w-auto">
-                        <Calendar :size="18" class="text-primary-500" />
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                            Semua Tanggal
-                        </span>
-                    </div>
-
-                    <!-- Monthly: Month & Year Selectors -->
-                    <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
-                        <div class="relative flex-1 sm:flex-initial min-w-[130px]">
-                            <select v-model="selectedMonth" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
-                            </select>
-                            <ChevronDown :size="16"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                        </div>
-                        <div class="relative min-w-[100px]">
-                            <select v-model="selectedYear" @change="handleMonthChange"
-                                class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                                <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-                            </select>
-                            <ChevronDown :size="16"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                        </div>
-                    </div>
-
-                    <!-- Branch Filter -->
-                    <div v-if="canFilterBranch && locations.length > 1" class="relative w-full sm:w-auto min-w-[160px] sm:min-w-[200px]">
-                        <select v-model="selectedLocationKey" @change="fetchData()"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option v-if="isAlwaysGlobal" value="all">Semua Cabang/Toko</option>
-                            <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
-                                :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
-                                {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
-                            </option>
-                        </select>
-                        <ChevronDown :size="16"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-                    <!-- Single Branch Display -->
-                    <div v-else-if="canFilterBranch && locations.length === 1"
-                        class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2 w-full sm:w-auto">
-                        <div class="w-2 h-2 rounded-full bg-primary-500"></div>
-                        <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
-                    </div>
-
-                    <!-- Category Filter -->
-                    <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[160px]">
-                        <select v-model="filters.category" @change="fetchData"
-                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                            <option value="all">Semua Kategori</option>
-                            <option value="penjualan_store">Penjualan Store</option>
-                            <option value="orderan_online">Orderan Online</option>
-                            <option value="tukar_unit">Tukar Unit</option>
-                            <option value="tukar_tambah">Tukar Tambah</option>
-                            <option value="downgrade">Downgrade</option>
-                            <option value="dp">DP (Down Payment)</option>
-                            <option value="pelunasan_dp">Pelunasan DP</option>
-                            <option value="refund_dp">Refund DP</option>
-                            <option value="refund">Refund</option>
-                            <option value="angkat_barang">Angkat Barang</option>
-                            <option value="cancel_penjualan">Cancel Penjualan</option>
-                        </select>
-                        <ChevronDown :size="16"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                    </div>
-
-                    <!-- Riwayat Profit Link -->
-                    <router-link to="/reports/profit-history"
-                        class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm w-full sm:w-auto">
-                        <TrendingUp :size="18" />
-                        <span>Riwayat Profit</span>
-                    </router-link>
-
-                    <!-- Export Button -->
-                    <button @click="exportExcel" :disabled="exporting"
-                        class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50 w-full sm:w-auto"
-                        :style="{ backgroundColor: '#10b981', color: '#ffffff' }">
-                        <Download :size="18" :class="{ 'animate-bounce': exporting }" />
-                        <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
+                <!-- Tabs: All - HP - Non-HP -->
+                <div class="flex items-center gap-1 sm:gap-1.5 p-1 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 w-full sm:w-auto shadow-sm">
+                    <button @click="activeTab = 'all'"
+                        class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
+                        :class="activeTab === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                        All (Semua)
+                    </button>
+                    <button @click="activeTab = 'hp'"
+                        class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
+                        :class="activeTab === 'hp' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                        HP / IMEI
+                    </button>
+                    <button @click="activeTab = 'non_hp'"
+                        class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
+                        :class="activeTab === 'non_hp' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                        Non-HP
                     </button>
                 </div>
             </div>
 
-            <!-- Summary Cards (Current Page) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-4 mb-6" v-if="profitRecords.daily_sales.data && profitRecords.daily_sales.data.length > 0">
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full mb-6">
+                <!-- Period Filter -->
+                <div class="relative w-full sm:w-auto min-w-[130px]">
+                    <select v-model="selectedPeriod" @change="handlePeriodChange"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                        <option value="daily">Harian</option>
+                        <option value="monthly">Bulanan</option>
+                        <option value="all">Semua</option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- Daily: Date Picker -->
+                <div v-if="selectedPeriod === 'daily'" class="relative group w-full sm:w-auto">
+                    <div
+                        class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl hover:border-primary-500 hover:ring-2 hover:ring-primary-500/10 transition-all cursor-pointer">
+                        <Calendar :size="18"
+                            class="text-gray-500 dark:text-gray-400 group-hover:text-primary-500" />
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-200 min-w-[100px]">
+                            {{ formattedDateDisplay }}
+                        </span>
+                    </div>
+                    <input type="date" v-model="filters.start_date" @change="handleDateChange"
+                        @click="$event.target.showPicker()"
+                        :min="getMinDate" :max="getTodayLocal()"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                </div>
+
+                <!-- All: All Dates Indicator -->
+                <div v-else-if="selectedPeriod === 'all'"
+                    class="flex items-center gap-2 px-4 py-2.5 bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl shadow-sm w-full sm:w-auto">
+                    <Calendar :size="18" class="text-primary-500" />
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                        Semua Tanggal
+                    </span>
+                </div>
+
+                <!-- Monthly: Month & Year Selectors -->
+                <div v-if="selectedPeriod === 'monthly'" class="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+                    <div class="relative flex-1 sm:flex-initial min-w-[130px]">
+                        <select v-model="selectedMonth" @change="handleMonthChange"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option v-for="m in restrictedMonths" :key="m.value" :value="m.value">{{ m.name }}</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                    <div class="relative min-w-[100px]">
+                        <select v-model="selectedYear" @change="handleMonthChange"
+                            class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+                        </select>
+                        <ChevronDown :size="16"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                    </div>
+                </div>
+
+                <!-- Branch Filter -->
+                <div v-if="canFilterBranch && locations.length > 1" class="relative w-full sm:w-auto min-w-[160px] sm:min-w-[200px]">
+                    <select v-model="selectedLocationKey" @change="fetchData()"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                        <option v-if="isAlwaysGlobal" value="all">Semua Cabang/Toko</option>
+                        <option v-for="loc in locations" :key="`${loc.type}:${loc.id}`"
+                            :value="`${loc.type === 'branch' ? 'B' : loc.type === 'online_shop' ? 'S' : loc.type === 'warehouse' ? 'W' : 'D'}:${loc.id}`">
+                            {{ loc.type === 'branch' ? '[Cabang]' : loc.type === 'online_shop' ? '[Toko]' : loc.type === 'warehouse' ? '[Gudang]' : '[Distributor]' }} {{ loc.name }}
+                        </option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+                <!-- Single Branch Display -->
+                <div v-else-if="canFilterBranch && locations.length === 1"
+                    class="px-4 py-2.5 bg-gray-50 dark:bg-surface-800 border border-gray-100 dark:border-surface-700 rounded-xl flex items-center gap-2 w-full sm:w-auto">
+                    <div class="w-2 h-2 rounded-full bg-primary-500"></div>
+                    <span class="text-sm font-bold text-text-primary">{{ locations[0].name }}</span>
+                </div>
+
+                <!-- Category Filter (Removed: tukar_unit, refund, refund_dp, angkat_barang) -->
+                <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[160px]">
+                    <select v-model="filters.category" @change="fetchData"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                        <option value="all">Semua Kategori</option>
+                        <option value="penjualan_store">Penjualan Store</option>
+                        <option value="orderan_online">Orderan Online</option>
+                        <option value="tukar_tambah">Tukar Tambah</option>
+                        <option value="downgrade">Downgrade</option>
+                        <option value="dp">DP (Down Payment)</option>
+                        <option value="pelunasan_dp">Pelunasan DP</option>
+                        <option value="cancel_penjualan">Cancel Penjualan</option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- Filter Sumber Masuk Barang -->
+                <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[170px]">
+                    <select v-model="filters.source" @change="fetchData"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                        <option value="all">Semua Sumber Masuk</option>
+                        <option value="store">In Store (Input Awal)</option>
+                        <option value="angkat_barang">In Angkat Barang</option>
+                        <option value="refund">In Refund</option>
+                        <option value="tukar_tambah">In Tukar Tambah</option>
+                        <option value="downgrade">In Downgrade</option>
+                        <option value="tukar_unit">In Tukar Unit</option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- Filter Status Audit -->
+                <div class="relative w-full sm:w-auto min-w-[130px] sm:min-w-[150px]">
+                    <select v-model="filters.audit_status" @change="fetchData"
+                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
+                        <option value="all">Semua Status Audit</option>
+                        <option value="sudah">Sudah Diaudit</option>
+                        <option value="belum">Belum Diaudit</option>
+                    </select>
+                    <ChevronDown :size="16"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                </div>
+
+                <!-- Riwayat Profit Link -->
+                <router-link to="/reports/profit-history"
+                    class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm w-full sm:w-auto">
+                    <TrendingUp :size="18" />
+                    <span>Riwayat Profit</span>
+                </router-link>
+
+                <!-- Export Button -->
+                <button @click="exportExcel" :disabled="exporting"
+                    class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50 w-full sm:w-auto"
+                    :style="{ backgroundColor: '#10b981', color: '#ffffff' }">
+                    <Download :size="18" :class="{ 'animate-bounce': exporting }" />
+                    <span>{{ exporting ? 'Exporting...' : 'Export' }}</span>
+                </button>
+            </div>
+
+            <!-- Summary Cards (Current Page & Filter) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-4 mb-6" v-if="displayedSales && displayedSales.length > 0">
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Transaksi</p>
                     <p class="text-sm sm:text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
@@ -168,7 +211,7 @@
                 <!-- Mobile Horizontal Scroll Hint -->
                 <div class="xl:hidden px-3.5 py-2 bg-gray-50/80 dark:!bg-surface-700/50 border-b border-gray-100 dark:border-surface-700 flex items-center justify-between text-[11px] text-text-secondary">
                     <span class="flex items-center gap-1.5 font-medium">
-                        <span>👉</span> Geser tabel ke kanan untuk melihat rincian barang, modal & aksi
+                        <span>👉</span> Geser tabel ke kanan untuk melihat rincian barang, sumber, modal & aksi
                     </span>
                 </div>
                 <div class="overflow-x-auto">
@@ -184,18 +227,20 @@
                                 <th class="px-4 py-4">Kategori</th>
                                 <th colspan="4"
                                     class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:!bg-surface-700/50">
-                                    <div class="grid grid-cols-[80px_100px_1fr_100px_230px_110px] w-full min-w-[850px]">
-                                        <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
+                                    <div class="grid grid-cols-[70px_85px_1fr_130px_95px_265px_100px] w-full min-w-[960px]">
+                                        <div class="px-3 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Tipe</div>
-                                        <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
+                                        <div class="px-3 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Brand</div>
-                                        <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
+                                        <div class="px-3 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Rincian Barang</div>
-                                        <div class="px-4 py-4 text-right font-semibold text-text-secondary uppercase">
+                                        <div class="px-3 py-4 text-left font-semibold text-text-secondary uppercase">
+                                            Sumber</div>
+                                        <div class="px-3 py-4 text-right font-semibold text-text-secondary uppercase">
                                             Harga Jual</div>
-                                        <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
+                                        <div class="px-3 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Harga Modal</div>
-                                        <div class="px-4 py-4 text-right font-semibold text-text-secondary uppercase">
+                                        <div class="px-3 py-4 text-right font-semibold text-text-secondary uppercase">
                                             Profit</div>
                                     </div>
                                 </th>
@@ -212,26 +257,25 @@
                                     </div>
                                 </td>
                             </tr>
-                             <tr v-else-if="!profitRecords.daily_sales.data || profitRecords.daily_sales.data.length === 0">
+                            <tr v-else-if="!displayedSales || displayedSales.length === 0">
                                 <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
                                             <TrendingUp class="w-6 h-6 text-gray-400" />
                                         </div>
-                                        <span class="font-medium text-text-primary">Tidak ada data
-                                            profit</span>
-                                        <span class="text-xs mt-1">Belum ada transaksi pada periode ini</span>
+                                        <span class="font-medium text-text-primary">Tidak ada data profit</span>
+                                        <span class="text-xs mt-1">Belum ada transaksi pada periode atau filter ini</span>
                                     </div>
                                 </td>
                             </tr>
-                            <tr v-else v-for="(item, index) in profitRecords.daily_sales.data" :key="index"
+                            <tr v-else v-for="(item, index) in displayedSales" :key="index"
                                 class="transition-colors group text-text-primary"
                                 :class="[
                                     item.category === 'cancel_penjualan' 
                                         ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
-                                        : item.audit_score != null 
-                                            ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20' 
+                                        : isRowAudited(item) 
+                                            ? 'bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border-l-4 border-l-emerald-500' 
                                             : 'hover:bg-gray-50 dark:hover:bg-surface-700/30'
                                 ]">
                                 <td class="px-4 py-4 text-text-secondary font-medium">{{ (profitRecords.daily_sales.current_page - 1) *
@@ -240,6 +284,23 @@
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">
                                     <div>{{ item.order_no }}</div>
+                                    <!-- Audit Status Indicator -->
+                                    <div v-if="isRowAudited(item)" class="mt-1 flex flex-col gap-0.5 text-[10px]">
+                                        <span class="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-400">
+                                            <span>✓</span> Sudah Diaudit
+                                        </span>
+                                        <span v-if="item.audited_at" class="text-gray-500 dark:text-gray-400 font-mono text-[9px]">
+                                            {{ formatDate(item.audited_at) }}
+                                        </span>
+                                        <span v-if="item.auditor_name || item.latest_auditor_name" class="text-text-secondary text-[10px] truncate max-w-[140px]" :title="item.auditor_name || item.latest_auditor_name">
+                                            Oleh: <strong class="text-text-primary">{{ item.auditor_name || item.latest_auditor_name }}</strong>
+                                        </span>
+                                    </div>
+                                    <div v-else class="mt-1">
+                                        <span class="inline-flex px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                            Belum Diaudit
+                                        </span>
+                                    </div>
                                     <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
                                 </td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
@@ -261,22 +322,22 @@
                                     </span>
                                 </td>
                                 <td colspan="4" class="p-0 align-top">
-                                    <div class="flex flex-col w-full h-full min-w-[850px]">
-                                        <template v-if="item.items && item.items.length > 0">
-                                            <div v-for="(detail, idx) in item.items" :key="idx"
-                                                class="grid grid-cols-[80px_100px_1fr_100px_230px_110px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                    <div class="flex flex-col w-full h-full min-w-[960px]">
+                                        <template v-if="getDisplayItems(item) && getDisplayItems(item).length > 0">
+                                            <div v-for="(detail, idx) in getDisplayItems(item)" :key="idx"
+                                                class="grid grid-cols-[70px_85px_1fr_130px_95px_265px_100px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                                 <div
-                                                    class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex flex-col items-start gap-1">
+                                                    class="px-3 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex flex-col items-start gap-1">
                                                     <span>{{ detail.type || item.type }}</span>
                                                     <span v-if="detail.category" class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-tighter border border-blue-500/20">
                                                         {{ detail.category }}
                                                     </span>
                                                 </div>
                                                 <div
-                                                    class="px-4 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words whitespace-pre-wrap">
+                                                    class="px-3 py-4 text-xs font-semibold text-text-secondary border-r border-gray-100 dark:!border-surface-700 flex items-start break-words whitespace-pre-wrap">
                                                     {{ detail.brand || item.brand_names }}</div>
                                                 <div
-                                                    class="px-4 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center border-r border-gray-100 dark:!border-surface-700">
+                                                    class="px-3 py-4 text-xs font-medium text-text-secondary flex flex-col justify-center border-r border-gray-100 dark:!border-surface-700">
                                                     <div class="flex justify-between items-start gap-3 w-full">
                                                         <div class="whitespace-normal flex-1 leading-relaxed">
                                                             <div>{{ detail.name }}</div>
@@ -297,9 +358,19 @@
                                                             {{ detail.qty }}</div>
                                                     </div>
                                                 </div>
+                                                <!-- Sumber Barang -->
+                                                <div class="px-3 py-4 text-xs font-medium text-text-secondary border-r border-gray-100 dark:!border-surface-700 flex flex-col justify-center items-start">
+                                                    <span class="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border"
+                                                        :class="getSourceBadgeClass(detail.source_type)">
+                                                        {{ detail.source_label || 'In Store' }}
+                                                    </span>
+                                                    <span v-if="detail.distributor && detail.distributor !== '-'" class="mt-1 text-[10px] text-gray-400 truncate max-w-[120px]" :title="detail.distributor">
+                                                        {{ detail.distributor }}
+                                                    </span>
+                                                </div>
                                                 <!-- Harga Jual -->
                                                 <div
-                                                    class="px-4 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex items-center justify-end border-r border-gray-100 dark:!border-surface-700">
+                                                    class="px-3 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex items-center justify-end border-r border-gray-100 dark:!border-surface-700">
                                                     {{ formatCurrency(detail.harga_jual || 0) }}
                                                 </div>
                                                 <!-- Harga Modal Dropdown & Input -->
@@ -309,15 +380,15 @@
                                                     <select :value="getDetailPreset(item.id, detail.id)"
                                                         @change="handlePresetChange(item, detail, $event.target.value)"
                                                         :disabled="isLeader"
-                                                        class="w-full text-[11px] font-medium py-1 px-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 transition-all cursor-pointer">
-                                                        <option value="pct_2">2%</option>
-                                                        <option value="pct_5">5%</option>
-                                                        <option value="pct_10">10%</option>
-                                                        <option v-if="isItemNonHp(detail)" value="pct_20_nonhp">20% (Khusus Non-HP)</option>
-                                                        <option v-if="isItemNonHp(detail)" value="pct_30_nonhp">30% (Khusus Non-HP)</option>
-                                                        <option v-if="isItemIphoneSecond(detail)" value="range_iphone">Range (Khusus iPhone)</option>
-                                                        <option value="admin_harga">Admin Harga</option>
-                                                        <option value="default">Default (Input Awal)</option>
+                                                        class="w-full text-[11px] font-medium py-1 px-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 transition-all cursor-pointer truncate">
+                                                        <option value="pct_2">{{ getPresetOptionLabel(item, detail, 'pct_2') }}</option>
+                                                        <option value="pct_5">{{ getPresetOptionLabel(item, detail, 'pct_5') }}</option>
+                                                        <option value="pct_10">{{ getPresetOptionLabel(item, detail, 'pct_10') }}</option>
+                                                        <option v-if="isItemNonHp(detail)" value="pct_20_nonhp">{{ getPresetOptionLabel(item, detail, 'pct_20_nonhp') }}</option>
+                                                        <option v-if="isItemNonHp(detail)" value="pct_30_nonhp">{{ getPresetOptionLabel(item, detail, 'pct_30_nonhp') }}</option>
+                                                        <option v-if="isItemIphoneSecond(detail)" value="range_iphone">{{ getPresetOptionLabel(item, detail, 'range_iphone') }}</option>
+                                                        <option value="admin_harga">{{ getPresetOptionLabel(item, detail, 'admin_harga') }}</option>
+                                                        <option value="default">{{ getPresetOptionLabel(item, detail, 'default') }}</option>
                                                         <option value="manual">Input Manual</option>
                                                     </select>
 
@@ -325,60 +396,69 @@
                                                         <span
                                                             class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono pointer-events-none">Rp</span>
                                                         <input type="text"
-                                                            :value="formatModalDisplay(item.id, detail.id, detail.default_harga_modal)"
+                                                            :value="formatModalDisplay(item.id, detail.id)"
                                                             @input="onModalInput($event, item, detail)"
                                                             @focus="onModalFocus($event, item, detail)"
                                                             @blur="onModalBlur($event, item, detail)"
-                                                            :placeholder="formatNumber(detail.default_harga_modal || 0)"
+                                                            :placeholder="detail.has_saved_modal ? formatNumber(detail.harga_modal) : '0'"
                                                             class="w-full pl-8 pr-2.5 py-1 text-xs font-mono rounded-lg border transition-all
                                                                 bg-white dark:!bg-surface-700
                                                                 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                                                             :class="detail.has_saved_modal
-                                                                ? 'border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                                                                ? 'border-emerald-400 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold bg-emerald-50/30'
                                                                 : 'border-gray-200 dark:border-surface-600 text-text-primary'"
                                                             :disabled="isLeader" @keyup.enter="saveHargaModal(item)" />
                                                     </div>
                                                 </div>
                                                 <!-- Profit -->
-                                                <div class="px-4 py-4 font-mono text-xs font-bold whitespace-nowrap text-right flex items-center justify-end"
-                                                    :class="getEffectiveProfit(item, detail) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                <div class="px-3 py-4 font-mono text-xs font-bold whitespace-nowrap text-right flex items-center justify-end"
+                                                    :class="getEffectiveProfit(item, detail) > 0 ? 'text-emerald-600 dark:text-emerald-400' : getEffectiveProfit(item, detail) < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'">
                                                     {{ formatCurrency(getEffectiveProfit(item, detail)) }}
                                                 </div>
                                             </div>
 
-                                            <div v-if="item.items && item.items.length > 1"
+                                            <div v-if="getDisplayItems(item) && getDisplayItems(item).length > 1"
                                                 class="px-4 py-3 border-t border-gray-100 dark:border-surface-700 text-xs text-text-secondary flex justify-between bg-gray-50/50 dark:!bg-surface-800/50">
                                                 <div>
                                                     <span>Total Pesanan: <span
-                                                            class="font-bold text-text-primary ml-1">{{ item.qty
+                                                            class="font-bold text-text-primary ml-1">{{ getDisplayItems(item).length
                                                             }}</span></span>
                                                 </div>
                                                 <div class="flex items-center gap-4">
                                                     <span class="font-mono text-[10px] text-gray-500">Jual: {{
-                                                        formatCurrency(item.harga_jual) }}</span>
+                                                        formatCurrency(getItemDisplayJual(item)) }}</span>
                                                     <span class="font-mono text-[10px] text-gray-500">Modal: {{
-                                                        formatCurrency(item.harga_modal ?? item.default_harga_modal)
+                                                        formatCurrency(getItemDisplayModal(item))
                                                     }}</span>
                                                     <span class="font-bold font-mono text-[11px]"
-                                                        :class="item.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                                        Profit: {{ formatCurrency(item.profit) }}</span>
+                                                        :class="getItemDisplayProfit(item) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                                        Profit: {{ formatCurrency(getItemDisplayProfit(item)) }}</span>
                                                 </div>
                                             </div>
                                         </template>
                                         <template v-else>
                                             <div class="p-4 text-center text-sm text-gray-500">
-                                                Data Rincian Barang Tidak Valid
+                                                Tidak ada barang yang sesuai filter tab ini
                                             </div>
                                         </template>
                                     </div>
                                     <div v-if="!isLeader"
-                                        class="flex items-center justify-end p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[850px]">
+                                        class="flex items-center justify-between p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[960px]">
+                                        <div class="text-[11px] text-text-secondary pl-2">
+                                            <span v-if="isRowAudited(item)" class="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                                                <span>✓</span> Data modal transaksi ini telah tersimpan
+                                            </span>
+                                            <span v-else class="text-gray-400 italic">
+                                                Belum diaudit — pilih preset atau input modal lalu simpan
+                                            </span>
+                                        </div>
                                         <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
-                                            class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
+                                            class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 border transition-all shadow-sm"
+                                            :class="isRowAudited(item) ? 'text-emerald-700 border-emerald-300 bg-emerald-50/40 hover:bg-emerald-100' : 'text-gray-700 dark:text-gray-300 border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'"
                                             title="Simpan Harga Modal Transaksi Ini">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
                                             <Loader2 v-else :size="14" class="animate-spin" />
-                                            <span>Simpan Rincian Modal</span>
+                                            <span>{{ isRowAudited(item) ? 'Perbarui Modal' : 'Simpan Rincian Modal' }}</span>
                                         </button>
                                     </div>
                                 </td>
@@ -700,6 +780,7 @@ const isLeader = computed(() => (authStore.userRole || '').toLowerCase() === 'le
 const loading = ref(false)
 const exporting = ref(false)
 const selectedPeriod = ref('daily')
+const activeTab = ref('all') // 'all', 'hp', 'non_hp'
 
 // Receipt Modal State
 const showReceiptModal = ref(false)
@@ -901,7 +982,7 @@ const isItemHp = (detail) => {
     if (!detail) return false;
     if (detail.imei && detail.imei !== '-' && detail.imei.toString().trim() !== '') return true;
     const type = (detail.type || '').toUpperCase();
-    return type === 'HP';
+    return type === 'HP' || type === 'DP';
 };
 
 const isItemNonHp = (detail) => {
@@ -938,6 +1019,75 @@ const calculateIphoneSecondProfit = (jual) => {
     return 500000;
 };
 
+const getSourceBadgeClass = (sourceType) => {
+    switch (sourceType) {
+        case 'angkat_barang':
+            return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20';
+        case 'refund':
+            return 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20';
+        case 'tukar_tambah':
+            return 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20';
+        case 'downgrade':
+            return 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20';
+        case 'tukar_unit':
+            return 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-500/20';
+        default:
+            return 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20';
+    }
+};
+
+const isRowAudited = (item) => {
+    if (!item) return false;
+    if (item.is_audited) return true;
+    if (item.audit_score != null) return true;
+    if (item.items && item.items.length > 0 && item.items.some(d => d.has_saved_modal)) return true;
+    return false;
+};
+
+const getPresetOptionLabel = (item, detail, presetKey) => {
+    const jual = Number(detail?.harga_jual) || 0;
+
+    switch (presetKey) {
+        case 'pct_2':
+            return `2% — Rp ${formatNumber(Math.round(jual * 0.98))}`;
+
+        case 'pct_5':
+            return `5% — Rp ${formatNumber(Math.round(jual * 0.95))}`;
+
+        case 'pct_10':
+            return `10% — Rp ${formatNumber(Math.round(jual * 0.90))}`;
+
+        case 'pct_20_nonhp':
+            return `20% (khusus non hp) — Rp ${formatNumber(Math.round(jual * 0.80))}`;
+
+        case 'pct_30_nonhp':
+            return `30% (khusus non hp) — Rp ${formatNumber(Math.round(jual * 0.70))}`;
+
+        case 'range_iphone': {
+            const profit = calculateIphoneSecondProfit(jual);
+            const modal = Math.max(0, jual - profit);
+            return `Range (khusus iphone) — Rp ${formatNumber(modal)}`;
+        }
+
+        case 'admin_harga': {
+            const cost = Number(detail?.admin_harga_modal) || 0;
+            return cost > 0 ? `admin harga — Rp ${formatNumber(cost)}` : 'admin harga — (belum ada)';
+        }
+
+        case 'default': {
+            const cost = Number(detail?.raw_cost_price) || 0;
+            const label = detail?.default_preset_label || 'Default (input awal)';
+            return cost > 0 ? `${label} — Rp ${formatNumber(cost)}` : `${label} — (tidak ada)`;
+        }
+
+        case 'manual':
+            return 'Input Manual';
+
+        default:
+            return presetKey;
+    }
+};
+
 const getDetailPreset = (itemId, detailId) => {
     return detailPresets[itemId]?.[detailId] || 'manual';
 };
@@ -947,15 +1097,12 @@ const calculatePresetModal = (item, detail, presetKey) => {
 
     switch (presetKey) {
         case 'default':
-            // Default (yg diinput pas awal masukin barang)
             return Number(detail.raw_cost_price) || 0;
 
         case 'admin_harga':
-            // Admin harga (dari data harga)
             return Number(detail.admin_harga_modal) || 0;
 
         case 'range_iphone': {
-            // Range (khusus iphone)
             const profit = calculateIphoneSecondProfit(jual);
             return Math.max(0, jual - profit);
         }
@@ -1002,20 +1149,13 @@ const initEditableModal = () => {
         detailPresets[item.id] = {}
         if (item.items) {
             item.items.forEach(detail => {
-                editableModal[item.id][detail.id] = detail.harga_modal != null ? Number(detail.harga_modal) : null
-                if (detail.harga_modal != null) {
-                    detailPresets[item.id][detail.id] = 'manual'
-                } else if (detail.raw_cost_price > 0) {
-                    detailPresets[item.id][detail.id] = 'default'
-                } else if (detail.admin_harga_modal > 0) {
-                    detailPresets[item.id][detail.id] = 'admin_harga'
-                } else {
-                    detailPresets[item.id][detail.id] = 'manual'
-                }
+                // Ketika belum diaudit, nilai modal di input dikosongkan (placeholder 0), profit 0
+                editableModal[item.id][detail.id] = detail.has_saved_modal ? Number(detail.harga_modal) : null
+                detailPresets[item.id][detail.id] = 'manual'
             })
         }
     })
-}
+};
 
 // Format display for modal input (shows rupiah-formatted number)
 const formatModalDisplay = (stockOutId, detailId, defaultVal) => {
@@ -1024,7 +1164,7 @@ const formatModalDisplay = (stockOutId, detailId, defaultVal) => {
         return formatNumber(val)
     }
     return ''
-}
+};
 
 // Handle typing in harga modal input - strip non-digits, store raw number
 const onModalInput = (event, item, detail) => {
@@ -1039,7 +1179,7 @@ const onModalInput = (event, item, detail) => {
 
     // Reformat the display
     event.target.value = num != null ? formatNumber(num) : ''
-}
+};
 
 const onModalFocus = (event, item, detail) => {
     // On focus, show raw number for easy editing
@@ -1047,7 +1187,7 @@ const onModalFocus = (event, item, detail) => {
     if (val != null) {
         event.target.value = val.toString()
     }
-}
+};
 
 const onModalBlur = (event, item, detail) => {
     // On blur, reformat to rupiah
@@ -1057,13 +1197,49 @@ const onModalBlur = (event, item, detail) => {
     } else {
         event.target.value = ''
     }
-}
+};
 
 const getEffectiveProfit = (item, detail) => {
-    const hargaJual = Number(detail.harga_jual) || 0
-    const hargaModal = editableModal[item.id]?.[detail.id] ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0
-    return hargaJual - hargaModal
-}
+    const modal = editableModal[item.id]?.[detail.id];
+    if (modal != null) {
+        return (Number(detail.harga_jual) || 0) - Number(modal);
+    }
+    if (detail.has_saved_modal && detail.harga_modal != null) {
+        return (Number(detail.harga_jual) || 0) - Number(detail.harga_modal);
+    }
+    return 0; // Nol ketika belum diaudit
+};
+
+const getDisplayItems = (item) => {
+    if (!item?.items) return [];
+    if (activeTab.value === 'hp') {
+        return item.items.filter(isItemHp);
+    }
+    if (activeTab.value === 'non_hp') {
+        return item.items.filter(isItemNonHp);
+    }
+    return item.items;
+};
+
+const getItemDisplayJual = (item) => {
+    const items = getDisplayItems(item);
+    return items.reduce((sum, d) => sum + (Number(d.harga_jual) || 0), 0);
+};
+
+const getItemDisplayModal = (item) => {
+    const items = getDisplayItems(item);
+    return items.reduce((sum, d) => {
+        const modal = editableModal[item.id]?.[d.id];
+        if (modal != null) return sum + Number(modal);
+        if (d.has_saved_modal && d.harga_modal != null) return sum + Number(d.harga_modal);
+        return sum + 0;
+    }, 0);
+};
+
+const getItemDisplayProfit = (item) => {
+    const items = getDisplayItems(item);
+    return items.reduce((sum, d) => sum + getEffectiveProfit(item, d), 0);
+};
 
 const saveHargaModal = async (item) => {
     // Gather all details for this transaction
@@ -1090,13 +1266,19 @@ const saveHargaModal = async (item) => {
         // Update item total properties
         item.harga_modal = res.data.harga_modal
         item.profit = res.data.profit
+        item.is_audited = true
+        item.auditor_name = res.data.auditor_name || authStore.userName || 'Auditor'
+        item.latest_auditor_name = res.data.auditor_name || authStore.userName || 'Auditor'
+        item.audited_at = res.data.audited_at || new Date().toISOString()
 
         // Update individual item properties safely
         if (item.items) {
             item.items.forEach(detail => {
-                detail.harga_modal = res.data.items_modal[detail.id]
+                if (res.data.items_modal && res.data.items_modal[detail.id] !== undefined) {
+                    detail.harga_modal = res.data.items_modal[detail.id]
+                }
                 detail.has_saved_modal = true
-                detail.profit = detail.harga_jual - detail.harga_modal
+                detail.profit = (Number(detail.harga_jual) || 0) - (Number(detail.harga_modal) || 0)
             })
         }
         toast.success('Harga modal transaksi berhasil disimpan!')
@@ -1106,7 +1288,7 @@ const saveHargaModal = async (item) => {
     } finally {
         savingModalId.value = null
     }
-}
+};
 
 // Monthly Logic
 const months = [
@@ -1232,54 +1414,67 @@ const filters = ref({
     start_date: getTodayLocal(), // Start with today in local time
     end_date: getTodayLocal(),
     branch_id: null,
-    category: 'all'
+    category: 'all',
+    source: 'all',
+    audit_status: 'all'
 })
 
 const locations = ref([])
 const selectedLocationKey = ref('all')
 
-const summaryStats = computed(() => {
-    const list = profitRecords.value.daily_sales?.data || []
-    const activeRecords = list.filter(item => item.category !== 'cancel_penjualan')
-    const cancelRecords = list.filter(item => item.category === 'cancel_penjualan')
-    
-    let totalCancelGlobal = cancelRecords.length;
-    let globalTransaksi = profitRecords.value.daily_sales?.total || 0;
-    
-    const summary = profitRecords.value?.report_summary;
-    const hasSummary = summary !== undefined && summary !== null;
-    
-    if (hasSummary && summary.activities && summary.activities.cancel_penjualan) {
-        totalCancelGlobal = summary.activities.cancel_penjualan.length;
+const displayedSales = computed(() => {
+    let list = profitRecords.value.daily_sales?.data || [];
+
+    // Filter by Active Tab (All, HP, Non-HP)
+    if (activeTab.value === 'hp') {
+        list = list.filter(item => item.items && item.items.some(isItemHp));
+    } else if (activeTab.value === 'non_hp') {
+        list = list.filter(item => item.items && item.items.some(isItemNonHp));
     }
 
+    // Filter by Source (Client-side safety)
+    if (filters.value.source && filters.value.source !== 'all') {
+        list = list.filter(item => {
+            if (!item.items || item.items.length === 0) return false;
+            return item.items.some(d => d.source_type === filters.value.source);
+        });
+    }
+
+    // Filter by Audit Status (Client-side safety)
+    if (filters.value.audit_status === 'sudah') {
+        list = list.filter(item => isRowAudited(item));
+    } else if (filters.value.audit_status === 'belum') {
+        list = list.filter(item => !isRowAudited(item));
+    }
+
+    return list;
+});
+
+const summaryStats = computed(() => {
+    const list = displayedSales.value || []
+    const cancelRecords = list.filter(item => item.category === 'cancel_penjualan')
+    const activeRecords = list.filter(item => item.category !== 'cancel_penjualan')
+    const sudahDiauditCount = activeRecords.filter(item => isRowAudited(item)).length
+    const belumDiauditCount = activeRecords.filter(item => !isRowAudited(item)).length
+
     return {
-        totalTransaksi: globalTransaksi - (profitRecords.value?.audit_stats?.total_cancel || totalCancelGlobal),
-        totalCancel: profitRecords.value?.audit_stats?.total_cancel || totalCancelGlobal,
-        belumDiaudit: profitRecords.value?.audit_stats?.belum_diaudit || 0,
-        sudahDiaudit: profitRecords.value?.audit_stats?.sudah_diaudit || 0,
+        totalTransaksi: activeRecords.length,
+        totalCancel: cancelRecords.length,
+        belumDiaudit: belumDiauditCount,
+        sudahDiaudit: sudahDiauditCount,
     }
 })
 
-// Summary computeds
+// Summary computeds based on displayedSales
 const totalHargaJual = computed(() =>
-    (profitRecords.value.daily_sales?.data || []).reduce((sum, item) => sum + (Number(item.harga_jual) || 0), 0)
+    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayJual(item), 0)
 )
 const totalHargaModal = computed(() =>
-    (profitRecords.value.daily_sales?.data || []).reduce((sum, item) => {
-        let itemModal = 0;
-        if (item.items && item.items.length > 0) {
-            item.items.forEach(detail => {
-                const modalVal = editableModal[item.id]?.[detail.id] ?? Number(detail.harga_modal) ?? Number(detail.default_harga_modal) ?? 0;
-                itemModal += Number(modalVal) || 0;
-            });
-        } else {
-            itemModal = Number(item.harga_modal) || Number(item.default_harga_modal) || 0;
-        }
-        return sum + itemModal;
-    }, 0)
+    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayModal(item), 0)
 )
-const totalProfit = computed(() => totalHargaJual.value - totalHargaModal.value)
+const totalProfit = computed(() =>
+    (displayedSales.value || []).reduce((sum, item) => sum + getItemDisplayProfit(item), 0)
+)
 
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';
