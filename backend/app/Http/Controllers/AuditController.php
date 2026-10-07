@@ -15,6 +15,7 @@ use App\Models\Warehouse;
 use App\Models\Distributor;
 use App\Models\Inventory;
 use App\Models\PaymentMethod;
+use App\Models\ProductPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -3733,7 +3734,7 @@ class AuditController extends Controller
                 $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? (float)($row->paid_amount ?? 0) : (float)($row->selling_price ?? 0));
 
                 $hpCost = (float)($row->hp_cost ?? 0);
-                $defaultHargaModal = ($hpCost > 0) ? $hpCost : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
+                $defaultHargaModal = ($hpCost > 0) ? $hpCost : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
 
                 $isAudited = !empty($row->audit_profit_id);
                 $effectiveModalAudit = $isAudited ? (float)$row->audit_cost : $defaultHargaModal;
@@ -3840,6 +3841,96 @@ class AuditController extends Controller
             $questions = Question::where('category', 'profit')->get();
             $paymentMethods = PaymentMethod::all()->keyBy('id');
 
+            // Pre-fetch Data Harga (ProductPrice) for O(1) matching
+            $allProductPrices = ProductPrice::with(['productType.brand'])->get();
+            $priceLookupFull = [];
+            $priceLookupNameStorage = [];
+            $priceLookupNameCondition = [];
+            $priceLookupNameOnly = [];
+
+            $normalizeStr = function ($str) {
+                if (!$str) return '';
+                $s = strtolower(trim($str));
+                return preg_replace('/[^a-z0-9]/', '', $s);
+            };
+
+            $normStorage = function ($str) {
+                if (!$str) return '';
+                $s = strtolower(trim($str));
+                $s = preg_replace('/\s+/', '', $s);
+                if (is_numeric($s)) $s .= 'gb';
+                return $s;
+            };
+
+            foreach ($allProductPrices as $pp) {
+                $cost = (float) $pp->cost_price;
+                if ($cost <= 0) continue;
+
+                $brandNorm = $normalizeStr($pp->productType?->brand?->name ?? '');
+                $typeNorm = $normalizeStr($pp->productType?->name ?? '');
+                $storageNorm = $normStorage($pp->storage ?? $pp->productType?->storage ?? '');
+                $condNorm = strtolower($pp->condition ?? 'second');
+                if ($condNorm === 'ex_ibox') $condNorm = 'second';
+
+                if ($typeNorm) {
+                    if ($brandNorm && $storageNorm) {
+                        $priceLookupFull[$brandNorm . '|' . $typeNorm . '|' . $storageNorm . '|' . $condNorm] = $cost;
+                    }
+                    if ($storageNorm) {
+                        $priceLookupNameStorage[$typeNorm . '|' . $storageNorm . '|' . $condNorm] = $cost;
+                        $priceLookupNameStorage[$typeNorm . '|' . $storageNorm] = $cost;
+                    }
+                    $priceLookupNameCondition[$typeNorm . '|' . $condNorm] = $cost;
+                    if (!isset($priceLookupNameOnly[$typeNorm])) {
+                        $priceLookupNameOnly[$typeNorm] = $cost;
+                    }
+                }
+            }
+
+            $findAdminCost = function ($brand, $name, $storage, $condition) use (
+                $priceLookupFull, $priceLookupNameStorage, $priceLookupNameCondition, $priceLookupNameOnly,
+                $normalizeStr, $normStorage
+            ) {
+                $brandNorm = $normalizeStr($brand);
+                $typeNorm = $normalizeStr($name);
+                $storageNorm = $normStorage($storage);
+                $condNorm = strtolower($condition ?: 'second');
+                if ($condNorm === 'ex_ibox') $condNorm = 'second';
+
+                // Try parsing storage from name if empty
+                if (!$storageNorm && preg_match('/(\d+)\s*(gb|tb)/i', $name, $matches)) {
+                    $storageNorm = strtolower($matches[1] . $matches[2]);
+                    $cleanName = preg_replace('/(\d+)\s*(gb|tb)/i', '', $name);
+                    $cleanTypeNorm = $normalizeStr($cleanName);
+                    if ($cleanTypeNorm) {
+                        $k = $cleanTypeNorm . '|' . $storageNorm . '|' . $condNorm;
+                        if (isset($priceLookupNameStorage[$k])) return $priceLookupNameStorage[$k];
+                        $k2 = $cleanTypeNorm . '|' . $storageNorm;
+                        if (isset($priceLookupNameStorage[$k2])) return $priceLookupNameStorage[$k2];
+                    }
+                }
+
+                if ($brandNorm && $typeNorm && $storageNorm) {
+                    $k = $brandNorm . '|' . $typeNorm . '|' . $storageNorm . '|' . $condNorm;
+                    if (isset($priceLookupFull[$k])) return $priceLookupFull[$k];
+                }
+
+                if ($typeNorm && $storageNorm) {
+                    $k = $typeNorm . '|' . $storageNorm . '|' . $condNorm;
+                    if (isset($priceLookupNameStorage[$k])) return $priceLookupNameStorage[$k];
+                    $k2 = $typeNorm . '|' . $storageNorm;
+                    if (isset($priceLookupNameStorage[$k2])) return $priceLookupNameStorage[$k2];
+                }
+
+                if ($typeNorm) {
+                    $k = $typeNorm . '|' . $condNorm;
+                    if (isset($priceLookupNameCondition[$k])) return $priceLookupNameCondition[$k];
+                    if (isset($priceLookupNameOnly[$typeNorm])) return $priceLookupNameOnly[$typeNorm];
+                }
+
+                return 0;
+            };
+
             $perPageParam = $request->query('per_page', '50');
             // If querying a single specific date (like expand day), allow fetching all up to 500
             if ($startDate === $endDate && ($perPageParam === 'all' || (int)$perPageParam >= 500)) {
@@ -3856,7 +3947,7 @@ class AuditController extends Controller
             $lastPage = $paginatedProfit->lastPage();
             $totalCount = $paginatedProfit->total();
 
-            $dailySales = collect($transactionsList)->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods) {
+            $dailySales = collect($transactionsList)->map(function ($trx) use ($branches, $onlineShops, $questions, $paymentMethods, $findAdminCost) {
                 $details = [];
                 $calculatedTotal = 0;
 
@@ -3987,9 +4078,52 @@ class AuditController extends Controller
                 $totalDefaultModal = 0;
                 foreach ($details as &$detail) {
                     $itemJualTotal = $detail['price'] * $detail['qty'];
-                    $defaultItemModal = ($detail['raw_cost_price'] > 0) ? $detail['raw_cost_price'] : ($itemJualTotal > 0 ? round($itemJualTotal * 0.95) : 0);
+
+                    // Admin Harga match
+                    $isItemNonHp = ($detail['type'] ?? '') === 'Non-HP' || strtolower($detail['brand'] ?? '') === 'non-hp';
+                    if ($isItemNonHp) {
+                        $adminCost = $findAdminCost('', $detail['name'], '', '');
+                    } else {
+                        $adminCost = $findAdminCost($detail['brand'] ?? '', $detail['name'] ?? '', $detail['storage'] ?? '', $detail['condition'] ?? 'second');
+                    }
+
+                    // Waterfall By System:
+                    // 1. Default (dari input manual di stok masuk, tukar tambah masuk, downgrade masuk, refund, angkat barang)
+                    // 2. Admin Harga (dari Data Harga / ProductPrice)
+                    // 3. Fallback persentase:
+                    //    - 10% non hp (modal 90%)
+                    //    - 6% ip second n android (modal 94%)
+                    //    - 3% ip new (modal 97%)
+                    $rawCost = (float)($detail['raw_cost_price'] ?? 0);
+                    if ($rawCost > 0) {
+                        $defaultItemModal = $rawCost;
+                    } elseif ($adminCost > 0) {
+                        $defaultItemModal = $adminCost;
+                    } else {
+                        if ($itemJualTotal > 0) {
+                            if ($isItemNonHp) {
+                                $defaultItemModal = round($itemJualTotal * 0.90);
+                            } else {
+                                $brandLower = strtolower($detail['brand'] ?? '');
+                                $nameLower = strtolower($detail['name'] ?? '');
+                                $isApple = str_contains($brandLower, 'apple') || str_contains($nameLower, 'iphone') || str_contains($nameLower, 'ipad');
+                                $cond = strtolower($detail['condition'] ?? 'second');
+
+                                if ($isApple && $cond === 'new') {
+                                    $defaultItemModal = round($itemJualTotal * 0.97);
+                                } else {
+                                    $defaultItemModal = round($itemJualTotal * 0.94);
+                                }
+                            }
+                        } else {
+                            $defaultItemModal = 0;
+                        }
+                    }
+
                     $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
                     $effectiveItemModal = $savedItemModal ?? $defaultItemModal;
+
+                    $detail['admin_harga_modal'] = $adminCost;
                     $detail['harga_jual'] = $itemJualTotal;
                     $detail['default_harga_modal'] = $defaultItemModal;
                     $detail['harga_modal'] = $savedItemModal;
@@ -3997,6 +4131,7 @@ class AuditController extends Controller
                     $detail['profit_system'] = $itemJualTotal - $defaultItemModal;
                     $detail['profit_audit'] = $savedItemModal !== null ? ($itemJualTotal - $savedItemModal) : null;
                     $detail['has_saved_modal'] = $savedItemModal !== null;
+
                     $totalHargaModal += $effectiveItemModal;
                     $totalDefaultModal += $defaultItemModal;
                 }
@@ -4007,7 +4142,7 @@ class AuditController extends Controller
 
                 $hargaJual = (float) ($trx->selling_price ?? 0);
                 $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
-                $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.95) : 0);
+                $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
                 $profit = $hargaJual - $totalHargaModal;
                 $profitSystem = $hargaJual - $defaultHargaModal;
                 $profitAudit = $hargaModal !== null ? ($hargaJual - $hargaModal) : null;

@@ -88,7 +88,7 @@ const routes = [
                 component: () => import('../views/reports/ProfitHistory.vue'),
                 meta: {
                     title: 'Riwayat Profit',
-                    menu: 'reports',
+                    menu: 'analysis_group',
                     permissions: ['reports.profit', 'super_admin', 'analist', 'leader', 'audit']
                 }
             },

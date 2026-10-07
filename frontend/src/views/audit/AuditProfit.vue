@@ -105,6 +105,13 @@
                             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
 
+                    <!-- Riwayat Profit Link -->
+                    <router-link to="/reports/profit-history"
+                        class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 border border-primary-200 dark:border-primary-500/30 transition-all shadow-sm">
+                        <TrendingUp :size="18" />
+                        <span>Riwayat Profit</span>
+                    </router-link>
+
                     <!-- Export Button -->
                     <button @click="exportExcel" :disabled="exporting"
                         class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:transform hover:-translate-y-0.5 transition-all disabled:opacity-50"
@@ -166,7 +173,7 @@
                                 <th class="px-4 py-4">Kategori</th>
                                 <th colspan="4"
                                     class="p-0 border-b border-gray-200 dark:border-surface-700 bg-gray-50/50 dark:!bg-surface-700/50">
-                                    <div class="grid grid-cols-[80px_100px_1fr_100px_150px_100px] w-full min-w-[700px]">
+                                    <div class="grid grid-cols-[80px_100px_1fr_100px_230px_110px] w-full min-w-[850px]">
                                         <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
                                             Tipe</div>
                                         <div class="px-4 py-4 text-left font-semibold text-text-secondary uppercase">
@@ -242,10 +249,10 @@
                                     </span>
                                 </td>
                                 <td colspan="4" class="p-0 align-top">
-                                    <div class="flex flex-col w-full h-full min-w-[700px]">
+                                    <div class="flex flex-col w-full h-full min-w-[850px]">
                                         <template v-if="item.items && item.items.length > 0">
                                             <div v-for="(detail, idx) in item.items" :key="idx"
-                                                class="grid grid-cols-[80px_100px_1fr_100px_150px_100px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                                class="grid grid-cols-[80px_100px_1fr_100px_230px_110px] border-b border-gray-100 dark:!border-surface-700 last:border-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                                 <div
                                                     class="px-4 py-4 font-medium text-xs text-text-primary border-r border-gray-100 dark:!border-surface-700 flex flex-col items-start gap-1">
                                                     <span>{{ detail.type || item.type }}</span>
@@ -283,9 +290,25 @@
                                                     class="px-4 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex items-center justify-end border-r border-gray-100 dark:!border-surface-700">
                                                     {{ formatCurrency(detail.harga_jual || 0) }}
                                                 </div>
-                                                <!-- Harga Modal Input -->
+                                                <!-- Harga Modal Dropdown & Input -->
                                                 <div
-                                                    class="px-4 py-3 flex items-center border-r border-gray-100 dark:!border-surface-700 group/modal">
+                                                    class="px-3 py-2 flex flex-col justify-center gap-1.5 border-r border-gray-100 dark:!border-surface-700 group/modal">
+                                                    <!-- Dropdown Pilihan Hitung Modal -->
+                                                    <select :value="getDetailPreset(item.id, detail.id)"
+                                                        @change="handlePresetChange(item, detail, $event.target.value)"
+                                                        :disabled="isLeader"
+                                                        class="w-full text-[11px] font-medium py-1 px-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 transition-all cursor-pointer">
+                                                        <option value="default">Default (Input Awal)</option>
+                                                        <option value="admin_harga">Admin Harga</option>
+                                                        <option value="range_iphone">Range (Khusus iPhone)</option>
+                                                        <option value="pct_2">2%</option>
+                                                        <option value="pct_5">5%</option>
+                                                        <option value="pct_10">10%</option>
+                                                        <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
+                                                        <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
+                                                        <option value="manual">Input Manual</option>
+                                                    </select>
+
                                                     <div class="relative w-full">
                                                         <span
                                                             class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-mono pointer-events-none">Rp</span>
@@ -295,7 +318,7 @@
                                                             @focus="onModalFocus($event, item, detail)"
                                                             @blur="onModalBlur($event, item, detail)"
                                                             :placeholder="formatNumber(detail.default_harga_modal || 0)"
-                                                            class="w-full pl-8 pr-2.5 py-1.5 text-xs font-mono rounded-lg border transition-all
+                                                            class="w-full pl-8 pr-2.5 py-1 text-xs font-mono rounded-lg border transition-all
                                                                 bg-white dark:!bg-surface-700
                                                                 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                                                             :class="detail.has_saved_modal
@@ -337,9 +360,30 @@
                                         </template>
                                     </div>
                                     <div v-if="!isLeader"
-                                        class="flex justify-end p-2 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[700px]">
+                                        class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[850px]">
+                                        <!-- Batch apply preset for all items in this transaction -->
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs font-medium text-text-secondary whitespace-nowrap">Terapkan Semua:</span>
+                                            <select v-model="batchPresets[item.id]"
+                                                class="text-xs py-1 px-2.5 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-1 focus:ring-primary-500/30 cursor-pointer">
+                                                <option value="" disabled>Pilih Opsi Hitung</option>
+                                                <option value="default">Default (Input Awal)</option>
+                                                <option value="admin_harga">Admin Harga</option>
+                                                <option value="range_iphone">Range (Khusus iPhone)</option>
+                                                <option value="pct_2">2%</option>
+                                                <option value="pct_5">5%</option>
+                                                <option value="pct_10">10%</option>
+                                                <option value="pct_20_nonhp">20% (Khusus Non-HP)</option>
+                                                <option value="pct_30_nonhp">30% (Khusus Non-HP)</option>
+                                            </select>
+                                            <button @click="applyBatchPreset(item)" :disabled="!batchPresets[item.id]"
+                                                class="px-2.5 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:!bg-surface-700 text-text-primary hover:bg-gray-200 dark:hover:bg-surface-600 border border-gray-200 dark:border-surface-600 transition-all disabled:opacity-40">
+                                                Terapkan
+                                            </button>
+                                        </div>
+
                                         <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
-                                            class="px-3 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-medium bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
+                                            class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all shadow-sm"
                                             title="Simpan Semua Harga Modal Transaksi Ini">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
                                             <Loader2 v-else :size="14" class="animate-spin" />
@@ -809,15 +853,111 @@ const saveChecklist = async () => {
 // Harga Modal editing per item
 // editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
 const editableModal = reactive({})
+const detailPresets = reactive({})
+const batchPresets = reactive({})
 const savingModalId = ref(null)
+
+// iPhone second range profit rules:
+// 0-2 jt: 100rb
+// 2-3 jt: 200rb
+// 3-5 jt: 250rb
+// 5-7 jt: 350rb
+// 7-10 jt: 400rb
+// >10 jt: 500rb
+const calculateIphoneSecondProfit = (jual) => {
+    if (jual <= 2000000) return 100000;
+    if (jual <= 3000000) return 200000;
+    if (jual <= 5000000) return 250000;
+    if (jual <= 7000000) return 350000;
+    if (jual <= 10000000) return 400000;
+    return 500000;
+};
+
+const getDetailPreset = (itemId, detailId) => {
+    return detailPresets[itemId]?.[detailId] || 'manual';
+};
+
+const calculatePresetModal = (item, detail, presetKey) => {
+    const jual = Number(detail.harga_jual) || 0;
+
+    switch (presetKey) {
+        case 'default':
+            // Default (yg diinput pas awal masukin barang)
+            return Number(detail.raw_cost_price) || 0;
+
+        case 'admin_harga':
+            // Admin harga (dari data harga)
+            return Number(detail.admin_harga_modal) || 0;
+
+        case 'range_iphone': {
+            // Range (khusus iphone)
+            const profit = calculateIphoneSecondProfit(jual);
+            return Math.max(0, jual - profit);
+        }
+
+        case 'pct_2':
+            return Math.round(jual * 0.98);
+
+        case 'pct_5':
+            return Math.round(jual * 0.95);
+
+        case 'pct_10':
+            return Math.round(jual * 0.90);
+
+        case 'pct_20_nonhp':
+            return Math.round(jual * 0.80);
+
+        case 'pct_30_nonhp':
+            return Math.round(jual * 0.70);
+
+        default:
+            return null;
+    }
+};
+
+const handlePresetChange = (item, detail, presetKey) => {
+    if (!detailPresets[item.id]) detailPresets[item.id] = {};
+    detailPresets[item.id][detail.id] = presetKey;
+
+    if (presetKey === 'manual') {
+        return;
+    }
+
+    const modalVal = calculatePresetModal(item, detail, presetKey);
+    if (modalVal !== null) {
+        if (!editableModal[item.id]) editableModal[item.id] = {};
+        editableModal[item.id][detail.id] = modalVal;
+    }
+};
+
+const applyBatchPreset = (item) => {
+    const presetKey = batchPresets[item.id];
+    if (!presetKey || !item.items) return;
+
+    item.items.forEach(detail => {
+        handlePresetChange(item, detail, presetKey);
+    });
+
+    toast.success(`Preset "${presetKey}" berhasil diterapkan ke semua item!`);
+};
 
 const initEditableModal = () => {
     if (!profitRecords.value.daily_sales?.data) return;
     profitRecords.value.daily_sales.data.forEach(item => {
         editableModal[item.id] = {}
+        detailPresets[item.id] = {}
         if (item.items) {
             item.items.forEach(detail => {
                 editableModal[item.id][detail.id] = detail.harga_modal != null ? Number(detail.harga_modal) : null
+                if (detail.harga_modal != null) {
+                    detailPresets[item.id][detail.id] = 'manual'
+                } else if (detail.raw_cost_price > 0) {
+                    detailPresets[item.id][detail.id] = 'default'
+                } else if (detail.admin_harga_modal > 0) {
+                    detailPresets[item.id][detail.id] = 'admin_harga'
+                } else {
+                    detailPresets[item.id][detail.id] = 'manual'
+                }
             })
         }
     })
@@ -839,6 +979,9 @@ const onModalInput = (event, item, detail) => {
 
     if (!editableModal[item.id]) editableModal[item.id] = {}
     editableModal[item.id][detail.id] = num
+
+    if (!detailPresets[item.id]) detailPresets[item.id] = {}
+    detailPresets[item.id][detail.id] = 'manual'
 
     // Reformat the display
     event.target.value = num != null ? formatNumber(num) : ''
@@ -902,9 +1045,10 @@ const saveHargaModal = async (item) => {
                 detail.profit = detail.harga_jual - detail.harga_modal
             })
         }
+        toast.success('Harga modal transaksi berhasil disimpan!')
     } catch (e) {
         console.error('Failed to save harga modal', e)
-        alert('Gagal menyimpan harga modal: ' + (e.response?.data?.message || e.message))
+        toast.error('Gagal menyimpan harga modal: ' + (e.response?.data?.message || e.message))
     } finally {
         savingModalId.value = null
     }

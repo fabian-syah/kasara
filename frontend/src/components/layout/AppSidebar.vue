@@ -93,7 +93,6 @@ const menuItems = [
         icon: BarChart3,
         items: [
             { id: "report_sales", path: "/reports/sales", label: "Laporan Penjualan (Laku)" },
-            { id: "report_profit_history", path: "/reports/profit-history", label: "Riwayat Profit" },
             { id: "report_ranking", path: "/reports/ranking", label: "Ranking Cabang (Omset)" },
             { id: "report_brand", path: "/reports/brand", label: "Laporan Brand (Stok)" },
             { id: "report_type", path: "/reports/type", label: "Laporan Tipe (Stok)" },
@@ -139,6 +138,7 @@ const menuItems = [
         items: [
             { id: "stock_analysis", path: "/inventory/stock-analysis", label: "Analisa Stok" },
             { id: "sold_analysis", path: "/inventory/sold-analysis", label: "Analisa Produk Terjual" },
+            { id: "report_profit_history", path: "/reports/profit-history", label: "Riwayat Profit" },
         ]
     },
 
