@@ -458,6 +458,7 @@ watch(() => props.availablePaymentMethods, (methods) => {
 }, { immediate: true });
 
 async function submitTradeIn(pin = null) {
+    if (isSubmitting.value) return;
     const isImei = isImeiTradeIn.value;
     const hasRequiredFields = tradeInForm.value.customer_name && 
                              tradeInForm.value.customer_phone && 

@@ -71,15 +71,56 @@ class TradeIn extends Model
     public static function generateReceiptId()
     {
         $prefix = 'TI' . date('dMy'); // TI18Mar26
-        $latest = self::withTrashed()->where('receipt_id', 'like', $prefix . '%')->orderBy('id', 'desc')->first();
 
-        if (!$latest) {
-            $number = 1;
-        } else {
-            $lastId = $latest->receipt_id;
-            $number = (int) substr($lastId, -3) + 1;
+        // Query all existing receipt IDs with today's prefix from TradeIn (including trashed)
+        $existingTradeInIds = self::withTrashed()
+            ->where('receipt_id', 'like', $prefix . '-%')
+            ->pluck('receipt_id');
+
+        // Query from StockOut as well (since StockOut stores the same receipt_id)
+        $existingStockOutIds = \App\Models\StockOut::withTrashed()
+            ->where('receipt_id', 'like', $prefix . '-%')
+            ->pluck('receipt_id');
+
+        $allExisting = $existingTradeInIds->concat($existingStockOutIds);
+
+        $maxNumber = 0;
+        foreach ($allExisting as $rid) {
+            if (preg_match('/^' . preg_quote($prefix, '/') . '-(\d+)/', (string) $rid, $matches)) {
+                $num = (int) $matches[1];
+                if ($num > $maxNumber) {
+                    $maxNumber = $num;
+                }
+            }
         }
 
-        return $prefix . '-' . str_pad($number, 3, '0', STR_PAD_LEFT);
+        $nextNumber = $maxNumber + 1;
+
+        // Loop until candidate is guaranteed unique in both TradeIn and StockOut
+        do {
+            $candidate = $prefix . '-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+            $existsInTradeIn = self::withTrashed()
+                ->where(function ($q) use ($candidate) {
+                    $q->where('receipt_id', $candidate)
+                      ->orWhere('receipt_id', 'like', $candidate . '-%');
+                })
+                ->exists();
+
+            $existsInStockOut = \App\Models\StockOut::withTrashed()
+                ->where(function ($q) use ($candidate) {
+                    $q->where('receipt_id', $candidate)
+                      ->orWhere('receipt_id', 'like', $candidate . '-%');
+                })
+                ->exists();
+
+            if ($existsInTradeIn || $existsInStockOut) {
+                $nextNumber++;
+            } else {
+                break;
+            }
+        } while (true);
+
+        return $candidate;
     }
 }

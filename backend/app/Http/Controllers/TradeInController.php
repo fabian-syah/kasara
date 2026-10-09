@@ -74,20 +74,24 @@ class TradeInController extends Controller
         $pinError = $this->verifyPin($request);
         if ($pinError) return $pinError;
 
-        try {
-            return DB::transaction(function () use ($request, $user) {
-                // 1. Handle File Uploads
-                $photoLog = [];
-                if ($request->hasFile('photo_unit')) {
-                    $pathUnit = $request->file('photo_unit')->store('trade-ins/units', 'public');
-                    $photoLog['unit'] = $pathUnit;
-                }
-                if ($request->hasFile('photo_customer')) {
-                    $pathCustomer = $request->file('photo_customer')->store('trade-ins/customers', 'public');
-                    $photoLog['customer'] = $pathCustomer;
-                }
+        // 1. Handle File Uploads
+        $photoLog = [];
+        $pathUnit = null;
+        $pathCustomer = null;
+        if ($request->hasFile('photo_unit')) {
+            $pathUnit = $request->file('photo_unit')->store('trade-ins/units', 'public');
+            $photoLog['unit'] = $pathUnit;
+        }
+        if ($request->hasFile('photo_customer')) {
+            $pathCustomer = $request->file('photo_customer')->store('trade-ins/customers', 'public');
+            $photoLog['customer'] = $pathCustomer;
+        }
 
-                // Resolve inventory_user_id and target location
+        $maxRetries = 5;
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                return DB::transaction(function () use ($request, $user, $photoLog) {
+                    // Resolve inventory_user_id and target location
                 $inventoryUserId = $request->inventory_user_id;
                 if (!$inventoryUserId && $request->sales_account) {
                     $invUser = \App\Models\User::where('name', $request->sales_account)
@@ -467,18 +471,35 @@ class TradeInController extends Controller
                     'data' => $processedTradeIns[0]->load('productType.brand', 'paymentMethod', 'distributor'),
                     'count' => $totalQty
                 ]);
-            });
-        } catch (\Exception $e) {
-            // Delete uploaded files on failure
-            if (isset($pathUnit))
-                Storage::disk('public')->delete($pathUnit);
-            if (isset($pathCustomer))
-                Storage::disk('public')->delete($pathCustomer);
+                });
+            } catch (\Illuminate\Database\QueryException $e) {
+                $isUniqueViolation = ($e->getCode() == '23505')
+                    || str_contains($e->getMessage(), '23505')
+                    || str_contains(strtolower($e->getMessage()), 'unique constraint')
+                    || str_contains(strtolower($e->getMessage()), 'duplicate key');
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memproses barang angkat: ' . $e->getMessage()
-            ], 500);
+                if ($isUniqueViolation && $attempt < $maxRetries) {
+                    \Log::warning("TradeIn receipt_id collision on attempt {$attempt}, retrying: " . $e->getMessage());
+                    usleep(random_int(50000, 200000));
+                    continue;
+                }
+
+                if ($pathUnit) Storage::disk('public')->delete($pathUnit);
+                if ($pathCustomer) Storage::disk('public')->delete($pathCustomer);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memproses barang angkat: ' . $e->getMessage()
+                ], 500);
+            } catch (\Throwable $e) {
+                if ($pathUnit) Storage::disk('public')->delete($pathUnit);
+                if ($pathCustomer) Storage::disk('public')->delete($pathCustomer);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memproses barang angkat: ' . $e->getMessage()
+                ], 500);
+            }
         }
     }
 }

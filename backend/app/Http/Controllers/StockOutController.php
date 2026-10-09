@@ -3406,12 +3406,12 @@ class StockOutController extends Controller
             }
 
             // 3. Soft delete associated transaction records to keep dashboards and active transaction lists clean
-            \App\Models\TukarTambah::where('receipt_id', $receiptId)->delete();
-            \App\Models\UnitExchange::where('receipt_id', $receiptId)->delete();
-            \App\Models\Downgrade::where('receipt_id', $receiptId)->delete();
-            \App\Models\TradeIn::where('receipt_id', $receiptId)->delete();
-            \App\Models\Refund::where('receipt_id', $receiptId)->delete();
-            \App\Models\DpRefund::where('receipt_id', $receiptId)->delete();
+            \App\Models\TukarTambah::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
+            \App\Models\UnitExchange::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
+            \App\Models\Downgrade::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
+            \App\Models\TradeIn::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
+            \App\Models\Refund::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
+            \App\Models\DpRefund::where(function($q) use ($receiptId) { $q->where('receipt_id', $receiptId)->orWhere('receipt_id', 'like', $receiptId . '-%'); })->delete();
 
             // --- B. Handle Non-HP Items ---
             foreach ($stockOut->nonHpDetails as $detail) {
