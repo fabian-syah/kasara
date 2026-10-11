@@ -3766,25 +3766,90 @@ class AuditController extends Controller
                 ->when($request->source && $request->source !== 'all', function ($q) use ($request) {
                     $src = $request->source;
                     if ($src === 'angkat_barang') {
-                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('trade_in_id')
-                            ->orWhere('supplier_name', 'ilike', '%trade-in%')
-                            ->orWhere('supplier_name', 'ilike', '%angkat barang%')
-                            ->orWhere('notes', 'ilike', '%angkat barang%'));
+                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                            $sub->whereNotNull('trade_in_id')
+                                ->orWhere('supplier_name', 'ilike', '%trade-in%')
+                                ->orWhere('supplier_name', 'ilike', '%trade in%')
+                                ->orWhere('supplier_name', 'ilike', '%angkat barang%')
+                                ->orWhere('notes', 'ilike', '%masuk dari angkat barang%')
+                                ->orWhere('notes', 'ilike', '%trade-in in%')
+                                ->orWhere('notes', 'ilike', '%angkat barang in%');
+                        }));
                     } elseif ($src === 'refund') {
-                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('refund_id')->orWhere('notes', 'ilike', '%refund%'));
+                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                            $sub->whereNotNull('refund_id')
+                                ->orWhere('supplier_name', 'ilike', '%refund%')
+                                ->orWhere('notes', 'ilike', '%masuk dari refund%')
+                                ->orWhere('notes', 'ilike', '%refund in%');
+                        }));
                     } elseif ($src === 'tukar_tambah') {
-                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('tukar_tambah_id')->orWhere('notes', 'ilike', '%tukar tambah%'));
+                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                            $sub->whereNotNull('tukar_tambah_id')
+                                ->orWhere('supplier_name', 'ilike', '%tukar tambah%')
+                                ->orWhere('supplier_name', 'ilike', '%tukar_tambah%')
+                                ->orWhere('notes', 'ilike', '%masuk dari tukar tambah%')
+                                ->orWhere('notes', 'ilike', '%tukar tambah in%')
+                                ->orWhere('notes', 'ilike', '%tukar_tambah in%');
+                        }));
                     } elseif ($src === 'downgrade') {
-                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('downgrade_id')->orWhere('notes', 'ilike', '%downgrade%'));
+                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                            $sub->whereNotNull('downgrade_id')
+                                ->orWhere('supplier_name', 'ilike', '%downgrade%')
+                                ->orWhere('notes', 'ilike', '%masuk dari downgrade%')
+                                ->orWhere('notes', 'ilike', '%downgrade in%');
+                        }));
                     } elseif ($src === 'tukar_unit') {
-                        $q->whereHas('items', fn($iq) => $iq->whereNotNull('unit_exchange_id')->orWhere('notes', 'ilike', '%tukar unit%'));
+                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                            $sub->whereNotNull('unit_exchange_id')
+                                ->orWhere('supplier_name', 'ilike', '%exchange%')
+                                ->orWhere('supplier_name', 'ilike', '%tukar unit%')
+                                ->orWhere('supplier_name', 'ilike', '%tukar_unit%')
+                                ->orWhere('notes', 'ilike', '%masuk dari tukar unit%')
+                                ->orWhere('notes', 'ilike', '%tukar unit in%')
+                                ->orWhere('notes', 'ilike', '%exchange in%');
+                        }));
                     } elseif ($src === 'store') {
                         $q->where(function ($sub) {
-                            $sub->whereHas('items', fn($iq) => $iq->whereNull('trade_in_id')
-                                ->whereNull('refund_id')
-                                ->whereNull('tukar_tambah_id')
-                                ->whereNull('downgrade_id')
-                                ->whereNull('unit_exchange_id'))
+                            $sub->whereHas('items', function ($iq) {
+                                $iq->whereNull('trade_in_id')
+                                    ->whereNull('refund_id')
+                                    ->whereNull('tukar_tambah_id')
+                                    ->whereNull('downgrade_id')
+                                    ->whereNull('unit_exchange_id')
+                                    ->where(function ($nq) {
+                                        $nq->whereNull('supplier_name')
+                                            ->orWhere(function ($sq) {
+                                                $sq->where('supplier_name', 'not ilike', '%trade-in%')
+                                                    ->where('supplier_name', 'not ilike', '%trade in%')
+                                                    ->where('supplier_name', 'not ilike', '%angkat barang%')
+                                                    ->where('supplier_name', 'not ilike', '%refund%')
+                                                    ->where('supplier_name', 'not ilike', '%tukar tambah%')
+                                                    ->where('supplier_name', 'not ilike', '%tukar_tambah%')
+                                                    ->where('supplier_name', 'not ilike', '%downgrade%')
+                                                    ->where('supplier_name', 'not ilike', '%exchange%')
+                                                    ->where('supplier_name', 'not ilike', '%tukar unit%')
+                                                    ->where('supplier_name', 'not ilike', '%tukar_unit%');
+                                            });
+                                    })
+                                    ->where(function ($nq) {
+                                        $nq->whereNull('notes')
+                                            ->orWhere(function ($sq) {
+                                                $sq->where('notes', 'not ilike', '%masuk dari tukar tambah%')
+                                                    ->where('notes', 'not ilike', '%tukar tambah in%')
+                                                    ->where('notes', 'not ilike', '%tukar_tambah in%')
+                                                    ->where('notes', 'not ilike', '%masuk dari downgrade%')
+                                                    ->where('notes', 'not ilike', '%downgrade in%')
+                                                    ->where('notes', 'not ilike', '%masuk dari tukar unit%')
+                                                    ->where('notes', 'not ilike', '%tukar unit in%')
+                                                    ->where('notes', 'not ilike', '%exchange in%')
+                                                    ->where('notes', 'not ilike', '%masuk dari refund%')
+                                                    ->where('notes', 'not ilike', '%refund in%')
+                                                    ->where('notes', 'not ilike', '%masuk dari angkat barang%')
+                                                    ->where('notes', 'not ilike', '%trade-in in%')
+                                                    ->where('notes', 'not ilike', '%angkat barang in%');
+                                            });
+                                    });
+                            })
                             ->orWhereHas('nonHpItems')
                             ->orWhere('category', 'dp');
                         });
@@ -3869,28 +3934,49 @@ class AuditController extends Controller
                         $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                     }
 
-                    $notesLower = strtolower(($item->notes ?? '') . ' ' . ($item->supplier_name ?? ''));
+                    // Strip outgoing logs from notes before checking incoming origin cues
+                    $rawNotes = (string) ($item->notes ?? '');
+                    $cleanNotes = preg_replace('/keluar\s+melalui[^\r\n]*/i', '', $rawNotes);
+                    $cleanNotes = preg_replace('/batal\s+(transaksi|angkat\s+barang)[^\r\n]*/i', '', $cleanNotes);
+                    $inNotesLower = strtolower(trim($cleanNotes));
+                    $suppLower = strtolower(trim((string) ($item->supplier_name ?? '')));
+
                     $sourceType = 'store';
                     $sourceLabel = 'In Store';
                     $defaultPresetLabel = 'Default (input awal)';
 
-                    if ($item->trade_in_id || str_contains($notesLower, 'angkat barang') || str_contains($notesLower, 'trade-in') || str_contains($notesLower, 'trade in') || str_contains($notesLower, 'angkat_barang')) {
+                    if ($item->trade_in_id 
+                        || str_contains($suppLower, 'trade-in') || str_contains($suppLower, 'trade in') || str_contains($suppLower, 'angkat barang')
+                        || str_contains($inNotesLower, 'masuk dari angkat barang') || str_contains($inNotesLower, 'trade-in in') || str_contains($inNotesLower, 'trade in in') || str_contains($inNotesLower, 'angkat barang in')
+                        || (str_contains($inNotesLower, 'angkat barang') && !str_contains($inNotesLower, 'keluar'))) {
                         $sourceType = 'angkat_barang';
                         $sourceLabel = 'In Angkat Barang';
                         $defaultPresetLabel = 'Default (in angkat barang)';
-                    } elseif ($item->refund_id || str_contains($notesLower, 'refund')) {
+                    } elseif ($item->refund_id 
+                        || str_contains($suppLower, 'refund') 
+                        || str_contains($inNotesLower, 'masuk dari refund') || str_contains($inNotesLower, 'refund in')
+                        || (str_contains($inNotesLower, 'refund') && !str_contains($inNotesLower, 'keluar'))) {
                         $sourceType = 'refund';
                         $sourceLabel = 'In Refund';
                         $defaultPresetLabel = 'Default (in refund)';
-                    } elseif ($item->tukar_tambah_id || str_contains($notesLower, 'tukar tambah') || str_contains($notesLower, 'tukar_tambah')) {
+                    } elseif ($item->tukar_tambah_id 
+                        || str_contains($suppLower, 'tukar tambah') || str_contains($suppLower, 'tukar_tambah')
+                        || str_contains($inNotesLower, 'masuk dari tukar tambah') || str_contains($inNotesLower, 'tukar tambah in') || str_contains($inNotesLower, 'tukar_tambah in')
+                        || (str_contains($inNotesLower, 'tukar tambah') && !str_contains($inNotesLower, 'keluar'))) {
                         $sourceType = 'tukar_tambah';
                         $sourceLabel = 'In Tukar Tambah';
                         $defaultPresetLabel = 'Default (in tukar tambah)';
-                    } elseif ($item->downgrade_id || str_contains($notesLower, 'downgrade')) {
+                    } elseif ($item->downgrade_id 
+                        || str_contains($suppLower, 'downgrade')
+                        || str_contains($inNotesLower, 'masuk dari downgrade') || str_contains($inNotesLower, 'downgrade in')
+                        || (str_contains($inNotesLower, 'downgrade') && !str_contains($inNotesLower, 'keluar'))) {
                         $sourceType = 'downgrade';
                         $sourceLabel = 'In Downgrade';
                         $defaultPresetLabel = 'Default (in downgrade)';
-                    } elseif ($item->unit_exchange_id || str_contains($notesLower, 'tukar unit') || str_contains($notesLower, 'tukar_unit')) {
+                    } elseif ($item->unit_exchange_id 
+                        || str_contains($suppLower, 'tukar unit') || str_contains($suppLower, 'tukar_unit') || str_contains($suppLower, 'exchange')
+                        || str_contains($inNotesLower, 'masuk dari tukar unit') || str_contains($inNotesLower, 'tukar unit in') || str_contains($inNotesLower, 'exchange in')
+                        || (str_contains($inNotesLower, 'tukar unit') && !str_contains($inNotesLower, 'keluar'))) {
                         $sourceType = 'tukar_unit';
                         $sourceLabel = 'In Tukar Unit';
                         $defaultPresetLabel = 'Default (in tukar unit)';
