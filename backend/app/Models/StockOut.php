@@ -483,4 +483,9 @@ class StockOut extends Model
     {
         return $this->belongsTo(PaymentMethod::class);
     }
+
+    public function parentDp()
+    {
+        return $this->belongsTo(StockOut::class, 'parent_dp_id');
+    }
 }

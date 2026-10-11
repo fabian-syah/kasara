@@ -3556,7 +3556,7 @@ class AuditController extends Controller
 
             $salesCategories = [
                 'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
-                'bundling', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 
+                'bundling', 'tukar_tambah', 
                 'pelunasan_dp', 'dp',
                 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'
             ];
@@ -3739,9 +3739,11 @@ class AuditController extends Controller
                 'auditAnswers.auditor', 
                 'auditProfit.auditor', 
                 'cancelledByUser',
-                'paymentMethod'
+                'paymentMethod',
+                'parentDp'
             ])
                 ->whereIn('category', $salesCategories)
+                ->whereNotIn('category', ['downgrade', 'cancel_penjualan'])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('reporting_date', [$startDate, $endDate])
                         ->orWhere(function ($sq) use ($startDate, $endDate) {
@@ -3750,7 +3752,9 @@ class AuditController extends Controller
                         });
                 })
                 ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
-                    if ($request->category === 'orderan_online') {
+                    if (in_array($request->category, ['downgrade', 'cancel_penjualan'])) {
+                        $q->whereRaw('1=0');
+                    } elseif ($request->category === 'orderan_online') {
                         $q->whereIn('category', ['shopee', 'orderan_online']);
                     } else {
                         $q->where('category', $request->category);
@@ -3758,7 +3762,7 @@ class AuditController extends Controller
                 })
                 ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
                     if ($request->audit_status === 'belum') {
-                        $q->whereDoesntHave('auditProfit')->where('category', '!=', 'cancel_penjualan');
+                        $q->whereDoesntHave('auditProfit');
                     } elseif ($request->audit_status === 'sudah') {
                         $q->whereHas('auditProfit');
                     }
@@ -3883,8 +3887,35 @@ class AuditController extends Controller
             $processedSales = collect();
 
             foreach ($allTransactions as $trx) {
-                if ($trx->category === 'cancel_penjualan') {
-                    $totalCancelGlobal++;
+                if ($trx->category === 'cancel_penjualan' || $trx->category === 'downgrade') {
+                    continue;
+                }
+
+                // Resolve Previous DP info for pelunasan_dp
+                $prevDpAmount = null;
+                $parentDpReceiptId = null;
+                if ($trx->category === 'pelunasan_dp') {
+                    if ($trx->parentDp) {
+                        $prevDpAmount = (float) ($trx->parentDp->dp_amount ?: $trx->parentDp->paid_amount ?: $trx->parentDp->selling_price ?: 0);
+                        $parentDpReceiptId = $trx->parentDp->receipt_id;
+                    } elseif ($trx->parent_dp_id) {
+                        $parent = StockOut::find($trx->parent_dp_id);
+                        if ($parent) {
+                            $prevDpAmount = (float) ($parent->dp_amount ?: $parent->paid_amount ?: $parent->selling_price ?: 0);
+                            $parentDpReceiptId = $parent->receipt_id;
+                        }
+                    }
+                    if (!$prevDpAmount && (float)($trx->dp_amount ?? 0) > 0) {
+                        $prevDpAmount = (float) $trx->dp_amount;
+                    }
+                    if (!$prevDpAmount && !empty($trx->notes)) {
+                        if (preg_match('/(?:dp|down\s*payment)[\s:]*(?:rp\.?\s*)?([0-9.,]+)/i', $trx->notes, $matches)) {
+                            $cleaned = str_replace(['.', ','], '', $matches[1]);
+                            if (is_numeric($cleaned)) {
+                                $prevDpAmount = (float) $cleaned;
+                            }
+                        }
+                    }
                 }
 
                 $details = [];
@@ -4307,12 +4338,14 @@ class AuditController extends Controller
 
                 $isAudited = ($savedProfit !== null);
 
+                $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($savedProfit->items_modal['__notes'] ?? null)) : null;
+
                 $trxData = [
                     'id' => $trx->id,
                     'date' => $fullTrxDate,
                     'reporting_date' => $trxDateStr,
                     'created_at' => $trx->created_at?->toDateTimeString(),
-                    'updated_at' => ($trx->category === 'cancel_penjualan' && $trx->cancelled_at) ? $trx->cancelled_at->toDateTimeString() : $trx->updated_at?->toDateTimeString(),
+                    'updated_at' => $trx->updated_at?->toDateTimeString(),
                     'order_no' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                     'category' => $trx->category,
@@ -4335,50 +4368,49 @@ class AuditController extends Controller
                     'source_types' => array_values(array_unique(array_filter(array_column($details, 'source_type')))),
                     'audit_total' => $totalQuestions,
                     'audit_yes' => $yesCount,
-                    'cancelled_by_name' => $trx->cancelledByUser?->name,
-                    'cancel_reason' => $trx->cancel_reason,
+                    'previous_dp_amount' => $prevDpAmount,
+                    'parent_dp_receipt_id' => $parentDpReceiptId,
+                    'audit_notes' => $savedNotes,
                     'inventory_account_name' => $trx->inventoryUser->full_name ?? $trx->user->full_name ?? '-',
                     'split_payments_data' => $processedSplitPayments,
                     'selling_price' => $hargaJual,
                 ];
 
-                if ($trx->category !== 'cancel_penjualan') {
-                    if (!isset($dailyRecap[$trxDateStr])) {
-                        $dailyRecap[$trxDateStr] = [
-                            'dateStr' => $trxDateStr,
-                            'count' => 0,
-                            'unAuditedCount' => 0,
-                            'totalPenjualan' => 0,
-                            'totalModalSystem' => 0,
-                            'totalModalAudit' => 0,
-                            'totalProfitSystem' => 0,
-                            'totalProfitAudit' => 0,
-                            'items' => []
-                        ];
-                    }
-
-                    $dailyRecap[$trxDateStr]['count']++;
-                    $dailyRecap[$trxDateStr]['totalPenjualan'] += ($savedProfit ? $hargaJual : 0);
-                    $dailyRecap[$trxDateStr]['totalModalSystem'] += $defaultHargaModal;
-                    $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
-                    $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
-                    $dailyRecap[$trxDateStr]['totalProfitAudit'] += $profitAudit;
-                    $dailyRecap[$trxDateStr]['items'][] = $trxData;
-
-                    if (!$isAudited && $auditScore === null) {
-                        $dailyRecap[$trxDateStr]['unAuditedCount']++;
-                        $summaryTotals['belum_diaudit']++;
-                    } else {
-                        $summaryTotals['sudah_diaudit']++;
-                    }
-
-                    $summaryTotals['total_penjualan'] += ($savedProfit ? $hargaJual : 0);
-                    $summaryTotals['total_modal_system'] += $defaultHargaModal;
-                    $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
-                    $summaryTotals['total_profit_system'] += $profitSystem;
-                    $summaryTotals['total_profit_audit'] += $profitAudit;
-                    $summaryTotals['total_transaksi']++;
+                if (!isset($dailyRecap[$trxDateStr])) {
+                    $dailyRecap[$trxDateStr] = [
+                        'dateStr' => $trxDateStr,
+                        'count' => 0,
+                        'unAuditedCount' => 0,
+                        'totalPenjualan' => 0,
+                        'totalModalSystem' => 0,
+                        'totalModalAudit' => 0,
+                        'totalProfitSystem' => 0,
+                        'totalProfitAudit' => 0,
+                        'items' => []
+                    ];
                 }
+
+                $dailyRecap[$trxDateStr]['count']++;
+                $dailyRecap[$trxDateStr]['totalPenjualan'] += ($savedProfit ? $hargaJual : 0);
+                $dailyRecap[$trxDateStr]['totalModalSystem'] += $defaultHargaModal;
+                $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
+                $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
+                $dailyRecap[$trxDateStr]['totalProfitAudit'] += $profitAudit;
+                $dailyRecap[$trxDateStr]['items'][] = $trxData;
+
+                if (!$isAudited && $auditScore === null) {
+                    $dailyRecap[$trxDateStr]['unAuditedCount']++;
+                    $summaryTotals['belum_diaudit']++;
+                } else {
+                    $summaryTotals['sudah_diaudit']++;
+                }
+
+                $summaryTotals['total_penjualan'] += ($savedProfit ? $hargaJual : 0);
+                $summaryTotals['total_modal_system'] += $defaultHargaModal;
+                $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
+                $summaryTotals['total_profit_system'] += $profitSystem;
+                $summaryTotals['total_profit_audit'] += $profitAudit;
+                $summaryTotals['total_transaksi']++;
 
                 $processedSales->push($trxData);
             }
@@ -4403,7 +4435,7 @@ class AuditController extends Controller
                 'audit_stats' => [
                     'sudah_diaudit' => $summaryTotals['sudah_diaudit'],
                     'belum_diaudit' => $summaryTotals['belum_diaudit'],
-                    'total_cancel' => $totalCancelGlobal,
+                    'total_cancel' => 0,
                     'total_transaksi' => $summaryTotals['total_transaksi']
                 ],
                 'daily_recap' => array_values($dailyRecap),
@@ -4431,7 +4463,7 @@ class AuditController extends Controller
     }
 
     /**
-     * Save/update auditor's harga modal for a stock_out.
+     * Save/update auditor's harga modal and audit profit notes for a stock_out.
      */
     public function saveProfitData(Request $request, $stockOutId)
     {
@@ -4439,19 +4471,35 @@ class AuditController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'items_modal' => 'required|array',
+            'items_modal' => 'nullable|array',
+            'notes' => 'nullable|string|max:2000',
         ]);
 
-        $itemsModal = $request->items_modal;
-        $totalModal = array_sum(array_map('floatval', $itemsModal));
+        $existingProfit = AuditProfit::where('stock_out_id', $stockOutId)->first();
+        $itemsModal = $request->items_modal ?? ($existingProfit?->items_modal ?? []);
+
+        // Filter out '__notes' if present in items_modal for modal calculation
+        $numericItems = array_filter($itemsModal, function ($key) {
+            return $key !== '__notes';
+        }, ARRAY_FILTER_USE_KEY);
+        $totalModal = !empty($numericItems) ? array_sum(array_map('floatval', $numericItems)) : (float)($existingProfit?->harga_modal ?? 0);
+
+        if ($request->has('notes')) {
+            $itemsModal['__notes'] = $request->notes;
+        }
+
+        $auditData = [
+            'harga_modal' => $totalModal,
+            'items_modal' => $itemsModal,
+            'auditor_id' => $user->id,
+        ];
+        if ($request->has('notes')) {
+            $auditData['notes'] = $request->notes;
+        }
 
         $auditProfit = AuditProfit::updateOrCreate(
             ['stock_out_id' => $stockOutId],
-            [
-                'harga_modal' => $totalModal,
-                'items_modal' => $itemsModal,
-                'auditor_id' => $user->id,
-            ]
+            $auditData
         );
 
         $catLower = strtolower($stockOut->category ?? '');
@@ -4465,9 +4513,10 @@ class AuditController extends Controller
         $profit = $effectiveSellingPrice - $totalModal;
 
         return response()->json([
-            'message' => 'Harga modal berhasil disimpan',
+            'message' => 'Data audit profit berhasil disimpan',
             'harga_modal' => $totalModal,
             'items_modal' => $itemsModal,
+            'notes' => $auditProfit->notes ?? ($itemsModal['__notes'] ?? null),
             'profit' => $profit,
             'auditor_name' => $user->name,
             'audited_at' => $auditProfit->updated_at->toDateTimeString(),

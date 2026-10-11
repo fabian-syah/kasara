@@ -117,10 +117,8 @@
                         <option value="penjualan_store">Penjualan Store</option>
                         <option value="orderan_online">Orderan Online</option>
                         <option value="tukar_tambah">Tukar Tambah</option>
-                        <option value="downgrade">Downgrade</option>
                         <option value="dp">DP (Down Payment)</option>
                         <option value="pelunasan_dp">Pelunasan DP</option>
-                        <option value="cancel_penjualan">Cancel Penjualan</option>
                     </select>
                     <ChevronDown :size="16"
                         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
@@ -268,11 +266,9 @@
                             <tr v-else v-for="(item, index) in displayedSales" :key="index"
                                 class="transition-colors group text-text-primary"
                                 :class="[
-                                    item.category === 'cancel_penjualan' 
-                                        ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
-                                        : isRowAudited(item) 
-                                            ? 'bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border-l-4 border-l-emerald-500' 
-                                            : 'hover:bg-gray-50 dark:hover:bg-surface-700/30'
+                                    isRowAudited(item) 
+                                        ? 'bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border-l-4 border-l-emerald-500' 
+                                        : 'hover:bg-gray-50 dark:hover:bg-surface-700/30'
                                 ]">
                                 <td class="px-4 py-4 text-text-secondary font-medium">{{ (profitRecords.daily_sales.current_page - 1) *
                                     profitRecords.daily_sales.per_page + index + 1 }}</td>
@@ -297,25 +293,29 @@
                                             Belum Diaudit
                                         </span>
                                     </div>
+                                    <!-- Saved Audit Note Badge -->
+                                    <div v-if="item.audit_notes" class="mt-1.5 text-[10px] text-amber-700 dark:text-amber-400 bg-amber-50/80 dark:bg-amber-500/10 border border-amber-200/80 dark:border-amber-500/20 rounded px-1.5 py-0.5 flex items-start gap-1 max-w-[160px] break-words" :title="'Catatan Audit: ' + item.audit_notes">
+                                        <FileText :size="11" class="mt-0.5 shrink-0 text-amber-600" />
+                                        <span class="truncate">Catatan: {{ item.audit_notes }}</span>
+                                    </div>
                                     <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
                                 </td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
                                 <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
                                 </td>
                                 <td class="px-4 py-4">
-                                    <div v-if="item.category === 'cancel_penjualan'" class="flex flex-col gap-1">
-                                        <span class="inline-flex w-fit px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20">
-                                            Dibatalkan
+                                    <div class="flex flex-col gap-1.5 items-start">
+                                        <span
+                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg border"
+                                            :class="getCategoryBadgeClass(item.category)">
+                                            {{ formatCategoryLabel(item.category) }}
                                         </span>
-                                        <div v-if="item.updated_at" class="text-[10px] text-red-500/80 font-medium leading-tight">{{ new Date(item.updated_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) }}</div>
-                                        <div v-if="item.cancelled_by_name" class="text-[10px] text-red-500/80 font-medium leading-tight">Oleh: {{ item.cancelled_by_name }}</div>
-                                        <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
+                                        <!-- Keterangan Nominal DP Sebelumnya untuk Pelunasan DP -->
+                                        <div v-if="item.category === 'pelunasan_dp'" class="flex flex-col text-[10px] leading-tight bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-700 dark:text-blue-300 rounded px-1.5 py-0.5 w-fit">
+                                            <span class="font-bold">DP Awal: {{ formatCurrency(item.previous_dp_amount || 0) }}</span>
+                                            <span v-if="item.parent_dp_receipt_id" class="text-[9px] text-gray-500 dark:text-gray-400 font-mono mt-0.5">Nota: {{ item.parent_dp_receipt_id }}</span>
+                                        </div>
                                     </div>
-                                    <span v-else
-                                        class="px-2.5 py-1 text-xs font-semibold rounded-lg border"
-                                        :class="getCategoryBadgeClass(item.category)">
-                                        {{ formatCategoryLabel(item.category) }}
-                                    </span>
                                 </td>
                                 <td colspan="4" class="p-0 align-top">
                                     <div class="flex flex-col w-full h-full min-w-[960px]">
@@ -366,8 +366,11 @@
                                                 </div>
                                                 <!-- Harga Jual -->
                                                 <div
-                                                    class="px-3 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex items-center justify-end border-r border-gray-100 dark:!border-surface-700">
-                                                    {{ formatCurrency(detail.harga_jual || 0) }}
+                                                    class="px-3 py-4 text-text-primary font-mono text-xs font-semibold whitespace-nowrap text-right flex flex-col justify-center items-end border-r border-gray-100 dark:!border-surface-700">
+                                                    <span>{{ formatCurrency(detail.harga_jual || 0) }}</span>
+                                                    <span v-if="item.category === 'pelunasan_dp' && item.previous_dp_amount" class="text-[10px] text-blue-500 font-medium font-sans">
+                                                        (DP: {{ formatCurrency(item.previous_dp_amount) }})
+                                                    </span>
                                                 </div>
                                                 <!-- Harga Modal Dropdown & Input -->
                                                 <div
@@ -438,9 +441,9 @@
                                             </div>
                                         </template>
                                     </div>
-                                    <div v-if="!isLeader"
-                                        class="flex items-center justify-between p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[960px]">
-                                        <div class="text-[11px] text-text-secondary pl-2">
+                                    <div
+                                        class="flex items-center justify-between p-2.5 bg-gray-50/30 dark:!bg-surface-800/30 border-t border-gray-100 dark:!border-surface-700 w-full min-w-[960px] gap-3">
+                                        <div class="text-[11px] text-text-secondary pl-2 shrink-0">
                                             <span v-if="isRowAudited(item)" class="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                                                 <span>✓</span> Data modal transaksi ini telah tersimpan
                                             </span>
@@ -448,10 +451,24 @@
                                                 Belum diaudit — pilih preset atau input modal lalu simpan
                                             </span>
                                         </div>
-                                        <button @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
-                                            class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 border transition-all shadow-sm"
+
+                                        <!-- Catatan Audit Profit Input -->
+                                        <div class="flex items-center gap-2 flex-1 max-w-md">
+                                            <div class="relative w-full">
+                                                <FileText :size="13" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                                <input type="text"
+                                                    v-model="profitNotes[item.id]"
+                                                    placeholder="Tambah catatan audit profit..."
+                                                    @keyup.enter="saveHargaModal(item)"
+                                                    :disabled="isLeader"
+                                                    class="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-text-primary focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-gray-400 placeholder:italic" />
+                                            </div>
+                                        </div>
+
+                                        <button v-if="!isLeader" @click="saveHargaModal(item)" :disabled="savingModalId === item.id"
+                                            class="px-3.5 py-1.5 flex items-center gap-1.5 rounded-lg text-xs font-bold bg-white dark:!bg-surface-700 border transition-all shadow-sm shrink-0"
                                             :class="isRowAudited(item) ? 'text-emerald-700 border-emerald-300 bg-emerald-50/40 hover:bg-emerald-100' : 'text-gray-700 dark:text-gray-300 border-gray-200 dark:border-surface-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50'"
-                                            title="Simpan Harga Modal Transaksi Ini">
+                                            title="Simpan Harga Modal dan Catatan Audit">
                                             <Save v-if="savingModalId !== item.id" :size="14" />
                                             <Loader2 v-else :size="14" class="animate-spin" />
                                             <span>{{ isRowAudited(item) ? 'Perbarui Modal' : 'Simpan Rincian Modal' }}</span>
@@ -922,6 +939,7 @@ const saveChecklist = async () => {
 // editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
 const editableModal = reactive({})
 const detailPresets = reactive({})
+const profitNotes = ref({})
 const savingModalId = ref(null)
 
 const formatCategoryLabel = (category) => {
@@ -1143,6 +1161,7 @@ const initEditableModal = () => {
     profitRecords.value.daily_sales.data.forEach(item => {
         editableModal[item.id] = {}
         detailPresets[item.id] = {}
+        profitNotes.value[item.id] = item.audit_notes || ''
         if (item.items) {
             item.items.forEach(detail => {
                 // Ketika belum diaudit, nilai modal di input dikosongkan (placeholder 0), profit 0
@@ -1255,14 +1274,17 @@ const saveHargaModal = async (item) => {
 
     savingModalId.value = item.id
     try {
+        const noteVal = profitNotes.value[item.id] !== undefined ? profitNotes.value[item.id] : (item.audit_notes || '')
         const res = await axios.post(`/audit/profit/${item.id}`, {
-            items_modal: itemsModalPayload
+            items_modal: itemsModalPayload,
+            notes: noteVal
         })
 
         // Update item total properties
         item.harga_modal = res.data.harga_modal
         item.profit = res.data.profit
         item.is_audited = true
+        item.audit_notes = res.data.notes !== undefined ? res.data.notes : (profitNotes.value[item.id] || null)
         item.auditor_name = res.data.auditor_name || authStore.userName || 'Auditor'
         item.latest_auditor_name = res.data.auditor_name || authStore.userName || 'Auditor'
         item.audited_at = res.data.audited_at || new Date().toISOString()
@@ -1277,7 +1299,7 @@ const saveHargaModal = async (item) => {
                 detail.profit = (Number(detail.harga_jual) || 0) - (Number(detail.harga_modal) || 0)
             })
         }
-        toast.success('Harga modal transaksi berhasil disimpan!')
+        toast.success('Data modal & catatan audit berhasil disimpan!')
     } catch (e) {
         console.error('Failed to save harga modal', e)
         toast.error('Gagal menyimpan harga modal: ' + (e.response?.data?.message || e.message))
@@ -1421,6 +1443,9 @@ const selectedLocationKey = ref('all')
 const displayedSales = computed(() => {
     let list = profitRecords.value.daily_sales?.data || [];
 
+    // Exclude downgrade & cancel_penjualan entirely from Audit Profit
+    list = list.filter(item => item.category !== 'cancel_penjualan' && item.category !== 'downgrade');
+
     // Filter by Active Tab (All, HP, Non-HP)
     if (activeTab.value === 'hp') {
         list = list.filter(item => item.items && item.items.some(isItemHp));
@@ -1448,14 +1473,12 @@ const displayedSales = computed(() => {
 
 const summaryStats = computed(() => {
     const list = displayedSales.value || []
-    const cancelRecords = list.filter(item => item.category === 'cancel_penjualan')
-    const activeRecords = list.filter(item => item.category !== 'cancel_penjualan')
-    const sudahDiauditCount = activeRecords.filter(item => isRowAudited(item)).length
-    const belumDiauditCount = activeRecords.filter(item => !isRowAudited(item)).length
+    const sudahDiauditCount = list.filter(item => isRowAudited(item)).length
+    const belumDiauditCount = list.filter(item => !isRowAudited(item)).length
 
     return {
-        totalTransaksi: activeRecords.length,
-        totalCancel: cancelRecords.length,
+        totalTransaksi: list.length,
+        totalCancel: 0,
         belumDiaudit: belumDiauditCount,
         sudahDiaudit: sudahDiauditCount,
     }

@@ -11,6 +11,7 @@ class AuditProfit extends Model
         'harga_modal',
         'items_modal',
         'auditor_id',
+        'notes',
     ];
 
     protected $casts = [
