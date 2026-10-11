@@ -1269,6 +1269,50 @@ class StockOutController extends Controller
         return response()->json($history);
     }
 
+    private function getSourceInfo($itemDetail, $notes = '', $supplierName = '', $desc = '')
+    {
+        $rawNotes = (string) ($itemDetail?->notes ?? $notes ?? '');
+        $cleanNotes = preg_replace('/keluar\s+melalui[^\r\n]*/i', '', $rawNotes);
+        $cleanNotes = preg_replace('/batal\s+(transaksi|angkat\s+barang)[^\r\n]*/i', '', $cleanNotes);
+        $inNotesLower = strtolower(trim($cleanNotes));
+        $suppLower = strtolower(trim((string) ($itemDetail?->supplier_name ?? $supplierName ?? '')));
+        $descLower = strtolower(trim((string) $desc));
+
+        if ($itemDetail?->trade_in_id 
+            || str_contains($suppLower, 'trade-in') || str_contains($suppLower, 'trade in') || str_contains($suppLower, 'angkat barang')
+            || str_contains($inNotesLower, 'masuk dari angkat barang') || str_contains($inNotesLower, 'trade-in in') || str_contains($inNotesLower, 'trade in in') || str_contains($inNotesLower, 'angkat barang in')
+            || str_contains($descLower, 'trade-in') || str_contains($descLower, 'angkat barang')
+            || (str_contains($inNotesLower, 'angkat barang') && !str_contains($inNotesLower, 'keluar'))) {
+            return ['source_type' => 'angkat_barang', 'source_label' => 'In Angkat Barang'];
+        } elseif ($itemDetail?->refund_id 
+            || str_contains($suppLower, 'refund') 
+            || str_contains($inNotesLower, 'masuk dari refund') || str_contains($inNotesLower, 'refund in')
+            || str_contains($descLower, 'refund')
+            || (str_contains($inNotesLower, 'refund') && !str_contains($inNotesLower, 'keluar'))) {
+            return ['source_type' => 'refund', 'source_label' => 'In Refund'];
+        } elseif ($itemDetail?->tukar_tambah_id 
+            || str_contains($suppLower, 'tukar tambah') || str_contains($suppLower, 'tukar_tambah')
+            || str_contains($inNotesLower, 'masuk dari tukar tambah') || str_contains($inNotesLower, 'tukar tambah in') || str_contains($inNotesLower, 'tukar_tambah in')
+            || str_contains($descLower, 'tukar tambah')
+            || (str_contains($inNotesLower, 'tukar tambah') && !str_contains($inNotesLower, 'keluar'))) {
+            return ['source_type' => 'tukar_tambah', 'source_label' => 'In Tukar Tambah'];
+        } elseif ($itemDetail?->downgrade_id 
+            || str_contains($suppLower, 'downgrade')
+            || str_contains($inNotesLower, 'masuk dari downgrade') || str_contains($inNotesLower, 'downgrade in')
+            || str_contains($descLower, 'downgrade')
+            || (str_contains($inNotesLower, 'downgrade') && !str_contains($inNotesLower, 'keluar'))) {
+            return ['source_type' => 'downgrade', 'source_label' => 'In Downgrade'];
+        } elseif ($itemDetail?->unit_exchange_id 
+            || str_contains($suppLower, 'tukar unit') || str_contains($suppLower, 'tukar_unit') || str_contains($suppLower, 'exchange')
+            || str_contains($inNotesLower, 'masuk dari tukar unit') || str_contains($inNotesLower, 'tukar unit in') || str_contains($inNotesLower, 'exchange in')
+            || str_contains($descLower, 'tukar unit') || str_contains($descLower, 'exchange')
+            || (str_contains($inNotesLower, 'tukar unit') && !str_contains($inNotesLower, 'keluar'))) {
+            return ['source_type' => 'tukar_unit', 'source_label' => 'In Tukar Unit'];
+        }
+
+        return ['source_type' => 'store', 'source_label' => 'In Store'];
+    }
+
     // Track by IMEI or Receipt ID
     public function track(Request $request)
     {
@@ -1301,7 +1345,7 @@ class StockOutController extends Controller
 
             // First get ALL ProductDetails for this IMEI to cover re-registrations and deleted items
             $currentDetails = ProductDetail::withTrashed()
-                ->with(['product', 'distributor', 'user', 'stockOuts'])
+                ->with(['product', 'distributor', 'user', 'stockOuts', 'tradeIn', 'refund', 'unitExchange', 'tukarTambah', 'downgrade'])
                 ->where('imei', $query)
                 ->orderBy('created_at', 'asc')
                 ->get();
@@ -1348,6 +1392,9 @@ class StockOutController extends Controller
                     $inputByName = $so?->user?->name;
                 }
 
+                $itemDetail = $currentDetails->firstWhere('id', $log->reference_id) ?? $currentDetail;
+                $src = $this->getSourceInfo($itemDetail, $log->notes, $log->supplier_name, $log->description);
+
                 $allEvents[] = [
                     'type' => 'stock_in',
                     'sub_type' => 'registration',
@@ -1367,6 +1414,8 @@ class StockOutController extends Controller
                     'storage' => $currentDetail?->storage,
                     'selling_price' => $currentDetail?->selling_price,
                     'condition' => $currentDetail?->condition,
+                    'source_type' => $src['source_type'],
+                    'source_label' => $src['source_label'],
                 ];
             }
 
@@ -1424,6 +1473,8 @@ class StockOutController extends Controller
                             $inputByName = $so?->user?->name;
                         }
 
+                        $src = $this->getSourceInfo($detail, $detail->notes, $detail->supplier_name);
+
                         $allEvents[] = [
                             'type' => 'stock_in',
                             'sub_type' => 'registration',
@@ -1443,6 +1494,8 @@ class StockOutController extends Controller
                             'storage' => $detail->storage,
                             'selling_price' => $detail->selling_price,
                             'condition' => $detail->condition,
+                            'source_type' => $src['source_type'],
+                            'source_label' => $src['source_label'],
                         ];
                     }
                 }
@@ -1455,6 +1508,11 @@ class StockOutController extends Controller
                 },
                 'items.product',
                 'items.distributor',
+                'items.tradeIn',
+                'items.refund',
+                'items.unitExchange',
+                'items.tukarTambah',
+                'items.downgrade',
                 'nonHpDetails.product',
                 'user.branch',
                 'inventoryUser.branch',
@@ -1551,18 +1609,23 @@ class StockOutController extends Controller
                 if (empty($shopeeTrackingNos) && $out->shopee_tracking_no)
                     $shopeeTrackingNos[] = $out->shopee_tracking_no;
 
-                $mergedItems = $out->items->map(fn($i) => [
-                    'type' => 'hp',
-                    'imei' => $i->imei,
-                    'product_name' => $i->pivot?->snapshot_product_name ?? $i->product?->name,
-                    'quantity' => 1,
-                    'distributor_name' => $i->distributor?->name,
-                    'supplier_name' => $i->supplier_name,
-                    'notes' => $i->pivot?->notes,
-                    'brand' => $i->product?->brandRelation?->name ?? ($i->product?->brand ?? '-'),
-                    'storage' => $i->storage,
-                    'condition' => $i->condition,
-                ])->toArray();
+                $mergedItems = $out->items->map(function ($i) {
+                    $src = $this->getSourceInfo($i, $i->pivot?->notes ?? $i->notes, $i->supplier_name);
+                    return [
+                        'type' => 'hp',
+                        'imei' => $i->imei,
+                        'product_name' => $i->pivot?->snapshot_product_name ?? $i->product?->name,
+                        'quantity' => 1,
+                        'distributor_name' => $i->distributor?->name,
+                        'supplier_name' => $i->supplier_name,
+                        'notes' => $i->pivot?->notes,
+                        'brand' => $i->product?->brandRelation?->name ?? ($i->product?->brand ?? '-'),
+                        'storage' => $i->storage,
+                        'condition' => $i->condition,
+                        'source_type' => $src['source_type'],
+                        'source_label' => $src['source_label'],
+                    ];
+                })->toArray();
 
                 // Non-HP enrich from relation
                 foreach ($out->nonHpDetails as $detail) {
@@ -1575,6 +1638,8 @@ class StockOutController extends Controller
                         'brand' => $detail->product?->brandRelation?->name ?? ($detail->product?->brand ?? '-'),
                         'selling_price' => $detail->selling_price,
                         'distributor_name' => $detail->distributor?->name,
+                        'source_type' => 'store',
+                        'source_label' => 'In Store',
                     ];
                 }
 
@@ -1603,6 +1668,8 @@ class StockOutController extends Controller
                             'brand' => $prod?->brandRelation?->name ?? ($prod?->brand ?? '-'),
                             'selling_price' => $nhp['selling_price'] ?? 0,
                             'distributor_name' => $distName,
+                            'source_type' => 'store',
+                            'source_label' => 'In Store',
                         ];
                     }
                 }
@@ -1889,13 +1956,16 @@ class StockOutController extends Controller
                     if ($alreadyHasStockIn) {
                         continue;
                     }
+                    $firstItem = $out->items->first();
+                    $src = $this->getSourceInfo($firstItem, $out->notes, $firstItem?->supplier_name);
+
                     // No matching log — render barang_masuk as stock_in
                     $allEvents[] = [
                         'type' => 'stock_in',
                         'sub_type' => 'registration',
                         'id' => $out->receipt_id,
                         'imei' => $query,
-                        'product_name' => $out->items->first() ? ($out->items->first()->pivot?->snapshot_product_name ?? $out->items->first()->product?->name) : ($out->nonHpDetails->first()?->product?->name ?? 'Mixed Items'),
+                        'product_name' => $firstItem ? ($firstItem->pivot?->snapshot_product_name ?? $firstItem->product?->name) : ($out->nonHpDetails->first()?->product?->name ?? 'Mixed Items'),
                         'status' => 'available',
                         'placement_type' => $out->branch_id ? 'branch' : ($out->warehouse_id ? 'warehouse' : 'online_shop'),
                         'placement_id' => $out->branch_id ?? $out->warehouse_id ?? $out->online_shop_id,
@@ -1905,13 +1975,15 @@ class StockOutController extends Controller
                             (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
                         'created_at' => $out->created_at->toDateTimeString(),
                         'timestamp' => $out->created_at->timestamp,
-                        'distributor' => $out->items->first()?->distributor?->name ?? ($out->nonHpDetails->first()?->distributor?->name ?? null),
-                        'supplier_name' => $out->items->first()?->supplier_name,
+                        'distributor' => $firstItem?->distributor?->name ?? ($out->nonHpDetails->first()?->distributor?->name ?? null),
+                        'supplier_name' => $firstItem?->supplier_name,
                         'input_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                        'condition' => $out->items->first()?->condition ?? '-',
-                        'selling_price' => $out->items->first()?->selling_price ?? ($out->nonHpDetails->first()?->selling_price ?? 0),
-                        'storage' => $out->items->first()?->storage ?? '-',
+                        'condition' => $firstItem?->condition ?? '-',
+                        'selling_price' => $firstItem?->selling_price ?? ($out->nonHpDetails->first()?->selling_price ?? 0),
+                        'storage' => $firstItem?->storage ?? '-',
                         'notes' => $out->notes ?? ($out->nonHpDetails->first()?->notes ?? null),
+                        'source_type' => $src['source_type'],
+                        'source_label' => $src['source_label'],
                     ];
                     continue;
                 }
@@ -1974,16 +2046,20 @@ class StockOutController extends Controller
                     'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
                     'sales_account' => $out->sales_account,
                     'raw_items' => $rawItems,
+                    'source_type' => $mergedItems[0]['source_type'] ?? 'store',
+                    'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
                 ];
 
                 // Event 2: The ARRIVAL (if confirmed transfer)
                 if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
+                    $firstItem = $out->items->first();
+                    $src = $this->getSourceInfo($firstItem, $out->notes, $firstItem?->supplier_name);
                     $allEvents[] = [
                         'type' => 'stock_in',
                         'sub_type' => 'arrival',
                         'id' => $out->receipt_id, // Link to same receipt
                         'imei' => $query, // Contextual imei
-                        'product_name' => $out->items->first() ? ($out->items->first()->pivot?->snapshot_product_name ?? $out->items->first()->product?->name) : 'Mixed Items',
+                        'product_name' => $firstItem ? ($firstItem->pivot?->snapshot_product_name ?? $firstItem->product?->name) : 'Mixed Items',
                         'status' => 'available',
                         'placement_type' => $out->destination_type,
                         'placement_id' => $out->destination_id,
@@ -1991,9 +2067,11 @@ class StockOutController extends Controller
                         'created_at' => $out->confirmed_at->toDateTimeString(),
                         'timestamp' => $out->confirmed_at->timestamp,
                         'input_by' => $out->confirmedBy?->name ?? 'Unknown',
-                        'condition' => $out->items->first()?->condition ?? '-',
-                        'selling_price' => $out->items->first()?->selling_price ?? 0,
+                        'condition' => $firstItem?->condition ?? '-',
+                        'selling_price' => $firstItem?->selling_price ?? 0,
                         'is_arrival' => true,
+                        'source_type' => $src['source_type'],
+                        'source_label' => $src['source_label'],
                     ];
                 }
 
@@ -2024,6 +2102,8 @@ class StockOutController extends Controller
                             (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
                             (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
                             (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
+                        'source_type' => $mergedItems[0]['source_type'] ?? 'store',
+                        'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
                     ];
                 }
 
@@ -2031,6 +2111,7 @@ class StockOutController extends Controller
                 if ($out->category === 'retur' && $out->status === 'received' && $out->confirmed_at) {
                     // Find the item to get current placement
                     $returItem = $out->items->first();
+                    $src = $this->getSourceInfo($returItem, $out->notes, $returItem?->supplier_name);
                     $allEvents[] = [
                         'type' => 'stock_in',
                         'sub_type' => 'retur_arrival',
@@ -2053,6 +2134,8 @@ class StockOutController extends Controller
                         'selling_price' => $returItem?->selling_price ?? 0,
                         'is_arrival' => true,
                         'is_retur_return' => true,
+                        'source_type' => $src['source_type'],
+                        'source_label' => $src['source_label'],
                     ];
                 }
 
@@ -2080,6 +2163,8 @@ class StockOutController extends Controller
                             default => 'Unknown'
                         };
 
+                        $src = $this->getSourceInfo($returItem, $out->notes, $returItem?->supplier_name);
+
                         $allEvents[] = [
                             'type' => 'stock_in',
                             'sub_type' => 'retur_rejected_return',
@@ -2100,6 +2185,8 @@ class StockOutController extends Controller
                             'rejected_by' => $rejectUser?->name ?? 'Unknown',
                             'is_arrival' => true,
                             'is_retur_rejection' => true,
+                            'source_type' => $src['source_type'],
+                            'source_label' => $src['source_label'],
                         ];
                     }
                 }
@@ -2132,6 +2219,8 @@ class StockOutController extends Controller
                                 $placementName = \App\Models\Distributor::find($returnLog->distributor_id)?->name;
                             }
 
+                            $src = $this->getSourceInfo($item, $out->notes, $item?->supplier_name);
+
                             $allEvents[] = [
                                 'type' => 'stock_in',
                                 'sub_type' => 'return_transfer_arrival',
@@ -2152,6 +2241,8 @@ class StockOutController extends Controller
                                 'rejected_by' => $out->confirmedBy?->name ?? 'Unknown',
                                 'is_arrival' => true,
                                 'is_return_transfer' => true,
+                                'source_type' => $src['source_type'],
+                                'source_label' => $src['source_label'],
                             ];
                         }
                     }

@@ -23,25 +23,34 @@ const printableCategories = [
     'tukar_unit', 'tukar_tambah', 'downgrade', 'retur', 'keluar',
     'pindah_cabang', 'kesalahan_input', 'brand_ambassador',
     'event_sponsorship', 'giveaway_customer', 'inventaris', 'hilang',
-    'dp', 'pelunasan_dp', 'balancing'
+    'dp', 'pelunasan_dp', 'balancing', 'refund', 'angkat_barang'
 ];
 
 const canPrintReceipt = (result) => {
-    return result.type === 'stock_out' && result.order_no && printableCategories.includes(result.category);
+    return result.type === 'stock_out' && (result.order_no || result.id) && printableCategories.includes(result.category);
 };
-
-const aksiBuktiCategories = [
-    'penjualan_store', 'refund', 'angkat_barang',
-    'tukar_tambah', 'tukar_unit', 'downgrade',
-    'dp', 'pelunasan_dp'
-];
 
 const showAksiBukti = (result) => {
     if (result.type !== 'stock_out') return false;
-    if (!aksiBuktiCategories.includes(result.category)) return false;
-    const isNotaSearch = result.id && query.value && result.id.toLowerCase() === query.value.toLowerCase();
-    if (!isNotaSearch) return false;
     return (result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result);
+};
+
+const getSourceBadgeClass = (sourceType) => {
+    switch (sourceType) {
+        case 'angkat_barang':
+            return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        case 'refund':
+            return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        case 'tukar_tambah':
+            return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+        case 'downgrade':
+            return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+        case 'tukar_unit':
+            return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+        case 'store':
+        default:
+            return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+    }
 };
 
 const openReceipt = (result) => {
@@ -185,6 +194,9 @@ function getCategoryColor(category) {
                                             <span v-else-if="result.is_return_transfer" class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20">TERIMA BALIK</span>
                                             <span v-else-if="!result.is_arrival" class="badge-xs bg-green-500/10 text-green-400 border-green-500/20">MASUK</span>
                                             <span v-else class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20">TRANSFER MASUK</span>
+                                            <span v-if="result.source_label" class="badge-xs" :class="getSourceBadgeClass(result.source_type)">
+                                                {{ result.source_label }}
+                                            </span>
                                         </div>
                                         <p class="text-sm font-semibold text-text-primary mt-0.5 truncate">{{ result.product_name }}</p>
                                         <p class="text-[11px] text-text-secondary font-mono">{{ result.imei }}</p>
@@ -212,6 +224,12 @@ function getCategoryColor(category) {
                                             'bg-blue-500/10 text-blue-400': result.status === 'transfer',
                                             'bg-red-500/10 text-red-400': result.status === 'deleted'
                                         }">{{ result.status }}</span>
+                                    </div>
+                                    <div v-if="result.source_label">
+                                        <p class="text-[10px] text-text-secondary">Sumber</p>
+                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border" :class="getSourceBadgeClass(result.source_type)">
+                                            {{ result.source_label }}
+                                        </span>
                                     </div>
                                     <div>
                                         <p class="text-[10px] text-text-secondary">Lokasi</p>
@@ -283,6 +301,9 @@ function getCategoryColor(category) {
                                                 'bg-green-500/10 text-green-400 border-green-500/20': result.status === 'received',
                                                 'bg-red-500/10 text-red-400 border-red-500/20': result.status === 'rejected'
                                             }">{{ result.status === 'pending' ? 'Menunggu' : (result.status === 'rejected' ? 'Ditolak' : 'Selesai') }}</span>
+                                            <span v-if="result.source_label" class="badge-xs" :class="getSourceBadgeClass(result.source_type)">
+                                                {{ result.source_label }}
+                                            </span>
                                         </div>
                                         <p class="text-sm font-semibold text-text-primary mt-0.5 truncate font-mono">{{ result.id }}</p>
                                     </div>
@@ -300,10 +321,13 @@ function getCategoryColor(category) {
                                             <component :is="item.type === 'bundle' ? Package : (item.type === 'non-hp' ? Box : Smartphone)" :size="14" class="text-surface-500 shrink-0" />
                                             <div class="flex-1 min-w-0">
                                                 <p class="text-xs text-text-primary truncate" :class="{'text-primary-400 font-bold': item.type === 'bundle'}">{{ item.product_name }}</p>
-                                                <div class="flex items-center gap-2 mt-0.5">
+                                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                                     <span v-if="item.imei && item.imei !== '-'" class="text-[10px] text-text-secondary font-mono">{{ item.imei }}</span>
                                                     <span v-else class="text-[10px] text-text-secondary">Qty: {{ item.quantity }}</span>
                                                     <span v-if="item.distributor_name || item.supplier_name" class="text-[9px] px-1.5 py-0.5 rounded bg-surface-700 text-primary-400 font-medium">{{ item.distributor_name || item.supplier_name }}</span>
+                                                    <span v-if="item.source_label" class="text-[9px] px-1.5 py-0.5 rounded font-bold border" :class="getSourceBadgeClass(item.source_type)">
+                                                        {{ item.source_label }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -461,6 +485,12 @@ function getCategoryColor(category) {
                                         <p class="text-[10px] text-text-secondary">Lokasi Asal</p>
                                         <p class="text-xs text-text-primary">{{ result.source_name || result.branch?.name || result.online_shop?.name || result.warehouse?.name || '-' }}</p>
                                     </div>
+                                    <div v-if="result.source_label">
+                                        <p class="text-[10px] text-text-secondary">Sumber Barang</p>
+                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border" :class="getSourceBadgeClass(result.source_type)">
+                                            {{ result.source_label }}
+                                        </span>
+                                    </div>
                                     <div>
                                         <p class="text-[10px] text-text-secondary">Diproses oleh</p>
                                         <p class="text-xs text-text-primary">{{ result.processed_by || '-' }}</p>
@@ -481,7 +511,7 @@ function getCategoryColor(category) {
                                     <button v-if="canPrintReceipt(result)" @click="openReceipt(result)"
                                         class="flex items-center gap-1.5 bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 border border-primary-500/30 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95">
                                         <Printer :size="12" />
-                                        Print Nota
+                                        Lihat Nota
                                     </button>
                                 </div>
                             </div>
