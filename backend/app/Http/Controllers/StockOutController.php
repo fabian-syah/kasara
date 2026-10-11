@@ -1313,7 +1313,99 @@ class StockOutController extends Controller
         return ['source_type' => 'store', 'source_label' => 'In Store'];
     }
 
-    private function buildReceiptDataForStockOut(\App\Models\StockOut $out): array
+    private function resolveIncomingImei($txn, string $category, ?\App\Models\ProductDetail $trackedItem = null): string
+    {
+        if (!$txn) {
+            return ($trackedItem && !empty($trackedItem->imei) && $trackedItem->imei !== '-') ? $trackedItem->imei : '-';
+        }
+
+        // 1. If tracked item is provided and matches this transaction
+        if ($trackedItem && !empty($trackedItem->imei) && $trackedItem->imei !== '-') {
+            $isMatch = false;
+            if ($category === 'tukar_tambah' && $trackedItem->tukar_tambah_id && $trackedItem->tukar_tambah_id == ($txn->id ?? 0)) {
+                $isMatch = true;
+            } elseif ($category === 'downgrade' && $trackedItem->downgrade_id && $trackedItem->downgrade_id == ($txn->id ?? 0)) {
+                $isMatch = true;
+            } elseif ($category === 'tukar_unit' && $trackedItem->unit_exchange_id && $trackedItem->unit_exchange_id == ($txn->id ?? 0)) {
+                $isMatch = true;
+            } elseif (in_array($category, ['trade_in', 'angkat_barang']) && $trackedItem->trade_in_id && $trackedItem->trade_in_id == ($txn->id ?? 0)) {
+                $isMatch = true;
+            } elseif ($category === 'refund' && $trackedItem->refund_id && $trackedItem->refund_id == ($txn->id ?? 0)) {
+                $isMatch = true;
+            } elseif (!empty($txn->receipt_id) && stripos((string)$trackedItem->notes, (string)$txn->receipt_id) !== false) {
+                $isMatch = true;
+            }
+
+            if ($isMatch) {
+                $this->syncModelIncomingImei($txn, $category, $trackedItem->imei);
+                return $trackedItem->imei;
+            }
+        }
+
+        // 2. Otherwise search for linked ProductDetail in database
+        $linkedPd = null;
+        if (!empty($txn->id)) {
+            if ($category === 'tukar_tambah') {
+                $linkedPd = \App\Models\ProductDetail::withTrashed()->where('tukar_tambah_id', $txn->id)->first();
+            } elseif ($category === 'downgrade') {
+                $linkedPd = \App\Models\ProductDetail::withTrashed()->where('downgrade_id', $txn->id)->first();
+            } elseif ($category === 'tukar_unit') {
+                $linkedPd = \App\Models\ProductDetail::withTrashed()->where('unit_exchange_id', $txn->id)->first();
+            } elseif (in_array($category, ['trade_in', 'angkat_barang'])) {
+                $linkedPd = \App\Models\ProductDetail::withTrashed()->where('trade_in_id', $txn->id)->first();
+            } elseif ($category === 'refund') {
+                $linkedPd = \App\Models\ProductDetail::withTrashed()->where('refund_id', $txn->id)->first();
+            }
+        }
+
+        // 3. Fallback: Search ProductDetail by receipt_id in notes
+        if (!$linkedPd && !empty($txn->receipt_id)) {
+            $linkedPd = \App\Models\ProductDetail::withTrashed()
+                ->where('notes', 'like', "%{$txn->receipt_id}%")
+                ->first();
+        }
+
+        if ($linkedPd && !empty($linkedPd->imei) && $linkedPd->imei !== '-') {
+            $this->syncModelIncomingImei($txn, $category, $linkedPd->imei);
+            return $linkedPd->imei;
+        }
+
+        // 4. Default fallback to transaction's own stored IMEI
+        return $txn->incoming_imei ?? $txn->imei ?? '-';
+    }
+
+    private function syncModelIncomingImei($txn, string $category, string $newImei): void
+    {
+        if (!$txn || empty($newImei) || $newImei === '-') return;
+
+        try {
+            if ($txn instanceof \App\Models\TukarTambah || $category === 'tukar_tambah') {
+                if (($txn->incoming_imei ?? '') !== $newImei) {
+                    $txn->update(['incoming_imei' => $newImei]);
+                }
+            } elseif ($txn instanceof \App\Models\Downgrade || $category === 'downgrade') {
+                if (($txn->incoming_imei ?? '') !== $newImei) {
+                    $txn->update(['incoming_imei' => $newImei]);
+                }
+            } elseif ($txn instanceof \App\Models\UnitExchange || $category === 'tukar_unit') {
+                if (($txn->incoming_imei ?? '') !== $newImei) {
+                    $txn->update(['incoming_imei' => $newImei]);
+                }
+            } elseif ($txn instanceof \App\Models\TradeIn || in_array($category, ['trade_in', 'angkat_barang'])) {
+                if (($txn->imei ?? '') !== $newImei) {
+                    $txn->update(['imei' => $newImei]);
+                }
+            } elseif ($txn instanceof \App\Models\Refund || $category === 'refund') {
+                if (($txn->imei ?? '') !== $newImei) {
+                    $txn->update(['imei' => $newImei]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silently ignore to avoid breaking read views
+        }
+    }
+
+    private function buildReceiptDataForStockOut(\App\Models\StockOut $out, ?\App\Models\ProductDetail $trackedItemDetail = null): array
     {
         $catLower = strtolower($out->category);
         $exchangeInfo = null;
@@ -1342,7 +1434,7 @@ class StockOutController extends Controller
         $rawItems = [];
         if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
             $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
-            $inImei = $exchangeInfo->incoming_imei ?? '-';
+            $inImei = $this->resolveIncomingImei($exchangeInfo, $catLower, $trackedItemDetail);
             $rawItems[] = [
                 'type' => 'IN',
                 'is_hp' => true,
@@ -1448,7 +1540,7 @@ class StockOutController extends Controller
         ];
     }
 
-    private function buildReceiptDataFromModel($txn, string $category): array
+    private function buildReceiptDataFromModel($txn, string $category, ?\App\Models\ProductDetail $trackedItemDetail = null): array
     {
         $proofImages = collect([
             $txn->photo_unit ?? null,
@@ -1458,10 +1550,11 @@ class StockOutController extends Controller
         $rawItems = [];
         if ($category === 'tukar_tambah' && $txn instanceof \App\Models\TukarTambah) {
             $inProd = ($txn->incomingProductType?->name ?? 'Unit Konsumen');
+            $inImei = $this->resolveIncomingImei($txn, 'tukar_tambah', $trackedItemDetail);
             $rawItems[] = [
                 'type' => 'IN',
                 'is_hp' => true,
-                'imei' => $txn->incoming_imei ?? '-',
+                'imei' => $inImei,
                 'name' => "IN: " . $inProd,
                 'product_name' => "IN: " . $inProd,
                 'qty' => 1,
@@ -1495,10 +1588,11 @@ class StockOutController extends Controller
                 ];
             }
         } elseif (in_array($category, ['trade_in', 'angkat_barang'])) {
+            $inImei = $this->resolveIncomingImei($txn, 'angkat_barang', $trackedItemDetail);
             $rawItems[] = [
                 'type' => 'IN',
                 'is_hp' => true,
-                'imei' => $txn->imei ?? '-',
+                'imei' => $inImei,
                 'name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
                 'product_name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
                 'qty' => 1,
@@ -1511,10 +1605,11 @@ class StockOutController extends Controller
                 'storage' => $txn->storage ?? '-',
             ];
         } elseif ($category === 'refund') {
+            $inImei = $this->resolveIncomingImei($txn, 'refund', $trackedItemDetail);
             $rawItems[] = [
                 'type' => 'IN',
                 'is_hp' => true,
-                'imei' => $txn->imei ?? '-',
+                'imei' => $inImei,
                 'name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
                 'product_name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
                 'qty' => 1,
@@ -1695,16 +1790,16 @@ class StockOutController extends Controller
             ])->where('receipt_id', $receiptId)->first();
 
             if ($so) {
-                $receiptData = $this->buildReceiptDataForStockOut($so);
+                $receiptData = $this->buildReceiptDataForStockOut($so, $itemDetail);
                 $proofImages = $receiptData['proof_images'] ?? [];
                 if (!$customerName && $so->customer_name) $customerName = $so->customer_name;
                 if (!$customerPhone && ($so->customer_phone ?? $so->customer_wa)) $customerPhone = $so->customer_phone ?? $so->customer_wa;
             } elseif ($txnModel) {
-                $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType);
+                $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType, $itemDetail);
                 $proofImages = $receiptData['proof_images'] ?? [];
             }
         } elseif ($txnModel) {
-            $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType);
+            $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType, $itemDetail);
             $proofImages = $receiptData['proof_images'] ?? [];
             $receiptId = $txnModel->receipt_id ?? null;
         }
@@ -2151,7 +2246,7 @@ class StockOutController extends Controller
                 // Add incoming exchange unit to mergedItems so it displays on the card
                 if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
                     $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
-                    $inImei = $exchangeInfo->incoming_imei ?? '-';
+                    $inImei = $this->resolveIncomingImei($exchangeInfo, $catLower, $currentDetail ?? ($currentDetails->first() ?? null));
                     $mergedItems[] = [
                         'type' => 'hp',
                         'imei' => $inImei,
@@ -2189,7 +2284,7 @@ class StockOutController extends Controller
                 $rawItems = [];
                 if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
                     $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
-                    $inImei = $exchangeInfo->incoming_imei ?? '-';
+                    $inImei = $this->resolveIncomingImei($exchangeInfo, $catLower, $currentDetail ?? ($currentDetails->first() ?? null));
                     $rawItems[] = [
                         'type' => 'IN',
                         'is_hp' => true,

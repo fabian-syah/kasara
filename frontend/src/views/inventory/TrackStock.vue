@@ -60,7 +60,27 @@ const getSourceBadgeClass = (sourceType) => {
 
 const openReceipt = (result) => {
     const data = result.receipt_data || result;
-    currentReceiptData.value = { ...data, items: data.raw_items || data.items };
+    const rawItems = (data.raw_items || data.items || []).map(item => ({ ...item }));
+
+    // Find if there is a matching stock_in event for this receipt to sync incoming item IMEI
+    let targetImei = (result.type === 'stock_in' && result.imei) ? result.imei : null;
+    if (!targetImei && (result.id || result.order_no)) {
+        const rcptKey = String(result.id || result.order_no).toLowerCase().trim();
+        const matchingIn = results.value.find(r => r.type === 'stock_in' && String(r.source_receipt_id || '').toLowerCase().trim() === rcptKey);
+        if (matchingIn && matchingIn.imei) {
+            targetImei = matchingIn.imei;
+        }
+    }
+
+    if (targetImei) {
+        rawItems.forEach(item => {
+            if (item.type === 'IN' || (item.name || '').includes('IN:') || (item.product_name || '').startsWith('[IN]')) {
+                item.imei = targetImei;
+            }
+        });
+    }
+
+    currentReceiptData.value = { ...data, items: rawItems };
     showReceiptModal.value = true;
 };
 
@@ -94,7 +114,40 @@ async function search() {
     try {
         const response = await api.get('/track', { params: { q: query.value } });
         const data = response.data.data || [];
-        results.value = data.filter(r => !(r.type === 'stock_out' && r.category === 'barang_masuk'));
+        const filtered = data.filter(r => !(r.type === 'stock_out' && r.category === 'barang_masuk'));
+
+        // Synchronize incoming exchange item IMEIs between stock_in and stock_out
+        const stockInMap = new Map();
+        filtered.forEach(r => {
+            if (r.type === 'stock_in' && r.source_receipt_id && r.imei) {
+                stockInMap.set(r.source_receipt_id.toLowerCase().trim(), r.imei);
+            }
+        });
+
+        filtered.forEach(r => {
+            if (r.type === 'stock_out' && (r.id || r.order_no)) {
+                const rcptKey = String(r.id || r.order_no).toLowerCase().trim();
+                const matchedImei = stockInMap.get(rcptKey);
+                if (matchedImei) {
+                    if (Array.isArray(r.items)) {
+                        r.items.forEach(item => {
+                            if ((item.product_name || '').startsWith('[IN]') || item.is_incoming) {
+                                item.imei = matchedImei;
+                            }
+                        });
+                    }
+                    if (Array.isArray(r.raw_items)) {
+                        r.raw_items.forEach(item => {
+                            if (item.type === 'IN' || (item.name || '').includes('IN:') || (item.product_name || '').includes('IN:')) {
+                                item.imei = matchedImei;
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+        results.value = filtered;
     } catch (e) {
         toast.error(e.response?.data?.message || "Gagal mencari");
         results.value = [];

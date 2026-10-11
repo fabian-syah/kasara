@@ -647,6 +647,35 @@ class InventoryController extends Controller
                 $data = array_merge($data, $request->only(['imei', 'storage', 'cost_price', 'status']));
             }
             $item->update($data);
+
+            // Sync updated IMEI to linked exchange transactions (tukar tambah, downgrade, etc.)
+            if (!empty($item->imei) && $item->imei !== '-') {
+                $newImei = $item->imei;
+                if ($item->tukar_tambah_id) {
+                    \App\Models\TukarTambah::where('id', $item->tukar_tambah_id)->update(['incoming_imei' => $newImei]);
+                }
+                if ($item->downgrade_id) {
+                    \App\Models\Downgrade::where('id', $item->downgrade_id)->update(['incoming_imei' => $newImei]);
+                }
+                if ($item->unit_exchange_id) {
+                    \App\Models\UnitExchange::where('id', $item->unit_exchange_id)->update(['incoming_imei' => $newImei]);
+                }
+                if ($item->trade_in_id) {
+                    \App\Models\TradeIn::where('id', $item->trade_in_id)->update(['imei' => $newImei]);
+                }
+                if ($item->refund_id) {
+                    \App\Models\Refund::where('id', $item->refund_id)->update(['imei' => $newImei]);
+                }
+
+                if (preg_match('/(?:Tukar Tambah|Angkat Barang|Refund|Downgrade|Tukar Unit)\s*(?:IN|\(Update\)|No)?\s*:?\s*([A-Za-z0-9\-]+)/i', (string) ($item->notes ?? ''), $m)) {
+                    $rcpt = trim($m[1]);
+                    \App\Models\TukarTambah::where('receipt_id', $rcpt)->update(['incoming_imei' => $newImei]);
+                    \App\Models\Downgrade::where('receipt_id', $rcpt)->update(['incoming_imei' => $newImei]);
+                    \App\Models\UnitExchange::where('receipt_id', $rcpt)->update(['incoming_imei' => $newImei]);
+                    \App\Models\TradeIn::where('receipt_id', $rcpt)->update(['imei' => $newImei]);
+                    \App\Models\Refund::where('receipt_id', $rcpt)->update(['imei' => $newImei]);
+                }
+            }
         } else {
             // Non-HP: Update per-branch selling price on inventory record
             $updateData = ['notes' => $request->notes];
