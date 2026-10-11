@@ -27,11 +27,16 @@ const printableCategories = [
 ];
 
 const canPrintReceipt = (result) => {
-    return result.type === 'stock_out' && (result.order_no || result.id) && printableCategories.includes(result.category);
+    if (result.type === 'stock_out') {
+        return (result.order_no || result.id) && printableCategories.includes(result.category);
+    }
+    if (result.type === 'stock_in') {
+        return !!(result.source_receipt_id || result.receipt_data);
+    }
+    return false;
 };
 
 const showAksiBukti = (result) => {
-    if (result.type !== 'stock_out') return false;
     return (result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result);
 };
 
@@ -54,7 +59,8 @@ const getSourceBadgeClass = (sourceType) => {
 };
 
 const openReceipt = (result) => {
-    currentReceiptData.value = { ...result, items: result.raw_items || result.items };
+    const data = result.receipt_data || result;
+    currentReceiptData.value = { ...data, items: data.raw_items || data.items };
     showReceiptModal.value = true;
 };
 
@@ -197,6 +203,9 @@ function getCategoryColor(category) {
                                             <span v-if="result.source_label" class="badge-xs" :class="getSourceBadgeClass(result.source_type)">
                                                 {{ result.source_label }}
                                             </span>
+                                            <span v-if="result.source_receipt_id" class="badge-xs bg-primary-500/10 text-primary-400 border-primary-500/30 font-mono">
+                                                NOTA: {{ result.source_receipt_id }}
+                                            </span>
                                         </div>
                                         <p class="text-sm font-semibold text-text-primary mt-0.5 truncate">{{ result.product_name }}</p>
                                         <p class="text-[11px] text-text-secondary font-mono">{{ result.imei }}</p>
@@ -208,9 +217,17 @@ function getCategoryColor(category) {
 
                                 <!-- Details -->
                                 <div class="mt-3 pt-3 border-t border-surface-700/50 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-2.5">
-                                    <div v-if="result.id && isNaN(result.id)">
+                                    <div v-if="result.source_receipt_id">
+                                        <p class="text-[10px] text-text-secondary">No. Nota Masuk</p>
+                                        <p class="text-xs text-primary-400 font-mono font-bold">{{ result.source_receipt_id }}</p>
+                                    </div>
+                                    <div v-else-if="result.id && isNaN(result.id)">
                                         <p class="text-[10px] text-text-secondary">No. Transaksi</p>
                                         <p class="text-xs text-text-primary font-mono">{{ result.id }}</p>
+                                    </div>
+                                    <div v-if="result.source_customer_name">
+                                        <p class="text-[10px] text-text-secondary">Dari Konsumen</p>
+                                        <p class="text-xs text-text-primary font-medium">{{ result.source_customer_name }}</p>
                                     </div>
                                     <div v-if="result.condition && result.condition !== '-'">
                                         <p class="text-[10px] text-text-secondary">Kondisi</p>
@@ -255,6 +272,24 @@ function getCategoryColor(category) {
                                         <p class="text-[10px] text-text-secondary">Keterangan</p>
                                         <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
                                     </div>
+                                </div>
+
+                                <!-- Aksi & Bukti -->
+                                <div v-if="showAksiBukti(result)" class="mt-3 pt-3 border-t border-surface-700/50 flex flex-wrap items-center gap-2">
+                                    <span class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Aksi & Bukti:</span>
+                                    <template v-if="result.proof_images && result.proof_images.length > 0">
+                                        <button v-for="(img, idx) in result.proof_images" :key="idx"
+                                            @click="activeImage = img"
+                                            class="flex items-center gap-1.5 bg-surface-700/50 hover:bg-surface-700 text-text-primary border border-surface-600 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95">
+                                            <Eye :size="12" class="text-primary-400" />
+                                            Bukti {{ idx + 1 }}
+                                        </button>
+                                    </template>
+                                    <button v-if="canPrintReceipt(result)" @click="openReceipt(result)"
+                                        class="flex items-center gap-1.5 bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 border border-primary-500/30 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95">
+                                        <Printer :size="12" />
+                                        Lihat Nota
+                                    </button>
                                 </div>
                             </div>
                         </div>

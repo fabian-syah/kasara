@@ -1313,6 +1313,420 @@ class StockOutController extends Controller
         return ['source_type' => 'store', 'source_label' => 'In Store'];
     }
 
+    private function buildReceiptDataForStockOut(\App\Models\StockOut $out): array
+    {
+        $catLower = strtolower($out->category);
+        $exchangeInfo = null;
+        if ($catLower === 'tukar_tambah') {
+            $exchangeInfo = \App\Models\TukarTambah::with(['incomingProductType.brand', 'distributor'])
+                ->where('receipt_id', $out->receipt_id)
+                ->first();
+        } elseif ($catLower === 'downgrade') {
+            $exchangeInfo = \App\Models\Downgrade::with(['incomingProductType.brand', 'distributor'])
+                ->where('receipt_id', $out->receipt_id)
+                ->first();
+        } elseif ($catLower === 'tukar_unit') {
+            $exchangeInfo = \App\Models\UnitExchange::with(['incomingProductType.brand', 'distributor'])
+                ->where('receipt_id', $out->receipt_id)
+                ->first();
+        } elseif ($catLower === 'refund') {
+            $exchangeInfo = \App\Models\Refund::where('receipt_id', $out->receipt_id)->first();
+        }
+
+        $proofImages = collect([
+            $out->proof_image,
+            $exchangeInfo->photo_unit ?? null,
+            $exchangeInfo->photo_customer ?? null
+        ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray();
+
+        $rawItems = [];
+        if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+            $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
+            $inImei = $exchangeInfo->incoming_imei ?? '-';
+            $rawItems[] = [
+                'type' => 'IN',
+                'is_hp' => true,
+                'imei' => $inImei,
+                'name' => "IN: " . $inProd,
+                'product_name' => "IN: " . $inProd,
+                'qty' => 1,
+                'quantity' => 1,
+                'price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
+                'selling_price' => -(float) ($exchangeInfo->incoming_cost_price ?? 0),
+                'discount' => 0,
+                'item_discount' => 0,
+                'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
+                'condition' => $exchangeInfo->incoming_condition ?? 'second',
+                'storage' => $exchangeInfo->incoming_storage ?? '-',
+                'is_incoming' => true,
+                'notes' => null
+            ];
+        }
+
+        foreach ($out->items as $i) {
+            $isRefundOrAngkat = in_array($catLower, ['refund', 'angkat_barang']);
+            $pNameActual = $i->pivot?->snapshot_product_name ?? $i->product?->name ?? 'Unknown HP';
+            $pName = ($isRefundOrAngkat ? "IN: " : "") . $pNameActual;
+            if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+                $pName = "OUT: " . $pNameActual;
+            }
+
+            $rawItems[] = [
+                'type' => 'hp',
+                'is_hp' => true,
+                'imei' => $i->imei,
+                'name' => $pName,
+                'product_name' => $pName,
+                'qty' => 1,
+                'quantity' => 1,
+                'price' => (float)($i->pivot?->selling_price ?? 0),
+                'selling_price' => (float)($i->pivot?->selling_price ?? 0),
+                'discount' => (float)($i->pivot?->item_discount ?? 0),
+                'item_discount' => (float)($i->pivot?->item_discount ?? 0),
+                'brand' => $i->product?->brandRelation?->name ?? ($i->product?->brand ?? '-'),
+                'condition' => $i->condition,
+                'storage' => $i->storage,
+                'distributor_name' => $i->distributor?->name,
+                'supplier_name' => $i->supplier_name,
+                'notes' => $i->pivot?->notes
+            ];
+        }
+
+        if ($out->nonHpDetails) {
+            foreach ($out->nonHpDetails as $detail) {
+                $rawItems[] = [
+                    'type' => 'non-hp',
+                    'is_hp' => false,
+                    'name' => $detail->product?->name ?? 'Unknown Product',
+                    'product_name' => $detail->product?->name ?? 'Unknown Product',
+                    'qty' => (int)($detail->quantity ?? 1),
+                    'quantity' => (int)($detail->quantity ?? 1),
+                    'price' => (float)($detail->selling_price ?? 0),
+                    'selling_price' => (float)($detail->selling_price ?? 0),
+                    'discount' => 0,
+                    'item_discount' => 0,
+                    'brand' => $detail->product?->brandRelation?->name ?? ($detail->product?->brand ?? '-'),
+                    'condition' => '-',
+                    'storage' => '-',
+                    'notes' => $detail->notes,
+                    'distributor_name' => $detail->distributor?->name ?? null
+                ];
+            }
+        }
+
+        $sourceName = $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-')))));
+
+        return [
+            'id' => $out->receipt_id,
+            'order_no' => $out->receipt_id,
+            'receipt_id' => $out->receipt_id,
+            'category' => $out->category,
+            'created_at' => $out->created_at->toDateTimeString(),
+            'customer_name' => $out->customer_name,
+            'customer_wa' => $out->customer_wa,
+            'customer_phone' => $out->customer_phone ?? $out->customer_wa,
+            'branch' => $out->branch,
+            'branch_name' => $out->branch?->name ?? $sourceName,
+            'source_name' => $sourceName,
+            'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+            'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+            'sales_account' => $out->sales_account,
+            'selling_price' => (float)$out->selling_price,
+            'grand_total' => (float)($out->selling_price - $out->total_discount),
+            'paid' => (float)($out->paid_amount ?: ($out->selling_price - $out->total_discount)),
+            'total_discount' => (float)$out->total_discount,
+            'payment_method_name' => $out->paymentMethod?->name ?? '-',
+            'split_payments_data' => $out->split_payments_data ?? [],
+            'notes' => $out->notes,
+            'proof_images' => $proofImages,
+            'proof_image' => $proofImages[0] ?? null,
+            'items' => $rawItems,
+            'raw_items' => $rawItems,
+        ];
+    }
+
+    private function buildReceiptDataFromModel($txn, string $category): array
+    {
+        $proofImages = collect([
+            $txn->photo_unit ?? null,
+            $txn->photo_customer ?? null
+        ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray();
+
+        $rawItems = [];
+        if ($category === 'tukar_tambah' && $txn instanceof \App\Models\TukarTambah) {
+            $inProd = ($txn->incomingProductType?->name ?? 'Unit Konsumen');
+            $rawItems[] = [
+                'type' => 'IN',
+                'is_hp' => true,
+                'imei' => $txn->incoming_imei ?? '-',
+                'name' => "IN: " . $inProd,
+                'product_name' => "IN: " . $inProd,
+                'qty' => 1,
+                'quantity' => 1,
+                'price' => -(float) ($txn->incoming_cost_price ?? 0),
+                'selling_price' => -(float) ($txn->incoming_cost_price ?? 0),
+                'discount' => 0,
+                'item_discount' => 0,
+                'brand' => $txn->incomingProductType?->brand?->name ?? '-',
+                'condition' => $txn->incoming_condition ?? 'second',
+                'storage' => $txn->incoming_storage ?? '-',
+                'is_incoming' => true,
+            ];
+            if ($txn->outgoingProductDetail) {
+                $outProd = $txn->outgoingProductDetail->product?->name ?? 'Unit Toko';
+                $rawItems[] = [
+                    'type' => 'OUT',
+                    'is_hp' => true,
+                    'imei' => $txn->outgoingProductDetail->imei ?? '-',
+                    'name' => "OUT: " . $outProd,
+                    'product_name' => "OUT: " . $outProd,
+                    'qty' => 1,
+                    'quantity' => 1,
+                    'price' => (float) ($txn->outgoing_price ?? 0),
+                    'selling_price' => (float) ($txn->outgoing_price ?? 0),
+                    'discount' => 0,
+                    'item_discount' => 0,
+                    'brand' => $txn->outgoingProductDetail->product?->brandRelation?->name ?? ($txn->outgoingProductDetail->product?->brand ?? '-'),
+                    'condition' => $txn->outgoingProductDetail->condition ?? 'second',
+                    'storage' => $txn->outgoingProductDetail->storage ?? '-',
+                ];
+            }
+        } elseif (in_array($category, ['trade_in', 'angkat_barang'])) {
+            $rawItems[] = [
+                'type' => 'IN',
+                'is_hp' => true,
+                'imei' => $txn->imei ?? '-',
+                'name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
+                'product_name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
+                'qty' => 1,
+                'quantity' => 1,
+                'price' => (float) ($txn->buy_price ?? 0),
+                'selling_price' => (float) ($txn->buy_price ?? 0),
+                'discount' => 0,
+                'item_discount' => 0,
+                'condition' => $txn->condition ?? 'second',
+                'storage' => $txn->storage ?? '-',
+            ];
+        } elseif ($category === 'refund') {
+            $rawItems[] = [
+                'type' => 'IN',
+                'is_hp' => true,
+                'imei' => $txn->imei ?? '-',
+                'name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
+                'product_name' => "IN: " . ($txn->productType?->name ?? 'Unit Konsumen'),
+                'qty' => 1,
+                'quantity' => 1,
+                'price' => (float) ($txn->refund_price ?? 0),
+                'selling_price' => (float) ($txn->refund_price ?? 0),
+                'discount' => 0,
+                'item_discount' => 0,
+                'condition' => $txn->condition ?? 'second',
+                'storage' => $txn->storage ?? '-',
+            ];
+        }
+
+        $branchName = $txn->branch?->name ?? 'CABANG';
+
+        return [
+            'id' => $txn->receipt_id,
+            'order_no' => $txn->receipt_id,
+            'receipt_id' => $txn->receipt_id,
+            'category' => $category,
+            'created_at' => $txn->created_at->toDateTimeString(),
+            'customer_name' => $txn->customer_name ?? '-',
+            'customer_wa' => $txn->customer_phone ?? null,
+            'customer_phone' => $txn->customer_phone ?? null,
+            'branch' => $txn->branch,
+            'branch_name' => $branchName,
+            'source_name' => $branchName,
+            'selling_price' => (float)($txn->price_difference ?? ($txn->buy_price ?? ($txn->refund_price ?? 0))),
+            'grand_total' => (float)($txn->price_difference ?? ($txn->buy_price ?? ($txn->refund_price ?? 0))),
+            'paid' => (float)($txn->price_difference ?? ($txn->buy_price ?? ($txn->refund_price ?? 0))),
+            'payment_method_name' => $txn->paymentMethod?->name ?? '-',
+            'notes' => $txn->notes,
+            'proof_images' => $proofImages,
+            'proof_image' => $proofImages[0] ?? null,
+            'items' => $rawItems,
+            'raw_items' => $rawItems,
+        ];
+    }
+
+    private function getSourceTransactionInfo($itemDetail, $query, $notes = '', $desc = '')
+    {
+        $src = $this->getSourceInfo($itemDetail, $notes, $itemDetail?->supplier_name, $desc);
+        $sourceType = $src['source_type'];
+        $receiptId = null;
+        $customerName = null;
+        $customerPhone = null;
+        $txnModel = null;
+
+        // 1. Check direct relations on ProductDetail
+        if ($itemDetail?->tukarTambah) {
+            $txnModel = $itemDetail->tukarTambah;
+            $receiptId = $txnModel->receipt_id;
+            $customerName = $txnModel->customer_name;
+            $customerPhone = $txnModel->customer_phone;
+            $sourceType = 'tukar_tambah';
+        } elseif ($itemDetail?->tradeIn) {
+            $txnModel = $itemDetail->tradeIn;
+            $receiptId = $txnModel->receipt_id;
+            $customerName = $txnModel->customer_name;
+            $customerPhone = $txnModel->customer_phone;
+            $sourceType = 'angkat_barang';
+        } elseif ($itemDetail?->refund) {
+            $txnModel = $itemDetail->refund;
+            $receiptId = $txnModel->receipt_id;
+            $customerName = $txnModel->customer_name;
+            $customerPhone = $txnModel->customer_phone;
+            $sourceType = 'refund';
+        } elseif ($itemDetail?->downgrade) {
+            $txnModel = $itemDetail->downgrade;
+            $receiptId = $txnModel->receipt_id;
+            $customerName = $txnModel->customer_name;
+            $customerPhone = $txnModel->customer_phone;
+            $sourceType = 'downgrade';
+        } elseif ($itemDetail?->unitExchange) {
+            $txnModel = $itemDetail->unitExchange;
+            $receiptId = $txnModel->receipt_id;
+            $customerName = $txnModel->customer_name;
+            $customerPhone = $txnModel->customer_phone;
+            $sourceType = 'tukar_unit';
+        }
+
+        // 1b. Check foreign keys directly on itemDetail if relations weren't loaded
+        if (!$txnModel && $itemDetail) {
+            if ($itemDetail->tukar_tambah_id && ($tt = \App\Models\TukarTambah::find($itemDetail->tukar_tambah_id))) {
+                $txnModel = $tt;
+                $receiptId = $tt->receipt_id;
+                $customerName = $tt->customer_name;
+                $customerPhone = $tt->customer_phone;
+                $sourceType = 'tukar_tambah';
+            } elseif ($itemDetail->trade_in_id && ($ti = \App\Models\TradeIn::find($itemDetail->trade_in_id))) {
+                $txnModel = $ti;
+                $receiptId = $ti->receipt_id;
+                $customerName = $ti->customer_name;
+                $customerPhone = $ti->customer_phone;
+                $sourceType = 'angkat_barang';
+            } elseif ($itemDetail->refund_id && ($rf = \App\Models\Refund::find($itemDetail->refund_id))) {
+                $txnModel = $rf;
+                $receiptId = $rf->receipt_id;
+                $customerName = $rf->customer_name;
+                $customerPhone = $rf->customer_phone;
+                $sourceType = 'refund';
+            } elseif ($itemDetail->downgrade_id && ($dg = \App\Models\Downgrade::find($itemDetail->downgrade_id))) {
+                $txnModel = $dg;
+                $receiptId = $dg->receipt_id;
+                $customerName = $dg->customer_name;
+                $customerPhone = $dg->customer_phone;
+                $sourceType = 'downgrade';
+            } elseif ($itemDetail->unit_exchange_id && ($ue = \App\Models\UnitExchange::find($itemDetail->unit_exchange_id))) {
+                $txnModel = $ue;
+                $receiptId = $ue->receipt_id;
+                $customerName = $ue->customer_name;
+                $customerPhone = $ue->customer_phone;
+                $sourceType = 'tukar_unit';
+            }
+        }
+
+        // 2. Fallback: Search by query/IMEI across transaction tables
+        $cleanImei = trim((string)($itemDetail?->imei ?? $query));
+        if (!$receiptId && strlen($cleanImei) >= 6) {
+            if ($tt = \App\Models\TukarTambah::where('incoming_imei', $cleanImei)->orWhere('incoming_items', 'like', "%{$cleanImei}%")->first()) {
+                $txnModel = $tt;
+                $receiptId = $tt->receipt_id;
+                $customerName = $tt->customer_name;
+                $customerPhone = $tt->customer_phone;
+                $sourceType = 'tukar_tambah';
+            } elseif ($ti = \App\Models\TradeIn::where('imei', $cleanImei)->first()) {
+                $txnModel = $ti;
+                $receiptId = $ti->receipt_id;
+                $customerName = $ti->customer_name;
+                $customerPhone = $ti->customer_phone;
+                $sourceType = 'angkat_barang';
+            } elseif ($rf = \App\Models\Refund::where('imei', $cleanImei)->first()) {
+                $txnModel = $rf;
+                $receiptId = $rf->receipt_id;
+                $customerName = $rf->customer_name;
+                $customerPhone = $rf->customer_phone;
+                $sourceType = 'refund';
+            } elseif ($dg = \App\Models\Downgrade::where('incoming_imei', $cleanImei)->first()) {
+                $txnModel = $dg;
+                $receiptId = $dg->receipt_id;
+                $customerName = $dg->customer_name;
+                $customerPhone = $dg->customer_phone;
+                $sourceType = 'downgrade';
+            } elseif ($ue = \App\Models\UnitExchange::where('incoming_imei', $cleanImei)->first()) {
+                $txnModel = $ue;
+                $receiptId = $ue->receipt_id;
+                $customerName = $ue->customer_name;
+                $customerPhone = $ue->customer_phone;
+                $sourceType = 'tukar_unit';
+            }
+        }
+
+        // 3. Fallback: Parse receipt ID from notes or description
+        if (!$receiptId) {
+            $searchNotes = ($itemDetail?->notes ?? '') . ' ' . $notes . ' ' . $desc;
+            if (preg_match('/(?:Tukar Tambah|Angkat Barang|Refund|Downgrade|Tukar Unit)\s*(?:IN|\(Update\))?\s*:?\s*([A-Za-z0-9\-]+)/i', $searchNotes, $m)) {
+                $candidate = trim($m[1]);
+                if (strlen($candidate) >= 4 && !in_array(strtolower($candidate), ['in', 'keluar', 'masuk', 'null']) && !preg_match('/^IN-\d+$/i', $candidate)) {
+                    $receiptId = $candidate;
+                }
+            }
+        }
+
+        // 4. Load full receipt data
+        $receiptData = null;
+        $proofImages = [];
+        if ($receiptId) {
+            $so = \App\Models\StockOut::withTrashed()->with([
+                'items.product',
+                'items.distributor',
+                'nonHpDetails.product',
+                'user.branch',
+                'inventoryUser.branch',
+                'branch',
+                'onlineShop',
+                'warehouse',
+                'paymentMethod'
+            ])->where('receipt_id', $receiptId)->first();
+
+            if ($so) {
+                $receiptData = $this->buildReceiptDataForStockOut($so);
+                $proofImages = $receiptData['proof_images'] ?? [];
+                if (!$customerName && $so->customer_name) $customerName = $so->customer_name;
+                if (!$customerPhone && ($so->customer_phone ?? $so->customer_wa)) $customerPhone = $so->customer_phone ?? $so->customer_wa;
+            } elseif ($txnModel) {
+                $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType);
+                $proofImages = $receiptData['proof_images'] ?? [];
+            }
+        } elseif ($txnModel) {
+            $receiptData = $this->buildReceiptDataFromModel($txnModel, $sourceType);
+            $proofImages = $receiptData['proof_images'] ?? [];
+            $receiptId = $txnModel->receipt_id ?? null;
+        }
+
+        return [
+            'source_type' => $sourceType,
+            'source_label' => match($sourceType) {
+                'angkat_barang' => 'In Angkat Barang',
+                'refund' => 'In Refund',
+                'tukar_tambah' => 'In Tukar Tambah',
+                'downgrade' => 'In Downgrade',
+                'tukar_unit' => 'In Tukar Unit',
+                default => 'In Store'
+            },
+            'receipt_id' => $receiptId,
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'receipt_data' => $receiptData,
+            'proof_images' => $proofImages,
+        ];
+    }
+
     // Track by IMEI or Receipt ID
     public function track(Request $request)
     {
@@ -1393,7 +1807,7 @@ class StockOutController extends Controller
                 }
 
                 $itemDetail = $currentDetails->firstWhere('id', $log->reference_id) ?? $currentDetail;
-                $src = $this->getSourceInfo($itemDetail, $log->notes, $log->supplier_name, $log->description);
+                $srcData = $this->getSourceTransactionInfo($itemDetail, $query, $log->notes, $log->description);
 
                 $allEvents[] = [
                     'type' => 'stock_in',
@@ -1414,8 +1828,16 @@ class StockOutController extends Controller
                     'storage' => $currentDetail?->storage,
                     'selling_price' => $currentDetail?->selling_price,
                     'condition' => $currentDetail?->condition,
-                    'source_type' => $src['source_type'],
-                    'source_label' => $src['source_label'],
+                    'notes' => $log->notes ?? ($currentDetail?->notes ?? null),
+                    'source_type' => $srcData['source_type'],
+                    'source_label' => $srcData['source_label'],
+                    'source_receipt_id' => $srcData['receipt_id'],
+                    'order_no' => $srcData['receipt_id'] ?? ('IN-' . ($log->reference_id ?? $log->id)),
+                    'source_customer_name' => $srcData['customer_name'],
+                    'source_customer_phone' => $srcData['customer_phone'],
+                    'receipt_data' => $srcData['receipt_data'],
+                    'proof_images' => $srcData['proof_images'] ?? [],
+                    'proof_image' => $srcData['proof_images'][0] ?? null,
                 ];
             }
 
@@ -1473,7 +1895,7 @@ class StockOutController extends Controller
                             $inputByName = $so?->user?->name;
                         }
 
-                        $src = $this->getSourceInfo($detail, $detail->notes, $detail->supplier_name);
+                        $srcData = $this->getSourceTransactionInfo($detail, $detail->imei, $detail->notes);
 
                         $allEvents[] = [
                             'type' => 'stock_in',
@@ -1494,15 +1916,44 @@ class StockOutController extends Controller
                             'storage' => $detail->storage,
                             'selling_price' => $detail->selling_price,
                             'condition' => $detail->condition,
-                            'source_type' => $src['source_type'],
-                            'source_label' => $src['source_label'],
+                            'notes' => $detail->notes,
+                            'source_type' => $srcData['source_type'],
+                            'source_label' => $srcData['source_label'],
+                            'source_receipt_id' => $srcData['receipt_id'],
+                            'order_no' => $srcData['receipt_id'] ?? ('IN-' . $detail->id),
+                            'source_customer_name' => $srcData['customer_name'],
+                            'source_customer_phone' => $srcData['customer_phone'],
+                            'receipt_data' => $srcData['receipt_data'],
+                            'proof_images' => $srcData['proof_images'] ?? [],
+                            'proof_image' => $srcData['proof_images'][0] ?? null,
                         ];
                     }
                 }
             }
 
+            // Collect any source receipt IDs from the found ProductDetail records and exchange tables
+            $sourceReceiptIds = collect($allEvents)->pluck('source_receipt_id')->filter()->unique()->values()->toArray();
+
+            $matchingTTReceipts = \App\Models\TukarTambah::where('incoming_imei', $query)
+                ->orWhere('incoming_items', 'like', "%{$query}%")
+                ->pluck('receipt_id')
+                ->filter()->toArray();
+            $matchingTIReceipts = \App\Models\TradeIn::where('imei', $query)->pluck('receipt_id')->filter()->toArray();
+            $matchingRFReceipts = \App\Models\Refund::where('imei', $query)->pluck('receipt_id')->filter()->toArray();
+            $matchingDGReceipts = \App\Models\Downgrade::where('incoming_imei', $query)->pluck('receipt_id')->filter()->toArray();
+            $matchingUEReceipts = \App\Models\UnitExchange::where('incoming_imei', $query)->pluck('receipt_id')->filter()->toArray();
+
+            $allMatchedReceipts = array_values(array_unique(array_filter(array_merge(
+                $sourceReceiptIds,
+                $matchingTTReceipts,
+                $matchingTIReceipts,
+                $matchingRFReceipts,
+                $matchingDGReceipts,
+                $matchingUEReceipts
+            ))));
+
             // 2. Search STOCK OUT (Execution & Arrival Events)
-            $stockOuts = StockOut::withTrashed()->with([
+            $stockOutsQuery = StockOut::withTrashed()->with([
                 'items' => function ($q) {
                     $q->withTrashed();
                 },
@@ -1530,9 +1981,13 @@ class StockOutController extends Controller
                 ->orWhereHas('items', function ($q) use ($query) {
                     $q->withTrashed()->where('imei', $query);
                 })
-                ->orWhere('shopee_items_data', 'like', "%\"{$query}\"%")
-                ->get()
-                ->unique('id');
+                ->orWhere('shopee_items_data', 'like', "%\"{$query}\"%");
+
+            if (!empty($allMatchedReceipts)) {
+                $stockOutsQuery->orWhereIn('receipt_id', $allMatchedReceipts);
+            }
+
+            $stockOuts = $stockOutsQuery->get()->unique('id');
 
             // Auto-detect and include MASUK event for non-HP Auto-Transfers
             $additionalStockOuts = collect();
@@ -1693,12 +2148,42 @@ class StockOutController extends Controller
                     $exchangeInfo = \App\Models\Refund::where('receipt_id', $out->receipt_id)->first();
                 }
 
+                // Add incoming exchange unit to mergedItems so it displays on the card
+                if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+                    $inProd = ($exchangeInfo->incomingProductType->name ?? 'Unit Konsumen');
+                    $inImei = $exchangeInfo->incoming_imei ?? '-';
+                    $mergedItems[] = [
+                        'type' => 'hp',
+                        'imei' => $inImei,
+                        'product_name' => "[IN] " . $inProd,
+                        'quantity' => 1,
+                        'distributor_name' => $exchangeInfo->distributor?->name ?? 'Konsumen',
+                        'supplier_name' => 'Tukar Tambah Konsumen',
+                        'notes' => 'Unit Masuk dari ' . match($catLower) {
+                            'tukar_tambah' => 'Tukar Tambah',
+                            'downgrade' => 'Downgrade',
+                            'tukar_unit' => 'Tukar Unit',
+                            default => 'Exchange'
+                        },
+                        'brand' => $exchangeInfo->incomingProductType->brand->name ?? '-',
+                        'storage' => $exchangeInfo->incoming_storage ?? '-',
+                        'condition' => $exchangeInfo->incoming_condition ?? 'second',
+                        'source_type' => $catLower,
+                        'source_label' => match($catLower) {
+                            'tukar_tambah' => 'In Tukar Tambah',
+                            'downgrade' => 'In Downgrade',
+                            'tukar_unit' => 'In Tukar Unit',
+                            default => 'In Store'
+                        },
+                    ];
+                }
+
                 // Compile proof images list
                 $proofImages = collect([
                     $out->proof_image,
                     $exchangeInfo->photo_unit ?? null,
                     $exchangeInfo->photo_customer ?? null
-                ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray();
+                ])->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
 
                 // Build detailed raw items for ReceiptModal
                 $rawItems = [];
@@ -1943,8 +2428,11 @@ class StockOutController extends Controller
                 });
 
                 // Only use filtered items if there's a match inside items, otherwise show all (meaning the match was on receipt ID)
-                if (count($filteredItems) > 0 && stripos($out->receipt_id, $query) === false && stripos($out->shopee_tracking_no, $query) === false) {
-                    $mergedItems = array_values($filteredItems);
+                // For exchange transactions (tukar tambah, downgrade, tukar unit), keep both incoming and outgoing units so user sees what was traded
+                if (!in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
+                    if (count($filteredItems) > 0 && stripos($out->receipt_id, $query) === false && stripos($out->shopee_tracking_no, $query) === false) {
+                        $mergedItems = array_values($filteredItems);
+                    }
                 }
 
                 // Event 1: Skip barang_masuk if we already have a stock_in event from InventoryLog around the same time
@@ -1957,7 +2445,7 @@ class StockOutController extends Controller
                         continue;
                     }
                     $firstItem = $out->items->first();
-                    $src = $this->getSourceInfo($firstItem, $out->notes, $firstItem?->supplier_name);
+                    $srcData = $this->getSourceTransactionInfo($firstItem, $query, $out->notes);
 
                     // No matching log — render barang_masuk as stock_in
                     $allEvents[] = [
@@ -1982,8 +2470,15 @@ class StockOutController extends Controller
                         'selling_price' => $firstItem?->selling_price ?? ($out->nonHpDetails->first()?->selling_price ?? 0),
                         'storage' => $firstItem?->storage ?? '-',
                         'notes' => $out->notes ?? ($out->nonHpDetails->first()?->notes ?? null),
-                        'source_type' => $src['source_type'],
-                        'source_label' => $src['source_label'],
+                        'source_type' => $srcData['source_type'],
+                        'source_label' => $srcData['source_label'],
+                        'source_receipt_id' => $srcData['receipt_id'],
+                        'order_no' => $srcData['receipt_id'] ?? $out->receipt_id,
+                        'source_customer_name' => $srcData['customer_name'],
+                        'source_customer_phone' => $srcData['customer_phone'],
+                        'receipt_data' => $srcData['receipt_data'],
+                        'proof_images' => $srcData['proof_images'] ?? [],
+                        'proof_image' => $srcData['proof_images'][0] ?? null,
                     ];
                     continue;
                 }
