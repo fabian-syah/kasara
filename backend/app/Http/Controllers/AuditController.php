@@ -3437,6 +3437,9 @@ class AuditController extends Controller
      */
     public function profit(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(180);
+
         try {
             $user = $request->user();
             $userRoleNames = $user->roles->pluck('name')->map('strtolower')->toArray();
@@ -3727,18 +3730,12 @@ class AuditController extends Controller
             $dailySalesQuery = StockOut::with([
                 'items.product.brandRelation', 
                 'items.distributor', 
-                'items.tradeIn',
-                'items.refund',
-                'items.unitExchange',
-                'items.tukarTambah',
-                'items.downgrade',
                 'nonHpItems.product.brandRelation', 
                 'nonHpItems.distributor', 
-                'user.distributor', 
+                'user', 
                 'inventoryUser', 
-                'auditAnswers.auditor', 
+                'auditAnswers', 
                 'auditProfit.auditor', 
-                'cancelledByUser',
                 'paymentMethod',
                 'parentDp'
             ])
@@ -3895,11 +3892,15 @@ class AuditController extends Controller
                 $prevDpAmount = null;
                 $parentDpReceiptId = null;
                 if ($trx->category === 'pelunasan_dp') {
+                    static $parentDpCache = [];
                     if ($trx->parentDp) {
                         $prevDpAmount = (float) ($trx->parentDp->dp_amount ?: $trx->parentDp->paid_amount ?: $trx->parentDp->selling_price ?: 0);
                         $parentDpReceiptId = $trx->parentDp->receipt_id;
                     } elseif ($trx->parent_dp_id) {
-                        $parent = StockOut::find($trx->parent_dp_id);
+                        if (!array_key_exists($trx->parent_dp_id, $parentDpCache)) {
+                            $parentDpCache[$trx->parent_dp_id] = StockOut::find($trx->parent_dp_id);
+                        }
+                        $parent = $parentDpCache[$trx->parent_dp_id];
                         if ($parent) {
                             $prevDpAmount = (float) ($parent->dp_amount ?: $parent->paid_amount ?: $parent->selling_price ?: 0);
                             $parentDpReceiptId = $parent->receipt_id;
@@ -4386,7 +4387,6 @@ class AuditController extends Controller
                         'totalModalAudit' => 0,
                         'totalProfitSystem' => 0,
                         'totalProfitAudit' => 0,
-                        'items' => []
                     ];
                 }
 
@@ -4396,7 +4396,6 @@ class AuditController extends Controller
                 $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
                 $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
                 $dailyRecap[$trxDateStr]['totalProfitAudit'] += $profitAudit;
-                $dailyRecap[$trxDateStr]['items'][] = $trxData;
 
                 if (!$isAudited && $auditScore === null) {
                     $dailyRecap[$trxDateStr]['unAuditedCount']++;
@@ -4455,10 +4454,14 @@ class AuditController extends Controller
             ]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Profit API Error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+            $origin = $request->header('Origin', '*');
             return response()->json([
                 'message' => 'Terjadi kesalahan saat memproses data profit: ' . $e->getMessage(),
                 'error' => $e->getMessage()
-            ], 500);
+            ], 500, [
+                'Access-Control-Allow-Origin' => $origin,
+                'Access-Control-Allow-Credentials' => 'true',
+            ]);
         }
     }
 
@@ -5113,12 +5116,19 @@ class AuditController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
+            $origin = $request->header('Origin', '*');
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500, [
+                'Access-Control-Allow-Origin' => $origin,
+                'Access-Control-Allow-Credentials' => 'true',
+            ]);
         }
     }
 
     public function exportProfitExcel(Request $request)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(180);
+
         try {
             $user = $request->user();
             $userRoleNames = $user->roles->pluck('name')->map('strtolower')->toArray();
@@ -5263,16 +5273,11 @@ class AuditController extends Controller
             $query = StockOut::with([
                 'items.product.brandRelation', 
                 'items.distributor', 
-                'items.tradeIn',
-                'items.refund',
-                'items.unitExchange',
-                'items.tukarTambah',
-                'items.downgrade',
                 'nonHpItems.product.brandRelation', 
                 'nonHpItems.distributor', 
-                'user.distributor', 
+                'user', 
                 'inventoryUser', 
-                'auditAnswers.auditor', 
+                'auditAnswers', 
                 'auditProfit.auditor', 
                 'parentDp'
             ])
@@ -5382,10 +5387,14 @@ class AuditController extends Controller
                 // Parent DP
                 $prevDpAmount = 0;
                 if ($trx->category === 'pelunasan_dp') {
+                    static $exportParentDpCache = [];
                     if ($trx->parentDp) {
                         $prevDpAmount = (float) ($trx->parentDp->dp_amount ?: $trx->parentDp->paid_amount ?: $trx->parentDp->selling_price ?: 0);
                     } elseif ($trx->parent_dp_id) {
-                        $parent = StockOut::find($trx->parent_dp_id);
+                        if (!array_key_exists($trx->parent_dp_id, $exportParentDpCache)) {
+                            $exportParentDpCache[$trx->parent_dp_id] = StockOut::find($trx->parent_dp_id);
+                        }
+                        $parent = $exportParentDpCache[$trx->parent_dp_id];
                         if ($parent) {
                             $prevDpAmount = (float) ($parent->dp_amount ?: $parent->paid_amount ?: $parent->selling_price ?: 0);
                         }
@@ -5643,7 +5652,11 @@ class AuditController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
+            $origin = $request->header('Origin', '*');
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500, [
+                'Access-Control-Allow-Origin' => $origin,
+                'Access-Control-Allow-Credentials' => 'true',
+            ]);
         }
     }
 
