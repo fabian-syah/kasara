@@ -4810,7 +4810,8 @@ class AuditController extends Controller
 
                 $xlsxRow = array_merge($xlsxRow, [
                     ($row['total_pengeluaran'] === '') ? '' : (float) ($row['total_pengeluaran'] ?? 0),
-                    $row['status'] ?? ''
+                    $row['status'] ?? '',
+                    $row['auditor_profit'] ?? ''
                 ]);
 
                 // Inject metadata for zebra striping helper
@@ -5109,6 +5110,536 @@ class AuditController extends Controller
             ]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Export Sales Error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function exportProfitExcel(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $userRoleNames = $user->roles->pluck('name')->map('strtolower')->toArray();
+            $isGlobalRole = !empty(array_intersect($userRoleNames, ['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager']));
+            $isRestrictedRole = !empty(array_intersect($userRoleNames, ['leader', 'audit'])) && !$isGlobalRole;
+
+            $branchIds = $user->getAccessibleBranchIds();
+            $onlineShopIds = $user->getAccessibleOnlineShopIds();
+            $warehouseIds = $user->getAccessibleWarehouseIds();
+            $distributorIds = $user->getAccessibleDistributorIds();
+
+            if ($isRestrictedRole && empty($branchIds) && empty($onlineShopIds)) {
+                return response()->json(['message' => 'No access'], 403);
+            }
+
+            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+
+            if (!$user->hasAnyRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
+                $today = $logicalNow->toDateString();
+                $sixDaysAgo = $logicalNow->copy()->subDays(6)->toDateString();
+                $startOfThisMonth = $logicalNow->copy()->startOfMonth()->toDateString();
+                $startOfLastMonth = $logicalNow->copy()->subMonth()->startOfMonth()->toDateString();
+
+                if ($startDate === $endDate) {
+                    if ($startDate < $sixDaysAgo) {
+                        $startDate = $today;
+                        $endDate = $today;
+                    }
+                } else {
+                    if ($startDate < $startOfLastMonth) {
+                        $startDate = $startOfThisMonth;
+                        if ($endDate < $startOfThisMonth) {
+                            $endDate = $logicalNow->copy()->endOfMonth()->toDateString();
+                        }
+                    }
+                    if (date('Y', strtotime($startDate)) < $logicalNow->format('Y')) {
+                        $startDate = $startOfThisMonth;
+                    }
+                }
+            }
+
+            $requestedBranchId = $request->branch_id;
+            $requestedOnlineShopId = $request->online_shop_id;
+            $requestedDistributorId = $request->distributor_id;
+
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp', 'tukar_tambah'];
+
+            $branches = Branch::all()->keyBy('id');
+            $onlineShops = OnlineShop::all()->keyBy('id');
+
+            // ProductPrice lookup for waterfall
+            $allProductPrices = ProductPrice::with(['productType.brand'])->get();
+            $priceLookupFull = [];
+            $priceLookupNameStorage = [];
+            $priceLookupNameCondition = [];
+            $priceLookupNameOnly = [];
+
+            $normalizeStr = function ($str) {
+                if (!$str) return '';
+                $s = strtolower(trim($str));
+                return preg_replace('/[^a-z0-9]/', '', $s);
+            };
+
+            $normStorage = function ($str) {
+                if (!$str) return '';
+                $s = strtolower(trim($str));
+                $s = preg_replace('/\s+/', '', $s);
+                if (is_numeric($s)) $s .= 'gb';
+                return $s;
+            };
+
+            foreach ($allProductPrices as $pp) {
+                $cost = (float) $pp->cost_price;
+                if ($cost <= 0) continue;
+
+                $brandNorm = $normalizeStr($pp->productType?->brand?->name ?? '');
+                $typeNorm = $normalizeStr($pp->productType?->name ?? '');
+                $storageNorm = $normStorage($pp->storage ?? $pp->productType?->storage ?? '');
+                $condNorm = strtolower($pp->condition ?? 'second');
+                if ($condNorm === 'ex_ibox') $condNorm = 'second';
+
+                if ($typeNorm) {
+                    if ($brandNorm && $storageNorm) {
+                        $priceLookupFull[$brandNorm . '|' . $typeNorm . '|' . $storageNorm . '|' . $condNorm] = $cost;
+                    }
+                    if ($storageNorm) {
+                        $priceLookupNameStorage[$typeNorm . '|' . $storageNorm . '|' . $condNorm] = $cost;
+                        $priceLookupNameStorage[$typeNorm . '|' . $storageNorm] = $cost;
+                    }
+                    $priceLookupNameCondition[$typeNorm . '|' . $condNorm] = $cost;
+                    if (!isset($priceLookupNameOnly[$typeNorm])) {
+                        $priceLookupNameOnly[$typeNorm] = $cost;
+                    }
+                }
+            }
+
+            $findAdminCost = function ($brand, $name, $storage, $condition) use (
+                $priceLookupFull, $priceLookupNameStorage, $priceLookupNameCondition, $priceLookupNameOnly,
+                $normalizeStr, $normStorage
+            ) {
+                $brandNorm = $normalizeStr($brand);
+                $typeNorm = $normalizeStr($name);
+                $storageNorm = $normStorage($storage);
+                $condNorm = strtolower($condition ?: 'second');
+                if ($condNorm === 'ex_ibox') $condNorm = 'second';
+
+                if (!$storageNorm && preg_match('/(\d+)\s*(gb|tb)/i', $name, $matches)) {
+                    $storageNorm = strtolower($matches[1] . $matches[2]);
+                    $cleanName = preg_replace('/(\d+)\s*(gb|tb)/i', '', $name);
+                    $cleanTypeNorm = $normalizeStr($cleanName);
+                    if ($cleanTypeNorm) {
+                        $k = $cleanTypeNorm . '|' . $storageNorm . '|' . $condNorm;
+                        if (isset($priceLookupNameStorage[$k])) return $priceLookupNameStorage[$k];
+                        $k2 = $cleanTypeNorm . '|' . $storageNorm;
+                        if (isset($priceLookupNameStorage[$k2])) return $priceLookupNameStorage[$k2];
+                    }
+                }
+
+                if ($brandNorm && $typeNorm && $storageNorm) {
+                    $k = $brandNorm . '|' . $typeNorm . '|' . $storageNorm . '|' . $condNorm;
+                    if (isset($priceLookupFull[$k])) return $priceLookupFull[$k];
+                }
+
+                if ($typeNorm && $storageNorm) {
+                    $k = $typeNorm . '|' . $storageNorm . '|' . $condNorm;
+                    if (isset($priceLookupNameStorage[$k])) return $priceLookupNameStorage[$k];
+                    $k2 = $typeNorm . '|' . $storageNorm;
+                    if (isset($priceLookupNameStorage[$k2])) return $priceLookupNameStorage[$k2];
+                }
+
+                if ($typeNorm) {
+                    $k = $typeNorm . '|' . $condNorm;
+                    if (isset($priceLookupNameCondition[$k])) return $priceLookupNameCondition[$k];
+                    if (!isset($priceLookupNameOnly[$typeNorm])) return $priceLookupNameOnly[$typeNorm];
+                }
+
+                return 0;
+            };
+
+            $query = StockOut::with([
+                'items.product.brandRelation', 
+                'items.distributor', 
+                'items.tradeIn',
+                'items.refund',
+                'items.unitExchange',
+                'items.tukarTambah',
+                'items.downgrade',
+                'nonHpItems.product.brandRelation', 
+                'nonHpItems.distributor', 
+                'user.distributor', 
+                'inventoryUser', 
+                'auditAnswers.auditor', 
+                'auditProfit.auditor', 
+                'parentDp'
+            ])
+                ->whereIn('category', $salesCategories)
+                ->whereNotIn('category', ['downgrade', 'cancel_penjualan'])
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('reporting_date', [$startDate, $endDate])
+                        ->orWhere(function ($sq) use ($startDate, $endDate) {
+                            $sq->whereNull('reporting_date')
+                                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+                        });
+                })
+                ->whereNull('deleted_at');
+
+            // Apply location filters
+            if ($requestedBranchId) {
+                $query->where('stock_outs.branch_id', $requestedBranchId);
+            } elseif ($requestedOnlineShopId) {
+                $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
+            } elseif ($requestedDistributorId) {
+                $query->whereExists(function ($sub) use ($requestedDistributorId) {
+                    $sub->select(DB::raw(1))->from('users')->whereColumn('users.id', 'stock_outs.user_id')->where('users.distributor_id', $requestedDistributorId);
+                });
+            } elseif ($isRestrictedRole) {
+                $query->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                    if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
+                    if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                });
+            }
+
+            // Category filter
+            if ($request->category && $request->category !== 'all') {
+                if (in_array($request->category, ['downgrade', 'cancel_penjualan'])) {
+                    $query->whereRaw('1=0');
+                } elseif ($request->category === 'orderan_online') {
+                    $query->whereIn('category', ['shopee', 'orderan_online']);
+                } else {
+                    $query->where('category', $request->category);
+                }
+            }
+
+            // Search filter
+            if ($request->search) {
+                $term = trim($request->search);
+                $query->where(function ($q) use ($term) {
+                    $q->where('receipt_id', 'ilike', "%{$term}%")
+                        ->orWhere('customer_name', 'ilike', "%{$term}%")
+                        ->orWhere('receiver_name', 'ilike', "%{$term}%")
+                        ->orWhere('customer_phone', 'ilike', "%{$term}%")
+                        ->orWhere('notes', 'ilike', "%{$term}%")
+                        ->orWhereHas('items', function ($iq) use ($term) {
+                            $iq->where('imei', 'ilike', "%{$term}%")
+                                ->orWhereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$term}%"));
+                        });
+                });
+            }
+
+            $transactions = $query->orderBy('reporting_date', 'desc')->orderBy('created_at', 'desc')->get();
+
+            $headers = [
+                'No',
+                'Tanggal Transaksi',
+                'No Pesanan',
+                'Outlet / Lokasi',
+                'Customer Service',
+                'Nama Pelanggan',
+                'Kategori',
+                'Tipe Item',
+                'Brand',
+                'Nama Barang',
+                'IMEI',
+                'Kondisi',
+                'Sumber Masuk',
+                'Distributor',
+                'Qty',
+                'Harga Jual (Rp)',
+                'Modal Default / Sistem (Rp)',
+                'Modal Audit (Rp)',
+                'Profit Sistem (Rp)',
+                'Profit Audit (Rp)',
+                'Status Audit',
+                'Nama Auditor',
+                'Waktu Audit',
+                'Catatan Audit Profit',
+                'DP Awal (Rp)'
+            ];
+
+            $excelRows = [$headers];
+            $rowNo = 1;
+
+            $totalQty = 0;
+            $totalJual = 0;
+            $totalModalSistem = 0;
+            $totalModalAudit = 0;
+            $totalProfitSistem = 0;
+            $totalProfitAudit = 0;
+
+            foreach ($transactions as $trx) {
+                $savedProfit = $trx->auditProfit;
+                $auditorName = $savedProfit?->auditor?->name ?? $trx->latest_auditor_name ?? '-';
+                $isAudited = ($savedProfit !== null);
+
+                // Audit Status Filter
+                if ($request->audit_status === 'sudah' && !$isAudited) continue;
+                if ($request->audit_status === 'belum' && $isAudited) continue;
+
+                // Parent DP
+                $prevDpAmount = 0;
+                if ($trx->category === 'pelunasan_dp') {
+                    if ($trx->parentDp) {
+                        $prevDpAmount = (float) ($trx->parentDp->dp_amount ?: $trx->parentDp->paid_amount ?: $trx->parentDp->selling_price ?: 0);
+                    } elseif ($trx->parent_dp_id) {
+                        $parent = StockOut::find($trx->parent_dp_id);
+                        if ($parent) {
+                            $prevDpAmount = (float) ($parent->dp_amount ?: $parent->paid_amount ?: $parent->selling_price ?: 0);
+                        }
+                    }
+                    if (!$prevDpAmount && (float)($trx->dp_amount ?? 0) > 0) {
+                        $prevDpAmount = (float) $trx->dp_amount;
+                    }
+                }
+
+                // Outlet
+                $sourceUser = $trx->inventoryUser ?? $trx->user;
+                $outletName = 'APEX POS';
+                if ($sourceUser) {
+                    if ($sourceUser->branch_id && isset($branches[$sourceUser->branch_id]))
+                        $outletName = $branches[$sourceUser->branch_id]->name;
+                    elseif ($sourceUser->online_shop_id && isset($onlineShops[$sourceUser->online_shop_id]))
+                        $outletName = $onlineShops[$sourceUser->online_shop_id]->name;
+                }
+
+                $catLower = strtolower($trx->category);
+                $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
+                $spTotal = 0;
+                if ($trx->split_payments) {
+                    $sData = is_string($trx->split_payments) ? json_decode($trx->split_payments, true) : $trx->split_payments;
+                    if (is_array($sData)) {
+                        foreach ($sData as $sp) {
+                            $spTotal += abs((float) ($sp['amount'] ?? 0));
+                        }
+                    }
+                }
+                $targetTrxOmset = ($spTotal > 0) ? $spTotal : $dbSellingPrice;
+
+                // Build details
+                $details = [];
+                $trxItemsTotal = 0;
+                foreach ($trx->items as $item) {
+                    $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
+                }
+                foreach ($trx->nonHpItems as $nhp) {
+                    $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                }
+
+                $discrepancy = 0;
+                if ($trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
+                    $discrepancy = $trxItemsTotal - $targetTrxOmset;
+                }
+
+                // HP Items
+                foreach ($trx->items as $item) {
+                    $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
+                    $price = $basePrice;
+                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                    }
+
+                    $rawNotes = (string) ($item->notes ?? '');
+                    $cleanNotes = preg_replace('/keluar\s+melalui[^\r\n]*/i', '', $rawNotes);
+                    $cleanNotes = preg_replace('/batal\s+(transaksi|angkat\s+barang)[^\r\n]*/i', '', $cleanNotes);
+                    $inNotesLower = strtolower(trim($cleanNotes));
+                    $suppLower = strtolower(trim((string) ($item->supplier_name ?? '')));
+
+                    $sourceType = 'store';
+                    $sourceLabel = 'In Store';
+                    if ($item->trade_in_id || str_contains($suppLower, 'trade-in') || str_contains($suppLower, 'trade in') || str_contains($suppLower, 'angkat barang') || str_contains($inNotesLower, 'angkat barang')) {
+                        $sourceType = 'angkat_barang';
+                        $sourceLabel = 'In Angkat Barang';
+                    } elseif ($item->refund_id || str_contains($suppLower, 'refund') || str_contains($inNotesLower, 'refund')) {
+                        $sourceType = 'refund';
+                        $sourceLabel = 'In Refund';
+                    } elseif ($item->tukar_tambah_id || str_contains($suppLower, 'tukar tambah') || str_contains($inNotesLower, 'tukar tambah')) {
+                        $sourceType = 'tukar_tambah';
+                        $sourceLabel = 'In Tukar Tambah';
+                    } elseif ($item->downgrade_id || str_contains($suppLower, 'downgrade') || str_contains($inNotesLower, 'downgrade')) {
+                        $sourceType = 'downgrade';
+                        $sourceLabel = 'In Downgrade';
+                    } elseif ($item->unit_exchange_id || str_contains($suppLower, 'tukar unit') || str_contains($inNotesLower, 'tukar unit')) {
+                        $sourceType = 'tukar_unit';
+                        $sourceLabel = 'In Tukar Unit';
+                    }
+
+                    $details[] = [
+                        'id' => 'hp_' . $item->id,
+                        'name' => $item->product?->name ?? 'Unknown HP',
+                        'qty' => 1,
+                        'price' => $price,
+                        'brand' => $item->product?->brand ?? $item->product?->brandRelation?->name ?? '-',
+                        'type' => 'HP',
+                        'imei' => $item->imei ?? '-',
+                        'storage' => $item->storage ?? null,
+                        'condition' => strtolower(trim((string) ($item->condition ?? 'second'))),
+                        'distributor' => $item->distributor?->name ?? ($item->supplier_name ?: '-'),
+                        'raw_cost_price' => (float) ($item->cost_price ?? 0),
+                        'source_label' => $sourceLabel,
+                        'source_type' => $sourceType,
+                    ];
+                }
+
+                // Non-HP Items
+                foreach ($trx->nonHpItems as $nhp) {
+                    $basePrice = $nhp->product?->price ?? 0;
+                    $price = $basePrice;
+                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
+                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                    }
+                    $details[] = [
+                        'id' => 'nonhp_' . $nhp->id,
+                        'name' => $nhp->product?->name ?? 'Unknown Item',
+                        'qty' => $nhp->quantity,
+                        'price' => $price,
+                        'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                        'type' => 'Non-HP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => 'new',
+                        'distributor' => $nhp->distributor?->name ?? '-',
+                        'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                        'source_label' => 'In Store',
+                        'source_type' => 'store',
+                    ];
+                }
+
+                // Fallback for DP transactions without items
+                if (empty($details) && $catLower === 'dp') {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    $itemName = (!$productNameStr || strtolower($productNameStr) === 'dp') ? "DP : " . ($trx->customer_name ?? '') : $productNameStr;
+                    $details[] = [
+                        'id' => 'dp_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => $targetTrxOmset,
+                        'brand' => '-',
+                        'type' => 'DP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => '-',
+                        'distributor' => '-',
+                        'raw_cost_price' => 0,
+                        'source_label' => 'In Store',
+                        'source_type' => 'store',
+                    ];
+                }
+
+                // Filter source if requested
+                if ($request->source && $request->source !== 'all') {
+                    $details = array_filter($details, fn($d) => ($d['source_type'] ?? '') === $request->source);
+                    if (empty($details)) continue;
+                }
+
+                $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
+                $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($savedProfit->items_modal['__notes'] ?? '-')) : '-';
+                $auditedAtStr = $savedProfit?->updated_at ? $savedProfit->updated_at->toDateTimeString() : ($trx->audited_at ?? '-');
+
+                $trxDateStr = $trx->reporting_date 
+                    ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : $trx->reporting_date->format('Y-m-d'))
+                    : ($trx->created_at ? $trx->created_at->format('Y-m-d') : date('Y-m-d'));
+
+                foreach ($details as $detail) {
+                    $itemJual = $detail['price'] * $detail['qty'];
+                    $isItemNonHp = ($detail['type'] ?? '') === 'Non-HP';
+                    $adminCost = $isItemNonHp 
+                        ? $findAdminCost('', $detail['name'], '', '')
+                        : $findAdminCost($detail['brand'] ?? '', $detail['name'] ?? '', $detail['storage'] ?? '', $detail['condition'] ?? 'second');
+
+                    $rawCost = (float)($detail['raw_cost_price'] ?? 0);
+                    if ($rawCost > 0) {
+                        $defaultItemModal = $rawCost;
+                    } elseif ($adminCost > 0) {
+                        $defaultItemModal = $adminCost;
+                    } else {
+                        $defaultItemModal = $isItemNonHp ? round($itemJual * 0.90) : round($itemJual * 0.94);
+                    }
+
+                    $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
+                    $effectiveModalAudit = $savedItemModal !== null ? $savedItemModal : 0;
+                    $profitSystem = $itemJual - $defaultItemModal;
+                    $profitAudit = $savedItemModal !== null ? ($itemJual - $savedItemModal) : 0;
+
+                    $totalQty += $detail['qty'];
+                    $totalJual += $itemJual;
+                    $totalModalSistem += $defaultItemModal;
+                    $totalModalAudit += $effectiveModalAudit;
+                    $totalProfitSistem += $profitSystem;
+                    $totalProfitAudit += $profitAudit;
+
+                    $excelRows[] = [
+                        $rowNo++,
+                        $trxDateStr,
+                        $trx->receipt_id,
+                        $outletName,
+                        $trx->inventoryUser->name ?? $trx->user->name ?? '-',
+                        $trx->customer_name ?? $trx->receiver_name ?? '-',
+                        $trx->category,
+                        $detail['type'],
+                        $detail['brand'],
+                        $detail['name'],
+                        $detail['imei'] !== '-' ? "'" . $detail['imei'] : '-',
+                        $detail['condition'] === 'new' ? 'Baru' : ($detail['condition'] === 'ex_ibox' ? 'Ex iBox' : 'Second'),
+                        $detail['source_label'],
+                        $detail['distributor'],
+                        $detail['qty'],
+                        (float) $itemJual,
+                        (float) $defaultItemModal,
+                        $isAudited ? (float) $effectiveModalAudit : 0,
+                        (float) $profitSystem,
+                        $isAudited ? (float) $profitAudit : 0,
+                        $isAudited ? 'Sudah Diaudit' : 'Belum Diaudit',
+                        $auditorName,
+                        $auditedAtStr,
+                        $savedNotes,
+                        (float) $prevDpAmount
+                    ];
+                }
+            }
+
+            // Total row
+            $excelRows[] = [
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'TOTAL',
+                '',
+                '',
+                '',
+                '',
+                $totalQty,
+                (float) $totalJual,
+                (float) $totalModalSistem,
+                (float) $totalModalAudit,
+                (float) $totalProfitSistem,
+                (float) $totalProfitAudit,
+                '',
+                '',
+                '',
+                '',
+                ''
+            ];
+
+            $xlsx = \App\Utils\SimpleXLSXGen::fromArray($excelRows, 'Audit Profit');
+            $filename = "LAPORAN_AUDIT_PROFIT_{$startDate}_SD_{$endDate}.xlsx";
+
+            return response((string) $xlsx, 200, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+                'Cache-Control' => 'max-age=0',
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Export Profit Excel Error: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);

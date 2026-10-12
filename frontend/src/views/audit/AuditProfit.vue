@@ -284,13 +284,16 @@
                                         <span v-if="item.audited_at" class="text-gray-500 dark:text-gray-400 font-mono text-[9px]">
                                             {{ formatDate(item.audited_at) }}
                                         </span>
-                                        <span v-if="item.auditor_name || item.latest_auditor_name" class="text-text-secondary text-[10px] truncate max-w-[140px]" :title="item.auditor_name || item.latest_auditor_name">
-                                            Oleh: <strong class="text-text-primary">{{ item.auditor_name || item.latest_auditor_name }}</strong>
+                                        <span v-if="item.auditor_name || item.latest_auditor_name" class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-bold text-[10px] border border-emerald-200 dark:border-emerald-500/30 truncate max-w-[160px]" :title="'Auditor: ' + (item.auditor_name || item.latest_auditor_name)">
+                                            👤 {{ item.auditor_name || item.latest_auditor_name }}
                                         </span>
                                     </div>
-                                    <div v-else class="mt-1">
-                                        <span class="inline-flex px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                    <div v-else class="mt-1 flex flex-col gap-0.5 text-[10px]">
+                                        <span class="inline-flex px-1.5 py-0.5 text-[10px] font-semibold rounded bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 w-fit">
                                             Belum Diaudit
+                                        </span>
+                                        <span v-if="item.auditor_name || item.latest_auditor_name" class="inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-surface-700 text-gray-700 dark:text-gray-300 font-medium text-[10px] border border-gray-200 dark:border-surface-600 truncate max-w-[160px]" :title="'Auditor: ' + (item.auditor_name || item.latest_auditor_name)">
+                                            👤 {{ item.auditor_name || item.latest_auditor_name }}
                                         </span>
                                     </div>
                                     <!-- Saved Audit Note Badge -->
@@ -446,6 +449,9 @@
                                         <div class="text-[11px] text-text-secondary pl-2 shrink-0">
                                             <span v-if="isRowAudited(item)" class="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                                                 <span>✓</span> Data modal transaksi ini telah tersimpan
+                                                <strong v-if="item.auditor_name || item.latest_auditor_name" class="ml-1 text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 rounded text-[10px]">
+                                                    (Auditor: {{ item.auditor_name || item.latest_auditor_name }})
+                                                </strong>
                                             </span>
                                             <span v-else class="text-gray-400 italic">
                                                 Belum diaudit — pilih preset atau input modal lalu simpan
@@ -485,9 +491,9 @@
                                         <span v-else
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
                                                 item.audit_score }}% ⚠️</span>
-                                        <span v-if="item.latest_auditor_name || item.auditor_name || item.audited_by" class="text-[10px] text-gray-500 dark:text-gray-400 font-medium mt-0.5 whitespace-nowrap" :title="'Terakhir diaudit oleh ' + (item.latest_auditor_name || item.auditor_name || item.audited_by)">
-                                            {{ item.latest_auditor_name || item.auditor_name || item.audited_by }}
-                                        </span>
+                                        <div v-if="item.latest_auditor_name || item.auditor_name || item.audited_by" class="text-[10px] text-gray-700 dark:text-gray-300 font-semibold mt-1 whitespace-nowrap bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded border border-gray-200 dark:border-surface-600 flex items-center gap-1" :title="'Terakhir diaudit oleh ' + (item.latest_auditor_name || item.auditor_name || item.audited_by)">
+                                            <span>👤</span> {{ item.latest_auditor_name || item.auditor_name || item.audited_by }}
+                                        </div>
                                     </div>
                                 </td>
                                 <!-- Actions -->
@@ -1383,6 +1389,7 @@ const exportExcel = async () => {
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;
+            params.distributor_id = undefined;
         } else {
             const [type, id] = selectedLocationKey.value.split(':');
             params.branch_id = type === 'B' ? id : undefined;
@@ -1390,18 +1397,24 @@ const exportExcel = async () => {
             params.distributor_id = type === 'D' ? id : undefined;
         }
 
-        const response = await axios.get('/audit/sales/export', {
+        const response = await axios.get('/audit/profit/export-excel', {
             params,
             responseType: 'blob'
         });
 
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const blob = new Blob([response.data], {
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `audit-profit-export-${new Date().toISOString().split('T')[0]}.csv`);
+        const startStr = params.start_date || 'ALL';
+        const endStr = params.end_date || 'ALL';
+        link.setAttribute('download', `LAPORAN_AUDIT_PROFIT_${startStr}_SD_${endStr}.xlsx`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
     } catch (e) {
         console.error('Export failed', e);
         alert('Gagal export data: ' + (e.response?.data?.message || e.message));

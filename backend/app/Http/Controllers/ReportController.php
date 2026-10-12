@@ -660,6 +660,8 @@ class ReportController extends Controller
             $items = empty($txIds) ? collect() : DB::table('stock_out_items')
                 ->join('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                 ->join('products', 'product_details.product_id', '=', 'products.id')
+                ->leftJoin('distributors as d_item', 'stock_out_items.distributor_id', '=', 'd_item.id')
+                ->leftJoin('distributors as d_pd', 'product_details.distributor_id', '=', 'd_pd.id')
                 ->whereIn('stock_out_items.stock_out_id', $txIds)
                 ->where('products.type', 'hp')
                 ->select(
@@ -668,17 +670,21 @@ class ReportController extends Controller
                     'product_details.condition',
                     'product_details.cost_price',
                     'stock_out_items.selling_price as item_price',
-                    'products.price as product_price'
+                    'products.price as product_price',
+                    DB::raw("COALESCE(d_item.name, d_pd.name, NULLIF(product_details.supplier_name, ''), 'PSTORE') as distributor_name")
                 )->get();
             $itemsByTx = $items->groupBy('stock_out_id');
 
             $nonHpItems = empty($txIds) ? collect() : DB::table('stock_out_non_hp_items')
                 ->join('products', 'stock_out_non_hp_items.product_id', '=', 'products.id')
+                ->leftJoin('distributors', 'stock_out_non_hp_items.distributor_id', '=', 'distributors.id')
                 ->whereIn('stock_out_non_hp_items.stock_out_id', $txIds)
                 ->select(
                     'stock_out_non_hp_items.stock_out_id',
                     'stock_out_non_hp_items.quantity',
-                    'products.price as product_price'
+                    'stock_out_non_hp_items.selling_price as item_price',
+                    'products.price as product_price',
+                    DB::raw("COALESCE(distributors.name, 'Aksesoris') as distributor_name")
                 )->get();
             $nonHpItemsByTx = $nonHpItems->groupBy('stock_out_id');
 
@@ -698,6 +704,7 @@ class ReportController extends Controller
                     'omset_bersih' => 0,
                     'profit' => 0,
                     'payments' => [],
+                    'distributors' => [],
                     'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                     'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                     'android_qty' => 0, 'android_amt' => 0,
@@ -886,11 +893,11 @@ class ReportController extends Controller
                 $trxItemsTotal += ($item->item_price > 0) ? (float) $item->item_price : (float) $item->product_price;
             }
             foreach ($txNonHpItems as $item) {
-                $trxItemsTotal += (float) ($item->product_price ?? 0) * $item->quantity;
+                $trxItemsTotal += ($item->item_price > 0) ? (float) $item->item_price : (float) ($item->product_price ?? 0) * $item->quantity;
             }
             
             $discrepancy = 0;
-            if (in_array($saleType, ['base_sale', 'dp', 'pelunasan_dp']) && $trxItemsTotal > 0 && round($trxItemsTotal) != round($txOmset)) {
+            if (in_array($saleType, ['base_sale', 'dp', 'pelunasan_dp', 'tukar_tambah']) && $trxItemsTotal > 0 && round($trxItemsTotal) != round($txOmset)) {
                 $discrepancy = $trxItemsTotal - $txOmset;
             }
             
@@ -916,16 +923,33 @@ class ReportController extends Controller
                     $statsByLocation[$locKey]['android_qty'] += 1;
                     $statsByLocation[$locKey]['android_amt'] += $price;
                 }
+
+                // Attribute omset to distributor
+                if ($txOmset > 0) {
+                    $dName = trim($item->distributor_name ?: 'PSTORE');
+                    $statsByLocation[$locKey]['distributors'][$dName] = ($statsByLocation[$locKey]['distributors'][$dName] ?? 0) + $price;
+                }
             }
             
             // non hp items discrepancy distribution
             foreach ($txNonHpItems as $item) {
-                $basePrice = (float) ($item->product_price ?? 0) * $item->quantity;
+                $basePrice = ($item->item_price > 0) ? (float) $item->item_price : ((float) ($item->product_price ?? 0) * $item->quantity);
                 $price = $basePrice;
                 if ($discrepancy != 0 && $trxItemsTotal > 0) {
                     $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                 }
-                $statsByLocation[$locKey]['android_amt'] += 0; // non hp items usually not counted here, but if needed we can add logic
+                
+                // Attribute omset to distributor
+                if ($txOmset > 0) {
+                    $dName = trim($item->distributor_name ?: 'Aksesoris');
+                    $statsByLocation[$locKey]['distributors'][$dName] = ($statsByLocation[$locKey]['distributors'][$dName] ?? 0) + $price;
+                }
+            }
+
+            // Fallback for transactions with omset but no individual items attached
+            if ($txOmset > 0 && empty($txItems) && empty($txNonHpItems)) {
+                $dName = 'PSTORE';
+                $statsByLocation[$locKey]['distributors'][$dName] = ($statsByLocation[$locKey]['distributors'][$dName] ?? 0) + $txOmset;
             }
         }
         });
@@ -947,6 +971,7 @@ class ReportController extends Controller
                     $statsByLocation[$bLocKey] = [
                         'omset' => 0, 'omset_bersih' => 0, 'profit' => 0,
                         'payments' => [],
+                        'distributors' => [],
                         'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                         'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                         'android_qty' => 0, 'android_amt' => 0,
@@ -972,6 +997,7 @@ class ReportController extends Controller
                     $statsByLocation[$sLocKey] = [
                         'omset' => 0, 'omset_bersih' => 0, 'profit' => 0,
                         'payments' => [],
+                        'distributors' => [],
                         'iphone_new_qty' => 0, 'iphone_new_amt' => 0,
                         'iphone_scd_qty' => 0, 'iphone_scd_amt' => 0,
                         'android_qty' => 0, 'android_amt' => 0,
@@ -1028,6 +1054,7 @@ class ReportController extends Controller
             usort($finalData, fn($a, $b) => strcmp($a['name'], $b['name']));
         }
 
+        // ======================= SHEET 1: RANKING =======================
         $header = ['No', 'Nama Cabang', 'Total Omset Kotor', 'Total Omset Bersih', 'Profit'];
         foreach ($paymentMethods as $pm) {
             $header[] = $pm->name;
@@ -1039,7 +1066,8 @@ class ReportController extends Controller
             'Angkat Barang (Qty)', 'Angkat Barang (Rp)',
             'Tukar Tambah (Qty)', 'Tukar Tambah (Rp)',
             'Tukar Unit (Qty)', 'Tukar Unit (Rp)',
-            'Downgrade (Qty)', 'Downgrade (Rp)'
+            'Downgrade (Qty)', 'Downgrade (Rp)',
+            'Refund (Qty)', 'Refund (Rp)'
         ]);
 
         $rows = [$header];
@@ -1066,6 +1094,8 @@ class ReportController extends Controller
                 $row['tukar_tambah_qty'], $row['tukar_tambah_amt'],
                 $row['tukar_unit_qty'], $row['tukar_unit_amt'],
                 $row['downgrade_qty'], $row['downgrade_amt'],
+                ($row['refund_qty'] ?? 0) + ($row['refund_dp_qty'] ?? 0),
+                ($row['refund_amt'] ?? 0) + ($row['refund_dp_amt'] ?? 0),
             ]);
         };
         
@@ -1082,6 +1112,8 @@ class ReportController extends Controller
                 'tukar_tambah_qty' => 0, 'tukar_tambah_amt' => 0,
                 'tukar_unit_qty' => 0, 'tukar_unit_amt' => 0,
                 'downgrade_qty' => 0, 'downgrade_amt' => 0,
+                'refund_qty' => 0, 'refund_amt' => 0,
+                'refund_dp_qty' => 0, 'refund_dp_amt' => 0,
             ];
             foreach ($data as $r) {
                 $total['omset'] += $r['omset'];
@@ -1097,6 +1129,8 @@ class ReportController extends Controller
                 $total['tukar_tambah_qty'] += $r['tukar_tambah_qty']; $total['tukar_tambah_amt'] += $r['tukar_tambah_amt'];
                 $total['tukar_unit_qty'] += $r['tukar_unit_qty']; $total['tukar_unit_amt'] += $r['tukar_unit_amt'];
                 $total['downgrade_qty'] += $r['downgrade_qty']; $total['downgrade_amt'] += $r['downgrade_amt'];
+                $total['refund_qty'] += $r['refund_qty']; $total['refund_amt'] += $r['refund_amt'];
+                $total['refund_dp_qty'] += $r['refund_dp_qty']; $total['refund_dp_amt'] += $r['refund_dp_amt'];
             }
             return $buildRow($total, '');
         };
@@ -1128,7 +1162,91 @@ class ReportController extends Controller
             $rows[] = $createTotal($finalData, 'TOTAL KESELURUHAN (ALL)');
         }
 
-        $xlsx = \App\Utils\SimpleXLSXGen::fromArray($rows);
+        // ======================= SHEET 2: DISTRIBUTOR =======================
+        // Kumpulkan semua nama distributor (aktif + yang muncul di transaksi)
+        $distributorColumns = \App\Models\Distributor::where('is_active', true)->orderBy('name')->pluck('name')->toArray();
+        $seenDistributors = [];
+        foreach ($finalData as $row) {
+            if (!empty($row['distributors'])) {
+                foreach (array_keys($row['distributors']) as $dName) {
+                    if ($dName && !in_array($dName, $distributorColumns) && !in_array($dName, $seenDistributors)) {
+                        $seenDistributors[] = $dName;
+                    }
+                }
+            }
+        }
+        sort($seenDistributors);
+        $distributorColumns = array_merge($distributorColumns, $seenDistributors);
+
+        $distHeader = ['No', 'Nama Cabang', 'Total Omset', 'Omset Bersih'];
+        foreach ($distributorColumns as $distName) {
+            $distHeader[] = $distName;
+        }
+
+        $distRows = [$distHeader];
+
+        $buildDistRow = function($row, $no) use ($distributorColumns) {
+            $excelRow = [
+                $no,
+                $row['name'],
+                $row['omset'],
+                $row['omset_bersih'],
+            ];
+            foreach ($distributorColumns as $distName) {
+                $excelRow[] = $row['distributors'][$distName] ?? 0;
+            }
+            return $excelRow;
+        };
+
+        $createDistTotal = function($data, $label) use ($distributorColumns, $buildDistRow) {
+            if (empty($data)) return null;
+            $total = [
+                'name' => $label,
+                'omset' => 0,
+                'omset_bersih' => 0,
+                'distributors' => [],
+            ];
+            foreach ($data as $r) {
+                $total['omset'] += $r['omset'];
+                $total['omset_bersih'] += $r['omset_bersih'];
+                foreach ($distributorColumns as $distName) {
+                    $total['distributors'][$distName] = ($total['distributors'][$distName] ?? 0) + ($r['distributors'][$distName] ?? 0);
+                }
+            }
+            return $buildDistRow($total, '');
+        };
+
+        $dNo = 1;
+        // Offline
+        foreach ($offlineData as $row) {
+            $distRows[] = $buildDistRow($row, $dNo++);
+        }
+        if (!empty($offlineData)) {
+            $distRows[] = $createDistTotal($offlineData, 'TOTAL CABANG FISIK');
+        }
+
+        $distRows[] = array_fill(0, count($distHeader), '');
+        $distRows[] = array_fill(0, count($distHeader), '');
+
+        // Online
+        foreach ($onlineData as $row) {
+            $distRows[] = $buildDistRow($row, $dNo++);
+        }
+        if (!empty($onlineData)) {
+            $distRows[] = $createDistTotal($onlineData, 'TOTAL TOKO ONLINE');
+        }
+
+        $distRows[] = array_fill(0, count($distHeader), '');
+
+        // Grand Total ALL
+        if (!empty($finalData)) {
+            $distRows[] = $createDistTotal($finalData, 'TOTAL KESELURUHAN (ALL)');
+        }
+
+        $xlsx = \App\Utils\SimpleXLSXGen::fromSheets([
+            'Ranking' => $rows,
+            'Distributor' => $distRows
+        ]);
         $fileName = 'Ranking_Performa_' . ($startDate ?: 'All') . '.xlsx';
         
         return response((string) $xlsx, 200, [

@@ -92,7 +92,7 @@ class SalesExport
     {
         $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'refund', 'angkat_barang', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
 
-        $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod'])
+        $query = StockOut::with(['items.product', 'items.distributor', 'nonHpItems.product', 'nonHpItems.distributor', 'user', 'inventoryUser', 'branch', 'onlineShop', 'paymentMethod', 'auditProfit.auditor'])
             ->whereIn('category', $salesCategories)
             ->whereBetween('reporting_date', [$this->startDate, $this->endDate]);
 
@@ -366,6 +366,7 @@ class SalesExport
 
                 $rowArr['total_pengeluaran'] = ($isFirstRow && $cat !== 'cancel_penjualan') ? (float)$finalTotalPengeluaran : '';
                 $rowArr['status'] = $isFirstRow ? strtoupper($so->status ?? 'LUNAS') : '';
+                $rowArr['auditor_profit'] = $isFirstRow ? ($so->auditProfit?->auditor?->name ?? $so->latest_auditor_name ?? '-') : '';
                 
                 // CRITICAL: Metadata for zebra striping in SimpleXLSXGen
                 $rowArr['__bg_striped'] = $isStriped;
@@ -420,7 +421,8 @@ class SalesExport
 
         $heads = array_merge($heads, [
             'Pengeluaran Refund Angkat Barang Downgrade',
-            'Status'
+            'Status',
+            'Auditor Profit'
         ]);
 
         return $heads;
