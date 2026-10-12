@@ -910,6 +910,7 @@ class ReportController extends Controller
                 if ($discrepancy != 0 && $trxItemsTotal > 0) {
                     $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                 }
+                $price = round($price);
                 
                 if ($isIphone) {
                     if ($item->condition === 'new') {
@@ -938,6 +939,7 @@ class ReportController extends Controller
                 if ($discrepancy != 0 && $trxItemsTotal > 0) {
                     $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
                 }
+                $price = round($price);
                 
                 // Attribute omset to distributor
                 if ($txOmset > 0) {
@@ -1079,23 +1081,23 @@ class ReportController extends Controller
             $excelRow = [
                 $no,
                 $row['name'],
-                $row['omset'],
-                $row['omset_bersih'],
-                $row['profit'] ?? 0,
+                round($row['omset']),
+                round($row['omset_bersih']),
+                round($row['profit'] ?? 0),
             ];
             foreach ($paymentMethods as $pm) {
-                $excelRow[] = $row['payments'][$pm->id] ?? 0;
+                $excelRow[] = round($row['payments'][$pm->id] ?? 0);
             }
             return array_merge($excelRow, [
-                $row['iphone_new_qty'], $row['iphone_new_amt'],
-                $row['iphone_scd_qty'], $row['iphone_scd_amt'],
-                $row['android_qty'], $row['android_amt'],
-                $row['angkat_barang_qty'], $row['angkat_barang_amt'],
-                $row['tukar_tambah_qty'], $row['tukar_tambah_amt'],
-                $row['tukar_unit_qty'], $row['tukar_unit_amt'],
-                $row['downgrade_qty'], $row['downgrade_amt'],
+                $row['iphone_new_qty'], round($row['iphone_new_amt']),
+                $row['iphone_scd_qty'], round($row['iphone_scd_amt']),
+                $row['android_qty'], round($row['android_amt']),
+                $row['angkat_barang_qty'], round($row['angkat_barang_amt']),
+                $row['tukar_tambah_qty'], round($row['tukar_tambah_amt']),
+                $row['tukar_unit_qty'], round($row['tukar_unit_amt']),
+                $row['downgrade_qty'], round($row['downgrade_amt']),
                 ($row['refund_qty'] ?? 0) + ($row['refund_dp_qty'] ?? 0),
-                ($row['refund_amt'] ?? 0) + ($row['refund_dp_amt'] ?? 0),
+                round(($row['refund_amt'] ?? 0) + ($row['refund_dp_amt'] ?? 0)),
             ]);
         };
         
@@ -1189,11 +1191,11 @@ class ReportController extends Controller
             $excelRow = [
                 $no,
                 $row['name'],
-                $row['omset'],
-                $row['omset_bersih'],
+                round($row['omset']),
+                round($row['omset_bersih']),
             ];
             foreach ($distributorColumns as $distName) {
-                $excelRow[] = $row['distributors'][$distName] ?? 0;
+                $excelRow[] = round($row['distributors'][$distName] ?? 0);
             }
             return $excelRow;
         };

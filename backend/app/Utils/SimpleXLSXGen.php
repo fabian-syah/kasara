@@ -61,7 +61,7 @@ class SimpleXLSXGen {
         
         // 5. xl/styles.xml
         $files['xl/styles.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;Rp&quot;\ #,##0"/></numFmts>
+<numFmts count="1"><numFmt numFmtId="164" formatCode="&quot;Rp&quot;\ #,##0;-&quot;Rp&quot;\ #,##0;&quot;Rp&quot;\ 0"/></numFmts>
 <fonts count="3"><font><sz val="11"/><name val="Calibri"/></font>
 <font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>
 <font><b/><sz val="14"/><name val="Calibri"/></font>
@@ -95,17 +95,111 @@ class SimpleXLSXGen {
         // 6. xl/worksheets/sheetN.xml
         foreach ($this->sheets as $idx => $sheet) {
             $sId = $idx + 1;
+            $sheetName = $sheet['name'] ?? ('Sheet' . $sId);
+            $sheetLower = strtolower(trim($sheetName));
+
+            // Detect table header row (first row with multiple elements)
+            $headerRow = [];
+            foreach ($sheet['rows'] as $r) {
+                if (is_array($r) && count($r) > 1) {
+                    $headerRow = array_values($r);
+                    break;
+                }
+            }
+
+            $isCurrencyCol = [];
+            $isNonCurrencyCol = [];
+
+            $nonCurrencyKeywords = [
+                'no', 'id', 'imei', 'barcode', 'serial', 'telepon', 'phone', 'wa', 'whatsapp', 
+                'tanggal', 'date', 'waktu', 'time', 'status', 'kondisi', 'condition', 'brand', 
+                'kategori', 'category', 'tipe', 'type', 'nama', 'nama barang', 'customer', 
+                'pelanggan', 'cs', 'customer service', 'user', 'auditor', 'outlet', 'lokasi', 
+                'catatan', 'keterangan', 'notes', 'bundling', 'sumber', 'sumber masuk', 'distributor',
+                'pesanan', 'no pesanan', 'order'
+            ];
+
+            foreach ($headerRow as $cIdx => $hVal) {
+                $h = strtolower(trim((string)$hVal));
+                $isCurrency = false;
+                $isNonCurr = false;
+
+                if ($sheetLower === 'distributor') {
+                    if (in_array($h, ['no', 'nama cabang', 'nama', 'cabang', 'distributor', 'outlet', 'lokasi', 'cs', 'customer', 'customer service', 'user'])) {
+                        $isNonCurr = true;
+                    } else {
+                        $isCurrency = true;
+                    }
+                } elseif ($sheetLower === 'ranking') {
+                    if (in_array($h, ['no', 'nama cabang', 'nama', 'cabang', 'tipe', 'type', 'kategori', 'category']) || str_contains($h, 'qty') || str_contains($h, '(qty)')) {
+                        $isNonCurr = true;
+                    } else {
+                        $isCurrency = true;
+                    }
+                } else {
+                    if (in_array($h, $nonCurrencyKeywords) || str_contains($h, '(qty)') || str_contains($h, 'qty') || str_contains($h, 'jumlah') || str_contains($h, 'imei')) {
+                        $isNonCurr = true;
+                    } elseif (
+                        str_contains($h, '(rp)') 
+                        || str_contains($h, 'rp') 
+                        || str_contains($h, 'omset') 
+                        || str_contains($h, 'profit') 
+                        || str_contains($h, 'harga') 
+                        || str_contains($h, 'modal') 
+                        || str_contains($h, 'diskon') 
+                        || str_contains($h, 'penjualan') 
+                        || str_contains($h, 'pengeluaran') 
+                        || str_contains($h, 'bayar') 
+                        || str_contains($h, 'nominal') 
+                        || str_contains($h, 'tarif') 
+                        || str_contains($h, 'biaya') 
+                        || str_contains($h, 'uang') 
+                        || str_contains($h, 'dp') 
+                        || str_starts_with($h, 'pisah ')
+                        || str_contains($h, 'cash')
+                        || str_contains($h, 'transfer')
+                        || str_contains($h, 'bca')
+                        || str_contains($h, 'mandiri')
+                        || str_contains($h, 'bri')
+                        || str_contains($h, 'bni')
+                        || str_contains($h, 'edc')
+                        || str_contains($h, 'qris')
+                        || str_contains($h, 'kredit')
+                        || str_contains($h, 'debit')
+                        || str_contains($h, 'split')
+                        || str_contains($h, 'avanto')
+                        || str_contains($h, 'dana')
+                        || str_contains($h, 'ovo')
+                        || str_contains($h, 'gopay')
+                        || str_contains($h, 'shopeepay')
+                        || str_contains($h, 'in tukar tambah')
+                    ) {
+                        $isCurrency = true;
+                    }
+                }
+
+                $isCurrencyCol[$cIdx] = $isCurrency;
+                $isNonCurrencyCol[$cIdx] = $isNonCurr;
+            }
+
             $colWidths = [];
             foreach ($sheet['rows'] as $row) {
-                foreach ($row as $cIdx => $val) {
-                    if ($cIdx === '__bg_striped') continue;
+                if (!is_array($row)) continue;
+                $colIdx = 0;
+                foreach ($row as $k => $val) {
+                    if ($k === '__bg_striped') continue;
+                    $cIdx = is_numeric($k) ? (int)$k : $colIdx;
+                    $colIdx++;
+
                     $valStr = (string)$val;
                     $len = mb_strlen($valStr);
                     
                     // Predict real formatted currency length to prevent column overflow (###)
-                    if (is_numeric($val) && strlen($valStr) < 12 && ($valStr === "0" || !str_starts_with($valStr, '0'))) {
+                    if (!empty($isCurrencyCol[$cIdx]) && is_numeric($val)) {
+                        $fmt = "Rp " . number_format(round(abs((float)$val)), 0, '.', '.');
+                        $len = max($len, mb_strlen($fmt));
+                    } elseif (empty($isNonCurrencyCol[$cIdx]) && is_numeric($val) && strlen($valStr) < 12 && ($valStr === "0" || !str_starts_with($valStr, '0'))) {
                         if (abs((float)$val) > 10000) {
-                            // Simulate "Rp #,##0" format to obtain exact character counts
                             $fmt = "Rp " . number_format(abs((float)$val), 0, '.', '.');
                             $len = max($len, mb_strlen($fmt));
                         }
@@ -151,28 +245,53 @@ class SimpleXLSXGen {
                         $forceText = true;
                     }
                     
-                    $s = 0; 
                     if ($rIdx === 0) {
                         $s = 2; // Header
-                    } elseif (!$forceText && is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
-                        // Right align numbers. Format as rupiah if value looks like a price
-                        if (abs((float)$val) > 10000) {
-                            $s = 7; 
-                        } else {
-                            $s = 6;
-                        }
-                    }
-                    
-                    // Apply striping mapping
-                    if ($isStriped) {
-                        if ($s === 0) $s = 8;
-                        elseif ($s === 6) $s = 9;
-                        elseif ($s === 7) $s = 10;
+                        $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars((string)$val).'</t></is></c>';
+                        continue;
                     }
 
-                    if (!$forceText && is_numeric($val) && strlen((string)$val) < 12 && ((string)$val === "0" || !str_starts_with((string)$val, '0'))) {
-                        $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars((string)$val).'</v></c>';
+                    $isCurr = !empty($isCurrencyCol[$cIdx]);
+                    $isNonCurr = !empty($isNonCurrencyCol[$cIdx]);
+
+                    if ($val === '' || $val === null) {
+                        $s = $isStriped ? 8 : 0;
+                        $ws .= '<c r="'.$col.'" s="'.$s.'"/>';
+                        continue;
+                    }
+
+                    if (!$forceText && is_numeric($val)) {
+                        $valStr = (string)$val;
+                        $isPhoneOrImei = (strlen($valStr) > 1 && str_starts_with($valStr, '0')) || strlen($valStr) >= 12;
+
+                        if ($isCurr) {
+                            $cleanVal = round((float)$val);
+                            $s = $isStriped ? 10 : 7;
+                            $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.(string)$cleanVal.'</v></c>';
+                        } elseif ($isNonCurr) {
+                            if ($isPhoneOrImei) {
+                                $s = $isStriped ? 8 : 0;
+                                $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($valStr).'</t></is></c>';
+                            } else {
+                                $s = $isStriped ? 9 : 6;
+                                $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($valStr).'</v></c>';
+                            }
+                        } else {
+                            if ($isPhoneOrImei) {
+                                $s = $isStriped ? 8 : 0;
+                                $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars($valStr).'</t></is></c>';
+                            } else {
+                                if (abs((float)$val) > 10000) {
+                                    $s = $isStriped ? 10 : 7;
+                                    $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.(string)round((float)$val).'</v></c>';
+                                } else {
+                                    $s = $isStriped ? 9 : 6;
+                                    $ws .= '<c r="'.$col.'" s="'.$s.'"><v>'.htmlspecialchars($valStr).'</v></c>';
+                                }
+                            }
+                        }
                     } else {
+                        $s = $isStriped ? 8 : 0;
                         $ws .= '<c r="'.$col.'" s="'.$s.'" t="inlineStr"><is><t>'.htmlspecialchars((string)$val).'</t></is></c>';
                     }
                 }
