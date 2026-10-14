@@ -14,8 +14,9 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        // One-time auto-fix for name vs full_name desyncs
-        // Only trigger occasionally or on first load, maybe just run it silently
+        // One-time auto-fix for legacy duplicate usernames or name desyncs
+        \App\Models\User::autoFixDuplicateUsernames();
+
         $desynced = \App\Models\User::whereNotNull('full_name')
             ->whereRaw('name != full_name')
             ->get();
@@ -325,10 +326,20 @@ class UserController extends Controller
         }
 
         $request->validate([
-            'username' => 'required|string|unique:users,username',
+            'username' => 'required|string|max:50',
             'full_name' => 'required|string',
             'password' => 'required|string|min:6',
         ]);
+
+        $cleanUsername = strtolower(trim($request->username));
+        $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
+        if ($duplicate) {
+            return response()->json([
+                'success' => false,
+                'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
+                'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+            ], 422);
+        }
 
         try {
             // Determine placement based on input. Only one should be set ideally, or handled by frontend.
@@ -340,8 +351,8 @@ class UserController extends Controller
             $user = \App\Models\User::create([
                 'name' => $request->full_name,
                 'full_name' => $request->full_name,
-                'username' => $request->username,
-                'email' => $request->username . '@apexpos.com',
+                'username' => $cleanUsername,
+                'email' => $cleanUsername . ($request->role === 'inventory' ? '@apex-inventory.com' : '@apexpos.com'),
                 'password' => $request->password,
                 'branch_id' => $branchId,
                 'warehouse_id' => $warehouseId,
@@ -471,13 +482,31 @@ class UserController extends Controller
             }
         }
 
-        // Debug: Bypass validator to eliminate 422
         $inputs = $request->all();
         $validated = [];
 
-        $fields = ['full_name', 'username', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'cover_photo'];
+        if ($request->has('username')) {
+            $rawUsername = trim($request->username ?? '');
+            if ($rawUsername !== '') {
+                $cleanUsername = strtolower($rawUsername);
+                $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])
+                    ->where('id', '!=', $id)
+                    ->first();
+                if ($duplicate) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
+                        'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                    ], 422);
+                }
+                $validated['username'] = $cleanUsername;
+                $validated['email'] = $cleanUsername . ($user->hasRole('inventory') ? '@apex-inventory.com' : '@apexpos.com');
+            }
+        }
+
+        $fields = ['full_name', 'email', 'password', 'role', 'branch_id', 'warehouse_id', 'online_shop_id', 'distributor_id', 'address', 'phone', 'birth_date', 'is_active', 'cover_photo'];
         foreach ($fields as $field) {
-            if ($request->has($field)) {
+            if ($request->has($field) && !isset($validated[$field])) {
                 $validated[$field] = $inputs[$field];
             }
         }

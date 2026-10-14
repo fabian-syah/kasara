@@ -620,6 +620,9 @@ async function saveUser() {
   try {
     // Ensure only relevant placement ID is sent (though backend handles overrides, cleaner here)
     const payload = { ...form.value };
+    if (payload.username) {
+      payload.username = String(payload.username).trim().toLowerCase();
+    }
     if (placementType.value !== 'branch') payload.branch_id = null;
     if (placementType.value !== 'warehouse') payload.warehouse_id = null;
     if (placementType.value !== 'online_shop') payload.online_shop_id = null;

@@ -50,7 +50,7 @@ async function submitEditAccount() {
     try {
         const payload = new FormData();
         payload.append('name', editAccountData.value.name);
-        payload.append('username', editAccountData.value.username);
+        payload.append('username', (editAccountData.value.username || '').trim().toLowerCase());
         if (editAccountData.value.password) {
             payload.append('password', editAccountData.value.password);
         }
@@ -89,9 +89,10 @@ async function createInventoryAccount() {
     }
     isCreatingAccount.value = true;
     try {
+        const cleanUsername = newAccountUsername.value ? newAccountUsername.value.trim().toLowerCase() : undefined;
         await inventoryApi.createAccount({
             name: newAccountName.value,
-            username: newAccountUsername.value || undefined,
+            username: cleanUsername || undefined,
             password: newAccountPassword.value || 'inventory123'
         });
         toast.success("Akun CS baru berhasil dibuat!");

@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class User
@@ -292,6 +294,57 @@ class User extends Authenticatable
         'remember_token',
         'transaction_pin',
     ];
+
+    /**
+     * Auto-disambiguate any duplicate or conflicting usernames (case-insensitive) across the system.
+     * Keeps the primary/oldest non-inventory user's username intact, and disambiguates duplicates (especially CS accounts).
+     */
+    public static function autoFixDuplicateUsernames(): void
+    {
+        try {
+            $duplicates = self::select(DB::raw('LOWER(TRIM(username)) as clean_username, count(*) as count'))
+                ->whereNotNull('username')
+                ->where('username', '!=', '')
+                ->groupBy(DB::raw('LOWER(TRIM(username))'))
+                ->havingRaw('count(*) > 1')
+                ->pluck('clean_username');
+
+            if ($duplicates->isNotEmpty()) {
+                foreach ($duplicates as $dup) {
+                    $users = self::whereRaw('LOWER(TRIM(username)) = ?', [$dup])
+                        ->orderByRaw("CASE WHEN id IN (SELECT model_id FROM model_has_roles JOIN roles ON roles.id = model_has_roles.role_id WHERE roles.name = 'inventory') THEN 1 ELSE 0 END")
+                        ->orderBy('id', 'asc')
+                        ->get();
+
+                    $isFirst = true;
+                    foreach ($users as $u) {
+                        if ($isFirst) {
+                            if ($u->username !== $dup) {
+                                $u->username = $dup;
+                                $u->save();
+                            }
+                            $isFirst = false;
+                        } else {
+                            $isCs = $u->hasRole('inventory');
+                            $baseSuffix = $isCs ? '.cs' : '.' . $u->id;
+                            $candidate = $dup . $baseSuffix;
+                            while (self::whereRaw('LOWER(TRIM(username)) = ?', [$candidate])->where('id', '!=', $u->id)->exists()) {
+                                $candidate = $dup . $baseSuffix . rand(10, 99);
+                            }
+                            Log::warning("Auto-disambiguated duplicate username: User ID {$u->id} ({$u->name}) changed from '{$u->username}' to '{$candidate}'");
+                            $u->username = $candidate;
+                            if ($isCs) {
+                                $u->email = $candidate . '@apex-inventory.com';
+                            }
+                            $u->save();
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('autoFixDuplicateUsernames failed: ' . $e->getMessage());
+        }
+    }
 
     /**
      * Get the attributes that should be cast.

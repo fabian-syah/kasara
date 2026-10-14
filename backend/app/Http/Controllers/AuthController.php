@@ -18,7 +18,17 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Auto-heal any legacy duplicate usernames
+        User::autoFixDuplicateUsernames();
+
+        $cleanUsername = strtolower(trim($credentials['username']));
+        $foundUser = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
+        $attemptCredentials = [
+            'username' => $foundUser ? $foundUser->username : $cleanUsername,
+            'password' => $credentials['password'],
+        ];
+
+        if (Auth::attempt($attemptCredentials)) {
             /** @var \App\Models\User $user */
             $user = Auth::user();
 

@@ -22,7 +22,7 @@ class InventoryAccountController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:50',
-            'username' => 'nullable|string|max:50|unique:users,username',
+            'username' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:4',
             'transaction_pin' => 'nullable|string|size:4'
         ]);
@@ -36,7 +36,23 @@ class InventoryAccountController extends Controller
             return response()->json(['message' => 'Anda tidak memiliki lokasi fisik untuk membuat akun inventory.'], 403);
         }
 
-        $username = $request->username ?: 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
+        if ($request->filled('username')) {
+            $cleanUsername = strtolower(trim($request->username));
+            $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
+            if ($duplicate) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
+                    'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                ], 422);
+            }
+            $username = $cleanUsername;
+        } else {
+            do {
+                $username = 'inv.' . strtolower(Str::random(8)) . '.' . rand(100, 999);
+            } while (User::whereRaw('LOWER(TRIM(username)) = ?', [$username])->exists());
+        }
+
         $email = $username . '@apex-inventory.com';
         $password = $request->password ?: 'inventory123';
 
@@ -107,7 +123,7 @@ class InventoryAccountController extends Controller
 
         $request->validate([
             'name' => 'nullable|string|max:50',
-            'username' => 'nullable|string|max:50|unique:users,username,' . $id,
+            'username' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:4',
             'transaction_pin' => 'nullable|string|size:4',
             'remove_pin' => 'nullable|string',
@@ -135,7 +151,24 @@ class InventoryAccountController extends Controller
         }
 
         if ($request->has('username')) {
-            $account->username = $request->username;
+            $rawUsername = trim((string)$request->username);
+            if ($rawUsername !== '') {
+                $cleanUsername = strtolower($rawUsername);
+                $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])
+                    ->where('id', '!=', $id)
+                    ->first();
+                if ($duplicate) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
+                        'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                    ], 422);
+                }
+                $account->username = $cleanUsername;
+                if (!$account->email || str_ends_with($account->email, '@apex-inventory.com') || str_ends_with($account->email, '@apexpos.com')) {
+                    $account->email = $cleanUsername . '@apex-inventory.com';
+                }
+            }
         }
 
         if ($request->filled('password')) {
@@ -190,6 +223,8 @@ class InventoryAccountController extends Controller
 
     public function getMyInventoryUsers(Request $request)
     {
+        User::autoFixDuplicateUsernames();
+
         $syncNeeded = User::role('inventory')
             ->where(function ($q) {
                 $q->where(function ($sq) {
