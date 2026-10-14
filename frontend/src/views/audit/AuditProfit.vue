@@ -124,20 +124,46 @@
                         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
 
-                <!-- Filter Sumber Masuk Barang -->
-                <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[170px]">
-                    <select v-model="filters.source" @change="fetchData"
-                        class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
-                        <option value="all">Semua Sumber Masuk</option>
-                        <option value="store">In Store (Input Awal)</option>
-                        <option value="angkat_barang">In Angkat Barang</option>
-                        <option value="refund">In Refund</option>
-                        <option value="tukar_tambah">In Tukar Tambah</option>
-                        <option value="downgrade">In Downgrade</option>
-                        <option value="tukar_unit">In Tukar Unit</option>
-                    </select>
-                    <ChevronDown :size="16"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                <!-- Filter Sumber Masuk Barang (Multiple Choice) -->
+                <div class="relative w-full sm:w-auto min-w-[160px] sm:min-w-[210px]" ref="sourceDropdownRef">
+                    <button type="button" @click="toggleSourceDropdown"
+                        class="w-full flex items-center justify-between bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 text-sm font-medium text-left focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer shadow-sm">
+                        <span class="truncate pr-2 text-text-primary font-medium">
+                            {{ sourceFilterLabel }}
+                        </span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span v-if="selectedSources.length > 0 && selectedSources.length < sourceOptions.length"
+                                class="px-1.5 py-0.5 rounded-md bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 text-[10px] font-bold">
+                                {{ selectedSources.length }}
+                            </span>
+                            <ChevronDown :size="16" class="text-gray-500 transition-transform duration-200" :class="{ 'rotate-180': isSourceDropdownOpen }" />
+                        </div>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div v-if="isSourceDropdownOpen"
+                        class="absolute left-0 mt-2 w-64 max-h-80 overflow-y-auto bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-2xl shadow-xl z-50 p-2 space-y-1">
+                        
+                        <!-- Option: Semua Sumber Masuk -->
+                        <button type="button" @click="toggleAllSources"
+                            class="w-full flex items-center justify-between px-3 py-2 text-xs font-bold rounded-xl transition-colors"
+                            :class="isAllSourcesSelected ? 'bg-primary-50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'hover:bg-gray-50 dark:hover:bg-surface-700 text-text-primary'">
+                            <span>Semua Sumber Masuk</span>
+                            <Check v-if="isAllSourcesSelected" :size="14" class="text-primary-600 dark:text-primary-400" />
+                        </button>
+
+                        <div class="border-t border-gray-100 dark:border-surface-700 my-1"></div>
+
+                        <!-- Individual options with checkboxes -->
+                        <label v-for="opt in sourceOptions" :key="opt.key"
+                            class="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-surface-700 text-text-primary select-none">
+                            <input type="checkbox"
+                                :checked="selectedSources.includes(opt.key)"
+                                @change="toggleSource(opt.key)"
+                                class="w-4 h-4 rounded text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-surface-600 dark:bg-surface-700 cursor-pointer" />
+                            <span class="flex-1">{{ opt.label }}</span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Filter Status Audit -->
@@ -238,13 +264,12 @@
                                             Profit</div>
                                     </div>
                                 </th>
-                                <th class="px-4 py-4 text-center">Cek Audit</th>
                                 <th class="px-4 py-4 text-center">#</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                             <tr v-if="loading">
-                                <td colspan="12" class="px-6 py-12">
+                                <td colspan="11" class="px-6 py-12">
                                     <div class="flex flex-col items-center justify-center text-text-secondary">
                                         <Loader2 class="w-8 h-8 animate-spin text-primary-500 mb-2" />
                                         <span class="text-sm font-medium">Memuat data profit...</span>
@@ -252,7 +277,7 @@
                                 </td>
                             </tr>
                             <tr v-else-if="!displayedSales || displayedSales.length === 0">
-                                <td colspan="12" class="px-6 py-12 text-center text-text-secondary">
+                                <td colspan="11" class="px-6 py-12 text-center text-text-secondary">
                                     <div class="flex flex-col items-center justify-center">
                                         <div
                                             class="w-12 h-12 bg-gray-100 dark:!bg-surface-700 rounded-full flex items-center justify-center mb-3">
@@ -481,21 +506,6 @@
                                         </button>
                                     </div>
                                 </td>
-                                <!-- Audit Score -->
-                                <td class="px-4 py-4 text-center">
-                                    <span v-if="item.audit_score == null" class="text-xs text-gray-400">-</span>
-                                    <div v-else class="flex flex-col items-center gap-0.5">
-                                        <span v-if="item.audit_score === 100"
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
-                                            ✅</span>
-                                        <span v-else
-                                            class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20">{{
-                                                item.audit_score }}% ⚠️</span>
-                                        <div v-if="item.latest_auditor_name || item.auditor_name || item.audited_by" class="text-[10px] text-gray-700 dark:text-gray-300 font-semibold mt-1 whitespace-nowrap bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded border border-gray-200 dark:border-surface-600 flex items-center gap-1" :title="'Terakhir diaudit oleh ' + (item.latest_auditor_name || item.auditor_name || item.audited_by)">
-                                            <span>👤</span> {{ item.latest_auditor_name || item.auditor_name || item.audited_by }}
-                                        </div>
-                                    </div>
-                                </td>
                                 <!-- Actions -->
                                 <td class="px-4 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
@@ -527,11 +537,6 @@
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Lihat Nota">
                                             <Eye :size="16" />
-                                        </button>
-                                        <button @click="openChecklist(item)"
-                                            class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
-                                            title="Cek Audit Profit">
-                                            <ClipboardCheck :size="16" />
                                         </button>
                                     </div>
                                 </td>
@@ -573,133 +578,7 @@
     <!-- Receipt Modal (no edit icon for profit - separate checklist button) -->
     <ReceiptModal :isOpen="showReceiptModal" :transaction="selectedTransaction" @close="showReceiptModal = false" />
 
-    <!-- Audit Checklist Modal (Profit) - Two-stage: read-only / edit -->
-    <Teleport to="body">
-        <div v-if="showChecklistModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeChecklist"></div>
-            <div
-                class="relative bg-white dark:!bg-surface-800 rounded-2xl border border-gray-200 dark:border-surface-700 w-full max-w-lg shadow-2xl overflow-hidden">
-                <!-- Header -->
-                <div
-                    class="px-6 py-4 border-b border-gray-100 dark:border-surface-700 flex items-start justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-text-primary">Cek Audit Profit</h3>
-                        <p class="text-sm text-gray-500 mt-0.5">
-                            Kategori: <span class="font-semibold text-purple-600 dark:text-purple-400">profit</span>
-                            — {{ checklistData?.answered }}/{{ checklistData?.total }} dijawab
-                            <span v-if="checklistData?.score !== undefined" class="font-semibold"
-                                :class="checklistData.score === 100 ? 'text-emerald-600' : 'text-amber-600'">
-                                ({{ checklistData.score }}%)
-                            </span>
-                        </p>
-                        <p v-if="checklistData?.audited_at" class="text-xs text-gray-400 mt-1 flex items-center gap-1.5 flex-wrap">
-                            <span class="inline-flex items-center gap-1">
-                                <Calendar :size="12" />
-                                Terakhir diaudit: {{ formatDate(checklistData.audited_at) }}
-                            </span>
-                            <span v-if="checklistData?.auditor_name || checklistData?.audited_by" class="inline-flex items-center gap-1 text-text-secondary font-medium">
-                                <span>•</span>
-                                <span>oleh <strong class="text-text-primary font-bold">{{ checklistData?.auditor_name || checklistData?.audited_by }}</strong></span>
-                            </span>
-                        </p>
-                        <p v-else class="text-xs text-amber-500 mt-1 font-medium">Belum pernah diaudit</p>
-                    </div>
-                    <!-- Edit toggle button -->
-                    <button v-if="!checklistEditMode && !isLeader" @click="checklistEditMode = true"
-                        class="p-2 bg-primary-500/10 hover:bg-primary-500/20 text-primary-600 rounded-xl transition-all"
-                        title="Edit Audit">
-                        <Pencil :size="16" />
-                    </button>
-                    <span v-else-if="!isLeader"
-                        class="px-3 py-1.5 text-xs font-bold bg-primary-500/10 text-primary-600 rounded-lg">
-                        Mode Edit
-                    </span>
-                </div>
 
-                <!-- Questions -->
-                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div v-if="checklistLoading" class="flex items-center justify-center py-8">
-                        <Loader2 class="w-6 h-6 animate-spin text-primary-500" />
-                    </div>
-                    <div v-else-if="!checklistData?.questions?.length" class="text-center py-8 text-gray-500">
-                        Belum ada pertanyaan untuk kategori <strong>profit</strong>.
-                    </div>
-                    <div v-else v-for="(q, i) in checklistData.questions" :key="i"
-                        class="flex flex-col gap-2 p-4 rounded-xl border transition-all"
-                        :class="q.answer === true ? 'border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5' : q.answer === false ? 'border-red-200 dark:border-red-500/30 bg-red-50/50 dark:bg-red-500/5' : 'border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30'">
-                        <div class="flex items-start gap-4">
-                            <span class="text-sm font-bold text-gray-400 mt-0.5">{{ i + 1 }}.</span>
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-text-primary">{{ q.content }}</p>
-                                <p v-if="q.is_deleted" class="text-[10px] text-red-400 mt-0.5 italic">Pertanyaan ini
-                                    sudah dihapus/diubah</p>
-                                <p v-if="q.answered_at" class="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1 flex-wrap">
-                                    <span>Dijawab: {{ formatDate(q.answered_at) }}</span>
-                                    <span v-if="q.auditor_name" class="text-text-secondary font-medium">
-                                        • oleh <strong class="text-text-primary">{{ q.auditor_name }}</strong>
-                                    </span>
-                                </p>
-                            </div>
-
-                            <!-- READ-ONLY mode: show only the answer badge -->
-                            <div v-if="!checklistEditMode" class="flex-shrink-0">
-                                <span v-if="q.answer === true"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 text-white">
-                                    Yes
-                                </span>
-                                <span v-else-if="q.answer === false"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white">
-                                    No
-                                </span>
-                                <span v-else
-                                    class="px-3 py-1.5 rounded-lg text-[10px] font-medium bg-gray-100 dark:bg-surface-600 text-gray-400 italic">
-                                    Belum di cek
-                                </span>
-                            </div>
-
-                            <!-- EDIT mode: Yes/No toggle buttons -->
-                            <div v-else class="flex gap-2 flex-shrink-0">
-                                <button @click="setAnswer(i, true)"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                    :class="q.answer === true ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 hover:text-emerald-600'">
-                                    Yes
-                                </button>
-                                <button @click="setAnswer(i, false)"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-                                    :class="q.answer === false ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'bg-gray-100 dark:bg-surface-600 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600'">
-                                    No
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Global Notes textarea -->
-                    <div v-if="checklistEditMode" class="mt-6 flex flex-col gap-2 p-4 rounded-xl border border-gray-200 dark:border-surface-600 bg-gray-50/50 dark:bg-surface-700/30">
-                        <label class="text-sm font-bold text-text-primary">Catatan Audit (Opsional)</label>
-                        <textarea v-model="checklistData.notes" rows="3" placeholder="Masukkan catatan keseluruhan audit di sini..."
-                            class="w-full text-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none"></textarea>
-                    </div>
-                    <div v-else-if="checklistData?.notes" class="mt-6">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:!bg-surface-700/50 px-3 py-2 rounded-lg">
-                            <span class="font-medium text-gray-600 dark:text-gray-300">Catatan:</span> {{ checklistData.notes }}
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Footer -->
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-surface-700 flex justify-end gap-3">
-                    <button @click="closeChecklist"
-                        class="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-surface-700 rounded-xl transition-colors">
-                        Tutup
-                    </button>
-                    <button v-if="checklistEditMode" @click="saveChecklist" :disabled="checklistSaving"
-                        class="px-5 py-2 text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 rounded-xl shadow-lg shadow-primary-500/20 transition-all disabled:opacity-50">
-                        {{ checklistSaving ? 'Menyimpan...' : 'Simpan' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-    </Teleport>
     <!-- Proof Photo Modal (HD Gallery) -->
     <div v-if="showProofModal"
         class="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4 sm:px-10 bg-black/90 backdrop-blur-md">
@@ -775,9 +654,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, reactive } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, ClipboardCheck, Pencil, Download, Image, Wallet, X } from 'lucide-vue-next'
+import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, Pencil, Download, Image, Wallet, X, Check } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import { useToast } from '../../composables/useToast'
@@ -843,103 +722,76 @@ const downloadImage = async (url) => {
     }
 }
 
-// Audit Checklist Modal State
-const showChecklistModal = ref(false)
-const checklistLoading = ref(false)
-const checklistSaving = ref(false)
-const checklistData = ref(null)
-const checklistStockOutId = ref(null)
-const checklistEditMode = ref(false)
+// Filter Sumber Masuk Barang (Multiple Choice)
+const sourceOptions = [
+    { key: 'store', label: 'In Store (Input Awal)' },
+    { key: 'angkat_barang', label: 'In Angkat Barang' },
+    { key: 'refund', label: 'In Refund' },
+    { key: 'tukar_tambah', label: 'In Tukar Tambah' },
+    { key: 'downgrade', label: 'In Downgrade' },
+    { key: 'tukar_unit', label: 'In Tukar Unit' },
+]
+const selectedSources = ref([])
+const isSourceDropdownOpen = ref(false)
+const sourceDropdownRef = ref(null)
 
-const closeChecklist = () => {
-    showChecklistModal.value = false
-    checklistEditMode.value = false
+const isAllSourcesSelected = computed(() => {
+    return selectedSources.value.length === 0 || selectedSources.value.length === sourceOptions.length
+})
+
+const sourceFilterLabel = computed(() => {
+    if (isAllSourcesSelected.value) {
+        return 'Semua Sumber Masuk'
+    }
+    if (selectedSources.value.length === 1) {
+        const found = sourceOptions.find(o => o.key === selectedSources.value[0])
+        return found ? found.label : selectedSources.value[0]
+    }
+    if (selectedSources.value.length === 2) {
+        return selectedSources.value.map(k => {
+            const found = sourceOptions.find(o => o.key === k)
+            return found ? found.label.replace('In ', '') : k
+        }).join(', ')
+    }
+    return `${selectedSources.value.length} Sumber Masuk`
+})
+
+const toggleSource = (key) => {
+    if (isAllSourcesSelected.value) {
+        selectedSources.value = [key]
+    } else {
+        const idx = selectedSources.value.indexOf(key)
+        if (idx > -1) {
+            selectedSources.value.splice(idx, 1)
+        } else {
+            selectedSources.value.push(key)
+        }
+        if (selectedSources.value.length === sourceOptions.length) {
+            selectedSources.value = []
+        }
+    }
+    fetchData()
+}
+
+const toggleAllSources = () => {
+    selectedSources.value = []
+    fetchData()
+}
+
+const toggleSourceDropdown = () => {
+    isSourceDropdownOpen.value = !isSourceDropdownOpen.value
+}
+
+const handleClickOutside = (event) => {
+    if (sourceDropdownRef.value && !sourceDropdownRef.value.contains(event.target)) {
+        isSourceDropdownOpen.value = false
+    }
 }
 
 useEscapeKey(() => {
-    if (showChecklistModal.value) closeChecklist();
+    if (isSourceDropdownOpen.value) isSourceDropdownOpen.value = false;
     if (showProofModal.value) showProofModal.value = false;
 });
-
-const openChecklist = async (item) => {
-    checklistStockOutId.value = item.id
-    checklistEditMode.value = false
-    showChecklistModal.value = true
-    checklistLoading.value = true
-    try {
-        const res = await axios.get(`/audit/profit-checklist/${item.id}`)
-        const globalNote = res.data.questions?.find(q => q.notes)?.notes || '';
-        checklistData.value = {
-            ...res.data,
-            notes: globalNote
-        };
-        if (res.data.auditor_name || res.data.audited_by) {
-            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by;
-            item.audited_at = res.data.audited_at;
-        }
-    } catch (e) {
-        console.error('Failed to load profit checklist', e)
-        alert('Gagal memuat checklist: ' + (e.response?.data?.message || e.message))
-    } finally {
-        checklistLoading.value = false
-    }
-}
-
-const setAnswer = (index, value) => {
-    if (checklistData.value?.questions?.[index]) {
-        checklistData.value.questions[index].answer = value
-    }
-}
-
-const saveChecklist = async () => {
-    if (!checklistData.value?.questions) return
-
-    const answeredQuestions = checklistData.value.questions.filter(q => q.answer !== null)
-    if (answeredQuestions.length === 0) {
-        toast.error('Silakan jawab minimal 1 pertanyaan')
-        return
-    }
-
-    checklistSaving.value = true
-    try {
-        const payload = {
-            answers: answeredQuestions.map((q, idx) => ({
-                question_id: q.question_id,
-                answer: q.answer,
-                notes: idx === 0 ? (checklistData.value.notes || null) : null,
-                content: q.content
-            }))
-        }
-        const res = await axios.post(`/audit/profit-checklist/${checklistStockOutId.value}`, payload)
-
-        // Update the score and latest auditor in the table
-        const item = profitRecords.value.daily_sales.data.find(s => s.id === checklistStockOutId.value)
-        if (item) {
-            item.audit_score = res.data.score
-            item.audit_answered = res.data.answered
-            item.audit_total = res.data.total
-            item.latest_auditor_name = res.data.auditor_name || res.data.audited_by
-            item.audited_at = res.data.audited_at
-        }
-
-        // Update modal data
-        checklistData.value.score = res.data.score
-        checklistData.value.answered = res.data.answered
-        checklistData.value.total = res.data.total
-        checklistData.value.audited_at = res.data.audited_at
-        checklistData.value.auditor_name = res.data.auditor_name || res.data.audited_by
-        checklistData.value.audited_by = res.data.audited_by || res.data.auditor_name
-
-        toast.success('Checklist profit berhasil disimpan!')
-        showChecklistModal.value = false
-        checklistEditMode.value = false
-    } catch (e) {
-        console.error('Failed to save checklist', e)
-        toast.error('Gagal menyimpan: ' + (e.response?.data?.message || e.message))
-    } finally {
-        checklistSaving.value = false
-    }
-}
 
 // Harga Modal editing per item
 // editableModal structure: { stock_out_id: { detail_id: value, detail_id_2: value } }
@@ -1386,6 +1238,11 @@ const exportExcel = async () => {
     exporting.value = true;
     try {
         const params = { ...filters.value };
+        if (selectedSources.value.length > 0 && selectedSources.value.length < sourceOptions.length) {
+            params.source = selectedSources.value.join(',');
+        } else {
+            params.source = undefined;
+        }
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;
@@ -1467,10 +1324,10 @@ const displayedSales = computed(() => {
     }
 
     // Filter by Source (Client-side safety)
-    if (filters.value.source && filters.value.source !== 'all') {
+    if (selectedSources.value.length > 0 && selectedSources.value.length < sourceOptions.length) {
         list = list.filter(item => {
             if (!item.items || item.items.length === 0) return false;
-            return item.items.some(d => d.source_type === filters.value.source);
+            return item.items.some(d => selectedSources.value.includes(d.source_type));
         });
     }
 
@@ -1680,6 +1537,11 @@ const fetchData = async (page = 1) => {
     loading.value = true
     try {
         const params = { ...filters.value, page };
+        if (selectedSources.value.length > 0 && selectedSources.value.length < sourceOptions.length) {
+            params.source = selectedSources.value.join(',');
+        } else {
+            params.source = undefined;
+        }
         if (selectedPeriod.value === 'all') {
             params.period = 'all';
             params.start_date = '2000-01-01';
@@ -1707,6 +1569,7 @@ const fetchData = async (page = 1) => {
 }
 
 onMounted(async () => {
+    document.addEventListener('mousedown', handleClickOutside);
     const today = getTodayLocal();
     filters.value.start_date = today;
     filters.value.end_date = today;
@@ -1717,6 +1580,10 @@ onMounted(async () => {
 
     fetchData()
 })
+
+onUnmounted(() => {
+    document.removeEventListener('mousedown', handleClickOutside);
+});
 
 watch(() => authStore.user, async (newUser) => {
     if (newUser && canFilterBranch.value) {

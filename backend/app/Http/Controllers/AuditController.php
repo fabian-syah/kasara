@@ -3765,94 +3765,110 @@ class AuditController extends Controller
                     }
                 })
                 ->when($request->source && $request->source !== 'all', function ($q) use ($request) {
-                    $src = $request->source;
-                    if ($src === 'angkat_barang') {
-                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
-                            $sub->whereNotNull('trade_in_id')
-                                ->orWhere('supplier_name', 'ilike', '%trade-in%')
-                                ->orWhere('supplier_name', 'ilike', '%trade in%')
-                                ->orWhere('supplier_name', 'ilike', '%angkat barang%')
-                                ->orWhere('notes', 'ilike', '%masuk dari angkat barang%')
-                                ->orWhere('notes', 'ilike', '%trade-in in%')
-                                ->orWhere('notes', 'ilike', '%angkat barang in%');
-                        }));
-                    } elseif ($src === 'refund') {
-                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
-                            $sub->whereNotNull('refund_id')
-                                ->orWhere('supplier_name', 'ilike', '%refund%')
-                                ->orWhere('notes', 'ilike', '%masuk dari refund%')
-                                ->orWhere('notes', 'ilike', '%refund in%');
-                        }));
-                    } elseif ($src === 'tukar_tambah') {
-                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
-                            $sub->whereNotNull('tukar_tambah_id')
-                                ->orWhere('supplier_name', 'ilike', '%tukar tambah%')
-                                ->orWhere('supplier_name', 'ilike', '%tukar_tambah%')
-                                ->orWhere('notes', 'ilike', '%masuk dari tukar tambah%')
-                                ->orWhere('notes', 'ilike', '%tukar tambah in%')
-                                ->orWhere('notes', 'ilike', '%tukar_tambah in%');
-                        }));
-                    } elseif ($src === 'downgrade') {
-                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
-                            $sub->whereNotNull('downgrade_id')
-                                ->orWhere('supplier_name', 'ilike', '%downgrade%')
-                                ->orWhere('notes', 'ilike', '%masuk dari downgrade%')
-                                ->orWhere('notes', 'ilike', '%downgrade in%');
-                        }));
-                    } elseif ($src === 'tukar_unit') {
-                        $q->whereHas('items', fn($iq) => $iq->where(function ($sub) {
-                            $sub->whereNotNull('unit_exchange_id')
-                                ->orWhere('supplier_name', 'ilike', '%exchange%')
-                                ->orWhere('supplier_name', 'ilike', '%tukar unit%')
-                                ->orWhere('supplier_name', 'ilike', '%tukar_unit%')
-                                ->orWhere('notes', 'ilike', '%masuk dari tukar unit%')
-                                ->orWhere('notes', 'ilike', '%tukar unit in%')
-                                ->orWhere('notes', 'ilike', '%exchange in%');
-                        }));
-                    } elseif ($src === 'store') {
-                        $q->where(function ($sub) {
-                            $sub->whereHas('items', function ($iq) {
-                                $iq->whereNull('trade_in_id')
-                                    ->whereNull('refund_id')
-                                    ->whereNull('tukar_tambah_id')
-                                    ->whereNull('downgrade_id')
-                                    ->whereNull('unit_exchange_id')
-                                    ->where(function ($nq) {
-                                        $nq->whereNull('supplier_name')
-                                            ->orWhere(function ($sq) {
-                                                $sq->where('supplier_name', 'not ilike', '%trade-in%')
-                                                    ->where('supplier_name', 'not ilike', '%trade in%')
-                                                    ->where('supplier_name', 'not ilike', '%angkat barang%')
-                                                    ->where('supplier_name', 'not ilike', '%refund%')
-                                                    ->where('supplier_name', 'not ilike', '%tukar tambah%')
-                                                    ->where('supplier_name', 'not ilike', '%tukar_tambah%')
-                                                    ->where('supplier_name', 'not ilike', '%downgrade%')
-                                                    ->where('supplier_name', 'not ilike', '%exchange%')
-                                                    ->where('supplier_name', 'not ilike', '%tukar unit%')
-                                                    ->where('supplier_name', 'not ilike', '%tukar_unit%');
-                                            });
-                                    })
-                                    ->where(function ($nq) {
-                                        $nq->whereNull('notes')
-                                            ->orWhere(function ($sq) {
-                                                $sq->where('notes', 'not ilike', '%masuk dari tukar tambah%')
-                                                    ->where('notes', 'not ilike', '%tukar tambah in%')
-                                                    ->where('notes', 'not ilike', '%tukar_tambah in%')
-                                                    ->where('notes', 'not ilike', '%masuk dari downgrade%')
-                                                    ->where('notes', 'not ilike', '%downgrade in%')
-                                                    ->where('notes', 'not ilike', '%masuk dari tukar unit%')
-                                                    ->where('notes', 'not ilike', '%tukar unit in%')
-                                                    ->where('notes', 'not ilike', '%exchange in%')
-                                                    ->where('notes', 'not ilike', '%masuk dari refund%')
-                                                    ->where('notes', 'not ilike', '%refund in%')
-                                                    ->where('notes', 'not ilike', '%masuk dari angkat barang%')
-                                                    ->where('notes', 'not ilike', '%trade-in in%')
-                                                    ->where('notes', 'not ilike', '%angkat barang in%');
-                                            });
-                                    });
-                            })
-                            ->orWhereHas('nonHpItems')
-                            ->orWhere('category', 'dp');
+                    $sources = is_array($request->source) ? $request->source : explode(',', $request->source);
+                    $sources = array_filter(array_map('trim', $sources));
+
+                    if (!empty($sources)) {
+                        $q->where(function ($subQ) use ($sources) {
+                            foreach ($sources as $idx => $src) {
+                                $condition = function ($query) use ($src) {
+                                    if ($src === 'angkat_barang') {
+                                        $query->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                                            $sub->whereNotNull('trade_in_id')
+                                                ->orWhere('supplier_name', 'ilike', '%trade-in%')
+                                                ->orWhere('supplier_name', 'ilike', '%trade in%')
+                                                ->orWhere('supplier_name', 'ilike', '%angkat barang%')
+                                                ->orWhere('notes', 'ilike', '%masuk dari angkat barang%')
+                                                ->orWhere('notes', 'ilike', '%trade-in in%')
+                                                ->orWhere('notes', 'ilike', '%angkat barang in%');
+                                        }));
+                                    } elseif ($src === 'refund') {
+                                        $query->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                                            $sub->whereNotNull('refund_id')
+                                                ->orWhere('supplier_name', 'ilike', '%refund%')
+                                                ->orWhere('notes', 'ilike', '%masuk dari refund%')
+                                                ->orWhere('notes', 'ilike', '%refund in%');
+                                        }));
+                                    } elseif ($src === 'tukar_tambah') {
+                                        $query->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                                            $sub->whereNotNull('tukar_tambah_id')
+                                                ->orWhere('supplier_name', 'ilike', '%tukar tambah%')
+                                                ->orWhere('supplier_name', 'ilike', '%tukar_tambah%')
+                                                ->orWhere('notes', 'ilike', '%masuk dari tukar tambah%')
+                                                ->orWhere('notes', 'ilike', '%tukar tambah in%')
+                                                ->orWhere('notes', 'ilike', '%tukar_tambah in%');
+                                        }));
+                                    } elseif ($src === 'downgrade') {
+                                        $query->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                                            $sub->whereNotNull('downgrade_id')
+                                                ->orWhere('supplier_name', 'ilike', '%downgrade%')
+                                                ->orWhere('notes', 'ilike', '%masuk dari downgrade%')
+                                                ->orWhere('notes', 'ilike', '%downgrade in%');
+                                        }));
+                                    } elseif ($src === 'tukar_unit') {
+                                        $query->whereHas('items', fn($iq) => $iq->where(function ($sub) {
+                                            $sub->whereNotNull('unit_exchange_id')
+                                                ->orWhere('supplier_name', 'ilike', '%exchange%')
+                                                ->orWhere('supplier_name', 'ilike', '%tukar unit%')
+                                                ->orWhere('supplier_name', 'ilike', '%tukar_unit%')
+                                                ->orWhere('notes', 'ilike', '%masuk dari tukar unit%')
+                                                ->orWhere('notes', 'ilike', '%tukar unit in%')
+                                                ->orWhere('notes', 'ilike', '%exchange in%');
+                                        }));
+                                    } elseif ($src === 'store') {
+                                        $query->where(function ($storeSub) {
+                                            $storeSub->whereHas('items', function ($iq) {
+                                                $iq->whereNull('trade_in_id')
+                                                    ->whereNull('refund_id')
+                                                    ->whereNull('tukar_tambah_id')
+                                                    ->whereNull('downgrade_id')
+                                                    ->whereNull('unit_exchange_id')
+                                                    ->where(function ($nq) {
+                                                        $nq->whereNull('supplier_name')
+                                                            ->orWhere(function ($sq) {
+                                                                $sq->where('supplier_name', 'not ilike', '%trade-in%')
+                                                                    ->where('supplier_name', 'not ilike', '%trade in%')
+                                                                    ->where('supplier_name', 'not ilike', '%angkat barang%')
+                                                                    ->where('supplier_name', 'not ilike', '%refund%')
+                                                                    ->where('supplier_name', 'not ilike', '%tukar tambah%')
+                                                                    ->where('supplier_name', 'not ilike', '%tukar_tambah%')
+                                                                    ->where('supplier_name', 'not ilike', '%downgrade%')
+                                                                    ->where('supplier_name', 'not ilike', '%exchange%')
+                                                                    ->where('supplier_name', 'not ilike', '%tukar unit%')
+                                                                    ->where('supplier_name', 'not ilike', '%tukar_unit%');
+                                                            });
+                                                    })
+                                                    ->where(function ($nq) {
+                                                        $nq->whereNull('notes')
+                                                            ->orWhere(function ($sq) {
+                                                                $sq->where('notes', 'not ilike', '%masuk dari tukar tambah%')
+                                                                    ->where('notes', 'not ilike', '%tukar tambah in%')
+                                                                    ->where('notes', 'not ilike', '%tukar_tambah in%')
+                                                                    ->where('notes', 'not ilike', '%masuk dari downgrade%')
+                                                                    ->where('notes', 'not ilike', '%downgrade in%')
+                                                                    ->where('notes', 'not ilike', '%masuk dari tukar unit%')
+                                                                    ->where('notes', 'not ilike', '%tukar unit in%')
+                                                                    ->where('notes', 'not ilike', '%exchange in%')
+                                                                    ->where('notes', 'not ilike', '%masuk dari refund%')
+                                                                    ->where('notes', 'not ilike', '%refund in%')
+                                                                    ->where('notes', 'not ilike', '%masuk dari angkat barang%')
+                                                                    ->where('notes', 'not ilike', '%trade-in in%')
+                                                                    ->where('notes', 'not ilike', '%angkat barang in%');
+                                                            });
+                                                    });
+                                            })
+                                            ->orWhereHas('nonHpItems')
+                                            ->orWhere('category', 'dp');
+                                        });
+                                    }
+                                };
+
+                                if ($idx === 0) {
+                                    $subQ->where($condition);
+                                } else {
+                                    $subQ->orWhere($condition);
+                                }
+                            }
                         });
                     }
                 })
@@ -5540,8 +5556,12 @@ class AuditController extends Controller
 
                 // Filter source if requested
                 if ($request->source && $request->source !== 'all') {
-                    $details = array_filter($details, fn($d) => ($d['source_type'] ?? '') === $request->source);
-                    if (empty($details)) continue;
+                    $allowedSources = is_array($request->source) ? $request->source : explode(',', $request->source);
+                    $allowedSources = array_filter(array_map('trim', $allowedSources));
+                    if (!empty($allowedSources)) {
+                        $details = array_filter($details, fn($d) => in_array($d['source_type'] ?? '', $allowedSources));
+                        if (empty($details)) continue;
+                    }
                 }
 
                 $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
