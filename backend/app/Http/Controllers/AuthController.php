@@ -4,33 +4,110 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        // Debugging: Log all request data
-        \Illuminate\Support\Facades\Log::info('Login Request Data:', $request->all());
+        // Debugging: Log all request data without leaking password
+        \Illuminate\Support\Facades\Log::info('Login Request Data:', $request->except(['password']));
 
         $credentials = $request->validate([
             'username' => 'required|string',
             'password' => 'required|string',
         ]);
 
-        // Auto-heal any legacy duplicate usernames
-        User::autoFixDuplicateUsernames();
+        $rawInput = trim($credentials['username']);
+        $cleanUsername = strtolower($rawInput);
+        // Base username stripping any auto-disambiguation suffixes like .cs, .123, .cs45, or email domain
+        $baseUsername = preg_replace('/(\.cs\d*|\.\d+|@[a-z0-9\.\-]+)+$/i', '', $cleanUsername);
+        $password = $credentials['password'];
 
-        $cleanUsername = strtolower(trim($credentials['username']));
-        $foundUser = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
-        $attemptCredentials = [
-            'username' => $foundUser ? $foundUser->username : $cleanUsername,
-            'password' => $credentials['password'],
-        ];
+        // Find candidate users:
+        // 1. Exact username match (case-insensitive)
+        // 2. Suffixed username (e.g. annisa.cs, annisa.12)
+        // 3. Underscore suffix
+        // 4. Base username (if input was suffixed or email)
+        // 5. Email match
+        $candidates = User::where(function ($q) use ($cleanUsername, $baseUsername, $rawInput) {
+            $q->where('username', $rawInput)
+              ->orWhereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])
+              ->orWhereRaw('LOWER(TRIM(username)) LIKE ?', [$cleanUsername . '.%'])
+              ->orWhereRaw('LOWER(TRIM(username)) LIKE ?', [$cleanUsername . '_%'])
+              ->orWhereRaw('LOWER(TRIM(email)) = ?', [$cleanUsername])
+              ->orWhereRaw('LOWER(TRIM(email)) LIKE ?', [$cleanUsername . '@%']);
 
-        if (Auth::attempt($attemptCredentials)) {
+            if (!empty($baseUsername) && $baseUsername !== $cleanUsername && strlen($baseUsername) >= 2) {
+                $q->orWhereRaw('LOWER(TRIM(username)) = ?', [$baseUsername])
+                  ->orWhereRaw('LOWER(TRIM(username)) LIKE ?', [$baseUsername . '.%'])
+                  ->orWhereRaw('LOWER(TRIM(username)) LIKE ?', [$baseUsername . '_%']);
+            }
+        })
+        ->orderBy('is_active', 'desc')
+        ->orderByRaw("CASE 
+            WHEN LOWER(TRIM(username)) = ? THEN 0 
+            WHEN LOWER(TRIM(username)) = ? THEN 1 
+            ELSE 2 END", [$cleanUsername, $baseUsername])
+        ->orderBy('id', 'desc')
+        ->get();
+
+        $matchedUser = null;
+        foreach ($candidates as $cand) {
+            if (Hash::check($password, $cand->password) 
+                || $cand->password === $password 
+                || $cand->password === md5($password)) {
+                
+                // Upgrade plaintext or md5 passwords to standard bcrypt hash if applicable
+                if ($cand->password === $password || $cand->password === md5($password)) {
+                    $cand->password = Hash::make($password);
+                    $cand->save();
+                }
+
+                $matchedUser = $cand;
+                break;
+            }
+        }
+
+        // Fallback: If no candidate matched above (e.g. standard Auth attempt fallback)
+        if (!$matchedUser) {
+            if (Auth::attempt(['username' => $rawInput, 'password' => $password]) ||
+                Auth::attempt(['username' => $cleanUsername, 'password' => $password])) {
+                $matchedUser = Auth::user();
+            }
+        }
+
+        if ($matchedUser) {
+            if (!$matchedUser->is_active) {
+                Auth::logout();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda dinonaktifkan.',
+                ], 403);
+            }
+
+            // Heal username if it was renamed to .cs or .<id> by prior auto-fix
+            $matchedClean = strtolower(trim($matchedUser->username));
+            $targetUsername = (!empty($baseUsername) && strlen($baseUsername) >= 2) ? $baseUsername : $cleanUsername;
+            if ($matchedClean !== $targetUsername && (str_starts_with($matchedClean, $targetUsername . '.') || str_starts_with($matchedClean, $targetUsername . '_'))) {
+                $otherActiveExists = User::whereRaw('LOWER(TRIM(username)) = ?', [$targetUsername])
+                    ->where('id', '!=', $matchedUser->id)
+                    ->where('is_active', true)
+                    ->exists();
+                if (!$otherActiveExists) {
+                    $matchedUser->username = $targetUsername;
+                    if (str_ends_with($matchedUser->email ?? '', '@apex-inventory.com') || str_ends_with($matchedUser->email ?? '', '@apexpos.com')) {
+                        $matchedUser->email = $targetUsername . ($matchedUser->hasRole('inventory') ? '@apex-inventory.com' : '@apexpos.com');
+                    }
+                    $matchedUser->save();
+                    \Illuminate\Support\Facades\Log::info("Restored user ID {$matchedUser->id} username back to {$targetUsername}");
+                }
+            }
+
+            Auth::login($matchedUser);
             /** @var \App\Models\User $user */
-            $user = Auth::user();
+            $user = $matchedUser;
 
             // Log successful login attempt
             \Illuminate\Support\Facades\Log::info('Login Success for: ' . $user->username);

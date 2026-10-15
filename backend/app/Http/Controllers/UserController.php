@@ -14,8 +14,7 @@ class UserController extends Controller
     {
         $user = $request->user();
 
-        // One-time auto-fix for legacy duplicate usernames or name desyncs
-        \App\Models\User::autoFixDuplicateUsernames();
+        // Auto-fix for name desyncs
 
         $desynced = \App\Models\User::whereNotNull('full_name')
             ->whereRaw('name != full_name')

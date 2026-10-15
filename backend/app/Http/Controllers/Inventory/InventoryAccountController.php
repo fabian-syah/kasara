@@ -223,8 +223,6 @@ class InventoryAccountController extends Controller
 
     public function getMyInventoryUsers(Request $request)
     {
-        User::autoFixDuplicateUsernames();
-
         $syncNeeded = User::role('inventory')
             ->where(function ($q) {
                 $q->where(function ($sq) {

@@ -6,7 +6,7 @@ use App\Models\User;
 return new class extends Migration {
     public function up(): void
     {
-        User::autoFixDuplicateUsernames();
+        // Deprecated: automatic forced renaming disrupted active user logins.
     }
 
     public function down(): void
