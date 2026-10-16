@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -279,6 +280,89 @@ class UserController extends Controller
         ]);
     }
 
+    public function checkUsername(Request $request)
+    {
+        $raw = trim((string)$request->input('username', ''));
+        $excludeId = $request->input('exclude_id');
+        $suggestName = trim((string)$request->input('name', ''));
+
+        if ($raw === '') {
+            return response()->json([
+                'available' => false,
+                'clean_username' => '',
+                'message' => 'ID login (username) tidak boleh kosong.',
+                'suggestions' => []
+            ]);
+        }
+
+        $clean = strtolower($raw);
+
+        $query = User::whereRaw('LOWER(TRIM(username)) = ?', [$clean]);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+        $duplicate = $query->with(['roles', 'branch'])->first();
+
+        if ($duplicate) {
+            $roleName = $duplicate->roles->first()?->name ?? 'User';
+            $roleDisplay = $roleName === 'inventory' ? 'CS' : ($roleName === 'toko_offline' ? 'Toko Offline' : $roleName);
+            $location = $duplicate->branch?->name ?? '';
+            $ownerName = $duplicate->full_name ?: $duplicate->name;
+
+            // Generate smart available suggestions
+            $suggestions = [];
+            $nameSlug = !empty($suggestName) ? Str::slug($suggestName, '') : '';
+            if (empty($nameSlug) && $excludeId) {
+                $self = User::find($excludeId);
+                if ($self) {
+                    $nameSlug = Str::slug($self->full_name ?: $self->name, '');
+                }
+            }
+
+            $candidates = [];
+            if ($nameSlug && $nameSlug !== $clean) {
+                $candidates[] = $clean . '.' . $nameSlug;
+                $candidates[] = $nameSlug . '.' . $clean;
+                $candidates[] = $clean . '_' . $nameSlug;
+            }
+            $candidates[] = $clean . '.cs';
+            $candidates[] = $clean . '.1';
+            $candidates[] = $clean . '.2';
+            $candidates[] = $clean . '.pos';
+
+            foreach ($candidates as $cand) {
+                $candClean = strtolower(trim($cand));
+                $taken = User::whereRaw('LOWER(TRIM(username)) = ?', [$candClean])->exists();
+                if (!$taken && !in_array($candClean, $suggestions)) {
+                    $suggestions[] = $candClean;
+                }
+                if (count($suggestions) >= 3) break;
+            }
+
+            $info = $ownerName . ' [' . $roleDisplay . ']' . ($location ? " ({$location})" : '');
+
+            return response()->json([
+                'available' => false,
+                'clean_username' => $clean,
+                'message' => "ID login '{$clean}' sudah digunakan oleh akun {$info}. Silakan gunakan ID lain.",
+                'existing_user' => [
+                    'id' => $duplicate->id,
+                    'name' => $ownerName,
+                    'role' => $roleDisplay,
+                    'placement' => $location
+                ],
+                'suggestions' => $suggestions
+            ]);
+        }
+
+        return response()->json([
+            'available' => true,
+            'clean_username' => $clean,
+            'message' => "ID login '{$clean}' tersedia!",
+            'suggestions' => []
+        ]);
+    }
+
     public function store(Request $request)
     {
         $currentUser = $request->user();
@@ -331,12 +415,16 @@ class UserController extends Controller
         ]);
 
         $cleanUsername = strtolower(trim($request->username));
-        $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
+        $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->with(['roles', 'branch'])->first();
         if ($duplicate) {
+            $roleName = $duplicate->roles->first()?->name ?? 'User';
+            $roleDisplay = $roleName === 'inventory' ? 'CS' : ($roleName === 'toko_offline' ? 'Toko Offline' : $roleName);
+            $loc = $duplicate->branch?->name ? " ({$duplicate->branch->name})" : "";
+            $owner = ($duplicate->full_name ?: $duplicate->name) . " [{$roleDisplay}]{$loc}";
             return response()->json([
                 'success' => false,
-                'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
-                'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                'message' => "ID login '{$cleanUsername}' sudah digunakan oleh akun {$owner}. Gunakan ID login yang berbeda.",
+                'errors' => ['username' => ["ID login sudah digunakan oleh akun {$owner}."]]
             ], 422);
         }
 
@@ -490,12 +578,17 @@ class UserController extends Controller
                 $cleanUsername = strtolower($rawUsername);
                 $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])
                     ->where('id', '!=', $id)
+                    ->with(['roles', 'branch'])
                     ->first();
                 if ($duplicate) {
+                    $roleName = $duplicate->roles->first()?->name ?? 'User';
+                    $roleDisplay = $roleName === 'inventory' ? 'CS' : ($roleName === 'toko_offline' ? 'Toko Offline' : $roleName);
+                    $loc = $duplicate->branch?->name ? " ({$duplicate->branch->name})" : "";
+                    $owner = ($duplicate->full_name ?: $duplicate->name) . " [{$roleDisplay}]{$loc}";
                     return response()->json([
                         'success' => false,
-                        'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
-                        'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                        'message' => "ID login '{$cleanUsername}' sudah digunakan oleh akun {$owner}. Gunakan ID login yang berbeda.",
+                        'errors' => ['username' => ["ID login sudah digunakan oleh akun {$owner}."]]
                     ], 422);
                 }
                 $validated['username'] = $cleanUsername;

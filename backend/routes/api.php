@@ -187,6 +187,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ... users, branches, etc ...
     // User Photo Approvals
+    Route::get('/users/check-username', [UserController::class, 'checkUsername']);
     Route::get('/users/pending-photos', [UserController::class, 'pendingPhotos']);
     Route::post('/users/{id}/approve-photo', [UserController::class, 'approvePhoto']);
     Route::post('/users/{id}/reject-photo', [UserController::class, 'rejectPhoto']);

@@ -38,12 +38,16 @@ class InventoryAccountController extends Controller
 
         if ($request->filled('username')) {
             $cleanUsername = strtolower(trim($request->username));
-            $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->first();
+            $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])->with(['roles', 'branch'])->first();
             if ($duplicate) {
+                $roleName = $duplicate->roles->first()?->name ?? 'User';
+                $roleDisplay = $roleName === 'inventory' ? 'CS' : ($roleName === 'toko_offline' ? 'Toko Offline' : $roleName);
+                $loc = $duplicate->branch?->name ? " ({$duplicate->branch->name})" : "";
+                $owner = ($duplicate->full_name ?: $duplicate->name) . " [{$roleDisplay}]{$loc}";
                 return response()->json([
                     'success' => false,
-                    'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
-                    'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                    'message' => "ID login '{$cleanUsername}' sudah digunakan oleh akun {$owner}. Gunakan ID login yang berbeda.",
+                    'errors' => ['username' => ["ID login sudah digunakan oleh akun {$owner}."]]
                 ], 422);
             }
             $username = $cleanUsername;
@@ -156,12 +160,17 @@ class InventoryAccountController extends Controller
                 $cleanUsername = strtolower($rawUsername);
                 $duplicate = User::whereRaw('LOWER(TRIM(username)) = ?', [$cleanUsername])
                     ->where('id', '!=', $id)
+                    ->with(['roles', 'branch'])
                     ->first();
                 if ($duplicate) {
+                    $roleName = $duplicate->roles->first()?->name ?? 'User';
+                    $roleDisplay = $roleName === 'inventory' ? 'CS' : ($roleName === 'toko_offline' ? 'Toko Offline' : $roleName);
+                    $loc = $duplicate->branch?->name ? " ({$duplicate->branch->name})" : "";
+                    $owner = ($duplicate->full_name ?: $duplicate->name) . " [{$roleDisplay}]{$loc}";
                     return response()->json([
                         'success' => false,
-                        'message' => "ID login (username) '{$cleanUsername}' sudah digunakan oleh akun lain ({$duplicate->name}). Gunakan ID login yang berbeda.",
-                        'errors' => ['username' => ['ID login (username) sudah digunakan oleh akun lain.']]
+                        'message' => "ID login '{$cleanUsername}' sudah digunakan oleh akun {$owner}. Gunakan ID login yang berbeda.",
+                        'errors' => ['username' => ["ID login sudah digunakan oleh akun {$owner}."]]
                     ], 422);
                 }
                 $account->username = $cleanUsername;

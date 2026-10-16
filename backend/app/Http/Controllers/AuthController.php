@@ -50,7 +50,10 @@ class AuthController extends Controller
             WHEN LOWER(TRIM(username)) = ? THEN 0 
             WHEN LOWER(TRIM(username)) = ? THEN 1 
             ELSE 2 END", [$cleanUsername, $baseUsername])
-        ->orderBy('id', 'desc')
+        ->orderByRaw("CASE 
+            WHEN EXISTS (SELECT 1 FROM model_has_roles mhr JOIN roles r ON r.id = mhr.role_id WHERE mhr.model_id = users.id AND r.name = 'inventory') THEN 1 
+            ELSE 0 END ASC")
+        ->orderBy('id', 'asc')
         ->get();
 
         $matchedUser = null;
@@ -85,24 +88,6 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'Akun Anda dinonaktifkan.',
                 ], 403);
-            }
-
-            // Heal username if it was renamed to .cs or .<id> by prior auto-fix
-            $matchedClean = strtolower(trim($matchedUser->username));
-            $targetUsername = (!empty($baseUsername) && strlen($baseUsername) >= 2) ? $baseUsername : $cleanUsername;
-            if ($matchedClean !== $targetUsername && (str_starts_with($matchedClean, $targetUsername . '.') || str_starts_with($matchedClean, $targetUsername . '_'))) {
-                $otherActiveExists = User::whereRaw('LOWER(TRIM(username)) = ?', [$targetUsername])
-                    ->where('id', '!=', $matchedUser->id)
-                    ->where('is_active', true)
-                    ->exists();
-                if (!$otherActiveExists) {
-                    $matchedUser->username = $targetUsername;
-                    if (str_ends_with($matchedUser->email ?? '', '@apex-inventory.com') || str_ends_with($matchedUser->email ?? '', '@apexpos.com')) {
-                        $matchedUser->email = $targetUsername . ($matchedUser->hasRole('inventory') ? '@apex-inventory.com' : '@apexpos.com');
-                    }
-                    $matchedUser->save();
-                    \Illuminate\Support\Facades\Log::info("Restored user ID {$matchedUser->id} username back to {$targetUsername}");
-                }
             }
 
             Auth::login($matchedUser);

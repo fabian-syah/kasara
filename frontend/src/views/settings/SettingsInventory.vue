@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useAuthStore } from "../../store/auth";
 import { inventory as inventoryApi, auth as authApiApi, users as usersApi } from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { 
-    Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff
+    Key, Shield, Loader2, PlusCircle, FileText, CheckCircle2, User, Eye, EyeOff, AlertTriangle, Check
 } from "lucide-vue-next";
 
 const authStore = useAuthStore();
@@ -21,6 +21,47 @@ const newAccountUsername = ref("");
 const newAccountPassword = ref("");
 const isCreatingAccount = ref(false);
 
+// New account username availability check
+const isCheckingNewUsername = ref(false);
+const newUsernameStatus = ref(null); // null | 'available' | 'taken'
+const newUsernameError = ref('');
+let newUsernameTimeout = null;
+
+function validateNewUsernameDebounced(val) {
+    if (newUsernameTimeout) clearTimeout(newUsernameTimeout);
+    const trimmed = String(val || '').trim().toLowerCase();
+    if (!trimmed) {
+        newUsernameStatus.value = null;
+        newUsernameError.value = '';
+        isCheckingNewUsername.value = false;
+        return;
+    }
+    isCheckingNewUsername.value = true;
+    newUsernameTimeout = setTimeout(async () => {
+        try {
+            const res = await usersApi.checkUsername({
+                username: trimmed,
+                name: newAccountName.value
+            });
+            if (res.data.available) {
+                newUsernameStatus.value = 'available';
+                newUsernameError.value = '';
+            } else {
+                newUsernameStatus.value = 'taken';
+                newUsernameError.value = res.data.message || 'ID login sudah digunakan oleh akun lain.';
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isCheckingNewUsername.value = false;
+        }
+    }, 300);
+}
+
+watch(newAccountUsername, (val) => {
+    validateNewUsernameDebounced(val);
+});
+
 // Edit Account State
 const showEditModal = ref(false);
 const showPassword = ref(false);
@@ -33,6 +74,53 @@ const editAccountData = ref({
 const isUpdatingAccount = ref(false);
 const showPasswordLogin = ref(false);
 
+// Edit account username availability check
+const isCheckingEditUsername = ref(false);
+const editUsernameStatus = ref(null); // null | 'available' | 'taken'
+const editUsernameError = ref('');
+const editUsernameSuggestions = ref([]);
+let editUsernameTimeout = null;
+
+function validateEditUsernameDebounced(val) {
+    if (editUsernameTimeout) clearTimeout(editUsernameTimeout);
+    const trimmed = String(val || '').trim().toLowerCase();
+    if (!trimmed) {
+        editUsernameStatus.value = null;
+        editUsernameError.value = '';
+        editUsernameSuggestions.value = [];
+        isCheckingEditUsername.value = false;
+        return;
+    }
+    isCheckingEditUsername.value = true;
+    editUsernameTimeout = setTimeout(async () => {
+        try {
+            const res = await usersApi.checkUsername({
+                username: trimmed,
+                exclude_id: editAccountData.value.id,
+                name: editAccountData.value.name
+            });
+            if (res.data.available) {
+                editUsernameStatus.value = 'available';
+                editUsernameError.value = '';
+                editUsernameSuggestions.value = [];
+            } else {
+                editUsernameStatus.value = 'taken';
+                editUsernameError.value = res.data.message || 'ID login sudah digunakan oleh akun lain.';
+                editUsernameSuggestions.value = res.data.suggestions || [];
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isCheckingEditUsername.value = false;
+        }
+    }, 300);
+}
+
+function applyEditUsernameSuggestion(s) {
+    editAccountData.value.username = s;
+    validateEditUsernameDebounced(s);
+}
+
 function openEditModal(acc) {
     editAccountData.value = {
         id: acc.id,
@@ -43,9 +131,25 @@ function openEditModal(acc) {
     showPassword.value = false;
     showPasswordLogin.value = false;
     showEditModal.value = true;
+    validateEditUsernameDebounced(acc.username);
 }
 
+watch(() => editAccountData.value.username, (val) => {
+    if (showEditModal.value) {
+        validateEditUsernameDebounced(val);
+    }
+});
+
 async function submitEditAccount() {
+    if (editUsernameStatus.value === 'taken') {
+        toast.error(editUsernameError.value || "ID login sudah digunakan oleh akun lain.");
+        return;
+    }
+    if (isCheckingEditUsername.value) {
+        toast.warning("Sedang memeriksa ketersediaan ID login...");
+        return;
+    }
+
     isUpdatingAccount.value = true;
     try {
         const payload = new FormData();
@@ -87,6 +191,15 @@ async function createInventoryAccount() {
         toast.error("Nama akun harus diisi!");
         return;
     }
+    if (newUsernameStatus.value === 'taken') {
+        toast.error(newUsernameError.value || "ID login sudah digunakan oleh akun lain.");
+        return;
+    }
+    if (isCheckingNewUsername.value) {
+        toast.warning("Sedang memeriksa ketersediaan ID login...");
+        return;
+    }
+
     isCreatingAccount.value = true;
     try {
         const cleanUsername = newAccountUsername.value ? newAccountUsername.value.trim().toLowerCase() : undefined;
@@ -99,6 +212,8 @@ async function createInventoryAccount() {
         newAccountName.value = "";
         newAccountUsername.value = "";
         newAccountPassword.value = "";
+        newUsernameStatus.value = null;
+        newUsernameError.value = "";
         
         await fetchAccounts();
     } catch (e) {
@@ -114,7 +229,20 @@ function cancelCreateAccount() {
     newAccountName.value = "";
     newAccountUsername.value = "";
     newAccountPassword.value = "";
+    newUsernameStatus.value = null;
+    newUsernameError.value = "";
 }
+
+const duplicateUsernameMap = computed(() => {
+    const counts = {};
+    (inventoryAccounts.value || []).forEach(acc => {
+        if (acc && acc.username) {
+            const u = String(acc.username).trim().toLowerCase();
+            counts[u] = (counts[u] || 0) + 1;
+        }
+    });
+    return counts;
+});
 
 const accountsByBranch = computed(() => {
     const grouped = {};
@@ -160,8 +288,24 @@ const accountsByBranch = computed(() => {
                             <input v-model="newAccountName" type="text" class="input" placeholder="Contoh: Admin Gudang 1" autocomplete="off" />
                         </div>
                         <div class="space-y-1.5">
-                            <label class="label">USERNAME (Opsional)</label>
-                            <input v-model="newAccountUsername" type="text" class="input" placeholder="Otomatis jika kosong" autocomplete="off" />
+                            <div class="flex items-center justify-between">
+                                <label class="label mb-0">USERNAME (Opsional)</label>
+                                <span v-if="isCheckingNewUsername" class="text-[9px] text-blue-500 flex items-center gap-1">
+                                    <Loader2 class="animate-spin" :size="10" /> Cek...
+                                </span>
+                                <span v-else-if="newUsernameStatus === 'available'" class="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
+                                    <Check :size="10" /> Tersedia
+                                </span>
+                                <span v-else-if="newUsernameStatus === 'taken'" class="text-[9px] text-rose-500 font-bold flex items-center gap-1">
+                                    <AlertTriangle :size="10" /> Terpakai
+                                </span>
+                            </div>
+                            <input v-model="newAccountUsername" type="text" class="input font-mono"
+                                :class="{ 'border-rose-500/60 ring-1 ring-rose-500/20': newUsernameStatus === 'taken', 'border-emerald-500/50': newUsernameStatus === 'available' }"
+                                placeholder="Otomatis jika kosong" autocomplete="off" />
+                            <p v-if="newUsernameStatus === 'taken'" class="text-[10px] text-rose-500 font-medium">
+                                ❌ {{ newUsernameError }}
+                            </p>
                         </div>
                         <div class="space-y-1.5">
                             <label class="label">PASSWORD LOGIN (Opsional)</label>
@@ -172,7 +316,7 @@ const accountsByBranch = computed(() => {
                             <button @click="cancelCreateAccount" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white px-3 py-2 transition-all">
                                 Batal
                             </button>
-                            <button @click="createInventoryAccount" type="button" :disabled="!newAccountName || isCreatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
+                            <button @click="createInventoryAccount" type="button" :disabled="!newAccountName || isCreatingAccount || isCheckingNewUsername || newUsernameStatus === 'taken'" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
                                 <Loader2 v-if="isCreatingAccount" class="animate-spin" :size="14" />
                                 <PlusCircle v-else :size="14" />
                                 Daftarkan Akun
@@ -214,7 +358,15 @@ const accountsByBranch = computed(() => {
                                             </div>
                                             <div>
                                                 <p class="text-[10px] font-black text-zinc-800 dark:text-white uppercase">{{ acc.name }}</p>
-                                                <p class="text-[9px] font-black text-zinc-500 uppercase">{{ acc.username }}</p>
+                                                <div class="flex items-center gap-1.5">
+                                                    <p class="text-[9px] font-black text-zinc-500 uppercase">{{ acc.username }}</p>
+                                                    <span v-if="duplicateUsernameMap[String(acc.username || '').trim().toLowerCase()] > 1"
+                                                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                                        title="ID login ini bentrok dengan akun lain! Klik Edit untuk mengubahnya.">
+                                                        <AlertTriangle :size="9" />
+                                                        ID Bentrok
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -243,8 +395,33 @@ const accountsByBranch = computed(() => {
                     <input v-model="editAccountData.name" type="text" class="input" placeholder="Nama Akun" />
                 </div>
                 <div>
-                    <label class="label">USERNAME</label>
-                    <input v-model="editAccountData.username" type="text" class="input" placeholder="Username" />
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="label mb-0">USERNAME</label>
+                        <span v-if="isCheckingEditUsername" class="text-[9px] text-blue-500 flex items-center gap-1">
+                            <Loader2 class="animate-spin" :size="10" /> Cek...
+                        </span>
+                        <span v-else-if="editUsernameStatus === 'available'" class="text-[9px] text-emerald-500 font-bold flex items-center gap-1">
+                            <Check :size="10" /> Tersedia
+                        </span>
+                        <span v-else-if="editUsernameStatus === 'taken'" class="text-[9px] text-rose-500 font-bold flex items-center gap-1">
+                            <AlertTriangle :size="10" /> Terpakai
+                        </span>
+                    </div>
+                    <input v-model="editAccountData.username" type="text" class="input font-mono"
+                        :class="{ 'border-rose-500/60 ring-1 ring-rose-500/20': editUsernameStatus === 'taken', 'border-emerald-500/50': editUsernameStatus === 'available' }"
+                        placeholder="Username" autocomplete="off" />
+                    <div v-if="editUsernameStatus === 'taken'" class="mt-1.5 space-y-1">
+                        <p class="text-[10px] text-rose-500 font-medium flex items-start gap-1">
+                            <span>❌</span> <span>{{ editUsernameError }}</span>
+                        </p>
+                        <div v-if="editUsernameSuggestions.length" class="flex flex-wrap items-center gap-1 pt-0.5">
+                            <span class="text-[9px] text-zinc-400">Saran:</span>
+                            <button v-for="s in editUsernameSuggestions" :key="s" type="button" @click="applyEditUsernameSuggestion(s)"
+                                class="px-1.5 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[9px] font-mono font-bold">
+                                {{ s }}
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div>
                     <label class="label">PASSWORD BARU (Opsional)</label>
@@ -261,7 +438,7 @@ const accountsByBranch = computed(() => {
                 <button @click="showEditModal = false" type="button" class="text-xs font-black uppercase tracking-wider text-zinc-500 hover:text-zinc-800 px-3 py-2">
                     Batal
                 </button>
-                <button @click="submitEditAccount" :disabled="isUpdatingAccount" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
+                <button @click="submitEditAccount" :disabled="isUpdatingAccount || isCheckingEditUsername || editUsernameStatus === 'taken'" class="btn btn-primary px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary-500/10">
                     <Loader2 v-if="isUpdatingAccount" class="animate-spin" :size="14" />
                     Simpan
                 </button>

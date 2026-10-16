@@ -26,7 +26,8 @@ import {
   Building, // Icon for warehouse
   Camera, // Icon for photo upload
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle
 } from "lucide-vue-next";
 
 // Toast
@@ -276,6 +277,54 @@ const form = ref({
 const selectedMultiPlacementType = ref('physical'); // UI toggle for audit/leader modal
 const inventoryPlacementType = ref('branch'); // UI toggle for inventory modal
 
+// Username availability state
+const isCheckingUsername = ref(false);
+const usernameStatus = ref(null); // null | 'available' | 'taken'
+const usernameError = ref('');
+const usernameSuggestions = ref([]);
+let usernameCheckTimeout = null;
+
+function validateUsernameDebounced(val) {
+  if (usernameCheckTimeout) clearTimeout(usernameCheckTimeout);
+  const trimmed = String(val || '').trim().toLowerCase();
+  if (!trimmed) {
+    usernameStatus.value = null;
+    usernameError.value = '';
+    usernameSuggestions.value = [];
+    isCheckingUsername.value = false;
+    return;
+  }
+
+  isCheckingUsername.value = true;
+  usernameCheckTimeout = setTimeout(async () => {
+    try {
+      const res = await usersApi.checkUsername({
+        username: trimmed,
+        exclude_id: editingUser.value?.id,
+        name: form.value.full_name
+      });
+      if (res.data.available) {
+        usernameStatus.value = 'available';
+        usernameError.value = '';
+        usernameSuggestions.value = [];
+      } else {
+        usernameStatus.value = 'taken';
+        usernameError.value = res.data.message || 'ID login sudah digunakan oleh akun lain.';
+        usernameSuggestions.value = res.data.suggestions || [];
+      }
+    } catch (err) {
+      console.error('Username check error', err);
+    } finally {
+      isCheckingUsername.value = false;
+    }
+  }, 300);
+}
+
+function applyUsernameSuggestion(s) {
+  form.value.username = s;
+  validateUsernameDebounced(s);
+}
+
 // Helper to reset form
 function resetForm() {
   form.value = {
@@ -297,6 +346,11 @@ function resetForm() {
     transaction_pin: "",
   };
   showPassword.value = false;
+  usernameStatus.value = null;
+  usernameError.value = '';
+  usernameSuggestions.value = [];
+  isCheckingUsername.value = false;
+  if (usernameCheckTimeout) clearTimeout(usernameCheckTimeout);
 }
 
 // Format Date Helper
@@ -469,6 +523,17 @@ const subAccountParentMap = computed(() => {
 const mainUsersCount = computed(() => (users.value || []).filter(u => u && !u.roles?.some(r => r.name === 'inventory')).length);
 const csUsersCount = computed(() => (users.value || []).filter(u => u && u.roles?.some(r => r.name === 'inventory')).length);
 
+const duplicateUsernameMap = computed(() => {
+  const counts = {};
+  (users.value || []).forEach(u => {
+    if (u && u.username) {
+      const uname = String(u.username).trim().toLowerCase();
+      counts[uname] = (counts[uname] || 0) + 1;
+    }
+  });
+  return counts;
+});
+
 const filteredUsers = computed(() => {
   if (!users.value) return [];
   let result = users.value;
@@ -601,9 +666,15 @@ function openEditModal(user) {
   } else {
       inventoryPlacementType.value = 'branch';
   }
+  validateUsernameDebounced(user.username);
   showModal.value = true;
 }
 
+watch(() => form.value.username, (newVal) => {
+  if (showModal.value) {
+    validateUsernameDebounced(newVal);
+  }
+});
 
 function closeModal() {
   showModal.value = false;
@@ -616,6 +687,14 @@ useEscapeKey(() => {
 });
 
 async function saveUser() {
+  if (usernameStatus.value === 'taken') {
+    toast.error(usernameError.value || "ID login sudah digunakan oleh akun lain. Silakan gunakan ID yang berbeda.");
+    return;
+  }
+  if (isCheckingUsername.value) {
+    toast.warning("Sedang memeriksa ketersediaan ID login, silakan tunggu sebentar.");
+    return;
+  }
   isSaving.value = true;
   try {
     // Ensure only relevant placement ID is sent (though backend handles overrides, cleaner here)
@@ -924,7 +1003,15 @@ function getUserRoleName(user) {
                       <p class="text-[10px] font-bold text-red-500 uppercase">Butuh Reset PIN</p>
                     </div>
 
-                    <p class="text-xs text-text-secondary font-mono mb-1">{{ user.username }}</p>
+                    <div class="flex items-center gap-2 mb-1">
+                      <p class="text-xs text-text-secondary font-mono">{{ user.username }}</p>
+                      <span v-if="duplicateUsernameMap[String(user.username || '').trim().toLowerCase()] > 1"
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                        title="ID login ini duplikat/bentrok dengan akun lain! Klik edit untuk mengubah ID login agar tidak bentrok.">
+                        <AlertTriangle :size="10" />
+                        ID Bentrok
+                      </span>
+                    </div>
 
                     <!-- Relationship Info -->
                     <div v-if="user.created_users?.length" class="flex flex-wrap gap-1 mt-1.5">
@@ -1068,7 +1155,15 @@ function getUserRoleName(user) {
                   MAIN
                 </span>
               </div>
-              <p class="text-xs text-text-secondary font-mono">{{ user.username }}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-xs text-text-secondary font-mono">{{ user.username }}</p>
+                <span v-if="duplicateUsernameMap[String(user.username || '').trim().toLowerCase()] > 1"
+                  class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                  title="ID login ini duplikat/bentrok dengan akun lain! Klik edit untuk mengubah ID login agar tidak bentrok.">
+                  <AlertTriangle :size="9" />
+                  ID Bentrok
+                </span>
+              </div>
 
               <!-- Mobile Relationship -->
               <div v-if="user.created_users?.length" class="mt-1">
@@ -1177,8 +1272,39 @@ function getUserRoleName(user) {
             </div>
 
             <div>
-              <label class="label">Username</label>
-              <input v-model="form.username" class="input" placeholder="username" required />
+              <div class="flex items-center justify-between mb-1">
+                <label class="label mb-0">ID Login (Username)</label>
+                <div v-if="isCheckingUsername" class="flex items-center gap-1 text-[11px] text-blue-400">
+                  <Loader2 class="animate-spin" :size="12" />
+                  <span>Memeriksa...</span>
+                </div>
+                <div v-else-if="usernameStatus === 'available'" class="flex items-center gap-1 text-[11px] text-emerald-500 font-medium">
+                  <Check :size="12" />
+                  <span>Tersedia</span>
+                </div>
+                <div v-else-if="usernameStatus === 'taken'" class="flex items-center gap-1 text-[11px] text-rose-500 font-bold">
+                  <AlertTriangle :size="12" />
+                  <span>Sudah Dipakai</span>
+                </div>
+              </div>
+              <input v-model="form.username" class="input font-mono"
+                :class="{ 'border-rose-500/70 focus:border-rose-500 ring-1 ring-rose-500/30': usernameStatus === 'taken', 'border-emerald-500/60': usernameStatus === 'available' }"
+                placeholder="username" required autocomplete="off" />
+              
+              <!-- Error message & suggestions if taken -->
+              <div v-if="usernameStatus === 'taken'" class="mt-1.5 space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                <p class="text-xs text-rose-500 dark:text-rose-400 font-medium flex items-start gap-1.5">
+                  <span class="shrink-0 mt-0.5">❌</span>
+                  <span>{{ usernameError }}</span>
+                </p>
+                <div v-if="usernameSuggestions.length" class="flex flex-wrap items-center gap-1.5 text-xs text-text-secondary pt-0.5">
+                  <span class="text-[11px] font-medium text-text-secondary">Rekomendasi ID yang tersedia:</span>
+                  <button v-for="s in usernameSuggestions" :key="s" type="button" @click="applyUsernameSuggestion(s)"
+                    class="px-2 py-0.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 font-mono text-[11px] font-bold transition-colors">
+                    {{ s }}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <!-- Password -->
@@ -1378,7 +1504,7 @@ function getUserRoleName(user) {
             <div class="flex justify-end gap-3 pt-4 border-t border-surface-700/50">
               <button type="button" @click="closeModal"
                 class="btn text-text-secondary hover:text-text-primary">Batal</button>
-              <button type="submit" class="btn btn-primary" :disabled="isSaving">
+              <button type="submit" class="btn btn-primary" :disabled="isSaving || isCheckingUsername || usernameStatus === 'taken'">
                 <Loader2 v-if="isSaving" class="animate-spin mr-2" :size="18" />
                 {{ isSaving ? 'Menyimpan...' : 'Simpan User' }}
               </button>

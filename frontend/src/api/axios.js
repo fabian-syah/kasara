@@ -139,7 +139,8 @@ export const users = {
     listPendingPhotos: (params) => api.get('/users/pending-photos', { params }),
     approvePhoto: (id) => api.post(`/users/${id}/approve-photo`),
     rejectPhoto: (id, reason) => api.post(`/users/${id}/reject-photo`, { reason }),
-    approvePinReset: (id) => api.post(`/users/${id}/approve-pin-reset`)
+    approvePinReset: (id) => api.post(`/users/${id}/approve-pin-reset`),
+    checkUsername: (params) => api.get('/users/check-username', { params })
 }
 
 // Tambahkan ini di src/api/axios.js
