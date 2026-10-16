@@ -3969,14 +3969,48 @@ class StockOutController extends Controller
             // --- A. Handle HP Items (ProductDetail) ---
 
             // 1. Restore OUTGOING Items or Remove INCOMING Items attached to StockOut
+            $handledItemIds = [];
             foreach ($stockOut->items as $item) {
+                $handledItemIds[] = $item->id;
                 if ($stockOut->category === 'angkat_barang') {
                     // For Angkat Barang, the item in StockOut is the one we RECEIVED. Remove it.
-                    try {
-                        $item->forceDelete();
-                    } catch (\Throwable $e) {
+                    // Clean up any IN log to keep history clean
+                    \App\Models\InventoryLog::where('product_id', $item->product_id)
+                        ->where(function ($q) use ($receiptId, $item) {
+                            $q->where('reference_id', 'like', "%$receiptId%")
+                              ->orWhere('reference_id', (string)$item->id);
+                        })
+                        ->delete();
+
+                    // Check if this incoming product detail is referenced as an outgoing unit in any other transactions
+                    $isReferenced = DB::table('tukar_tambahs')
+                        ->where('outgoing_product_detail_id', $item->id)
+                        ->exists()
+                        || DB::table('unit_exchanges')
+                        ->where('outgoing_product_detail_id', $item->id)
+                        ->exists()
+                        || DB::table('downgrades')
+                        ->where('outgoing_product_detail_id', $item->id)
+                        ->exists()
+                        || DB::table('stock_out_items')
+                        ->where('product_detail_id', $item->id)
+                        ->where('stock_out_id', '!=', $stockOut->id)
+                        ->exists();
+
+                    if ($isReferenced) {
+                        // It was an existing sold item that was traded back. Do NOT delete it.
+                        // Just clear current transaction link and revert status to sold.
+                        $item->update([
+                            'status' => 'sold',
+                            'trade_in_id' => null,
+                            'notes' => ($item->notes ? $item->notes . "\n" : "") . "Batal Angkat Barang: " . $receiptId
+                        ]);
+                    } else {
+                        // It was newly created for this transaction. Safely clear foreign keys and mark deleted.
+                        // NEVER call forceDelete() inside a PostgreSQL transaction because any FK violation aborts the transaction.
                         $item->update([
                             'status' => 'deleted',
+                            'trade_in_id' => null,
                             'notes' => ($item->notes ? $item->notes . "\n" : "") . "Batal Angkat Barang: " . $receiptId
                         ]);
                         $item->delete();
@@ -4003,7 +4037,7 @@ class StockOutController extends Controller
             $dgOut = \App\Models\Downgrade::where('receipt_id', $receiptId)->pluck('outgoing_product_detail_id')->filter()->toArray();
             if (!empty($dgOut)) $outgoingIds = array_merge($outgoingIds, $dgOut);
 
-            $outgoingIds = array_unique(array_filter($outgoingIds));
+            $outgoingIds = array_unique(array_filter(array_merge($outgoingIds, $handledItemIds)));
 
             $incomingHPQuery = \App\Models\ProductDetail::where(function ($q) use ($receiptId) {
                 $q->where('notes', 'like', "%Masuk dari %: $receiptId%")
@@ -4033,7 +4067,10 @@ class StockOutController extends Controller
             foreach ($incomingHP as $inc) {
                 // Delete the IN log to keep history clean
                 \App\Models\InventoryLog::where('product_id', $inc->product_id)
-                    ->where('reference_id', 'like', "%$receiptId%")
+                    ->where(function ($q) use ($receiptId, $inc) {
+                        $q->where('reference_id', 'like', "%$receiptId%")
+                          ->orWhere('reference_id', (string)$inc->id);
+                    })
                     ->delete();
 
                 // Check if this incoming product detail is referenced as an outgoing unit in any other transactions
@@ -4076,13 +4113,8 @@ class StockOutController extends Controller
                         'notes' => ($inc->notes ? $inc->notes . "\n" : "") . "Batal Transaksi: " . $receiptId
                     ]);
 
-                    // Attempt physical delete; if any database constraints prevent it, fallback to soft delete
-                    try {
-                        $inc->forceDelete();
-                    } catch (\Throwable $e) {
-                        \Log::warning("Could not forceDelete product detail ID {$inc->id} on cancel {$receiptId}, fell back to soft delete: " . $e->getMessage());
-                        $inc->delete();
-                    }
+                    // Soft delete safely without triggering foreign key constraint violations
+                    $inc->delete();
                 }
             }
 
