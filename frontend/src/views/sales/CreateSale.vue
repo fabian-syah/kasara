@@ -161,36 +161,47 @@ const loadingStep3Data = ref(false);
 const isDataLoaded = ref(false);
 
 function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers, currentUser = null) {
-    const activeUser = currentUser || authStore.user;
-    const isCs = isCsLogin.value || 
-                 (activeUser?.roles?.[0]?.name || '').toLowerCase() === 'inventory' ||
-                 (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+    const rawActive = currentUser || authStore.user;
+    const activeUser = (rawActive && typeof rawActive === 'object' && rawActive.user) 
+        ? rawActive.user 
+        : (rawActive && typeof rawActive === 'object' && rawActive.data ? rawActive.data : rawActive);
 
-    // If logged in using a CS account, only display their own CS account!
-    if (isCs && activeUser) {
-        const listA = Array.isArray(rawAccounts) ? rawAccounts : (rawAccounts?.data || []);
-        const listB = Array.isArray(allInventoryUsers) ? allInventoryUsers : (allInventoryUsers?.data || []);
-        const existing = [...listA, ...listB].find(u => u && (u.id === activeUser.id || u.username === activeUser.username));
-
-        const myAccount = {
-            id: activeUser.id,
-            name: activeUser.name,
-            full_name: activeUser.full_name || activeUser.name,
-            username: activeUser.username,
-            photo: existing?.photo || existing?.photo_inventory || activeUser.photo || activeUser.photo_inventory || null,
-            created_by: existing?.created_by || activeUser.created_by || null,
-            ...existing,
-            ...activeUser
-        };
-        salesAccounts.value = [myAccount];
-        salesAccount.value = myAccount.name;
-        salesAccountId.value = myAccount.id;
-        return;
-    }
+    const roleName = (activeUser?.roles?.[0]?.name || activeUser?.role || authStore.userRole || '').toLowerCase();
+    const isCs = isCsLogin.value || roleName === 'inventory';
 
     const listA = Array.isArray(rawAccounts) ? rawAccounts : (rawAccounts?.data || []);
     const listB = Array.isArray(allInventoryUsers) ? allInventoryUsers : (allInventoryUsers?.data || []);
-    
+
+    // If logged in using a CS account, only display their own CS account!
+    if (isCs) {
+        // Find in listA or listB (which come from DB and have all fields like created_by, photo, etc.)
+        const found = [...listA, ...listB].find(u => u && activeUser && (u.id === activeUser.id || (u.username && u.username === activeUser.username)));
+
+        // Priority for target: found from list -> fallback from listA/listB -> activeUser -> authStore.user
+        const fallbackFromList = (listA.length > 0 && listA[0]?.name) ? listA[0] : ((listB.length > 0 && listB[0]?.name) ? listB[0] : null);
+        const target = found || fallbackFromList || activeUser || authStore.user;
+
+        if (target) {
+            const resolvedName = target.name || target.full_name || target.username || authStore.userName || 'Akun CS';
+            const resolvedId = target.id || authStore.user?.id || null;
+            const myAccount = {
+                id: resolvedId,
+                name: resolvedName,
+                full_name: target.full_name || resolvedName,
+                username: target.username || '',
+                photo: target.photo || target.photo_inventory || activeUser?.photo || authStore.user?.photo || null,
+                created_by: target.created_by || activeUser?.created_by || null,
+                ...target,
+                id: resolvedId,
+                name: resolvedName
+            };
+            salesAccounts.value = [myAccount];
+            salesAccount.value = resolvedName;
+            salesAccountId.value = resolvedId;
+            return;
+        }
+    }
+
     const accountMap = new Map();
     [...listA, ...listB].forEach(acc => {
         if (!acc || !acc.id) return;
@@ -206,11 +217,6 @@ function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers, currentUser = 
 
 async function refreshAccounts() {
     try {
-        if (isCsLogin.value && authStore.user) {
-            mergeAndSetSalesAccounts([], [], authStore.user);
-            return;
-        }
-
         const [accRes, usersRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
             api.get('/users', { params: { role: 'inventory', is_active: true } })
@@ -311,15 +317,16 @@ onMounted(async () => {
             api.get('/user')
         ]);
 
-        const userData = userRes.data.data || userRes.data;
+        const rawUserData = userRes.data?.user || userRes.data?.data || userRes.data;
+        const userData = (rawUserData && typeof rawUserData === 'object' && rawUserData.user) ? rawUserData.user : rawUserData;
 
         mergeAndSetSalesAccounts(accountsRes.data, usersRes.data, userData);
 
         const isCs = isCsLogin.value || (userData?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
 
-        if (isCs && userData) {
-            salesAccount.value = userData.name;
-            salesAccountId.value = userData.id;
+        if (isCs && salesAccounts.value.length > 0) {
+            salesAccount.value = salesAccounts.value[0].name;
+            salesAccountId.value = salesAccounts.value[0].id;
         } else if (userData) {
             // Auto-select user account for store / admin if matches
             const match = salesAccounts.value.find(acc => acc.id === userData.id || acc.name === userData.name);
