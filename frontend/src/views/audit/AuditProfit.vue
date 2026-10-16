@@ -365,6 +365,10 @@
                                                     <div class="flex justify-between items-start gap-3 w-full">
                                                         <div class="whitespace-normal flex-1 leading-relaxed">
                                                             <div>{{ detail.name }}</div>
+                                                            <div v-if="detail.bundle_name"
+                                                                class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-bold text-[9px] border border-purple-200 dark:border-purple-800/40">
+                                                                <span>📦 {{ detail.bundle_name }}</span>
+                                                            </div>
                                                             <div v-if="detail.storage"
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
                                                                     detail.storage }}</div>

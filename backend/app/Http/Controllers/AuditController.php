@@ -3954,36 +3954,78 @@ class AuditController extends Controller
                 }
                 $targetTrxOmset = ($spTotal > 0) ? $spTotal : $dbSellingPrice;
 
-                $trxItemsTotal = 0;
-                foreach ($trx->items as $item) {
-                    $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-                }
+                // First, collect Non-HP items. Accessories keep their exact retail price intact.
+                $nonHpItemsData = [];
+                $nonHpTotal = 0;
+
                 $jsonItems = $trx->non_hp_items;
                 if (is_array($jsonItems) && count($jsonItems) > 0) {
-                    foreach ($jsonItems as $itemData) {
-                        $trxItemsTotal += (($itemData['selling_price'] ?? 0) * ($itemData['quantity'] ?? 1));
+                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                    foreach ($jsonItems as $idx => $itemData) {
+                        $product = $productMap[$itemData['product_id'] ?? null] ?? null;
+                        $basePrice = (float) ($itemData['selling_price'] ?? ($itemData['price'] ?? ($product?->price ?? 0)));
+                        $qty = (int) ($itemData['quantity'] ?? 1);
+                        $nonHpTotal += ($basePrice * $qty);
+
+                        $rawNotes = (string) ($itemData['bundle_name'] ?? ($itemData['notes'] ?? ''));
+                        $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
+                        $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
+
+                        $nonHpItemsData[] = [
+                            'id' => 'nonhp_json_' . $idx,
+                            'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
+                            'qty' => $qty,
+                            'base_price' => $basePrice,
+                            'is_fixed' => true,
+                            'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'distributor' => '-',
+                            'distributor_id' => null,
+                            'raw_cost_price' => (float) ($product?->cost_price ?? 0),
+                            'source_type' => 'store',
+                            'source_label' => 'In Store',
+                            'default_preset_label' => 'Default (input awal)',
+                            'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                        ];
                     }
                 } else {
                     foreach ($trx->nonHpItems as $nhp) {
-                        $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                        $basePrice = (float) (($nhp->selling_price > 0) ? $nhp->selling_price : ($nhp->product?->price ?? 0));
+                        $qty = (int) ($nhp->quantity ?? 1);
+                        $nonHpTotal += ($basePrice * $qty);
+
+                        $rawNotes = (string) ($nhp->notes ?? '');
+                        $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
+                        $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
+
+                        $nonHpItemsData[] = [
+                            'id' => 'nonhp_' . $nhp->id,
+                            'name' => $nhp->product?->name ?? 'Unknown Item',
+                            'qty' => $qty,
+                            'base_price' => $basePrice,
+                            'is_fixed' => true,
+                            'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'distributor' => $nhp->distributor?->name ?? '-',
+                            'distributor_id' => $nhp->distributor_id ?? null,
+                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                            'source_type' => 'store',
+                            'source_label' => 'In Store',
+                            'default_preset_label' => 'Default (input awal)',
+                            'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                        ];
                     }
                 }
 
-                $discrepancy = 0;
-                if ($isNormalSales && $trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
-                    $discrepancy = $trxItemsTotal - $targetTrxOmset;
-                }
-
-                // HP Items
+                // Second, collect HP items
+                $hpItemsData = [];
+                $hpBaseTotal = 0;
                 foreach ($trx->items as $item) {
-                    $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-                    $price = $basePrice;
-                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
-                    }
+                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0));
+                    $hpBaseTotal += $basePrice;
 
-                    // Strip outgoing logs from notes before checking incoming origin cues
                     $rawNotes = (string) ($item->notes ?? '');
+                    $pivotNotes = (string) ($item->pivot->notes ?? '');
                     $cleanNotes = preg_replace('/keluar\s+melalui[^\r\n]*/i', '', $rawNotes);
                     $cleanNotes = preg_replace('/batal\s+(transaksi|angkat\s+barang)[^\r\n]*/i', '', $cleanNotes);
                     $inNotesLower = strtolower(trim($cleanNotes));
@@ -4028,17 +4070,17 @@ class AuditController extends Controller
                         $sourceType = 'tukar_unit';
                         $sourceLabel = 'In Tukar Unit';
                         $defaultPresetLabel = 'Default (in tukar unit)';
-                    } else {
-                        $sourceType = 'store';
-                        $sourceLabel = 'In Store';
-                        $defaultPresetLabel = 'Default (input awal)';
                     }
 
-                    $details[] = [
+                    $bundleNotes = $pivotNotes ?: $rawNotes;
+                    $isBundle = str_contains(strtolower($bundleNotes), 'paket') || str_contains(strtolower($bundleNotes), 'bundle');
+                    $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $bundleNotes)) : null;
+
+                    $hpItemsData[] = [
                         'id' => 'hp_' . $item->id,
                         'name' => $item->product?->name ?? 'Unknown HP',
                         'qty' => 1,
-                        'price' => $price,
+                        'base_price' => $basePrice,
                         'is_fixed' => true,
                         'brand' => $item->product?->brand ?? $item->product?->brandRelation?->name ?? '-',
                         'type' => 'HP',
@@ -4051,63 +4093,109 @@ class AuditController extends Controller
                         'source_type' => $sourceType,
                         'source_label' => $sourceLabel,
                         'default_preset_label' => $defaultPresetLabel,
+                        'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                    ];
+                }
+
+                $hpCount = count($hpItemsData);
+
+                // Price Allocation:
+                // Non-HP items maintain exact base prices (e.g. charger 100k stays 100k, cable stays 100k)
+                // Any bundle or transaction difference is cleanly absorbed by HP unit(s)
+                if ($hpCount > 0) {
+                    $remainingHpOmset = ($isNormalSales && $targetTrxOmset > 0) ? max(0, $targetTrxOmset - $nonHpTotal) : $hpBaseTotal;
+
+                    if ($hpCount === 1) {
+                        $hpItemsData[0]['final_price'] = ($isNormalSales && $targetTrxOmset > 0) ? $remainingHpOmset : $hpItemsData[0]['base_price'];
+                    } else {
+                        $allocatedSoFar = 0;
+                        foreach ($hpItemsData as $hIdx => &$hData) {
+                            if ($hIdx === $hpCount - 1) {
+                                $hData['final_price'] = max(0, $remainingHpOmset - $allocatedSoFar);
+                            } else {
+                                $ratio = ($hpBaseTotal > 0) ? ($hData['base_price'] / $hpBaseTotal) : (1 / $hpCount);
+                                $allocated = round($remainingHpOmset * $ratio);
+                                $hData['final_price'] = $allocated;
+                                $allocatedSoFar += $allocated;
+                            }
+                        }
+                        unset($hData);
+                    }
+
+                    foreach ($nonHpItemsData as &$nhpData) {
+                        $nhpData['final_price'] = $nhpData['base_price'];
+                    }
+                    unset($nhpData);
+                } else {
+                    // Pure Non-HP transaction: if omset difference exists, distribute cleanly with integer rounding
+                    if ($isNormalSales && $nonHpTotal > 0 && $targetTrxOmset > 0 && round($nonHpTotal) != round($targetTrxOmset)) {
+                        $allocatedSoFar = 0;
+                        $totalNhp = count($nonHpItemsData);
+                        foreach ($nonHpItemsData as $nIdx => &$nhpData) {
+                            if ($nIdx === $totalNhp - 1) {
+                                $rem = max(0, $targetTrxOmset - $allocatedSoFar);
+                                $nhpData['final_price'] = round($rem / max(1, $nhpData['qty']));
+                            } else {
+                                $ratio = ($nhpData['base_price'] * $nhpData['qty']) / $nonHpTotal;
+                                $allocated = round($targetTrxOmset * $ratio);
+                                $nhpData['final_price'] = round($allocated / max(1, $nhpData['qty']));
+                                $allocatedSoFar += ($nhpData['final_price'] * $nhpData['qty']);
+                            }
+                        }
+                        unset($nhpData);
+                    } else {
+                        foreach ($nonHpItemsData as &$nhpData) {
+                            $nhpData['final_price'] = $nhpData['base_price'];
+                        }
+                        unset($nhpData);
+                    }
+                }
+
+                // Push HP Items to details
+                foreach ($hpItemsData as $hData) {
+                    $price = (float) round($hData['final_price']);
+                    $details[] = [
+                        'id' => $hData['id'],
+                        'name' => $hData['name'],
+                        'qty' => $hData['qty'],
+                        'price' => $price,
+                        'is_fixed' => true,
+                        'brand' => $hData['brand'],
+                        'type' => $hData['type'],
+                        'imei' => $hData['imei'],
+                        'storage' => $hData['storage'],
+                        'condition' => $hData['condition'],
+                        'distributor' => $hData['distributor'],
+                        'distributor_id' => $hData['distributor_id'],
+                        'raw_cost_price' => $hData['raw_cost_price'],
+                        'source_type' => $hData['source_type'],
+                        'source_label' => $hData['source_label'],
+                        'default_preset_label' => $hData['default_preset_label'],
+                        'bundle_name' => $hData['bundle_name'],
                     ];
                     $calculatedTotal += $price;
                 }
 
-                // Non-HP Items
-                $jsonItems = $trx->non_hp_items;
-                if (is_array($jsonItems) && count($jsonItems) > 0) {
-                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
-                    foreach ($jsonItems as $idx => $itemData) {
-                        $product = $productMap[$itemData['product_id'] ?? null] ?? null;
-                        $basePrice = $itemData['selling_price'] ?? 0;
-                        $qty = $itemData['quantity'] ?? 1;
-                        $price = $basePrice;
-                        if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                            $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
-                        }
-                        $details[] = [
-                            'id' => 'nonhp_json_' . $idx,
-                            'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
-                            'qty' => $qty,
-                            'price' => $price,
-                            'is_fixed' => true,
-                            'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
-                            'type' => 'Non-HP',
-                            'distributor' => '-',
-                            'distributor_id' => null,
-                            'raw_cost_price' => (float) ($product?->cost_price ?? 0),
-                            'source_type' => 'store',
-                            'source_label' => 'In Store',
-                            'default_preset_label' => 'Default (input awal)',
-                        ];
-                        $calculatedTotal += ($price * $qty);
-                    }
-                } else {
-                    foreach ($trx->nonHpItems as $nhp) {
-                        $basePrice = $nhp->product?->price ?? 0;
-                        $price = $basePrice;
-                        if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                            $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
-                        }
-                        $details[] = [
-                            'id' => 'nonhp_' . $nhp->id,
-                            'name' => $nhp->product?->name ?? 'Unknown Item',
-                            'qty' => $nhp->quantity,
-                            'price' => $price,
-                            'is_fixed' => true,
-                            'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
-                            'type' => 'Non-HP',
-                            'distributor' => $nhp->distributor?->name ?? '-',
-                            'distributor_id' => $nhp->distributor_id ?? null,
-                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
-                            'source_type' => 'store',
-                            'source_label' => 'In Store',
-                            'default_preset_label' => 'Default (input awal)',
-                        ];
-                        $calculatedTotal += ($price * $nhp->quantity);
-                    }
+                // Push Non-HP Items to details
+                foreach ($nonHpItemsData as $nhpData) {
+                    $price = (float) round($nhpData['final_price']);
+                    $details[] = [
+                        'id' => $nhpData['id'],
+                        'name' => $nhpData['name'],
+                        'qty' => $nhpData['qty'],
+                        'price' => $price,
+                        'is_fixed' => true,
+                        'brand' => $nhpData['brand'],
+                        'type' => 'Non-HP',
+                        'distributor' => $nhpData['distributor'],
+                        'distributor_id' => $nhpData['distributor_id'],
+                        'raw_cost_price' => $nhpData['raw_cost_price'],
+                        'source_type' => 'store',
+                        'source_label' => 'In Store',
+                        'default_preset_label' => 'Default (input awal)',
+                        'bundle_name' => $nhpData['bundle_name'],
+                    ];
+                    $calculatedTotal += ($price * $nhpData['qty']);
                 }
 
                 // Fallback for DP, Refund DP, and transactions where items are not in items/nonHpItems
@@ -5446,27 +5534,44 @@ class AuditController extends Controller
                 // Build details
                 $details = [];
                 $trxItemsTotal = 0;
-                foreach ($trx->items as $item) {
-                    $trxItemsTotal += ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-                }
+                $nonHpItemsData = [];
+                $nonHpTotal = 0;
+
                 foreach ($trx->nonHpItems as $nhp) {
-                    $trxItemsTotal += (($nhp->product?->price ?? 0) * $nhp->quantity);
+                    $basePrice = (float) (($nhp->selling_price > 0) ? $nhp->selling_price : ($nhp->product?->price ?? 0));
+                    $qty = (int) ($nhp->quantity ?? 1);
+                    $nonHpTotal += ($basePrice * $qty);
+
+                    $rawNotes = (string) ($nhp->notes ?? '');
+                    $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
+                    $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
+
+                    $nonHpItemsData[] = [
+                        'id' => 'nonhp_' . $nhp->id,
+                        'name' => $nhp->product?->name ?? 'Unknown Item',
+                        'qty' => $qty,
+                        'base_price' => $basePrice,
+                        'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                        'type' => 'Non-HP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => 'new',
+                        'distributor' => $nhp->distributor?->name ?? '-',
+                        'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                        'source_label' => 'In Store',
+                        'source_type' => 'store',
+                        'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                    ];
                 }
 
-                $discrepancy = 0;
-                if ($trxItemsTotal > 0 && round($trxItemsTotal) != round($targetTrxOmset)) {
-                    $discrepancy = $trxItemsTotal - $targetTrxOmset;
-                }
-
-                // HP Items
+                $hpItemsData = [];
+                $hpBaseTotal = 0;
                 foreach ($trx->items as $item) {
-                    $basePrice = ($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0);
-                    $price = $basePrice;
-                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
-                    }
+                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0));
+                    $hpBaseTotal += $basePrice;
 
                     $rawNotes = (string) ($item->notes ?? '');
+                    $pivotNotes = (string) ($item->pivot->notes ?? '');
                     $cleanNotes = preg_replace('/keluar\s+melalui[^\r\n]*/i', '', $rawNotes);
                     $cleanNotes = preg_replace('/batal\s+(transaksi|angkat\s+barang)[^\r\n]*/i', '', $cleanNotes);
                     $inNotesLower = strtolower(trim($cleanNotes));
@@ -5491,11 +5596,15 @@ class AuditController extends Controller
                         $sourceLabel = 'In Tukar Unit';
                     }
 
-                    $details[] = [
+                    $bundleNotes = $pivotNotes ?: $rawNotes;
+                    $isBundle = str_contains(strtolower($bundleNotes), 'paket') || str_contains(strtolower($bundleNotes), 'bundle');
+                    $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $bundleNotes)) : null;
+
+                    $hpItemsData[] = [
                         'id' => 'hp_' . $item->id,
                         'name' => $item->product?->name ?? 'Unknown HP',
                         'qty' => 1,
-                        'price' => $price,
+                        'base_price' => $basePrice,
                         'brand' => $item->product?->brand ?? $item->product?->brandRelation?->name ?? '-',
                         'type' => 'HP',
                         'imei' => $item->imei ?? '-',
@@ -5505,30 +5614,100 @@ class AuditController extends Controller
                         'raw_cost_price' => (float) ($item->cost_price ?? 0),
                         'source_label' => $sourceLabel,
                         'source_type' => $sourceType,
+                        'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
                     ];
                 }
 
-                // Non-HP Items
-                foreach ($trx->nonHpItems as $nhp) {
-                    $basePrice = $nhp->product?->price ?? 0;
-                    $price = $basePrice;
-                    if ($discrepancy != 0 && $trxItemsTotal > 0) {
-                        $price -= ($basePrice / $trxItemsTotal) * $discrepancy;
+                $hpCount = count($hpItemsData);
+
+                // Price Allocation:
+                // Non-HP items maintain exact base prices (e.g. charger 100k stays 100k)
+                // Any bundle or transaction difference is cleanly absorbed by HP unit(s)
+                if ($hpCount > 0) {
+                    $remainingHpOmset = ($targetTrxOmset > 0) ? max(0, $targetTrxOmset - $nonHpTotal) : $hpBaseTotal;
+
+                    if ($hpCount === 1) {
+                        $hpItemsData[0]['final_price'] = ($targetTrxOmset > 0) ? $remainingHpOmset : $hpItemsData[0]['base_price'];
+                    } else {
+                        $allocatedSoFar = 0;
+                        foreach ($hpItemsData as $hIdx => &$hData) {
+                            if ($hIdx === $hpCount - 1) {
+                                $hData['final_price'] = max(0, $remainingHpOmset - $allocatedSoFar);
+                            } else {
+                                $ratio = ($hpBaseTotal > 0) ? ($hData['base_price'] / $hpBaseTotal) : (1 / $hpCount);
+                                $allocated = round($remainingHpOmset * $ratio);
+                                $hData['final_price'] = $allocated;
+                                $allocatedSoFar += $allocated;
+                            }
+                        }
+                        unset($hData);
                     }
+
+                    foreach ($nonHpItemsData as &$nhpData) {
+                        $nhpData['final_price'] = $nhpData['base_price'];
+                    }
+                    unset($nhpData);
+                } else {
+                    if ($nonHpTotal > 0 && $targetTrxOmset > 0 && round($nonHpTotal) != round($targetTrxOmset)) {
+                        $allocatedSoFar = 0;
+                        $totalNhp = count($nonHpItemsData);
+                        foreach ($nonHpItemsData as $nIdx => &$nhpData) {
+                            if ($nIdx === $totalNhp - 1) {
+                                $rem = max(0, $targetTrxOmset - $allocatedSoFar);
+                                $nhpData['final_price'] = round($rem / max(1, $nhpData['qty']));
+                            } else {
+                                $ratio = ($nhpData['base_price'] * $nhpData['qty']) / $nonHpTotal;
+                                $allocated = round($targetTrxOmset * $ratio);
+                                $nhpData['final_price'] = round($allocated / max(1, $nhpData['qty']));
+                                $allocatedSoFar += ($nhpData['final_price'] * $nhpData['qty']);
+                            }
+                        }
+                        unset($nhpData);
+                    } else {
+                        foreach ($nonHpItemsData as &$nhpData) {
+                            $nhpData['final_price'] = $nhpData['base_price'];
+                        }
+                        unset($nhpData);
+                    }
+                }
+
+                // Push HP Items
+                foreach ($hpItemsData as $hData) {
                     $details[] = [
-                        'id' => 'nonhp_' . $nhp->id,
-                        'name' => $nhp->product?->name ?? 'Unknown Item',
-                        'qty' => $nhp->quantity,
-                        'price' => $price,
-                        'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                        'id' => $hData['id'],
+                        'name' => $hData['name'],
+                        'qty' => $hData['qty'],
+                        'price' => (float) round($hData['final_price']),
+                        'brand' => $hData['brand'],
+                        'type' => $hData['type'],
+                        'imei' => $hData['imei'],
+                        'storage' => $hData['storage'],
+                        'condition' => $hData['condition'],
+                        'distributor' => $hData['distributor'],
+                        'raw_cost_price' => $hData['raw_cost_price'],
+                        'source_label' => $hData['source_label'],
+                        'source_type' => $hData['source_type'],
+                        'bundle_name' => $hData['bundle_name'],
+                    ];
+                }
+
+                // Push Non-HP Items
+                foreach ($nonHpItemsData as $nhpData) {
+                    $details[] = [
+                        'id' => $nhpData['id'],
+                        'name' => $nhpData['name'],
+                        'qty' => $nhpData['qty'],
+                        'price' => (float) round($nhpData['final_price']),
+                        'brand' => $nhpData['brand'],
                         'type' => 'Non-HP',
                         'imei' => '-',
                         'storage' => null,
                         'condition' => 'new',
-                        'distributor' => $nhp->distributor?->name ?? '-',
-                        'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                        'distributor' => $nhpData['distributor'],
+                        'raw_cost_price' => $nhpData['raw_cost_price'],
                         'source_label' => 'In Store',
                         'source_type' => 'store',
+                        'bundle_name' => $nhpData['bundle_name'],
                     ];
                 }
 

@@ -1227,6 +1227,10 @@
                                             <tr v-for="(detail, didx) in selectedTransaction.items" :key="didx">
                                                 <td class="px-3 py-2.5">
                                                     <div class="font-bold text-text-primary">{{ detail.name }}</div>
+                                                    <div v-if="detail.bundle_name"
+                                                        class="mt-0.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-bold text-[9px] border border-purple-200 dark:border-purple-800/40">
+                                                        <span>📦 {{ detail.bundle_name }}</span>
+                                                    </div>
                                                     <div class="text-[10px] text-text-secondary font-mono">
                                                         <span v-if="detail.imei && detail.imei !== '-'">IMEI: {{ detail.imei }}</span>
                                                         <span v-if="detail.brand"> • {{ detail.brand }}</span>
