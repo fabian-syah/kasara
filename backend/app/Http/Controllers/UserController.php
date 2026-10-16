@@ -48,10 +48,11 @@ class UserController extends Controller
         // Jika bukan super_admin, filter berdasarkan placement user login
         if (!$user->hasRole('super_admin')) {
             // Logic Isolation:
-            // Untuk role Toko Online, Sales, dll yang sifatnya "Individual" bukan Branch, 
-            // maka hanya bisa melihat akun yang DIA BUAT SENDIRI (e.g. Inventory Account nya).
-            // Atau dirinya sendiri.
-            if ($user->hasAnyRole(['toko_online', 'toko_offline', 'inventory', 'leader_shopee'])) {
+            // Akun CS (inventory) hanya boleh melihat akun dirinya sendiri.
+            // Untuk role Toko Online, Toko Offline / Sales, dll bisa melihat akun yang dibuatnya atau akun CS di penempatan yang sama.
+            if ($user->hasRole('inventory')) {
+                $query->where('id', $user->id);
+            } elseif ($user->hasAnyRole(['toko_online', 'toko_offline', 'leader_shopee'])) {
                 $query->where(function ($q) use ($user) {
                     // 1. Own accounts or Self
                     $q->where('created_by', $user->id)

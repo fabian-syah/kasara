@@ -441,7 +441,16 @@ async function fetchInventoryUsers() {
     isLoadingUsers.value = true;
     try {
         const response = await usersApi.list({ role: 'inventory', is_active: true });
-        inventoryUsers.value = response.data.data || response.data;
+        const list = response.data.data || response.data || [];
+        if (authStore.hasRole('inventory') && authStore.user) {
+            inventoryUsers.value = list.filter(u => u.id === authStore.user.id);
+            if (inventoryUsers.value.length === 0) {
+                inventoryUsers.value = [authStore.user];
+            }
+            selectedInventoryUser.value = inventoryUsers.value[0];
+        } else {
+            inventoryUsers.value = list;
+        }
     } catch (e) {
         console.error("Failed to load inventory users", e);
     } finally {

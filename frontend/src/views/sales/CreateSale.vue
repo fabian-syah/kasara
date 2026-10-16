@@ -57,6 +57,11 @@ const salesAccount = ref("");
 const salesAccountId = ref(null);
 const salesAccounts = ref([]);
 const searchCS = ref("");
+const isCsLogin = computed(() => {
+    return authStore.hasRole('inventory') || 
+           (authStore.userRole || '').toLowerCase() === 'inventory' ||
+           (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+});
 const filteredSalesAccounts = computed(() => {
     if (!searchCS.value.trim()) return salesAccounts.value;
     const q = searchCS.value.toLowerCase().trim();
@@ -155,7 +160,34 @@ const loadingCreate = ref(false);
 const loadingStep3Data = ref(false);
 const isDataLoaded = ref(false);
 
-function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers) {
+function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers, currentUser = null) {
+    const activeUser = currentUser || authStore.user;
+    const isCs = isCsLogin.value || 
+                 (activeUser?.roles?.[0]?.name || '').toLowerCase() === 'inventory' ||
+                 (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+
+    // If logged in using a CS account, only display their own CS account!
+    if (isCs && activeUser) {
+        const listA = Array.isArray(rawAccounts) ? rawAccounts : (rawAccounts?.data || []);
+        const listB = Array.isArray(allInventoryUsers) ? allInventoryUsers : (allInventoryUsers?.data || []);
+        const existing = [...listA, ...listB].find(u => u && (u.id === activeUser.id || u.username === activeUser.username));
+
+        const myAccount = {
+            id: activeUser.id,
+            name: activeUser.name,
+            full_name: activeUser.full_name || activeUser.name,
+            username: activeUser.username,
+            photo: existing?.photo || existing?.photo_inventory || activeUser.photo || activeUser.photo_inventory || null,
+            created_by: existing?.created_by || activeUser.created_by || null,
+            ...existing,
+            ...activeUser
+        };
+        salesAccounts.value = [myAccount];
+        salesAccount.value = myAccount.name;
+        salesAccountId.value = myAccount.id;
+        return;
+    }
+
     const listA = Array.isArray(rawAccounts) ? rawAccounts : (rawAccounts?.data || []);
     const listB = Array.isArray(allInventoryUsers) ? allInventoryUsers : (allInventoryUsers?.data || []);
     
@@ -174,12 +206,17 @@ function mergeAndSetSalesAccounts(rawAccounts, allInventoryUsers) {
 
 async function refreshAccounts() {
     try {
+        if (isCsLogin.value && authStore.user) {
+            mergeAndSetSalesAccounts([], [], authStore.user);
+            return;
+        }
+
         const [accRes, usersRes] = await Promise.all([
             api.get('/inventory/my-accounts'),
             api.get('/users', { params: { role: 'inventory', is_active: true } })
         ]);
         
-        mergeAndSetSalesAccounts(accRes.data, usersRes.data);
+        mergeAndSetSalesAccounts(accRes.data, usersRes.data, authStore.user);
     } catch (e) {
         console.error("Gagal refresh akun", e);
     }
@@ -274,12 +311,17 @@ onMounted(async () => {
             api.get('/user')
         ]);
 
-        mergeAndSetSalesAccounts(accountsRes.data, usersRes.data);
-
-        // Auto-select user account
         const userData = userRes.data.data || userRes.data;
-        if (userData) {
-            // Try match by ID first if present
+
+        mergeAndSetSalesAccounts(accountsRes.data, usersRes.data, userData);
+
+        const isCs = isCsLogin.value || (userData?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+
+        if (isCs && userData) {
+            salesAccount.value = userData.name;
+            salesAccountId.value = userData.id;
+        } else if (userData) {
+            // Auto-select user account for store / admin if matches
             const match = salesAccounts.value.find(acc => acc.id === userData.id || acc.name === userData.name);
             if (match && !salesAccount.value) {
                 salesAccount.value = match.name;
@@ -475,9 +517,10 @@ watch(transactionCategory, () => {
                             class="w-20 h-20 bg-primary-50 dark:bg-primary-900/20 rounded-3xl flex items-center justify-center mb-8 mx-auto ring-8 ring-primary-500/5">
                             <Shield class="text-primary-600" :size="40" stroke-width="2.5" />
                         </div>
-                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">Pilih Akun CS</h2>
-                        <p class="text-text-secondary text-center mb-10 font-medium">Silakan pilih akun CS yang
-                            bertugas untuk transaksi ini.</p>
+                        <h2 class="text-3xl font-black text-text-primary text-center mb-4">{{ isCsLogin ? 'Akun CS' : 'Pilih Akun CS' }}</h2>
+                        <p class="text-text-secondary text-center mb-10 font-medium">
+                            {{ isCsLogin ? 'Konfirmasi akun CS yang bertugas untuk transaksi ini.' : 'Silakan pilih akun CS yang bertugas untuk transaksi ini.' }}
+                        </p>
 
                         <div class="space-y-4">
                             <div class="flex items-center justify-between px-1">
@@ -490,7 +533,7 @@ watch(transactionCategory, () => {
                             </div>
 
                             <!-- Search CS Input -->
-                            <div class="relative">
+                            <div v-if="salesAccounts.length > 1" class="relative">
                                 <input v-model="searchCS" type="text" placeholder="Cari nama CS..."
                                     class="w-full px-4 py-2.5 pl-10 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-primary-500 focus:outline-none transition-all" />
                                 <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
