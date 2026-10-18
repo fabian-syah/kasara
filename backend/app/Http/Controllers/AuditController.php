@@ -5276,7 +5276,10 @@ class AuditController extends Controller
 
         try {
             $user = $request->user();
-            $userRoleNames = $user->roles->pluck('name')->map('strtolower')->toArray();
+            if (!$user) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+            $userRoleNames = $user->roles ? $user->roles->pluck('name')->map('strtolower')->toArray() : [];
             $isGlobalRole = !empty(array_intersect($userRoleNames, ['super_admin', 'owner', 'analist', 'analis', 'developer', 'director', 'general_manager', 'regional_manager']));
             $isRestrictedRole = !empty(array_intersect($userRoleNames, ['leader', 'audit'])) && !$isGlobalRole;
 
@@ -5290,8 +5293,13 @@ class AuditController extends Controller
             }
 
             $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-            $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
-            $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+            if ($request->query('period') === 'all' || $request->query('start_date') === 'all' || ($request->has('start_date') && empty($request->start_date) && $request->has('end_date') && empty($request->end_date))) {
+                $startDate = '2000-01-01';
+                $endDate = now()->toDateString();
+            } else {
+                $startDate = $request->start_date ?? $logicalNow->copy()->startOfMonth()->toDateString();
+                $endDate = $request->end_date ?? $logicalNow->copy()->endOfMonth()->toDateString();
+            }
 
             if (!$user->hasAnyRole(['audit', 'super_admin', 'admin_produk', 'leader', 'owner', 'analist', 'analis'])) {
                 $today = $logicalNow->toDateString();
@@ -6019,13 +6027,13 @@ class AuditController extends Controller
                         $trxDateStr,
                         $trx->receipt_id,
                         $outletName,
-                        $trx->inventoryUser->name ?? $trx->user->name ?? '-',
+                        $trx->inventoryUser?->name ?? $trx->user?->name ?? '-',
                         $trx->customer_name ?? $trx->receiver_name ?? '-',
                         $trx->category,
                         $detail['type'],
                         $detail['brand'],
                         $detail['name'],
-                        $detail['imei'] !== '-' ? "'" . $detail['imei'] : '-',
+                        (!empty($detail['imei']) && $detail['imei'] !== '-') ? "\t" . $detail['imei'] : '-',
                         $detail['condition'] === 'new' ? 'Baru' : ($detail['condition'] === 'ex_ibox' ? 'Ex iBox' : 'Second'),
                         $detail['source_label'],
                         $detail['distributor'],
