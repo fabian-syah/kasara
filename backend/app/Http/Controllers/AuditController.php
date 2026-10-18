@@ -1302,17 +1302,17 @@ class AuditController extends Controller
                                 if ($requestedBranchId) {
                                     $q->where(function ($sq) use ($requestedBranchId) {
                                         $sq->where('stock_outs.branch_id', $requestedBranchId)
-                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.branch_id', $requestedBranchId));
+                                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.branch_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.branch_id', $requestedBranchId)));
                                     });
                                 } elseif ($requestedOnlineShopId) {
                                     $q->where(function ($sq) use ($requestedOnlineShopId) {
                                         $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.online_shop_id', $requestedOnlineShopId));
+                                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.online_shop_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.online_shop_id', $requestedOnlineShopId)));
                                     });
                                 } elseif ($requestedWarehouseId) {
                                     $q->where(function ($sq) use ($requestedWarehouseId) {
                                         $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                                            ->orWhereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.warehouse_id', $requestedWarehouseId));
+                                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.warehouse_id')->whereExists(fn($sub) => $sub->select(DB::raw(1))->from('users')->whereRaw('users.id = stock_outs.user_id')->where('users.warehouse_id', $requestedWarehouseId)));
                                     });
                                 } elseif ($requestedDistributorId) {
                                     $q->whereExists(function ($sub) use ($requestedDistributorId) {
@@ -3146,28 +3146,28 @@ class AuditController extends Controller
                 ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $q->where('stock_outs.branch_id', $requestedBranchId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.branch_id')->whereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId)));
                     } elseif ($requestedOnlineShopId) {
                         $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.online_shop_id')->whereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId)));
                     } elseif ($requestedWarehouseId) {
                         $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.warehouse_id')->whereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId)));
                     } elseif ($requestedDistributorId) {
                         $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
                     } else {
                         $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                             if (!empty($branchIds)) {
                                 $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.branch_id')->whereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds)));
                             }
                             if (!empty($onlineShopIds)) {
                                 $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.online_shop_id')->whereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds)));
                             }
                             if (!empty($warehouseIds)) {
                                 $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('warehouse_id', $warehouseIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.warehouse_id')->whereHas('user', fn($uq) => $uq->whereIn('warehouse_id', $warehouseIds)));
                             }
                             if (!empty($distributorIds)) {
                                 $sub->orWhereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
@@ -3183,28 +3183,28 @@ class AuditController extends Controller
                 ->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
                     if ($requestedBranchId) {
                         $q->where('stock_outs.branch_id', $requestedBranchId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.branch_id')->whereHas('user', fn($uq) => $uq->where('branch_id', $requestedBranchId)));
                     } elseif ($requestedOnlineShopId) {
                         $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.online_shop_id')->whereHas('user', fn($uq) => $uq->where('online_shop_id', $requestedOnlineShopId)));
                     } elseif ($requestedWarehouseId) {
                         $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                            ->orWhereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId));
+                            ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.warehouse_id')->whereHas('user', fn($uq) => $uq->where('warehouse_id', $requestedWarehouseId)));
                     } elseif ($requestedDistributorId) {
                         $q->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId));
                     } else {
                         $q->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
                             if (!empty($branchIds)) {
                                 $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.branch_id')->whereHas('user', fn($uq) => $uq->whereIn('branch_id', $branchIds)));
                             }
                             if (!empty($onlineShopIds)) {
                                 $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.online_shop_id')->whereHas('user', fn($uq) => $uq->whereIn('online_shop_id', $onlineShopIds)));
                             }
                             if (!empty($warehouseIds)) {
                                 $sub->orWhereIn('stock_outs.warehouse_id', $warehouseIds)
-                                    ->orWhereHas('user', fn($uq) => $uq->whereIn('warehouse_id', $warehouseIds));
+                                    ->orWhere(fn($fallback) => $fallback->whereNull('stock_outs.warehouse_id')->whereHas('user', fn($uq) => $uq->whereIn('warehouse_id', $warehouseIds)));
                             }
                             if (!empty($distributorIds)) {
                                 $sub->orWhereHas('user', fn($uq) => $uq->whereIn('distributor_id', $distributorIds));
@@ -3219,23 +3219,45 @@ class AuditController extends Controller
                 ->when($request->date, fn($q) => $q->where('reporting_date', $request->date))
                 ->join('users', 'stock_outs.user_id', '=', 'users.id')
                 ->where(function ($sub) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                    if ($requestedBranchId)
-                        $sub->where('users.branch_id', $requestedBranchId);
-                    elseif ($requestedOnlineShopId)
-                        $sub->where('users.online_shop_id', $requestedOnlineShopId);
-                    elseif ($requestedWarehouseId)
-                        $sub->where('users.warehouse_id', $requestedWarehouseId);
-                    elseif ($requestedDistributorId)
+                    if ($requestedBranchId) {
+                        $sub->where(function ($q) use ($requestedBranchId) {
+                            $q->where('stock_outs.branch_id', $requestedBranchId)
+                              ->orWhere(fn($fq) => $fq->whereNull('stock_outs.branch_id')->where('users.branch_id', $requestedBranchId));
+                        });
+                    } elseif ($requestedOnlineShopId) {
+                        $sub->where(function ($q) use ($requestedOnlineShopId) {
+                            $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                              ->orWhere(fn($fq) => $fq->whereNull('stock_outs.online_shop_id')->where('users.online_shop_id', $requestedOnlineShopId));
+                        });
+                    } elseif ($requestedWarehouseId) {
+                        $sub->where(function ($q) use ($requestedWarehouseId) {
+                            $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                              ->orWhere(fn($fq) => $fq->whereNull('stock_outs.warehouse_id')->where('users.warehouse_id', $requestedWarehouseId));
+                        });
+                    } elseif ($requestedDistributorId) {
                         $sub->where('users.distributor_id', $requestedDistributorId);
-                    else {
-                        if (!empty($branchIds))
-                            $sub->orWhereIn('users.branch_id', $branchIds);
-                        if (!empty($onlineShopIds))
-                            $sub->orWhereIn('users.online_shop_id', $onlineShopIds);
-                        if (!empty($warehouseIds))
-                            $sub->orWhereIn('users.warehouse_id', $warehouseIds);
-                        if (!empty($distributorIds))
+                    } else {
+                        if (!empty($branchIds)) {
+                            $sub->orWhere(function ($q) use ($branchIds) {
+                                $q->whereIn('stock_outs.branch_id', $branchIds)
+                                  ->orWhere(fn($fq) => $fq->whereNull('stock_outs.branch_id')->whereIn('users.branch_id', $branchIds));
+                            });
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $sub->orWhere(function ($q) use ($onlineShopIds) {
+                                $q->whereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                  ->orWhere(fn($fq) => $fq->whereNull('stock_outs.online_shop_id')->whereIn('users.online_shop_id', $onlineShopIds));
+                            });
+                        }
+                        if (!empty($warehouseIds)) {
+                            $sub->orWhere(function ($q) use ($warehouseIds) {
+                                $q->whereIn('stock_outs.warehouse_id', $warehouseIds)
+                                  ->orWhere(fn($fq) => $fq->whereNull('stock_outs.warehouse_id')->whereIn('users.warehouse_id', $warehouseIds));
+                            });
+                        }
+                        if (!empty($distributorIds)) {
                             $sub->orWhereIn('users.distributor_id', $distributorIds);
+                        }
                     }
                 })->groupBy('users.id', 'users.name', 'users.full_name')
                 ->select('users.name', 'users.full_name as full_name', DB::raw('SUM(selling_price) as revenue'), DB::raw('COUNT(*) as count'))
@@ -3573,35 +3595,44 @@ class AuditController extends Controller
                 if ($requestedBranchId && $requestedBranchId !== 'all') {
                     $query->where(function ($sq) use ($requestedBranchId) {
                         $sq->where('stock_outs.branch_id', $requestedBranchId)
-                            ->orWhereExists(function ($uq) use ($requestedBranchId) {
-                                $uq->select(DB::raw(1))->from('users')
-                                    ->whereColumn('users.id', 'stock_outs.user_id')
-                                    ->where('users.branch_id', $requestedBranchId);
+                            ->orWhere(function ($fallbackQ) use ($requestedBranchId) {
+                                $fallbackQ->whereNull('stock_outs.branch_id')
+                                    ->whereExists(function ($uq) use ($requestedBranchId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.branch_id', $requestedBranchId);
+                                    });
                             });
                     });
                 } elseif ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
                     $query->where(function ($sq) use ($requestedOnlineShopId) {
                         $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
-                            ->orWhereExists(function ($uq) use ($requestedOnlineShopId) {
-                                $uq->select(DB::raw(1))->from('users')
-                                    ->whereColumn('users.id', 'stock_outs.user_id')
-                                    ->where('users.online_shop_id', $requestedOnlineShopId);
+                            ->orWhere(function ($fallbackQ) use ($requestedOnlineShopId) {
+                                $fallbackQ->whereNull('stock_outs.online_shop_id')
+                                    ->whereExists(function ($uq) use ($requestedOnlineShopId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.online_shop_id', $requestedOnlineShopId);
+                                    });
                             });
                     });
                 } elseif ($requestedWarehouseId && $requestedWarehouseId !== 'all') {
                     $query->where(function ($sq) use ($requestedWarehouseId) {
                         $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
-                            ->orWhereExists(function ($uq) use ($requestedWarehouseId) {
-                                $uq->select(DB::raw(1))->from('users')
-                                    ->whereColumn('users.id', 'stock_outs.user_id')
-                                    ->where('users.warehouse_id', $requestedWarehouseId);
+                            ->orWhere(function ($fallbackQ) use ($requestedWarehouseId) {
+                                $fallbackQ->whereNull('stock_outs.warehouse_id')
+                                    ->whereExists(function ($uq) use ($requestedWarehouseId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.warehouse_id', $requestedWarehouseId);
+                                    });
                             });
                     });
                 } elseif ($requestedDistributorId && $requestedDistributorId !== 'all') {
-                    $query->whereExists(function ($uq) use ($requestedDistributorId) {
-                        $uq->select(DB::raw(1))->from('users')
-                            ->whereColumn('users.id', 'stock_outs.user_id')
-                            ->where('users.distributor_id', $requestedDistributorId);
+                    $query->where(function ($sub) use ($requestedDistributorId) {
+                        $sub->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId))
+                            ->orWhereHas('items', fn($iq) => $iq->where('product_details.distributor_id', $requestedDistributorId))
+                            ->orWhereHas('nonHpItems', fn($nq) => $nq->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
                     });
                 } elseif ($isRestrictedRole) {
                     $query->where(function ($sub) use ($branchIds, $onlineShopIds) {
@@ -3609,19 +3640,25 @@ class AuditController extends Controller
                         if (!empty($branchIds)) {
                             $hasAny = true;
                             $sub->orWhereIn('stock_outs.branch_id', $branchIds)
-                                ->orWhereExists(function ($uq) use ($branchIds) {
-                                    $uq->select(DB::raw(1))->from('users')
-                                    ->whereColumn('users.id', 'stock_outs.user_id')
-                                    ->whereIn('users.branch_id', $branchIds);
+                                ->orWhere(function ($fallbackQ) use ($branchIds) {
+                                    $fallbackQ->whereNull('stock_outs.branch_id')
+                                        ->whereExists(function ($uq) use ($branchIds) {
+                                            $uq->select(DB::raw(1))->from('users')
+                                                ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                                ->whereIn('users.branch_id', $branchIds);
+                                        });
                                 });
                         }
                         if (!empty($onlineShopIds)) {
                             $hasAny = true;
                             $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
-                                ->orWhereExists(function ($uq) use ($onlineShopIds) {
-                                    $uq->select(DB::raw(1))->from('users')
-                                    ->whereColumn('users.id', 'stock_outs.user_id')
-                                    ->whereIn('users.online_shop_id', $onlineShopIds);
+                                ->orWhere(function ($fallbackQ) use ($onlineShopIds) {
+                                    $fallbackQ->whereNull('stock_outs.online_shop_id')
+                                        ->whereExists(function ($uq) use ($onlineShopIds) {
+                                            $uq->select(DB::raw(1))->from('users')
+                                                ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                                ->whereIn('users.online_shop_id', $onlineShopIds);
+                                        });
                                 });
                         }
                         if (!$hasAny) {
@@ -4313,7 +4350,11 @@ class AuditController extends Controller
                 // Outlet Name (Pre-fetched)
                 $sourceUser = $trx->inventoryUser ?? $trx->user;
                 $outletName = 'APEX POS';
-                if ($sourceUser) {
+                if ($trx->branch_id && isset($branches[$trx->branch_id])) {
+                    $outletName = $branches[$trx->branch_id]->name;
+                } elseif ($trx->online_shop_id && isset($onlineShops[$trx->online_shop_id])) {
+                    $outletName = $onlineShops[$trx->online_shop_id]->name;
+                } elseif ($sourceUser) {
                     if ($sourceUser->branch_id && isset($branches[$sourceUser->branch_id]))
                         $outletName = $branches[$sourceUser->branch_id]->name;
                     elseif ($sourceUser->online_shop_id && isset($onlineShops[$sourceUser->online_shop_id]))
@@ -5278,7 +5319,40 @@ class AuditController extends Controller
 
             $requestedBranchId = $request->branch_id;
             $requestedOnlineShopId = $request->online_shop_id;
+            $requestedWarehouseId = $request->warehouse_id;
             $requestedDistributorId = $request->distributor_id;
+
+            // Fallback: If ID is not numeric, it might be a name
+            if ($requestedBranchId && !is_numeric($requestedBranchId) && $requestedBranchId !== 'all') {
+                $foundBranch = Branch::where('name', 'ilike', '%' . $requestedBranchId . '%')->first();
+                $requestedBranchId = $foundBranch ? $foundBranch->id : null;
+            }
+            if ($requestedOnlineShopId && !is_numeric($requestedOnlineShopId) && $requestedOnlineShopId !== 'all') {
+                $foundOs = OnlineShop::where('name', 'ilike', '%' . $requestedOnlineShopId . '%')->first();
+                $requestedOnlineShopId = $foundOs ? $foundOs->id : null;
+            }
+            if ($requestedWarehouseId && !is_numeric($requestedWarehouseId) && $requestedWarehouseId !== 'all') {
+                $foundWarehouse = Warehouse::where('name', 'ilike', '%' . $requestedWarehouseId . '%')->first();
+                $requestedWarehouseId = $foundWarehouse ? $foundWarehouse->id : null;
+            }
+            if ($requestedDistributorId && !is_numeric($requestedDistributorId) && $requestedDistributorId !== 'all') {
+                $foundDistributor = Distributor::where('name', 'ilike', '%' . $requestedDistributorId . '%')->first();
+                $requestedDistributorId = $foundDistributor ? $foundDistributor->id : null;
+            }
+
+            // Enforce restriction for Leader & Audit: strictly allow only their assigned branches/shops
+            if ($isRestrictedRole) {
+                if ($requestedBranchId && $requestedBranchId !== 'all') {
+                    if (!in_array((int)$requestedBranchId, array_map('intval', $branchIds))) {
+                        $requestedBranchId = !empty($branchIds) ? $branchIds[0] : null;
+                    }
+                }
+                if ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
+                    if (!in_array((int)$requestedOnlineShopId, array_map('intval', $onlineShopIds))) {
+                        $requestedOnlineShopId = !empty($onlineShopIds) ? $onlineShopIds[0] : null;
+                    }
+                }
+            }
 
             $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp', 'tukar_tambah'];
 
@@ -5393,24 +5467,91 @@ class AuditController extends Controller
                             $sq->whereNull('reporting_date')
                                 ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
                         });
-                })
-                ->whereNull('deleted_at');
+                });
 
-            // Apply location filters
-            if ($requestedBranchId) {
-                $query->where('stock_outs.branch_id', $requestedBranchId);
-            } elseif ($requestedOnlineShopId) {
-                $query->where('stock_outs.online_shop_id', $requestedOnlineShopId);
-            } elseif ($requestedDistributorId) {
-                $query->whereExists(function ($sub) use ($requestedDistributorId) {
-                    $sub->select(DB::raw(1))->from('users')->whereColumn('users.id', 'stock_outs.user_id')->where('users.distributor_id', $requestedDistributorId);
-                });
-            } elseif ($isRestrictedRole) {
-                $query->where(function ($sub) use ($branchIds, $onlineShopIds) {
-                    if (!empty($branchIds)) $sub->orWhereIn('stock_outs.branch_id', $branchIds);
-                    if (!empty($onlineShopIds)) $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
-                });
-            }
+            // Common scope query applicator (identical to profit() method)
+            $applyExportAccessScope = function ($q) use (
+                $branchIds, $onlineShopIds, $warehouseIds, $distributorIds,
+                $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId,
+                $isGlobalRole, $isRestrictedRole
+            ) {
+                if ($requestedBranchId && $requestedBranchId !== 'all') {
+                    $q->where(function ($sq) use ($requestedBranchId) {
+                        $sq->where('stock_outs.branch_id', $requestedBranchId)
+                            ->orWhere(function ($fallbackQ) use ($requestedBranchId) {
+                                $fallbackQ->whereNull('stock_outs.branch_id')
+                                    ->whereExists(function ($uq) use ($requestedBranchId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.branch_id', $requestedBranchId);
+                                    });
+                            });
+                    });
+                } elseif ($requestedOnlineShopId && $requestedOnlineShopId !== 'all') {
+                    $q->where(function ($sq) use ($requestedOnlineShopId) {
+                        $sq->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                            ->orWhere(function ($fallbackQ) use ($requestedOnlineShopId) {
+                                $fallbackQ->whereNull('stock_outs.online_shop_id')
+                                    ->whereExists(function ($uq) use ($requestedOnlineShopId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.online_shop_id', $requestedOnlineShopId);
+                                    });
+                            });
+                    });
+                } elseif ($requestedWarehouseId && $requestedWarehouseId !== 'all') {
+                    $q->where(function ($sq) use ($requestedWarehouseId) {
+                        $sq->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                            ->orWhere(function ($fallbackQ) use ($requestedWarehouseId) {
+                                $fallbackQ->whereNull('stock_outs.warehouse_id')
+                                    ->whereExists(function ($uq) use ($requestedWarehouseId) {
+                                        $uq->select(DB::raw(1))->from('users')
+                                            ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                            ->where('users.warehouse_id', $requestedWarehouseId);
+                                    });
+                            });
+                    });
+                } elseif ($requestedDistributorId && $requestedDistributorId !== 'all') {
+                    $q->where(function ($sub) use ($requestedDistributorId) {
+                        $sub->whereHas('user', fn($uq) => $uq->where('distributor_id', $requestedDistributorId))
+                            ->orWhereHas('items', fn($iq) => $iq->where('product_details.distributor_id', $requestedDistributorId))
+                            ->orWhereHas('nonHpItems', fn($nq) => $nq->where('stock_out_non_hp_items.distributor_id', $requestedDistributorId));
+                    });
+                } elseif ($isRestrictedRole) {
+                    $q->where(function ($sub) use ($branchIds, $onlineShopIds) {
+                        $hasAny = false;
+                        if (!empty($branchIds)) {
+                            $hasAny = true;
+                            $sub->orWhereIn('stock_outs.branch_id', $branchIds)
+                                ->orWhere(function ($fallbackQ) use ($branchIds) {
+                                    $fallbackQ->whereNull('stock_outs.branch_id')
+                                        ->whereExists(function ($uq) use ($branchIds) {
+                                            $uq->select(DB::raw(1))->from('users')
+                                                ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                                ->whereIn('users.branch_id', $branchIds);
+                                        });
+                                });
+                        }
+                        if (!empty($onlineShopIds)) {
+                            $hasAny = true;
+                            $sub->orWhereIn('stock_outs.online_shop_id', $onlineShopIds)
+                                ->orWhere(function ($fallbackQ) use ($onlineShopIds) {
+                                    $fallbackQ->whereNull('stock_outs.online_shop_id')
+                                        ->whereExists(function ($uq) use ($onlineShopIds) {
+                                            $uq->select(DB::raw(1))->from('users')
+                                                ->whereRaw('(users.id = stock_outs.user_id OR users.id = stock_outs.inventory_user_id)')
+                                                ->whereIn('users.online_shop_id', $onlineShopIds);
+                                        });
+                                });
+                        }
+                        if (!$hasAny) {
+                            $sub->whereRaw('1=0');
+                        }
+                    });
+                }
+            };
+
+            $applyExportAccessScope($query);
 
             // Category filter
             if ($request->category && $request->category !== 'all') {
@@ -5511,7 +5652,11 @@ class AuditController extends Controller
                 // Outlet
                 $sourceUser = $trx->inventoryUser ?? $trx->user;
                 $outletName = 'APEX POS';
-                if ($sourceUser) {
+                if ($trx->branch_id && isset($branches[$trx->branch_id])) {
+                    $outletName = $branches[$trx->branch_id]->name;
+                } elseif ($trx->online_shop_id && isset($onlineShops[$trx->online_shop_id])) {
+                    $outletName = $onlineShops[$trx->online_shop_id]->name;
+                } elseif ($sourceUser) {
                     if ($sourceUser->branch_id && isset($branches[$sourceUser->branch_id]))
                         $outletName = $branches[$sourceUser->branch_id]->name;
                     elseif ($sourceUser->online_shop_id && isset($onlineShops[$sourceUser->online_shop_id]))
@@ -5537,31 +5682,63 @@ class AuditController extends Controller
                 $nonHpItemsData = [];
                 $nonHpTotal = 0;
 
-                foreach ($trx->nonHpItems as $nhp) {
-                    $basePrice = (float) (($nhp->selling_price > 0) ? $nhp->selling_price : ($nhp->product?->price ?? 0));
-                    $qty = (int) ($nhp->quantity ?? 1);
-                    $nonHpTotal += ($basePrice * $qty);
+                $jsonItems = $trx->non_hp_items;
+                if (is_array($jsonItems) && count($jsonItems) > 0) {
+                    $productMap = $trx->nonHpItems->pluck('product', 'product_id');
+                    foreach ($jsonItems as $idx => $itemData) {
+                        $product = $productMap[$itemData['product_id'] ?? null] ?? null;
+                        $basePrice = (float) ($itemData['selling_price'] ?? ($itemData['price'] ?? ($product?->price ?? 0)));
+                        $qty = (int) ($itemData['quantity'] ?? 1);
+                        $nonHpTotal += ($basePrice * $qty);
 
-                    $rawNotes = (string) ($nhp->notes ?? '');
-                    $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
-                    $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
+                        $rawNotes = (string) ($itemData['bundle_name'] ?? ($itemData['notes'] ?? ''));
+                        $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
+                        $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
 
-                    $nonHpItemsData[] = [
-                        'id' => 'nonhp_' . $nhp->id,
-                        'name' => $nhp->product?->name ?? 'Unknown Item',
-                        'qty' => $qty,
-                        'base_price' => $basePrice,
-                        'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
-                        'type' => 'Non-HP',
-                        'imei' => '-',
-                        'storage' => null,
-                        'condition' => 'new',
-                        'distributor' => $nhp->distributor?->name ?? '-',
-                        'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
-                        'source_label' => 'In Store',
-                        'source_type' => 'store',
-                        'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
-                    ];
+                        $nonHpItemsData[] = [
+                            'id' => 'nonhp_json_' . $idx,
+                            'name' => $product ? $product->name : ($itemData['product_name'] ?? 'Item Non-HP'),
+                            'qty' => $qty,
+                            'base_price' => $basePrice,
+                            'brand' => $product?->brand ?? $product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'imei' => '-',
+                            'storage' => null,
+                            'condition' => 'new',
+                            'distributor' => '-',
+                            'raw_cost_price' => (float) ($product?->cost_price ?? 0),
+                            'source_label' => 'In Store',
+                            'source_type' => 'store',
+                            'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                        ];
+                    }
+                } else {
+                    foreach ($trx->nonHpItems as $nhp) {
+                        $basePrice = (float) (($nhp->selling_price > 0) ? $nhp->selling_price : ($nhp->product?->price ?? 0));
+                        $qty = (int) ($nhp->quantity ?? 1);
+                        $nonHpTotal += ($basePrice * $qty);
+
+                        $rawNotes = (string) ($nhp->notes ?? '');
+                        $isBundle = str_contains(strtolower($rawNotes), 'paket') || str_contains(strtolower($rawNotes), 'bundle');
+                        $bundleName = $isBundle ? trim(str_replace(['📦', 'paket bundling:', 'Paket Bundling:', 'paket promo:', 'Paket Promo:'], '', $rawNotes)) : null;
+
+                        $nonHpItemsData[] = [
+                            'id' => 'nonhp_' . $nhp->id,
+                            'name' => $nhp->product?->name ?? 'Unknown Item',
+                            'qty' => $qty,
+                            'base_price' => $basePrice,
+                            'brand' => $nhp->product?->brand ?? $nhp->product?->brandRelation?->name ?? '-',
+                            'type' => 'Non-HP',
+                            'imei' => '-',
+                            'storage' => null,
+                            'condition' => 'new',
+                            'distributor' => $nhp->distributor?->name ?? '-',
+                            'raw_cost_price' => (float) ($nhp->product?->cost_price ?? 0),
+                            'source_label' => 'In Store',
+                            'source_type' => 'store',
+                            'bundle_name' => $bundleName ? ('Paket Promo: ' . ltrim($bundleName, ': ')) : null,
+                        ];
+                    }
                 }
 
                 $hpItemsData = [];
@@ -5731,6 +5908,49 @@ class AuditController extends Controller
                         'source_label' => 'In Store',
                         'source_type' => 'store',
                     ];
+                } elseif (empty($details) && $catLower === 'refund_dp') {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    $itemName = "Refund DP: " . ($productNameStr ?: ($trx->customer_name ?: ''));
+                    $dpAmt = (float) ($trx->dp_amount ?? 0);
+                    $paidAmt = (float) ($trx->paid_amount ?? 0);
+                    $sellAmt = (float) ($trx->selling_price ?? 0);
+                    $finalItemPrice = $targetTrxOmset > 0 ? $targetTrxOmset : ($dpAmt > 0 ? $dpAmt : ($paidAmt > 0 ? $paidAmt : $sellAmt));
+                    $details[] = [
+                        'id' => 'refund_dp_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => -$finalItemPrice,
+                        'brand' => '-',
+                        'type' => 'Refund DP',
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => '-',
+                        'distributor' => '-',
+                        'raw_cost_price' => 0,
+                        'source_label' => 'In Store',
+                        'source_type' => 'store',
+                    ];
+                } elseif (empty($details)) {
+                    $noteParts = explode("\n", $trx->notes ?? '', 2);
+                    $productNameStr = trim($noteParts[0] ?? '');
+                    $itemName = $productNameStr ?: ($trx->category ?: 'Item Transaksi');
+                    $price = $targetTrxOmset > 0 ? $targetTrxOmset : (float) ($trx->selling_price ?: $trx->paid_amount ?: 0);
+                    $details[] = [
+                        'id' => 'trx_' . $trx->id,
+                        'name' => $itemName,
+                        'qty' => 1,
+                        'price' => $price,
+                        'brand' => '-',
+                        'type' => strtoupper($trx->category ?: 'Item'),
+                        'imei' => '-',
+                        'storage' => null,
+                        'condition' => '-',
+                        'distributor' => '-',
+                        'raw_cost_price' => 0,
+                        'source_label' => 'In Store',
+                        'source_type' => 'store',
+                    ];
                 }
 
                 // Filter source if requested
@@ -5743,13 +5963,28 @@ class AuditController extends Controller
                     }
                 }
 
+                // Filter tab if requested (HP / Non-HP)
+                if ($request->tab && $request->tab !== 'all') {
+                    if ($request->tab === 'hp') {
+                        $details = array_filter($details, fn($d) => ($d['type'] ?? '') !== 'Non-HP');
+                    } elseif ($request->tab === 'non_hp') {
+                        $details = array_filter($details, fn($d) => ($d['type'] ?? '') === 'Non-HP');
+                    }
+                    if (empty($details)) continue;
+                }
+
                 $itemsModalData = $savedProfit ? ($savedProfit->items_modal ?? []) : [];
-                $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($savedProfit->items_modal['__notes'] ?? '-')) : '-';
-                $auditedAtStr = $savedProfit?->updated_at ? $savedProfit->updated_at->toDateTimeString() : ($trx->audited_at ?? '-');
+                if (!is_array($itemsModalData)) {
+                    $itemsModalData = is_string($itemsModalData) ? (json_decode($itemsModalData, true) ?: []) : [];
+                }
+                $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($itemsModalData['__notes'] ?? '-')) : '-';
+                $auditedAtStr = $savedProfit?->updated_at instanceof \DateTimeInterface 
+                    ? $savedProfit->updated_at->toDateTimeString() 
+                    : (is_string($savedProfit?->updated_at) ? $savedProfit->updated_at : ($trx->audited_at ?? '-'));
 
                 $trxDateStr = $trx->reporting_date 
-                    ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : $trx->reporting_date->format('Y-m-d'))
-                    : ($trx->created_at ? $trx->created_at->format('Y-m-d') : date('Y-m-d'));
+                    ? (is_string($trx->reporting_date) ? substr($trx->reporting_date, 0, 10) : ($trx->reporting_date instanceof \DateTimeInterface ? $trx->reporting_date->format('Y-m-d') : date('Y-m-d')))
+                    : ($trx->created_at ? (is_string($trx->created_at) ? substr($trx->created_at, 0, 10) : ($trx->created_at instanceof \DateTimeInterface ? $trx->created_at->format('Y-m-d') : date('Y-m-d'))) : date('Y-m-d'));
 
                 foreach ($details as $detail) {
                     $itemJual = $detail['price'] * $detail['qty'];
@@ -6063,20 +6298,34 @@ class AuditController extends Controller
             }
 
             $outletName = 'APEX POS';
-            $invUser = $trx->inventoryUser ?? $trx->user;
-            if ($invUser) {
-                if ($invUser->branch_id) {
-                    $branch = \App\Models\Branch::find($invUser->branch_id);
-                    if ($branch)
-                        $outletName = $branch->name;
-                } elseif ($invUser->online_shop_id) {
-                    $shop = \App\Models\OnlineShop::find($invUser->online_shop_id);
-                    if ($shop)
-                        $outletName = $shop->name;
-                } elseif ($invUser->warehouse_id) {
-                    $warehouse = \App\Models\Warehouse::find($invUser->warehouse_id);
-                    if ($warehouse)
-                        $outletName = $warehouse->name;
+            if ($trx->branch_id) {
+                $branch = \App\Models\Branch::find($trx->branch_id);
+                if ($branch)
+                    $outletName = $branch->name;
+            } elseif ($trx->online_shop_id) {
+                $shop = \App\Models\OnlineShop::find($trx->online_shop_id);
+                if ($shop)
+                    $outletName = $shop->name;
+            } elseif ($trx->warehouse_id) {
+                $warehouse = \App\Models\Warehouse::find($trx->warehouse_id);
+                if ($warehouse)
+                    $outletName = $warehouse->name;
+            } else {
+                $invUser = $trx->inventoryUser ?? $trx->user;
+                if ($invUser) {
+                    if ($invUser->branch_id) {
+                        $branch = \App\Models\Branch::find($invUser->branch_id);
+                        if ($branch)
+                            $outletName = $branch->name;
+                    } elseif ($invUser->online_shop_id) {
+                        $shop = \App\Models\OnlineShop::find($invUser->online_shop_id);
+                        if ($shop)
+                            $outletName = $shop->name;
+                    } elseif ($invUser->warehouse_id) {
+                        $warehouse = \App\Models\Warehouse::find($invUser->warehouse_id);
+                        if ($warehouse)
+                            $outletName = $warehouse->name;
+                    }
                 }
             }
 
@@ -6215,45 +6464,78 @@ class AuditController extends Controller
 
         // Filter by location
         $query->where(function ($q) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-            $q->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                if ($requestedBranchId) {
-                    $sq->where('branch_id', $requestedBranchId);
-                } elseif ($requestedOnlineShopId) {
-                    $sq->where('online_shop_id', $requestedOnlineShopId);
-                } elseif ($requestedWarehouseId) {
-                    $sq->where('warehouse_id', $requestedWarehouseId);
-                } elseif ($requestedDistributorId) {
-                    $sq->where('distributor_id', $requestedDistributorId);
-                } else {
-                    if (!empty($branchIds))
-                        $sq->orWhereIn('branch_id', $branchIds);
-                    if (!empty($onlineShopIds))
-                        $sq->orWhereIn('online_shop_id', $onlineShopIds);
-                    if (!empty($warehouseIds))
-                        $sq->orWhereIn('warehouse_id', $warehouseIds);
-                    if (!empty($distributorIds))
-                        $sq->orWhereIn('distributor_id', $distributorIds);
+            if ($requestedBranchId) {
+                $q->where('stock_outs.branch_id', $requestedBranchId)
+                    ->orWhere(function ($fallbackQ) use ($requestedBranchId) {
+                        $fallbackQ->whereNull('stock_outs.branch_id')
+                            ->whereNull('stock_outs.warehouse_id')
+                            ->whereNull('stock_outs.online_shop_id')
+                            ->where(function ($uq) use ($requestedBranchId) {
+                                $uq->whereHas('inventoryUser', fn($sq) => $sq->where('branch_id', $requestedBranchId))
+                                   ->orWhereHas('user', fn($sq) => $sq->where('branch_id', $requestedBranchId));
+                            });
+                    });
+            } elseif ($requestedOnlineShopId) {
+                $q->where('stock_outs.online_shop_id', $requestedOnlineShopId)
+                    ->orWhere(function ($fallbackQ) use ($requestedOnlineShopId) {
+                        $fallbackQ->whereNull('stock_outs.branch_id')
+                            ->whereNull('stock_outs.warehouse_id')
+                            ->whereNull('stock_outs.online_shop_id')
+                            ->where(function ($uq) use ($requestedOnlineShopId) {
+                                $uq->whereHas('inventoryUser', fn($sq) => $sq->where('online_shop_id', $requestedOnlineShopId))
+                                   ->orWhereHas('user', fn($sq) => $sq->where('online_shop_id', $requestedOnlineShopId));
+                            });
+                    });
+            } elseif ($requestedWarehouseId) {
+                $q->where('stock_outs.warehouse_id', $requestedWarehouseId)
+                    ->orWhere(function ($fallbackQ) use ($requestedWarehouseId) {
+                        $fallbackQ->whereNull('stock_outs.branch_id')
+                            ->whereNull('stock_outs.warehouse_id')
+                            ->whereNull('stock_outs.online_shop_id')
+                            ->where(function ($uq) use ($requestedWarehouseId) {
+                                $uq->whereHas('inventoryUser', fn($sq) => $sq->where('warehouse_id', $requestedWarehouseId))
+                                   ->orWhereHas('user', fn($sq) => $sq->where('warehouse_id', $requestedWarehouseId));
+                            });
+                    });
+            } elseif ($requestedDistributorId) {
+                $q->where('stock_outs.distributor_id', $requestedDistributorId)
+                    ->orWhere(function ($fallbackQ) use ($requestedDistributorId) {
+                        $fallbackQ->whereNull('stock_outs.branch_id')
+                            ->whereNull('stock_outs.warehouse_id')
+                            ->whereNull('stock_outs.online_shop_id')
+                            ->where(function ($uq) use ($requestedDistributorId) {
+                                $uq->whereHas('inventoryUser', fn($sq) => $sq->where('distributor_id', $requestedDistributorId))
+                                   ->orWhereHas('user', fn($sq) => $sq->where('distributor_id', $requestedDistributorId));
+                            });
+                    });
+            } else {
+                $hasRestrictions = !empty($branchIds) || !empty($onlineShopIds) || !empty($warehouseIds) || !empty($distributorIds);
+                if ($hasRestrictions) {
+                    $q->where(function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        if (!empty($branchIds)) $sq->orWhereIn('stock_outs.branch_id', $branchIds);
+                        if (!empty($onlineShopIds)) $sq->orWhereIn('stock_outs.online_shop_id', $onlineShopIds);
+                        if (!empty($warehouseIds)) $sq->orWhereIn('stock_outs.warehouse_id', $warehouseIds);
+                        if (!empty($distributorIds)) $sq->orWhereIn('stock_outs.distributor_id', $distributorIds);
+                    })->orWhere(function ($fallbackQ) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                        $fallbackQ->whereNull('stock_outs.branch_id')
+                            ->whereNull('stock_outs.warehouse_id')
+                            ->whereNull('stock_outs.online_shop_id')
+                            ->where(function ($uq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                $uq->whereHas('inventoryUser', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds)) $sq->orWhereIn('branch_id', $branchIds);
+                                    if (!empty($onlineShopIds)) $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                                    if (!empty($warehouseIds)) $sq->orWhereIn('warehouse_id', $warehouseIds);
+                                    if (!empty($distributorIds)) $sq->orWhereIn('distributor_id', $distributorIds);
+                                })->orWhereHas('user', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds) {
+                                    if (!empty($branchIds)) $sq->orWhereIn('branch_id', $branchIds);
+                                    if (!empty($onlineShopIds)) $sq->orWhereIn('online_shop_id', $onlineShopIds);
+                                    if (!empty($warehouseIds)) $sq->orWhereIn('warehouse_id', $warehouseIds);
+                                    if (!empty($distributorIds)) $sq->orWhereIn('distributor_id', $distributorIds);
+                                });
+                            });
+                    });
                 }
-            })->orWhereHas('user', function ($sq) use ($branchIds, $onlineShopIds, $warehouseIds, $distributorIds, $requestedBranchId, $requestedOnlineShopId, $requestedWarehouseId, $requestedDistributorId) {
-                if ($requestedBranchId) {
-                    $sq->where('branch_id', $requestedBranchId);
-                } elseif ($requestedOnlineShopId) {
-                    $sq->where('online_shop_id', $requestedOnlineShopId);
-                } elseif ($requestedWarehouseId) {
-                    $sq->where('warehouse_id', $requestedWarehouseId);
-                } elseif ($requestedDistributorId) {
-                    $sq->where('distributor_id', $requestedDistributorId);
-                } else {
-                    if (!empty($branchIds))
-                        $sq->orWhereIn('branch_id', $branchIds);
-                    if (!empty($onlineShopIds))
-                        $sq->orWhereIn('online_shop_id', $onlineShopIds);
-                    if (!empty($warehouseIds))
-                        $sq->orWhereIn('warehouse_id', $warehouseIds);
-                    if (!empty($distributorIds))
-                        $sq->orWhereIn('distributor_id', $distributorIds);
-                }
-            });
+            }
         });
 
         $totalSudahDiaudit = (clone $query)->whereHas('auditAnswers')->count();
@@ -6303,14 +6585,22 @@ class AuditController extends Controller
                 $sourceLabel = 'Customer';
 
             $outletName = 'APEX POS';
-            $invUser = $trx->inventoryUser ?? $trx->user;
-            if ($invUser) {
-                if ($invUser->branch_id && isset($branches[$invUser->branch_id]))
-                    $outletName = $branches[$invUser->branch_id]->name;
-                elseif ($invUser->online_shop_id && isset($onlineShops[$invUser->online_shop_id]))
-                    $outletName = $onlineShops[$invUser->online_shop_id]->name;
-                elseif ($invUser->warehouse_id && isset($warehouses[$invUser->warehouse_id]))
-                    $outletName = $warehouses[$invUser->warehouse_id]->name;
+            if ($trx->branch_id && isset($branches[$trx->branch_id])) {
+                $outletName = $branches[$trx->branch_id]->name;
+            } elseif ($trx->online_shop_id && isset($onlineShops[$trx->online_shop_id])) {
+                $outletName = $onlineShops[$trx->online_shop_id]->name;
+            } elseif ($trx->warehouse_id && isset($warehouses[$trx->warehouse_id])) {
+                $outletName = $warehouses[$trx->warehouse_id]->name;
+            } else {
+                $invUser = $trx->inventoryUser ?? $trx->user;
+                if ($invUser) {
+                    if ($invUser->branch_id && isset($branches[$invUser->branch_id]))
+                        $outletName = $branches[$invUser->branch_id]->name;
+                    elseif ($invUser->online_shop_id && isset($onlineShops[$invUser->online_shop_id]))
+                        $outletName = $onlineShops[$invUser->online_shop_id]->name;
+                    elseif ($invUser->warehouse_id && isset($warehouses[$invUser->warehouse_id]))
+                        $outletName = $warehouses[$invUser->warehouse_id]->name;
+                }
             }
 
             $inputUser = $trx->user;

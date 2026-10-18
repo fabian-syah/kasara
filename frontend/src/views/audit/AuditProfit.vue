@@ -1247,15 +1247,26 @@ const exportExcel = async () => {
         } else {
             params.source = undefined;
         }
+        if (selectedPeriod.value === 'all') {
+            params.period = 'all';
+            params.start_date = '2000-01-01';
+            params.end_date = getTodayLocal();
+        }
         if (selectedLocationKey.value === 'all') {
             params.branch_id = undefined;
             params.online_shop_id = undefined;
+            params.warehouse_id = undefined;
             params.distributor_id = undefined;
         } else {
             const [type, id] = selectedLocationKey.value.split(':');
             params.branch_id = type === 'B' ? id : undefined;
             params.online_shop_id = type === 'S' ? id : undefined;
+            params.warehouse_id = type === 'W' ? id : undefined;
             params.distributor_id = type === 'D' ? id : undefined;
+        }
+
+        if (activeTab.value && activeTab.value !== 'all') {
+            params.tab = activeTab.value;
         }
 
         const response = await axios.get('/audit/profit/export-excel', {
@@ -1278,7 +1289,17 @@ const exportExcel = async () => {
         window.URL.revokeObjectURL(url);
     } catch (e) {
         console.error('Export failed', e);
-        alert('Gagal export data: ' + (e.response?.data?.message || e.message));
+        let errorMsg = e.message;
+        if (e.response?.data instanceof Blob) {
+            try {
+                const text = await e.response.data.text();
+                const json = JSON.parse(text);
+                if (json.message) errorMsg = json.message;
+            } catch (_) {}
+        } else if (e.response?.data?.message) {
+            errorMsg = e.response.data.message;
+        }
+        alert('Gagal export data: ' + errorMsg);
     } finally {
         exporting.value = false;
     }
