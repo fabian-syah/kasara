@@ -5450,7 +5450,7 @@ class AuditController extends Controller
                 if ($typeNorm) {
                     $k = $typeNorm . '|' . $condNorm;
                     if (isset($priceLookupNameCondition[$k])) return $priceLookupNameCondition[$k];
-                    if (!isset($priceLookupNameOnly[$typeNorm])) return $priceLookupNameOnly[$typeNorm];
+                    if (isset($priceLookupNameOnly[$typeNorm])) return $priceLookupNameOnly[$typeNorm];
                 }
 
                 return 0;
