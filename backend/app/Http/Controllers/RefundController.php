@@ -157,13 +157,22 @@ class RefundController extends Controller
                 $imeiExisted = false;
                 $imeiStatus = null;
                 if ($isImei) {
-                    $existingPd = \App\Models\ProductDetail::where('imei', $request->imei)->first();
+                    $cleanImei = $request->imei ? trim((string)$request->imei) : null;
+                    $existingPd = $cleanImei ? \App\Models\ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                        $q->where('imei', $cleanImei)
+                          ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                    })->first() : null;
+
                     if ($existingPd) {
                         $imeiExisted = true;
                         $imeiStatus = $existingPd->status;
+                        if ($existingPd->trashed()) {
+                            $existingPd->restore();
+                        }
                         $existingPd->update([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
+                            'imei' => $cleanImei,
                             'storage' => $request->storage,
                             'condition' => $request->condition,
                             'status' => 'available',
@@ -178,22 +187,53 @@ class RefundController extends Controller
                         ]);
                         $productDetail = $existingPd;
                     } else {
-                        $productDetail = ProductDetail::create([
-                            'product_id' => $product->id,
-                            'user_id' => $inventoryUserId,
-                            'imei' => $request->imei,
-                            'storage' => $request->storage,
-                            'condition' => $request->condition,
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->refund_price,
-                            'selling_price' => $productType->price ?? 0,
-                            'supplier_name' => 'Refund: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'refund_id' => $refund->id,
-                            'notes' => $request->notes,
-                        ]);
+                        try {
+                            $productDetail = ProductDetail::create([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'imei' => $cleanImei,
+                                'storage' => $request->storage,
+                                'condition' => $request->condition,
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $request->refund_price,
+                                'selling_price' => $productType->price ?? 0,
+                                'supplier_name' => 'Refund: ' . $request->customer_name,
+                                'distributor_id' => $request->distributor_id,
+                                'refund_id' => $refund->id,
+                                'notes' => $request->notes,
+                            ]);
+                        } catch (\Illuminate\Database\QueryException $qe) {
+                            $fallbackPd = \App\Models\ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                $q->where('imei', $cleanImei)
+                                  ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                            })->first();
+                            if ($fallbackPd) {
+                                if ($fallbackPd->trashed()) {
+                                    $fallbackPd->restore();
+                                }
+                                $fallbackPd->update([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'imei' => $cleanImei,
+                                    'storage' => $request->storage,
+                                    'condition' => $request->condition,
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $request->refund_price,
+                                    'selling_price' => $productType->price ?? 0,
+                                    'supplier_name' => 'Refund: ' . $request->customer_name,
+                                    'distributor_id' => $request->distributor_id,
+                                    'refund_id' => $refund->id,
+                                    'notes' => $request->notes,
+                                ]);
+                                $productDetail = $fallbackPd;
+                            } else {
+                                throw $qe;
+                            }
+                        }
                     }
                 } else {
                     // For non-HP, use Inventory model

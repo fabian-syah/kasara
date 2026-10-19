@@ -227,12 +227,21 @@ class TukarTambahController extends Controller
                     if ($isImei) {
                         $imeis = !empty($inItem['imeis']) ? $inItem['imeis'] : [null]; // fallback if empty
                         foreach ($imeis as $imei) {
-                            $existingPd = $imei ? ProductDetail::where('imei', $imei)->first() : null;
+                            $cleanImei = $imei ? trim((string)$imei) : null;
+                            $existingPd = $cleanImei ? ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                $q->where('imei', $cleanImei)
+                                  ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                            })->first() : null;
+
                             if ($existingPd) {
                                 $imeiExistedAny = true;
+                                if ($existingPd->trashed()) {
+                                    $existingPd->restore();
+                                }
                                 $existingPd->update([
                                     'product_id' => $product->id,
                                     'user_id' => $inventoryUserId,
+                                    'imei' => $cleanImei,
                                     'storage' => $inItem['storage'] ?? null,
                                     'condition' => $inItem['condition'] ?? 'new',
                                     'status' => 'available',
@@ -247,22 +256,54 @@ class TukarTambahController extends Controller
                                 ]);
                                 $pd = $existingPd;
                             } else {
-                                $pd = ProductDetail::create([
-                                    'product_id' => $product->id,
-                                    'user_id' => $inventoryUserId,
-                                    'imei' => $imei,
-                                    'storage' => $inItem['storage'] ?? null,
-                                    'condition' => $inItem['condition'] ?? 'new',
-                                    'status' => 'available',
-                                    'placement_type' => $placementType,
-                                    'placement_id' => $placementId,
-                                    'cost_price' => $inItem['buy_price'] ?? 0,
-                                    'selling_price' => $incomingProductType->price ?? 0,
-                                    'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
-                                    'distributor_id' => $distId,
-                                    'tukar_tambah_id' => $tukarTambah->id,
-                                    'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
-                                ]);
+                                try {
+                                    $pd = ProductDetail::create([
+                                        'product_id' => $product->id,
+                                        'user_id' => $inventoryUserId,
+                                        'imei' => $cleanImei,
+                                        'storage' => $inItem['storage'] ?? null,
+                                        'condition' => $inItem['condition'] ?? 'new',
+                                        'status' => 'available',
+                                        'placement_type' => $placementType,
+                                        'placement_id' => $placementId,
+                                        'cost_price' => $inItem['buy_price'] ?? 0,
+                                        'selling_price' => $incomingProductType->price ?? 0,
+                                        'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                                        'distributor_id' => $distId,
+                                        'tukar_tambah_id' => $tukarTambah->id,
+                                        'notes' => 'Masuk dari Tukar Tambah: ' . $receiptId,
+                                    ]);
+                                } catch (\Illuminate\Database\QueryException $qe) {
+                                    // Fallback if concurrent insert or constraint race happened
+                                    $fallbackPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                        $q->where('imei', $cleanImei)
+                                          ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                                    })->first();
+                                    if ($fallbackPd) {
+                                        if ($fallbackPd->trashed()) {
+                                            $fallbackPd->restore();
+                                        }
+                                        $fallbackPd->update([
+                                            'product_id' => $product->id,
+                                            'user_id' => $inventoryUserId,
+                                            'imei' => $cleanImei,
+                                            'storage' => $inItem['storage'] ?? null,
+                                            'condition' => $inItem['condition'] ?? 'new',
+                                            'status' => 'available',
+                                            'placement_type' => $placementType,
+                                            'placement_id' => $placementId,
+                                            'cost_price' => $inItem['buy_price'] ?? 0,
+                                            'selling_price' => $incomingProductType->price ?? 0,
+                                            'supplier_name' => 'Tukar Tambah: ' . $request->customer_name,
+                                            'distributor_id' => $distId,
+                                            'tukar_tambah_id' => $tukarTambah->id,
+                                            'notes' => 'Masuk dari Tukar Tambah (Update): ' . $receiptId,
+                                        ]);
+                                        $pd = $fallbackPd;
+                                    } else {
+                                        throw $qe;
+                                    }
+                                }
                             }
 
                             // Log Movement

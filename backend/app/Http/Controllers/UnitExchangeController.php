@@ -225,12 +225,21 @@ class UnitExchangeController extends Controller
                     $inQty = (int)($incItem['quantity'] ?? 1);
 
                     if ($isImei && $incImei) {
-                        $existingPd = ProductDetail::where('imei', $incImei)->first();
+                        $cleanImei = trim((string)$incImei);
+                        $existingPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                            $q->where('imei', $cleanImei)
+                              ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                        })->first();
+
                         if ($existingPd) {
-                            $imeiWarnings[] = "$incImei ({$existingPd->status})";
+                            $imeiWarnings[] = "$cleanImei ({$existingPd->status})";
+                            if ($existingPd->trashed()) {
+                                $existingPd->restore();
+                            }
                             $existingPd->update([
                                 'product_id' => $product->id,
                                 'user_id' => $inventoryUserId,
+                                'imei' => $cleanImei,
                                 'storage' => $incStorage,
                                 'condition' => $incCondition,
                                 'status' => 'available',
@@ -245,22 +254,53 @@ class UnitExchangeController extends Controller
                             ]);
                             $productDetail = $existingPd;
                         } else {
-                            $productDetail = ProductDetail::create([
-                                'product_id' => $product->id,
-                                'user_id' => $inventoryUserId,
-                                'imei' => $incImei,
-                                'storage' => $incStorage,
-                                'condition' => $incCondition,
-                                'status' => 'available',
-                                'placement_type' => $placementType,
-                                'placement_id' => $placementId,
-                                'cost_price' => $incCostPrice,
-                                'selling_price' => $incomingProductType->price ?? 0,
-                                'supplier_name' => 'Exchange: ' . $request->customer_name,
-                                'distributor_id' => $incDistributorId,
-                                'unit_exchange_id' => $exchange->id,
-                                'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
-                            ]);
+                            try {
+                                $productDetail = ProductDetail::create([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'imei' => $cleanImei,
+                                    'storage' => $incStorage,
+                                    'condition' => $incCondition,
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $incCostPrice,
+                                    'selling_price' => $incomingProductType->price ?? 0,
+                                    'supplier_name' => 'Exchange: ' . $request->customer_name,
+                                    'distributor_id' => $incDistributorId,
+                                    'unit_exchange_id' => $exchange->id,
+                                    'notes' => 'Masuk dari Tukar Unit: ' . $receiptId,
+                                ]);
+                            } catch (\Illuminate\Database\QueryException $qe) {
+                                $fallbackPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                    $q->where('imei', $cleanImei)
+                                      ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                                })->first();
+                                if ($fallbackPd) {
+                                    if ($fallbackPd->trashed()) {
+                                        $fallbackPd->restore();
+                                    }
+                                    $fallbackPd->update([
+                                        'product_id' => $product->id,
+                                        'user_id' => $inventoryUserId,
+                                        'imei' => $cleanImei,
+                                        'storage' => $incStorage,
+                                        'condition' => $incCondition,
+                                        'status' => 'available',
+                                        'placement_type' => $placementType,
+                                        'placement_id' => $placementId,
+                                        'cost_price' => $incCostPrice,
+                                        'selling_price' => $incomingProductType->price ?? 0,
+                                        'supplier_name' => 'Exchange: ' . $request->customer_name,
+                                        'distributor_id' => $incDistributorId,
+                                        'unit_exchange_id' => $exchange->id,
+                                        'notes' => 'Masuk dari Tukar Unit (Update): ' . $receiptId,
+                                    ]);
+                                    $productDetail = $fallbackPd;
+                                } else {
+                                    throw $qe;
+                                }
+                            }
                         }
                         $allIncomingPdIds[] = $productDetail->id;
 

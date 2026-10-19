@@ -1054,10 +1054,19 @@ class StockOutController extends Controller
 
                 if ($incomingImei) {
                     // HP item - create ProductDetail
-                    $existingPd = ProductDetail::where('imei', $incomingImei)->first();
+                    $cleanImei = trim((string)$incomingImei);
+                    $existingPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                        $q->where('imei', $cleanImei)
+                          ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                    })->first();
+
                     if ($existingPd) {
+                        if ($existingPd->trashed()) {
+                            $existingPd->restore();
+                        }
                         $existingPd->update([
                             'product_id' => $incomingProduct->id,
+                            'imei' => $cleanImei,
                             'status' => 'available',
                             'placement_type' => $placementType,
                             'placement_id' => $placementId,
@@ -1069,20 +1078,47 @@ class StockOutController extends Controller
                             'user_id' => $ownerUserId,
                         ]);
                     } else {
-                        ProductDetail::create([
-                            'product_id' => $incomingProduct->id,
-                            'imei' => $incomingImei,
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'storage' => $incomingStorage,
-                            'condition' => $incomingCondition,
-                            'cost_price' => $incomingCostPrice,
-                            'selling_price' => 0,
-                            'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
-                            'distributor_id' => $incomingDistributorId,
-                            'user_id' => $ownerUserId,
-                        ]);
+                        try {
+                            ProductDetail::create([
+                                'product_id' => $incomingProduct->id,
+                                'imei' => $cleanImei,
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'storage' => $incomingStorage,
+                                'condition' => $incomingCondition,
+                                'cost_price' => $incomingCostPrice,
+                                'selling_price' => 0,
+                                'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                                'distributor_id' => $incomingDistributorId,
+                                'user_id' => $ownerUserId,
+                            ]);
+                        } catch (\Illuminate\Database\QueryException $qe) {
+                            $fallbackPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                $q->where('imei', $cleanImei)
+                                  ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                            })->first();
+                            if ($fallbackPd) {
+                                if ($fallbackPd->trashed()) {
+                                    $fallbackPd->restore();
+                                }
+                                $fallbackPd->update([
+                                    'product_id' => $incomingProduct->id,
+                                    'imei' => $cleanImei,
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'storage' => $incomingStorage,
+                                    'condition' => $incomingCondition,
+                                    'cost_price' => $incomingCostPrice,
+                                    'supplier_name' => 'Tukar Unit: ' . ($request->customer_name ?? 'Customer'),
+                                    'distributor_id' => $incomingDistributorId,
+                                    'user_id' => $ownerUserId,
+                                ]);
+                            } else {
+                                throw $qe;
+                            }
+                        }
                     }
                 }
 

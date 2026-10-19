@@ -206,9 +206,17 @@ class TradeInController extends Controller
                             if (!$imei) continue;
                             $itemCounter++;
 
-                            $existingPd = ProductDetail::where('imei', $imei)->first();
+                            $cleanImei = $imei ? trim((string)$imei) : null;
+                            $existingPd = $cleanImei ? ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                $q->where('imei', $cleanImei)
+                                  ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                            })->first() : null;
+
                             if ($existingPd) {
-                                $existedImeis[] = "$imei ({$existingPd->status})";
+                                $existedImeis[] = "$cleanImei ({$existingPd->status})";
+                                if ($existingPd->trashed()) {
+                                    $existingPd->restore();
+                                }
                             }
 
                             $itemReceiptId = $itemCounter === 1 ? $receiptId : $receiptId . '-' . chr(64 + $itemCounter);
@@ -220,7 +228,7 @@ class TradeInController extends Controller
                                 'source' => $request->source,
                                 'distributor_id' => $itemDistributorId,
                                 'product_type_id' => $itemData['product_type_id'],
-                                'imei' => $imei,
+                                'imei' => $cleanImei,
                                 'ram' => $productType->ram,
                                 'storage' => $itemStorage,
                                 'condition' => $itemCondition,
@@ -241,6 +249,7 @@ class TradeInController extends Controller
                                 $existingPd->update([
                                     'product_id' => $product->id,
                                     'user_id' => $inventoryUserId,
+                                    'imei' => $cleanImei,
                                     'ram' => $productType->ram,
                                     'storage' => $itemStorage,
                                     'condition' => $itemCondition,
@@ -256,23 +265,55 @@ class TradeInController extends Controller
                                 ]);
                                 $pd = $existingPd;
                             } else {
-                                $pd = ProductDetail::create([
-                                    'product_id' => $product->id,
-                                    'user_id' => $inventoryUserId,
-                                    'imei' => $imei,
-                                    'ram' => $productType->ram,
-                                    'storage' => $itemStorage,
-                                    'condition' => $itemCondition,
-                                    'status' => 'available',
-                                    'placement_type' => $placementType,
-                                    'placement_id' => $placementId,
-                                    'cost_price' => $itemBuyPrice,
-                                    'selling_price' => $productType->price ?? 0,
-                                    'supplier_name' => 'Trade-In: ' . $request->customer_name,
-                                    'distributor_id' => $itemDistributorId,
-                                    'trade_in_id' => $tradeIn->id,
-                                    'notes' => $itemNotes,
-                                ]);
+                                try {
+                                    $pd = ProductDetail::create([
+                                        'product_id' => $product->id,
+                                        'user_id' => $inventoryUserId,
+                                        'imei' => $cleanImei,
+                                        'ram' => $productType->ram,
+                                        'storage' => $itemStorage,
+                                        'condition' => $itemCondition,
+                                        'status' => 'available',
+                                        'placement_type' => $placementType,
+                                        'placement_id' => $placementId,
+                                        'cost_price' => $itemBuyPrice,
+                                        'selling_price' => $productType->price ?? 0,
+                                        'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                        'distributor_id' => $itemDistributorId,
+                                        'trade_in_id' => $tradeIn->id,
+                                        'notes' => $itemNotes,
+                                    ]);
+                                } catch (\Illuminate\Database\QueryException $qe) {
+                                    $fallbackPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                        $q->where('imei', $cleanImei)
+                                          ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                                    })->first();
+                                    if ($fallbackPd) {
+                                        if ($fallbackPd->trashed()) {
+                                            $fallbackPd->restore();
+                                        }
+                                        $fallbackPd->update([
+                                            'product_id' => $product->id,
+                                            'user_id' => $inventoryUserId,
+                                            'imei' => $cleanImei,
+                                            'ram' => $productType->ram,
+                                            'storage' => $itemStorage,
+                                            'condition' => $itemCondition,
+                                            'status' => 'available',
+                                            'placement_type' => $placementType,
+                                            'placement_id' => $placementId,
+                                            'cost_price' => $itemBuyPrice,
+                                            'selling_price' => $productType->price ?? 0,
+                                            'supplier_name' => 'Trade-In: ' . $request->customer_name,
+                                            'distributor_id' => $itemDistributorId,
+                                            'trade_in_id' => $tradeIn->id,
+                                            'notes' => $itemNotes,
+                                        ]);
+                                        $pd = $fallbackPd;
+                                    } else {
+                                        throw $qe;
+                                    }
+                                }
                             }
 
                             InventoryLog::create([

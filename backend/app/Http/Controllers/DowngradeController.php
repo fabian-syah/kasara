@@ -182,13 +182,22 @@ class DowngradeController extends Controller
                 $imeiStatus = null;
                 $productDetail = null;
                 if ($isImei) {
-                    $existingPd = ProductDetail::where('imei', $request->incoming_imei)->first();
+                    $cleanImei = $request->incoming_imei ? trim((string)$request->incoming_imei) : null;
+                    $existingPd = $cleanImei ? ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                        $q->where('imei', $cleanImei)
+                          ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                    })->first() : null;
+
                     if ($existingPd) {
                         $imeiExisted = true;
                         $imeiStatus = $existingPd->status;
+                        if ($existingPd->trashed()) {
+                            $existingPd->restore();
+                        }
                         $existingPd->update([
                             'product_id' => $product->id,
                             'user_id' => $inventoryUserId,
+                            'imei' => $cleanImei,
                             'storage' => $request->incoming_storage,
                             'condition' => $request->incoming_condition ?? 'new',
                             'status' => 'available',
@@ -203,22 +212,53 @@ class DowngradeController extends Controller
                         ]);
                         $productDetail = $existingPd;
                     } else {
-                        $productDetail = ProductDetail::create([
-                            'product_id' => $product->id,
-                            'user_id' => $inventoryUserId,
-                            'imei' => $request->incoming_imei,
-                            'storage' => $request->incoming_storage,
-                            'condition' => $request->incoming_condition ?? 'new',
-                            'status' => 'available',
-                            'placement_type' => $placementType,
-                            'placement_id' => $placementId,
-                            'cost_price' => $request->incoming_cost_price,
-                            'selling_price' => $incomingProductType->price ?? 0,
-                            'supplier_name' => 'Downgrade: ' . $request->customer_name,
-                            'distributor_id' => $request->distributor_id,
-                            'downgrade_id' => $downgrade->id,
-                            'notes' => 'Masuk dari Downgrade: ' . $receiptId,
-                        ]);
+                        try {
+                            $productDetail = ProductDetail::create([
+                                'product_id' => $product->id,
+                                'user_id' => $inventoryUserId,
+                                'imei' => $cleanImei,
+                                'storage' => $request->incoming_storage,
+                                'condition' => $request->incoming_condition ?? 'new',
+                                'status' => 'available',
+                                'placement_type' => $placementType,
+                                'placement_id' => $placementId,
+                                'cost_price' => $request->incoming_cost_price,
+                                'selling_price' => $incomingProductType->price ?? 0,
+                                'supplier_name' => 'Downgrade: ' . $request->customer_name,
+                                'distributor_id' => $request->distributor_id,
+                                'downgrade_id' => $downgrade->id,
+                                'notes' => 'Masuk dari Downgrade: ' . $receiptId,
+                            ]);
+                        } catch (\Illuminate\Database\QueryException $qe) {
+                            $fallbackPd = ProductDetail::withTrashed()->where(function($q) use ($cleanImei) {
+                                $q->where('imei', $cleanImei)
+                                  ->orWhereRaw('TRIM(imei) = ?', [$cleanImei]);
+                            })->first();
+                            if ($fallbackPd) {
+                                if ($fallbackPd->trashed()) {
+                                    $fallbackPd->restore();
+                                }
+                                $fallbackPd->update([
+                                    'product_id' => $product->id,
+                                    'user_id' => $inventoryUserId,
+                                    'imei' => $cleanImei,
+                                    'storage' => $request->incoming_storage,
+                                    'condition' => $request->incoming_condition ?? 'new',
+                                    'status' => 'available',
+                                    'placement_type' => $placementType,
+                                    'placement_id' => $placementId,
+                                    'cost_price' => $request->incoming_cost_price,
+                                    'selling_price' => $incomingProductType->price ?? 0,
+                                    'supplier_name' => 'Downgrade: ' . $request->customer_name,
+                                    'distributor_id' => $request->distributor_id,
+                                    'downgrade_id' => $downgrade->id,
+                                    'notes' => 'Masuk dari Downgrade (Update): ' . $receiptId,
+                                ]);
+                                $productDetail = $fallbackPd;
+                            } else {
+                                throw $qe;
+                            }
+                        }
                     }
                 } else {
                     $inventoryIn = \App\Models\Inventory::firstOrCreate(
