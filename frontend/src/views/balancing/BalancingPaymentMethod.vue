@@ -56,16 +56,49 @@ const submitResult = ref(null);
 const customerSearch = ref('');
 const showCustomerDropdown = ref(false);
 const selectedCustomerData = ref(null); // Track selected customer details
+
+function isTransactionActive(t) {
+    if (!t) return false;
+    const status = String(t.status || '').toLowerCase();
+    const category = String(t.category || '').toLowerCase();
+    return status !== 'cancelled' &&
+        category !== 'cancel_penjualan' &&
+        category !== 'kesalahan_input' &&
+        category !== 'balancing';
+}
+
 const filteredCustomers = computed(() => {
-    if (!customerSearch.value) return customers.value.slice(0, 20);
+    // Exclude cancelled and balancing transactions, and remove customers without active transactions
+    const validCustomers = (customers.value || [])
+        .map(c => {
+            if (!c || !c.name) return null;
+            if (Array.isArray(c.transactions)) {
+                const activeTrxs = c.transactions.filter(isTransactionActive);
+                if (activeTrxs.length === 0) return null;
+                return {
+                    ...c,
+                    transactions: activeTrxs
+                };
+            }
+            return c;
+        })
+        .filter(Boolean);
+
+    if (!customerSearch.value) return validCustomers.slice(0, 20);
     const q = customerSearch.value.toLowerCase();
-    return customers.value.filter(c => c.name && c.name.toLowerCase().includes(q)).slice(0, 20);
+    return validCustomers.filter(c => c.name && c.name.toLowerCase().includes(q)).slice(0, 20);
 });
 
 function selectCustomer(customerObj) {
     customerSearch.value = customerObj.name;
     form.value.customer_name = customerObj.name;
-    selectedCustomerData.value = customerObj;
+    const activeTrxs = Array.isArray(customerObj.transactions)
+        ? customerObj.transactions.filter(isTransactionActive)
+        : [];
+    selectedCustomerData.value = {
+        ...customerObj,
+        transactions: activeTrxs
+    };
     showCustomerDropdown.value = false;
 }
 
@@ -517,10 +550,10 @@ function handleOutsideClick(e) {
                     </div>
 
                     <!-- Selected Customer Preview -->
-                    <div v-if="selectedCustomerData && selectedCustomerData.transactions && selectedCustomerData.transactions.length > 0" class="mt-3 p-4 bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 rounded-xl">
+                    <div v-if="selectedCustomerData && selectedCustomerData.transactions && selectedCustomerData.transactions.filter(isTransactionActive).length > 0" class="mt-3 p-4 bg-violet-50/50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-900/30 rounded-xl">
                         <h4 class="text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-3">Detail Transaksi Customer</h4>
                         <div class="space-y-3">
-                            <div v-for="(trx, idx) in selectedCustomerData.transactions" :key="idx" class="flex flex-col gap-1.5 p-3 bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700/50">
+                            <div v-for="(trx, idx) in selectedCustomerData.transactions.filter(isTransactionActive)" :key="idx" class="flex flex-col gap-1.5 p-3 bg-white dark:bg-neutral-800 rounded-lg shadow-sm border border-neutral-100 dark:border-neutral-700/50">
                                 <div class="flex justify-between items-start">
                                     <div class="flex items-center gap-2">
                                         <span class="text-xs font-semibold px-2 py-0.5 bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 rounded uppercase">{{ trx.category }}</span>

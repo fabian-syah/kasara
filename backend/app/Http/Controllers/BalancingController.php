@@ -86,15 +86,43 @@ class BalancingController extends Controller
     public function getCustomers(Request $request)
     {
         $search = $request->query('search');
+        $branchId = $request->query('branch_id');
+        $date = $request->query('date');
 
         if (!$search || strlen($search) < 2) {
             return response()->json(['data' => []]);
         }
 
-        // Search from previous StockOuts as customer history
-        $customers = StockOut::where('customer_name', 'ilike', "%{$search}%")
-            ->orWhere('customer_phone', 'ilike', "%{$search}%")
-            ->select('customer_name', 'customer_phone')
+        // Search from previous StockOuts as customer history (exclude cancelled & balancing)
+        $query = StockOut::whereNotNull('customer_name')
+            ->where('customer_name', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhereRaw('LOWER(status) != ?', ['cancelled']);
+            })
+            ->whereNull('cancelled_at')
+            ->whereNotIn('category', ['cancel_penjualan', 'kesalahan_input', 'balancing']);
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
+
+        if ($date) {
+            $query->where(function ($q) use ($date) {
+                $q->whereDate('reporting_date', $date)
+                  ->orWhere(function ($sq) use ($date) {
+                      $sq->whereNull('reporting_date')
+                         ->whereDate('created_at', $date);
+                  });
+            });
+        }
+
+        $query->where(function ($q) use ($search) {
+            $q->where('customer_name', 'ilike', "%{$search}%")
+              ->orWhere('customer_phone', 'ilike', "%{$search}%");
+        });
+
+        $customers = $query->select('customer_name', 'customer_phone')
             ->distinct()
             ->limit(10)
             ->get();

@@ -380,14 +380,26 @@ Route::middleware('auth:sanctum')->group(function () {
             $date = $request->query('date');
             
             $query = \App\Models\StockOut::whereNotNull('customer_name')
-                ->where('customer_name', '!=', '');
+                ->where('customer_name', '!=', '')
+                ->where(function ($q) {
+                    $q->whereNull('status')
+                      ->orWhereRaw('LOWER(status) != ?', ['cancelled']);
+                })
+                ->whereNull('cancelled_at')
+                ->whereNotIn('category', ['cancel_penjualan', 'kesalahan_input', 'balancing']);
                 
             if ($branchId) {
                 $query->where('branch_id', $branchId);
             }
             
             if ($date) {
-                $query->whereDate('reporting_date', $date);
+                $query->where(function ($q) use ($date) {
+                    $q->whereDate('reporting_date', $date)
+                      ->orWhere(function ($sq) use ($date) {
+                          $sq->whereNull('reporting_date')
+                             ->whereDate('created_at', $date);
+                      });
+                });
             }
 
             if ($search && strlen($search) >= 2) {
@@ -401,26 +413,36 @@ Route::middleware('auth:sanctum')->group(function () {
                 ->orderBy('created_at', 'desc')
                 ->limit(100)
                 ->get()
+                ->filter(function ($trx) {
+                    if (!empty($trx->cancelled_at)) return false;
+                    if (strtolower((string) $trx->status) === 'cancelled') return false;
+                    if (in_array(strtolower((string) $trx->category), ['cancel_penjualan', 'kesalahan_input', 'balancing'])) return false;
+                    return true;
+                })
                 ->map(function ($trx) {
                     return [
-                        'customer_name' => $trx->customer_name,
+                        'customer_name' => trim((string)$trx->customer_name),
                         'customer_phone' => $trx->customer_phone,
                         'receipt_id' => $trx->receipt_id ?? $trx->invoice_number,
                         'total_amount' => $trx->selling_price ?? $trx->total_amount,
                         'items' => $trx->items->map(function ($item) {
                             return $item->product ? $item->product->name : 'Item';
                         })->toArray(),
-                        'time' => $trx->created_at->format('H:i'),
+                        'time' => $trx->created_at ? $trx->created_at->format('H:i') : '-',
                         'category' => $trx->category,
+                        'status' => $trx->status,
                     ];
                 });
                 
             $grouped = $transactions->groupBy('customer_name')->map(function ($trxs, $name) {
+                $validTrxs = $trxs->values();
                 return [
                     'name' => $name,
-                    'phone' => $trxs->first()['customer_phone'],
-                    'transactions' => $trxs
+                    'phone' => $validTrxs->first()['customer_phone'] ?? null,
+                    'transactions' => $validTrxs->toArray()
                 ];
+            })->filter(function ($c) {
+                return !empty($c['name']) && count($c['transactions']) > 0;
             })->values();
 
             return response()->json(['data' => $grouped]);
