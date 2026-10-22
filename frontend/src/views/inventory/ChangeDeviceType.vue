@@ -7,7 +7,7 @@ import { useToast } from "../../composables/useToast";
 import {
     Search, Loader2, Smartphone, ShieldAlert, CheckCircle2,
     RotateCcw, History, AlertTriangle, ArrowRight, Save,
-    User, HardDrive, Palette, Cpu, Building2, Tag, Calendar
+    User, HardDrive, Building2, Tag, Calendar
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -43,8 +43,6 @@ const form = reactive({
     product_id: null,
     type_name: "",
     storage: "",
-    color: "",
-    ram: "",
     cs_name_mistake: "",
     notes: ""
 });
@@ -65,10 +63,79 @@ const filteredProducts = computed(() => {
     return productsList.value.filter(p => p.brand_id === form.brand_id);
 });
 
+function normalizeStorage(val) {
+    return (val || '').toUpperCase().replace(/\s+/g, '');
+}
+
+function findMatchingBrand(brandId, brandName, productName) {
+    if (brandId && brands.value.some(b => b.id === brandId)) {
+        return brands.value.find(b => b.id === brandId);
+    }
+
+    const cleanStr = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    const targetClean = cleanStr(brandName);
+    if (targetClean && targetClean !== '-') {
+        // Direct exact clean match
+        let found = brands.value.find(b => cleanStr(b.name) === targetClean);
+        if (found) return found;
+
+        // Substring match
+        found = brands.value.find(b => {
+            const bClean = cleanStr(b.name);
+            return bClean && (bClean.includes(targetClean) || targetClean.includes(bClean));
+        });
+        if (found) return found;
+
+        // iPhone / Apple alias matching
+        if (targetClean.includes('iphone') || targetClean.includes('apple') || targetClean.includes('ibox')) {
+            found = brands.value.find(b => {
+                const bClean = cleanStr(b.name);
+                return bClean.includes('iphone') || bClean.includes('apple');
+            });
+            if (found) return found;
+        }
+    }
+
+    // Fallback by productName (e.g. "iPhone 13", "IP 14", "13")
+    const prodClean = cleanStr(productName);
+    if (prodClean) {
+        if (prodClean.startsWith('ip') || prodClean.includes('iphone') || prodClean.includes('apple')) {
+            const appleBrand = brands.value.find(b => {
+                const bClean = cleanStr(b.name);
+                return bClean.includes('iphone') || bClean.includes('apple');
+            });
+            if (appleBrand) return appleBrand;
+        }
+
+        const matchByName = brands.value.find(b => {
+            const bClean = cleanStr(b.name);
+            return bClean && prodClean.includes(bClean);
+        });
+        if (matchByName) return matchByName;
+    }
+
+    return null;
+}
+
 async function loadBrands() {
     try {
         const res = await api.get('/brands');
         brands.value = res.data.data || res.data || [];
+
+        // If device data already loaded but brand not yet resolved, re-match
+        if (deviceData.value && (!form.brand_id || form.brand_id === null)) {
+            const matched = findMatchingBrand(
+                deviceData.value.brand_id,
+                deviceData.value.brand_name,
+                deviceData.value.product_name
+            );
+            if (matched) {
+                form.brand_id = matched.id;
+                form.brand_name = matched.name;
+                loadTypes(form.brand_id);
+            }
+        }
     } catch (e) {
         console.error("Gagal memuat brands:", e);
     }
@@ -123,14 +190,24 @@ async function doSearch() {
                 brands.value = res.data.brands;
             }
 
-            // Populate form with current values as defaults
-            form.brand_id = deviceData.value.brand_id || null;
-            form.brand_name = deviceData.value.brand_name !== '-' ? deviceData.value.brand_name : "";
+            // Robust Brand Matching
+            const matchedBrand = findMatchingBrand(
+                deviceData.value.brand_id,
+                deviceData.value.brand_name,
+                deviceData.value.product_name
+            );
+
+            if (matchedBrand) {
+                form.brand_id = matchedBrand.id;
+                form.brand_name = matchedBrand.name;
+            } else {
+                form.brand_id = deviceData.value.brand_id || null;
+                form.brand_name = deviceData.value.brand_name !== '-' ? deviceData.value.brand_name : "";
+            }
+
             form.product_id = deviceData.value.product_id || null;
             form.type_name = deviceData.value.product_name !== '-' ? deviceData.value.product_name : "";
             form.storage = deviceData.value.storage !== '-' ? deviceData.value.storage : "";
-            form.color = deviceData.value.color !== '-' ? deviceData.value.color : "";
-            form.ram = deviceData.value.ram !== '-' ? deviceData.value.ram : "";
             form.cs_name_mistake = "";
             form.notes = "";
 
@@ -158,9 +235,6 @@ function onTypeSelect(typeObj) {
     form.type_name = typeObj.name;
     if (typeObj.storage && !form.storage) {
         form.storage = typeObj.storage;
-    }
-    if (typeObj.ram && !form.ram) {
-        form.ram = typeObj.ram;
     }
 }
 
@@ -202,8 +276,6 @@ async function submitCorrection() {
             product_id: form.product_id,
             type_name: form.type_name.trim(),
             storage: form.storage.trim(),
-            color: form.color ? form.color.trim() : null,
-            ram: form.ram ? form.ram.trim() : null,
             notes: form.notes ? form.notes.trim() : null
         };
 
@@ -360,10 +432,6 @@ onMounted(async () => {
                             <strong class="text-text-primary text-sm">{{ deviceData.storage }}</strong>
                         </div>
                         <div>
-                            <span class="text-text-secondary block">Warna & RAM:</span>
-                            <strong class="text-text-primary text-sm">{{ deviceData.color }} / {{ deviceData.ram }}</strong>
-                        </div>
-                        <div>
                             <span class="text-text-secondary block">Posisi Lokasi:</span>
                             <strong class="text-text-primary text-sm">{{ deviceData.placement_name }}</strong>
                         </div>
@@ -379,7 +447,7 @@ onMounted(async () => {
                             <span class="text-text-secondary block">Diinput oleh (CS):</span>
                             <strong class="text-text-primary text-sm">{{ deviceData.input_by }}</strong>
                         </div>
-                        <div>
+                        <div class="col-span-2">
                             <span class="text-text-secondary block">Tgl Registrasi Masuk:</span>
                             <strong class="text-text-primary text-sm">{{ formatDate(deviceData.registered_at) }}</strong>
                         </div>
@@ -417,6 +485,12 @@ onMounted(async () => {
                                     <option :value="null">Pilih Brand...</option>
                                     <option v-for="b in brands" :key="b.id" :value="b.id">
                                         {{ b.name }}
+                                    </option>
+                                    <option
+                                        v-if="form.brand_name && !brands.some(b => b.id === form.brand_id || b.name === form.brand_name)"
+                                        :value="form.brand_id || form.brand_name"
+                                    >
+                                        {{ form.brand_name }}
                                     </option>
                                 </select>
                             </div>
@@ -461,7 +535,7 @@ onMounted(async () => {
                                     type="button"
                                     @click="selectStorage(gb)"
                                     class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
-                                    :class="form.storage.toUpperCase() === gb.toUpperCase()
+                                    :class="normalizeStorage(form.storage) === normalizeStorage(gb)
                                         ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
                                         : 'bg-surface-800 text-text-primary border-surface-700 hover:border-purple-500/50'"
                                 >
@@ -477,35 +551,7 @@ onMounted(async () => {
                             />
                         </div>
 
-                        <!-- Row 3: Warna & RAM -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-text-primary mb-1.5 flex items-center gap-1.5">
-                                    <Palette :size="14" class="text-purple-400" />
-                                    <span>Warna (Opsional)</span>
-                                </label>
-                                <input
-                                    v-model="form.color"
-                                    type="text"
-                                    placeholder="Contoh: Midnight, Starlight, Blue..."
-                                    class="input-control h-11 w-full text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-text-primary mb-1.5 flex items-center gap-1.5">
-                                    <Cpu :size="14" class="text-purple-400" />
-                                    <span>RAM (Opsional)</span>
-                                </label>
-                                <input
-                                    v-model="form.ram"
-                                    type="text"
-                                    placeholder="Contoh: 4GB, 6GB, 8GB..."
-                                    class="input-control h-11 w-full text-sm"
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Row 4: CRITICAL FIELD - Nama CS Yang Salah Input -->
+                        <!-- Row 3: CRITICAL FIELD - Nama CS Yang Salah Input -->
                         <div class="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30">
                             <label class="block text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 mb-1 flex items-center gap-1.5">
                                 <AlertTriangle :size="16" class="text-amber-500" />
@@ -524,7 +570,7 @@ onMounted(async () => {
                             />
                         </div>
 
-                        <!-- Row 5: Alasan / Keterangan -->
+                        <!-- Row 4: Alasan / Keterangan -->
                         <div>
                             <label class="block text-xs font-bold text-text-primary mb-1.5">
                                 Alasan / Keterangan Koreksi (Opsional)

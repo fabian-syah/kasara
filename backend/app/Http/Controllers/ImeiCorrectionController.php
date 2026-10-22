@@ -77,6 +77,60 @@ class ImeiCorrectionController extends Controller
                 Log::warning("Could not load brands: " . $eBrand->getMessage());
             }
 
+            $brandId = $productDetail->product?->brand_id;
+            $brandName = $productDetail->product?->brand ?? $productDetail->product?->brandRelation?->name ?? '-';
+            $productName = $productDetail->product?->name ?? '';
+
+            // Robust auto-resolve brand_id if missing or unmapped
+            if (count($brands) > 0) {
+                $cleanStr = fn($s) => trim(preg_replace('/[^a-zA-Z0-9]/', '', strtolower($s ?? '')));
+                $searchClean = $cleanStr($brandName);
+                $prodClean = $cleanStr($productName);
+
+                if ($brandId) {
+                    $found = collect($brands)->firstWhere('id', $brandId);
+                    if ($found) {
+                        $brandName = $found->name;
+                    } else {
+                        $brandId = null;
+                    }
+                }
+
+                if (!$brandId && $searchClean && $searchClean !== '-') {
+                    $matched = collect($brands)->first(function ($b) use ($searchClean, $cleanStr) {
+                        $bClean = $cleanStr($b->name);
+                        return $bClean === $searchClean || str_contains($bClean, $searchClean) || str_contains($searchClean, $bClean);
+                    });
+
+                    // iPhone / Apple alias matching
+                    if (!$matched && (str_contains($searchClean, 'iphone') || str_contains($searchClean, 'apple') || str_contains($searchClean, 'ibox'))) {
+                        $matched = collect($brands)->first(function ($b) use ($cleanStr) {
+                            $bClean = $cleanStr($b->name);
+                            return str_contains($bClean, 'iphone') || str_contains($bClean, 'apple');
+                        });
+                    }
+
+                    if ($matched) {
+                        $brandId = $matched->id;
+                        $brandName = $matched->name;
+                    }
+                }
+
+                // Fallback by productName (e.g. "IP 14", "iPhone 13", "13")
+                if (!$brandId && $prodClean) {
+                    if (str_starts_with($prodClean, 'ip') || str_contains($prodClean, 'iphone') || str_contains($prodClean, 'apple')) {
+                        $matched = collect($brands)->first(function ($b) use ($cleanStr) {
+                            $bClean = $cleanStr($b->name);
+                            return str_contains($bClean, 'iphone') || str_contains($bClean, 'apple');
+                        });
+                        if ($matched) {
+                            $brandId = $matched->id;
+                            $brandName = $matched->name;
+                        }
+                    }
+                }
+            }
+
             $storagePresets = ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'];
 
             return response()->json([
@@ -86,11 +140,9 @@ class ImeiCorrectionController extends Controller
                     'imei' => $productDetail->imei,
                     'product_id' => $productDetail->product_id,
                     'product_name' => $productDetail->product?->name ?? 'Unknown',
-                    'brand_id' => $productDetail->product?->brand_id,
-                    'brand_name' => $productDetail->product?->brand ?? $productDetail->product?->brandRelation?->name ?? '-',
+                    'brand_id' => $brandId,
+                    'brand_name' => $brandName,
                     'storage' => $productDetail->storage ?? '-',
-                    'ram' => $productDetail->ram ?? '-',
-                    'color' => $productDetail->color ?? '-',
                     'condition' => $productDetail->condition ?? 'second',
                     'status' => $productDetail->status ?? 'available',
                     'is_deleted' => $productDetail->trashed(),
@@ -218,12 +270,26 @@ class ImeiCorrectionController extends Controller
             // Resolve target Brand
             $brandId = $validated['brand_id'] ?? null;
             $brandName = $validated['brand_name'] ?? null;
+            $cleanStr = fn($s) => trim(preg_replace('/[^a-zA-Z0-9]/', '', strtolower($s ?? '')));
+
             if ($brandId && !$brandName) {
                 $b = Brand::find($brandId);
                 $brandName = $b?->name;
             } elseif ($brandName && !$brandId) {
-                $b = Brand::where('name', 'ilike', trim($brandName))->first();
+                $cleanB = $cleanStr($brandName);
+                $allB = Brand::all();
+                $b = $allB->first(function ($item) use ($cleanB, $cleanStr) {
+                    $c = $cleanStr($item->name);
+                    return $c === $cleanB || str_contains($c, $cleanB) || str_contains($cleanB, $c);
+                });
+                if (!$b && (str_contains($cleanB, 'iphone') || str_contains($cleanB, 'apple') || str_contains($cleanB, 'ibox'))) {
+                    $b = $allB->first(function ($item) use ($cleanStr) {
+                        $c = $cleanStr($item->name);
+                        return str_contains($c, 'iphone') || str_contains($c, 'apple');
+                    });
+                }
                 $brandId = $b?->id;
+                if ($b) $brandName = $b->name;
             }
 
             // Resolve NEW Product

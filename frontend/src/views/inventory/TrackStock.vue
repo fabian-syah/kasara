@@ -398,10 +398,6 @@ function getCategoryColor(category) {
                                             <span>Merek: <strong class="text-text-primary">{{ result.old_brand || '-' }}</strong></span>
                                             <span>•</span>
                                             <span>Storage: <strong class="text-text-primary">{{ result.old_storage || '-' }}</strong></span>
-                                            <template v-if="result.old_color && result.old_color !== '-'">
-                                                <span>•</span>
-                                                <span>Warna: <strong class="text-text-primary">{{ result.old_color }}</strong></span>
-                                            </template>
                                         </div>
                                     </div>
 
@@ -415,10 +411,6 @@ function getCategoryColor(category) {
                                             <span>Merek: <strong class="text-text-primary">{{ result.new_brand || '-' }}</strong></span>
                                             <span>•</span>
                                             <span>Storage: <strong class="text-text-primary">{{ result.new_storage || '-' }}</strong></span>
-                                            <template v-if="result.new_color && result.new_color !== '-'">
-                                                <span>•</span>
-                                                <span>Warna: <strong class="text-text-primary">{{ result.new_color }}</strong></span>
-                                            </template>
                                         </div>
                                     </div>
                                 </div>
