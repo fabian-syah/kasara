@@ -24,12 +24,15 @@ const isSuperAdmin = computed(() => {
 const searchImei = ref("");
 const isSearching = ref(false);
 const isSubmitting = ref(false);
+const isLoadingTypes = ref(false);
+const isManualType = ref(false);
+const isManualStorage = ref(false);
 const deviceData = ref(null);
 const pastHistories = ref([]);
 const brands = ref([]);
 const typesList = ref([]);
 const productsList = ref([]);
-const storagePresets = ref(['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB']);
+const selectedTypeObj = ref(null);
 
 // Global Audit Log
 const globalHistories = ref([]);
@@ -47,20 +50,57 @@ const form = reactive({
     notes: ""
 });
 
-// Filtered Types based on Brand
-const filteredTypes = computed(() => {
-    if (!form.brand_id) {
-        return typesList.value;
-    }
-    return typesList.value.filter(t => t.brand_id === form.brand_id);
+// Combined unique types strictly belonging to the currently selected brand
+const combinedTypes = computed(() => {
+    const list = [];
+    const seenNames = new Set();
+
+    // 1. Types from ProductType
+    (typesList.value || []).forEach(t => {
+        const norm = (t.name || '').trim().toLowerCase();
+        if (norm && !seenNames.has(norm)) {
+            seenNames.add(norm);
+            list.push({
+                id: t.id,
+                name: t.name.trim(),
+                is_product: false,
+                capacities: Array.isArray(t.capacities) ? t.capacities : []
+            });
+        }
+    });
+
+    // 2. Types from Product
+    (productsList.value || []).forEach(p => {
+        const norm = (p.name || '').trim().toLowerCase();
+        if (norm && !seenNames.has(norm)) {
+            seenNames.add(norm);
+            list.push({
+                id: p.id,
+                name: p.name.trim(),
+                is_product: true,
+                capacities: Array.isArray(p.capacities) ? p.capacities : []
+            });
+        }
+    });
+
+    return list.sort((a, b) => a.name.localeCompare(b.name));
 });
 
-// Filtered Products based on Brand
-const filteredProducts = computed(() => {
-    if (!form.brand_id) {
-        return productsList.value;
+// Capacities strictly matching the selected Tipe HP
+const currentAvailableCapacities = computed(() => {
+    if (!form.type_name) return [];
+
+    if (selectedTypeObj.value && Array.isArray(selectedTypeObj.value.capacities) && selectedTypeObj.value.capacities.length > 0) {
+        return selectedTypeObj.value.capacities;
     }
-    return productsList.value.filter(p => p.brand_id === form.brand_id);
+
+    const norm = form.type_name.trim().toLowerCase();
+    const found = combinedTypes.value.find(t => t.name.toLowerCase() === norm);
+    if (found && Array.isArray(found.capacities) && found.capacities.length > 0) {
+        return found.capacities;
+    }
+
+    return [];
 });
 
 function normalizeStorage(val) {
@@ -133,7 +173,7 @@ async function loadBrands() {
             if (matched) {
                 form.brand_id = matched.id;
                 form.brand_name = matched.name;
-                loadTypes(form.brand_id);
+                await loadTypes(form.brand_id);
             }
         }
     } catch (e) {
@@ -142,14 +182,25 @@ async function loadBrands() {
 }
 
 async function loadTypes(brandId = null) {
+    if (!brandId && !form.brand_name) {
+        typesList.value = [];
+        productsList.value = [];
+        return;
+    }
+    isLoadingTypes.value = true;
     try {
         const res = await api.get('/admin/imei-correction/types', {
-            params: { brand_id: brandId }
+            params: {
+                brand_id: brandId,
+                brand_name: form.brand_name
+            }
         });
         typesList.value = res.data.types || [];
         productsList.value = res.data.products || [];
     } catch (e) {
         console.error("Gagal memuat types:", e);
+    } finally {
+        isLoadingTypes.value = false;
     }
 }
 
@@ -177,6 +228,9 @@ async function doSearch() {
     isSearching.value = true;
     deviceData.value = null;
     pastHistories.value = [];
+    selectedTypeObj.value = null;
+    isManualType.value = false;
+    isManualStorage.value = false;
 
     try {
         const res = await api.get('/admin/imei-correction/search', {
@@ -206,13 +260,51 @@ async function doSearch() {
             }
 
             form.product_id = deviceData.value.product_id || null;
-            form.type_name = deviceData.value.product_name !== '-' ? deviceData.value.product_name : "";
-            form.storage = deviceData.value.storage !== '-' ? deviceData.value.storage : "";
             form.cs_name_mistake = "";
             form.notes = "";
 
+            // Load types filtered by brand
             if (form.brand_id) {
                 await loadTypes(form.brand_id);
+            }
+
+            // Auto-match and select Type in dropdown
+            const initialTypeName = (deviceData.value.product_name || '').trim();
+            const cleanTarget = initialTypeName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            let matchedType = combinedTypes.value.find(t => {
+                const cleanT = t.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                return cleanT === cleanTarget;
+            });
+
+            if (!matchedType && cleanTarget) {
+                matchedType = combinedTypes.value.find(t => {
+                    const cleanT = t.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return cleanT.endsWith(cleanTarget) || cleanT.includes(cleanTarget);
+                });
+            }
+
+            if (matchedType) {
+                selectedTypeObj.value = matchedType;
+                form.type_name = matchedType.name;
+                form.product_id = matchedType.is_product ? matchedType.id : null;
+            } else {
+                selectedTypeObj.value = {
+                    name: initialTypeName,
+                    is_product: false,
+                    capacities: deviceData.value.storage && deviceData.value.storage !== '-' ? [deviceData.value.storage] : []
+                };
+                form.type_name = initialTypeName !== '-' ? initialTypeName : "";
+            }
+
+            // Auto-select storage matching the type's capacities
+            const initStorage = (deviceData.value.storage || '').trim();
+            const caps = currentAvailableCapacities.value;
+            if (caps.length > 0) {
+                const matchedCap = caps.find(c => normalizeStorage(c) === normalizeStorage(initStorage));
+                form.storage = matchedCap || (initStorage !== '-' ? initStorage : caps[0]);
+            } else {
+                form.storage = initStorage !== '-' ? initStorage : "";
             }
         } else {
             toast.error(res.data.message || "Data unit tidak ditemukan.");
@@ -225,16 +317,43 @@ async function doSearch() {
     }
 }
 
-function onBrandChange() {
+async function onBrandChange() {
     const selectedBrand = brands.value.find(b => b.id === form.brand_id);
     form.brand_name = selectedBrand ? selectedBrand.name : "";
-    loadTypes(form.brand_id);
+    
+    // Reset Type and Storage when brand changes
+    selectedTypeObj.value = null;
+    form.type_name = "";
+    form.product_id = null;
+    form.storage = "";
+    isManualType.value = false;
+    isManualStorage.value = false;
+
+    if (form.brand_id) {
+        await loadTypes(form.brand_id);
+    } else {
+        typesList.value = [];
+        productsList.value = [];
+    }
 }
 
-function onTypeSelect(typeObj) {
-    form.type_name = typeObj.name;
-    if (typeObj.storage && !form.storage) {
-        form.storage = typeObj.storage;
+function onTypeSelect() {
+    if (!selectedTypeObj.value) return;
+    form.type_name = selectedTypeObj.value.name;
+    form.product_id = selectedTypeObj.value.is_product ? selectedTypeObj.value.id : null;
+
+    // Auto-select capacity if available for this type
+    const caps = selectedTypeObj.value.capacities || [];
+    if (caps.length > 0) {
+        const matched = caps.find(c => normalizeStorage(c) === normalizeStorage(form.storage));
+        if (matched) {
+            form.storage = matched;
+        } else {
+            form.storage = caps[0];
+        }
+        isManualStorage.value = false;
+    } else {
+        form.storage = "";
     }
 }
 
@@ -497,58 +616,149 @@ onMounted(async () => {
 
                             <!-- Tipe HP -->
                             <div>
-                                <label class="block text-xs font-bold text-text-primary mb-1.5 flex items-center gap-1.5">
-                                    <Smartphone :size="14" class="text-purple-400" />
-                                    <span>Tipe HP (Model)</span>
-                                    <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                                        <Smartphone :size="14" class="text-purple-400" />
+                                        <span>Tipe HP (Model)</span>
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <button
+                                        v-if="form.brand_id"
+                                        type="button"
+                                        @click="isManualType = !isManualType"
+                                        class="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold"
+                                    >
+                                        {{ isManualType ? '← Pilih dari Dropdown' : '+ Ketik Manual' }}
+                                    </button>
+                                </div>
+
+                                <!-- Dropdown Mode (Sesuai Brand) -->
+                                <div v-if="!isManualType">
+                                    <select
+                                        v-model="selectedTypeObj"
+                                        @change="onTypeSelect"
+                                        class="input-control h-11 w-full text-sm"
+                                        :disabled="!form.brand_id || isLoadingTypes"
+                                        required
+                                    >
+                                        <option :value="null" disabled>
+                                            {{ !form.brand_id ? 'Pilih Brand terlebih dahulu...' : (isLoadingTypes ? 'Memuat tipe HP...' : (combinedTypes.length === 0 ? 'Belum ada tipe untuk brand ini' : 'Pilih Tipe HP...')) }}
+                                        </option>
+                                        <option
+                                            v-for="t in combinedTypes"
+                                            :key="'t-' + t.name"
+                                            :value="t"
+                                        >
+                                            {{ t.name }}
+                                        </option>
+                                        <!-- Fallback option for current unit type if not in list -->
+                                        <option
+                                            v-if="form.type_name && !combinedTypes.some(t => t.name.toLowerCase() === form.type_name.toLowerCase())"
+                                            :value="{ name: form.type_name, capacities: [form.storage].filter(Boolean) }"
+                                        >
+                                            {{ form.type_name }} (Bawaan Unit)
+                                        </option>
+                                    </select>
+                                    <p class="text-[11px] text-text-secondary mt-1">
+                                        {{ !form.brand_id ? 'Pilih brand terlebih dahulu untuk memuat model.' : `Hanya menampilkan tipe produk dari merek ${form.brand_name || ''}.` }}
+                                    </p>
+                                </div>
+
+                                <!-- Manual Input Mode -->
+                                <div v-else>
                                     <input
                                         v-model="form.type_name"
                                         type="text"
-                                        placeholder="Contoh: iPhone 13, Galaxy S23..."
-                                        list="available-types-datalist"
+                                        placeholder="Ketik tipe HP baru secara manual..."
                                         class="input-control h-11 w-full text-sm"
                                         required
                                     />
-                                    <datalist id="available-types-datalist">
-                                        <option v-for="t in filteredTypes" :key="'t-' + t.id" :value="t.name"></option>
-                                        <option v-for="p in filteredProducts" :key="'p-' + p.id" :value="p.name"></option>
-                                    </datalist>
+                                    <p class="text-[11px] text-amber-500 mt-1">Mode ketik manual aktif jika tipe unit belum tercatat di sistem.</p>
                                 </div>
-                                <p class="text-[11px] text-text-secondary mt-1">Pilih dari rekomendasi atau ketik langsung nama tipe unit.</p>
                             </div>
                         </div>
 
-                        <!-- Row 2: Storage (Presets + Input) -->
+                        <!-- Row 2: Storage (Sesuai Tipe yang Dipilih) -->
                         <div>
-                            <label class="block text-xs font-bold text-text-primary mb-1.5 flex items-center gap-1.5">
-                                <HardDrive :size="14" class="text-purple-400" />
-                                <span>Kapasitas Storage (GB)</span>
-                                <span class="text-red-500">*</span>
-                            </label>
-                            <!-- Presets -->
-                            <div class="flex items-center gap-2 flex-wrap mb-2">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                                    <HardDrive :size="14" class="text-purple-400" />
+                                    <span>Kapasitas Storage (GB)</span>
+                                    <span class="text-red-500">*</span>
+                                </label>
                                 <button
-                                    v-for="gb in storagePresets"
-                                    :key="gb"
+                                    v-if="currentAvailableCapacities.length > 0"
                                     type="button"
-                                    @click="selectStorage(gb)"
-                                    class="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
-                                    :class="normalizeStorage(form.storage) === normalizeStorage(gb)
-                                        ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                                        : 'bg-surface-800 text-text-primary border-surface-700 hover:border-purple-500/50'"
+                                    @click="isManualStorage = !isManualStorage"
+                                    class="text-[11px] text-purple-600 dark:text-purple-400 hover:underline font-semibold"
                                 >
-                                    {{ gb }}
+                                    {{ isManualStorage ? '← Pilih Kapasitas Tipe' : '+ Input Manual' }}
                                 </button>
                             </div>
-                            <input
-                                v-model="form.storage"
-                                type="text"
-                                placeholder="Pilih tombol di atas atau ketik manual (cth: 128GB, 256GB)..."
-                                class="input-control h-11 w-full text-sm"
-                                required
-                            />
+
+                            <!-- Case A: Tipe memiliki varian kapasitas terdaftar -->
+                            <template v-if="currentAvailableCapacities.length > 0 && !isManualStorage">
+                                <!-- Interactive chips strictly for this type -->
+                                <div class="flex items-center gap-2 flex-wrap mb-2">
+                                    <button
+                                        v-for="cap in currentAvailableCapacities"
+                                        :key="cap"
+                                        type="button"
+                                        @click="form.storage = cap"
+                                        class="px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1"
+                                        :class="normalizeStorage(form.storage) === normalizeStorage(cap)
+                                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm ring-1 ring-purple-500/50'
+                                            : 'bg-surface-800 text-text-primary border-surface-700 hover:border-purple-500/50'"
+                                    >
+                                        <CheckCircle2 v-if="normalizeStorage(form.storage) === normalizeStorage(cap)" :size="13" />
+                                        <span>{{ cap }}</span>
+                                    </button>
+                                </div>
+
+                                <select
+                                    v-model="form.storage"
+                                    class="input-control h-11 w-full text-sm"
+                                    required
+                                >
+                                    <option value="" disabled>Pilih Kapasitas...</option>
+                                    <option
+                                        v-for="cap in currentAvailableCapacities"
+                                        :key="'opt-' + cap"
+                                        :value="cap"
+                                    >
+                                        {{ cap }}
+                                    </option>
+                                    <option
+                                        v-if="form.storage && !currentAvailableCapacities.some(c => normalizeStorage(c) === normalizeStorage(form.storage))"
+                                        :value="form.storage"
+                                    >
+                                        {{ form.storage }} (Bawaan Unit)
+                                    </option>
+                                </select>
+                                <p class="text-[11px] text-text-secondary mt-1">
+                                    Pilihan kapasitas disesuaikan dengan varian tipe <strong class="text-text-primary">{{ form.type_name }}</strong>.
+                                </p>
+                            </template>
+
+                            <!-- Case B: Belum pilih tipe atau tipe tidak memiliki varian atau mode manual -->
+                            <template v-else>
+                                <div v-if="!form.type_name" class="p-3.5 rounded-xl bg-surface-900 border border-surface-700 text-xs text-text-secondary flex items-center gap-2">
+                                    <AlertTriangle :size="16" class="text-surface-500 shrink-0" />
+                                    <span>Pilih <strong>Tipe HP</strong> terlebih dahulu untuk memunculkan daftar kapasitas yang sesuai.</span>
+                                </div>
+                                <div v-else class="space-y-1.5">
+                                    <input
+                                        v-model="form.storage"
+                                        type="text"
+                                        placeholder="Contoh: 128GB, 256GB..."
+                                        class="input-control h-11 w-full text-sm"
+                                        required
+                                    />
+                                    <p class="text-[11px] text-text-secondary">
+                                        {{ isManualStorage ? 'Mode input manual aktif: masukkan kapasitas storage unit.' : 'Tipe ini belum memiliki data varian kapasitas di master data. Silakan ketik kapasitas secara manual.' }}
+                                    </p>
+                                </div>
+                            </template>
                         </div>
 
                         <!-- Row 3: CRITICAL FIELD - Nama CS Yang Salah Input -->

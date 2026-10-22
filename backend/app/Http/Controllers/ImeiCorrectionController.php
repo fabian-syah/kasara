@@ -175,26 +175,135 @@ class ImeiCorrectionController extends Controller
     {
         try {
             $brandId = $request->brand_id;
+            $brandName = $request->brand_name;
+
+            // Resolve brandId by brandName if not provided
+            if (!$brandId && $brandName && $brandName !== '-') {
+                $cleanStr = fn($s) => trim(preg_replace('/[^a-zA-Z0-9]/', '', strtolower($s ?? '')));
+                $cleanB = $cleanStr($brandName);
+                $allB = Brand::all();
+                $b = $allB->first(function ($item) use ($cleanB, $cleanStr) {
+                    $c = $cleanStr($item->name);
+                    return $c === $cleanB || str_contains($c, $cleanB) || str_contains($cleanB, $c);
+                });
+                if (!$b && (str_contains($cleanB, 'iphone') || str_contains($cleanB, 'apple') || str_contains($cleanB, 'ibox'))) {
+                    $b = $allB->first(function ($item) use ($cleanStr) {
+                        $c = $cleanStr($item->name);
+                        return str_contains($c, 'iphone') || str_contains($c, 'apple');
+                    });
+                }
+                $brandId = $b?->id;
+            }
+
             $types = collect();
             $products = collect();
 
-            if (class_exists(ProductType::class) && Schema::hasTable('product_types')) {
-                $query = ProductType::query();
-                if ($brandId && Schema::hasColumn('product_types', 'brand_id')) {
-                    $query->where('brand_id', $brandId);
-                }
-                $types = $query->orderBy('name')->get();
-            }
+            if ($brandId || $brandName) {
+                // 1. Fetch from ProductType
+                if (class_exists(ProductType::class) && Schema::hasTable('product_types')) {
+                    $query = ProductType::query();
+                    if ($brandId && Schema::hasColumn('product_types', 'brand_id')) {
+                        $query->where('brand_id', $brandId);
+                    }
+                    
+                    $hasPrices = class_exists(\App\Models\ProductPrice::class) && Schema::hasTable('product_prices');
 
-            if (class_exists(Product::class) && Schema::hasTable('products')) {
-                $productQuery = Product::where('type', 'hp');
-                if (Schema::hasColumn('products', 'has_imei')) {
-                    $productQuery->where('has_imei', true);
+                    $types = $query->orderBy('name')->get()->map(function ($t) use ($hasPrices) {
+                        $capacities = collect();
+
+                        // Capacities from ProductPrice
+                        if ($hasPrices) {
+                            $pCaps = \App\Models\ProductPrice::where('product_type_id', $t->id)
+                                ->pluck('storage')
+                                ->filter()
+                                ->map(fn($s) => trim($s));
+                            $capacities = $capacities->concat($pCaps);
+                        }
+
+                        // Capacities from ProductType storage field
+                        if (!empty($t->storage)) {
+                            $parts = collect(preg_split('/[,|\/]/', $t->storage))
+                                ->map(fn($s) => trim($s))
+                                ->filter();
+                            $capacities = $capacities->concat($parts);
+                        }
+
+                        // Fallback from ProductDetail with same name
+                        if ($capacities->isEmpty()) {
+                            $prodIds = Product::where('name', 'ilike', $t->name)->pluck('id');
+                            if ($prodIds->isNotEmpty()) {
+                                $dCaps = \App\Models\ProductDetail::whereIn('product_id', $prodIds)
+                                    ->whereNotNull('storage')
+                                    ->where('storage', '!=', '-')
+                                    ->distinct()
+                                    ->pluck('storage')
+                                    ->map(fn($s) => trim($s))
+                                    ->filter();
+                                $capacities = $capacities->concat($dCaps);
+                            }
+                        }
+
+                        $cleanCapacities = $capacities->filter(fn($c) => !empty($c) && $c !== '-')->unique()->values()->all();
+
+                        // Natural sort capacities: 16GB < 32GB < 64GB < 128GB < 256GB < 512GB < 1TB
+                        usort($cleanCapacities, function ($a, $b) {
+                            $numA = (int) preg_replace('/\D/', '', $a);
+                            if (stripos($a, 'TB') !== false) $numA *= 1024;
+                            $numB = (int) preg_replace('/\D/', '', $b);
+                            if (stripos($b, 'TB') !== false) $numB *= 1024;
+                            return $numA <=> $numB;
+                        });
+
+                        return [
+                            'id' => $t->id,
+                            'name' => $t->name,
+                            'brand_id' => $t->brand_id,
+                            'category' => $t->category,
+                            'capacities' => $cleanCapacities,
+                        ];
+                    });
                 }
-                if ($brandId && Schema::hasColumn('products', 'brand_id')) {
-                    $productQuery->where('brand_id', $brandId);
+
+                // 2. Fetch from Product (for units created directly under products)
+                if (class_exists(Product::class) && Schema::hasTable('products')) {
+                    $productQuery = Product::where('type', 'hp');
+                    if (Schema::hasColumn('products', 'has_imei')) {
+                        $productQuery->where('has_imei', true);
+                    }
+                    if ($brandId && Schema::hasColumn('products', 'brand_id')) {
+                        $productQuery->where('brand_id', $brandId);
+                    } elseif ($brandName && Schema::hasColumn('products', 'brand')) {
+                        $productQuery->where('brand', 'ilike', '%' . $brandName . '%');
+                    }
+                    $products = $productQuery->orderBy('name')->limit(300)->get(['id', 'name', 'brand', 'brand_id'])->map(function ($p) {
+                        $caps = \App\Models\ProductDetail::where('product_id', $p->id)
+                            ->whereNotNull('storage')
+                            ->where('storage', '!=', '-')
+                            ->distinct()
+                            ->pluck('storage')
+                            ->map(fn($s) => trim($s))
+                            ->filter()
+                            ->unique()
+                            ->values()
+                            ->all();
+
+                        usort($caps, function ($a, $b) {
+                            $numA = (int) preg_replace('/\D/', '', $a);
+                            if (stripos($a, 'TB') !== false) $numA *= 1024;
+                            $numB = (int) preg_replace('/\D/', '', $b);
+                            if (stripos($b, 'TB') !== false) $numB *= 1024;
+                            return $numA <=> $numB;
+                        });
+
+                        return [
+                            'id' => $p->id,
+                            'name' => $p->name,
+                            'brand' => $p->brand,
+                            'brand_id' => $p->brand_id,
+                            'capacities' => $caps,
+                        ];
+                    });
                 }
-                $products = $productQuery->orderBy('name')->limit(200)->get(['id', 'name', 'brand']);
             }
 
             return response()->json([
