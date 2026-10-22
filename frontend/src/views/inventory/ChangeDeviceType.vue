@@ -7,7 +7,7 @@ import { useToast } from "../../composables/useToast";
 import {
     Search, Loader2, Smartphone, ShieldAlert, CheckCircle2,
     RotateCcw, History, AlertTriangle, ArrowRight, Save,
-    User, HardDrive, Building2, Tag, Calendar, Lock
+    User, HardDrive, Building2, Tag, Calendar, Lock, X
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -24,6 +24,7 @@ const isSuperAdmin = computed(() => {
 const searchImei = ref("");
 const isSearching = ref(false);
 const isSubmitting = ref(false);
+const showConfirmModal = ref(false);
 const isLoadingTypes = ref(false);
 const isManualType = ref(false);
 const isManualStorage = ref(false);
@@ -231,6 +232,7 @@ async function doSearch() {
     selectedTypeObj.value = null;
     isManualType.value = false;
     isManualStorage.value = false;
+    showConfirmModal.value = false;
 
     try {
         const res = await api.get('/admin/imei-correction/search', {
@@ -361,7 +363,7 @@ function selectStorage(gb) {
     form.storage = gb;
 }
 
-async function submitCorrection() {
+function openConfirmModal() {
     if (!form.cs_name_mistake || form.cs_name_mistake.trim().length < 2) {
         toast.error("Nama CS yang salah input wajib diisi!");
         return;
@@ -375,16 +377,10 @@ async function submitCorrection() {
         return;
     }
 
-    const confirmMsg = `Konfirmasi koreksi IMEI ${deviceData.value.imei}:\n\n`
-        + `Dari: ${deviceData.value.product_name} (${deviceData.value.storage})\n`
-        + `Menjadi: ${form.type_name} (${form.storage})\n`
-        + `CS Salah Input: ${form.cs_name_mistake}\n\n`
-        + `Lanjutkan simpan perubahan?`;
+    showConfirmModal.value = true;
+}
 
-    if (!window.confirm(confirmMsg)) {
-        return;
-    }
-
+async function executeCorrection() {
     isSubmitting.value = true;
     try {
         const payload = {
@@ -400,6 +396,7 @@ async function submitCorrection() {
 
         const res = await api.post('/admin/imei-correction/correct', payload);
         toast.success(res.data.message || "Spesifikasi IMEI berhasil dikoreksi.");
+        showConfirmModal.value = false;
 
         // Reload data for this IMEI and global history
         await doSearch();
@@ -588,7 +585,7 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <form @submit.prevent="submitCorrection" class="space-y-5">
+                    <form @submit.prevent="openConfirmModal" class="space-y-5">
                         <!-- Row 1: Brand & Type -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <!-- Brand (Terkunci) -->
@@ -942,6 +939,110 @@ onMounted(async () => {
                 </div>
             </div>
         </template>
+
+        <!-- Confirmation Modal Box -->
+        <div
+            v-if="showConfirmModal && deviceData"
+            class="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in"
+            @click.self="showConfirmModal = false"
+        >
+            <div
+                class="bg-surface-900 border border-purple-500/30 p-6 sm:p-7 rounded-3xl w-full max-w-lg shadow-2xl shadow-purple-950/40 relative animate-in zoom-in-95 space-y-5"
+            >
+                <!-- Header with Icon & Close Button -->
+                <div class="flex items-start justify-between gap-3 pb-3 border-b border-surface-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0 shadow-inner">
+                            <RotateCcw :size="22" />
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">Konfirmasi Koreksi Spesifikasi</h3>
+                            <p class="text-xs text-text-secondary">Pastikan data perubahan spesifikasi unit sudah tepat</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        @click="showConfirmModal = false"
+                        class="p-1.5 rounded-xl bg-surface-800 text-text-secondary hover:text-white hover:bg-surface-700 transition-colors"
+                    >
+                        <X :size="18" />
+                    </button>
+                </div>
+
+                <!-- IMEI Info -->
+                <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-surface-800 border border-surface-700/70 text-xs">
+                    <span class="text-text-secondary font-medium">Nomor IMEI Unit:</span>
+                    <span class="font-mono font-bold text-white bg-surface-700/60 px-2.5 py-0.5 rounded-lg border border-surface-600">
+                        {{ deviceData.imei }}
+                    </span>
+                </div>
+
+                <!-- Comparison Cards: Sebelum vs Sesudah -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Sebelum (Salah Input) -->
+                    <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block">Sebelum (Salah Input)</span>
+                        <p class="text-sm font-extrabold text-white">{{ deviceData.product_name }}</p>
+                        <div class="text-xs space-y-0.5 text-text-secondary">
+                            <div>Merek: <span class="text-white font-medium">{{ deviceData.brand_name }}</span></div>
+                            <div>Storage: <span class="text-white font-medium">{{ deviceData.storage }}</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Sesudah (Koreksi Benar) -->
+                    <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Koreksi Baru (Benar)</span>
+                        <p class="text-sm font-extrabold text-white">{{ form.type_name }}</p>
+                        <div class="text-xs space-y-0.5 text-text-secondary">
+                            <div>Merek: <span class="text-white font-medium">{{ form.brand_name || deviceData.brand_name }}</span></div>
+                            <div>Storage: <span class="text-white font-medium">{{ form.storage }}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Meta Info -->
+                <div class="p-3.5 rounded-2xl bg-surface-800/80 border border-surface-700/60 space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="text-text-secondary flex items-center gap-1.5">
+                            <User :size="13" class="text-amber-400" />
+                            <span>CS yang salah input:</span>
+                        </span>
+                        <strong class="text-amber-400 font-bold uppercase">{{ form.cs_name_mistake }}</strong>
+                    </div>
+                    <div v-if="form.notes" class="pt-2 border-t border-surface-700/60 text-text-secondary">
+                        <span class="block text-[11px] font-medium text-text-secondary mb-0.5">Catatan / Alasan:</span>
+                        <p class="text-white italic bg-surface-900/60 p-2 rounded-lg text-xs">{{ form.notes }}</p>
+                    </div>
+                </div>
+
+                <!-- Notice Note -->
+                <p class="text-[11px] text-text-secondary text-center leading-relaxed">
+                    Perubahan spesifikasi unit ini akan disimpan permanen dan dicatat pada audit log serta riwayat pelacakan IMEI.
+                </p>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-end gap-3 pt-3 border-t border-surface-700/60">
+                    <button
+                        type="button"
+                        @click="showConfirmModal = false"
+                        :disabled="isSubmitting"
+                        class="px-5 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:text-white hover:bg-surface-800 transition-colors"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        @click="executeCorrection"
+                        :disabled="isSubmitting"
+                        class="btn-primary h-10 px-5 flex items-center gap-2 text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-500/25 transition-all"
+                    >
+                        <Loader2 v-if="isSubmitting" :size="15" class="animate-spin" />
+                        <Save v-else :size="15" />
+                        <span>{{ isSubmitting ? 'Menyimpan...' : 'Ya, Konfirmasi Koreksi' }}</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 

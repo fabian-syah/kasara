@@ -308,6 +308,10 @@ const routes = [
                 redirect: { name: 'ChangeDeviceType' }
             },
             {
+                path: 'balancing/change-type',
+                redirect: { name: 'ChangeDeviceType' }
+            },
+            {
                 path: 'inventory/monitoring-otw',
                 name: 'InventoryMonitoringHub',
                 component: () => import('../views/inventory/InventoryMonitoringHub.vue'),

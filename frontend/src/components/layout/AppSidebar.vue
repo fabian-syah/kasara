@@ -124,7 +124,6 @@ const menuItems = [
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
             { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
-            { id: "change_device_type", path: "/inventory/change-type", label: "Rubah Tipe (IMEI)" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
             { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Kirim Cabang" },
@@ -200,6 +199,7 @@ const menuItems = [
         label: "Balancing",
         icon: Scale,
         items: [
+            { id: "change_device_type", path: "/inventory/change-type", label: "Rubah Tipe HP (IMEI)" },
             { id: "balancing_history", path: "/balancing/history", label: "History Balancing" },
             { id: "balancing_payment", path: "/balancing/payment-method", label: "Balancing Metode Pembayaran" },
             { id: "balancing_missed", path: "/balancing/missed-sale", label: "Balancing Penjualan Terlewat" },

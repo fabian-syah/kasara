@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { Scale, CreditCard, ShoppingBag, ArrowRight, Shield, History } from 'lucide-vue-next';
+import { Scale, CreditCard, ShoppingBag, ArrowRight, Shield, History, Smartphone } from 'lucide-vue-next';
 import { useAuthStore } from '../../store/auth';
 
 const router = useRouter();
@@ -13,6 +13,18 @@ const isSuperAdmin = computed(() => {
 });
 
 const menuItems = [
+    {
+        id: 'imei_correction',
+        title: 'Rubah Tipe HP (IMEI)',
+        description: 'Koreksi tipe produk, merek, dan kapasitas memori untuk unit IMEI salah input dengan audit trail Super Admin.',
+        icon: Smartphone,
+        color: 'from-purple-500 to-indigo-600',
+        bgColor: 'bg-purple-50 dark:bg-purple-950/30',
+        borderColor: 'border-purple-200 dark:border-purple-800/40',
+        path: '/inventory/change-type',
+        available: true,
+        superAdminOnly: true,
+    },
     {
         id: 'history',
         title: 'History Balancing',
