@@ -226,6 +226,7 @@ const menuItems = [
         icon: Search,
         items: [
             { id: "track", path: "/track", label: "Lacak & History IMEI" },
+            { id: "change_device_type", path: "/inventory/change-type", label: "Rubah Tipe (IMEI)" },
             { id: "questions", path: "/questions", label: "Pertanyaan CS/User" },
         ]
     },
