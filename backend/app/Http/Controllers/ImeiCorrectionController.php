@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class ImeiCorrectionController extends Controller
@@ -25,72 +26,94 @@ class ImeiCorrectionController extends Controller
      */
     public function search(Request $request)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        if (!$user || !$user->hasRole('super_admin')) {
-            return response()->json(['message' => 'Akses ditolak. Fitur ini khusus Super Admin.'], 403);
-        }
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            if (!$user || !$user->hasRole('super_admin')) {
+                return response()->json(['message' => 'Akses ditolak. Fitur ini khusus Super Admin.'], 403);
+            }
 
-        $query = trim($request->imei ?? $request->q ?? '');
-        if (strlen($query) < 3) {
-            return response()->json(['message' => 'Masukkan minimal 3 karakter IMEI'], 422);
-        }
+            $query = trim($request->imei ?? $request->q ?? '');
+            if (strlen($query) < 3) {
+                return response()->json(['message' => 'Masukkan minimal 3 karakter IMEI'], 422);
+            }
 
-        $productDetail = ProductDetail::withTrashed()
-            ->with(['product.brandRelation', 'user', 'distributor'])
-            ->where('imei', $query)
-            ->latest('id')
-            ->first();
+            $productDetail = ProductDetail::withTrashed()
+                ->with(['product.brandRelation', 'user', 'distributor'])
+                ->where('imei', $query)
+                ->latest('id')
+                ->first();
 
-        if (!$productDetail) {
+            if (!$productDetail) {
+                return response()->json([
+                    'found' => false,
+                    'message' => "Data IMEI {$query} tidak ditemukan di database unit."
+                ], 404);
+            }
+
+            $placementName = match ($productDetail->placement_type) {
+                'branch' => Branch::find($productDetail->placement_id)?->name ?? 'Cabang #' . $productDetail->placement_id,
+                'warehouse' => Warehouse::find($productDetail->placement_id)?->name ?? 'Gudang #' . $productDetail->placement_id,
+                'online_shop' => OnlineShop::find($productDetail->placement_id)?->name ?? 'Toko Online #' . $productDetail->placement_id,
+                default => '-'
+            };
+
+            $correctionHistories = [];
+            if (Schema::hasTable('imei_correction_histories')) {
+                try {
+                    $correctionHistories = ImeiCorrectionHistory::where('imei', $query)
+                        ->with(['creator', 'oldProduct', 'newProduct'])
+                        ->latest()
+                        ->get();
+                } catch (\Exception $eHist) {
+                    Log::warning("Could not load imei histories: " . $eHist->getMessage());
+                }
+            }
+
+            $brands = [];
+            try {
+                $brands = Brand::orderBy('name')->get(['id', 'name']);
+            } catch (\Exception $eBrand) {
+                Log::warning("Could not load brands: " . $eBrand->getMessage());
+            }
+
+            $storagePresets = ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'];
+
             return response()->json([
-                'found' => false,
-                'message' => "Data IMEI {$query} tidak ditemukan di database unit."
-            ], 404);
+                'found' => true,
+                'data' => [
+                    'detail_id' => $productDetail->id,
+                    'imei' => $productDetail->imei,
+                    'product_id' => $productDetail->product_id,
+                    'product_name' => $productDetail->product?->name ?? 'Unknown',
+                    'brand_id' => $productDetail->product?->brand_id,
+                    'brand_name' => $productDetail->product?->brand ?? $productDetail->product?->brandRelation?->name ?? '-',
+                    'storage' => $productDetail->storage ?? '-',
+                    'ram' => $productDetail->ram ?? '-',
+                    'color' => $productDetail->color ?? '-',
+                    'condition' => $productDetail->condition ?? 'second',
+                    'status' => $productDetail->status ?? 'available',
+                    'is_deleted' => $productDetail->trashed(),
+                    'placement_type' => $productDetail->placement_type,
+                    'placement_id' => $productDetail->placement_id,
+                    'placement_name' => $placementName,
+                    'selling_price' => $productDetail->selling_price,
+                    'distributor_name' => $productDetail->distributor?->name ?? $productDetail->supplier_name ?? '-',
+                    'input_by' => $productDetail->user?->name ?? '-',
+                    'registered_at' => $productDetail->created_at?->toDateTimeString(),
+                ],
+                'histories' => $correctionHistories,
+                'brands' => $brands,
+                'storage_presets' => $storagePresets,
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error in ImeiCorrection search: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server: ' . $e->getMessage()
+            ], 500);
         }
-
-        $placementName = match ($productDetail->placement_type) {
-            'branch' => Branch::find($productDetail->placement_id)?->name ?? 'Cabang #' . $productDetail->placement_id,
-            'warehouse' => Warehouse::find($productDetail->placement_id)?->name ?? 'Gudang #' . $productDetail->placement_id,
-            'online_shop' => OnlineShop::find($productDetail->placement_id)?->name ?? 'Toko Online #' . $productDetail->placement_id,
-            default => '-'
-        };
-
-        $correctionHistories = ImeiCorrectionHistory::where('imei', $query)
-            ->with(['creator', 'oldProduct', 'newProduct', 'oldBrand', 'newBrand'])
-            ->latest()
-            ->get();
-
-        $brands = Brand::orderBy('name')->get(['id', 'name']);
-        $storagePresets = ['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'];
-
-        return response()->json([
-            'found' => true,
-            'data' => [
-                'detail_id' => $productDetail->id,
-                'imei' => $productDetail->imei,
-                'product_id' => $productDetail->product_id,
-                'product_name' => $productDetail->product?->name ?? 'Unknown',
-                'brand_id' => $productDetail->product?->brand_id,
-                'brand_name' => $productDetail->product?->brand ?? $productDetail->product?->brandRelation?->name ?? '-',
-                'storage' => $productDetail->storage ?? '-',
-                'ram' => $productDetail->ram ?? '-',
-                'color' => $productDetail->color ?? '-',
-                'condition' => $productDetail->condition ?? 'second',
-                'status' => $productDetail->status ?? 'available',
-                'is_deleted' => $productDetail->trashed(),
-                'placement_type' => $productDetail->placement_type,
-                'placement_id' => $productDetail->placement_id,
-                'placement_name' => $placementName,
-                'selling_price' => $productDetail->selling_price,
-                'distributor_name' => $productDetail->distributor?->name ?? $productDetail->supplier_name ?? '-',
-                'input_by' => $productDetail->user?->name ?? '-',
-                'registered_at' => $productDetail->created_at?->toDateTimeString(),
-            ],
-            'histories' => $correctionHistories,
-            'brands' => $brands,
-            'storage_presets' => $storagePresets,
-        ]);
     }
 
     /**
@@ -98,26 +121,41 @@ class ImeiCorrectionController extends Controller
      */
     public function getTypes(Request $request)
     {
-        $brandId = $request->brand_id;
-        $query = ProductType::query();
+        try {
+            $brandId = $request->brand_id;
+            $types = collect();
+            $products = collect();
 
-        if ($brandId) {
-            $query->where('brand_id', $brandId);
+            if (class_exists(ProductType::class) && Schema::hasTable('product_types')) {
+                $query = ProductType::query();
+                if ($brandId && Schema::hasColumn('product_types', 'brand_id')) {
+                    $query->where('brand_id', $brandId);
+                }
+                $types = $query->orderBy('name')->get();
+            }
+
+            if (class_exists(Product::class) && Schema::hasTable('products')) {
+                $productQuery = Product::where('type', 'hp');
+                if (Schema::hasColumn('products', 'has_imei')) {
+                    $productQuery->where('has_imei', true);
+                }
+                if ($brandId && Schema::hasColumn('products', 'brand_id')) {
+                    $productQuery->where('brand_id', $brandId);
+                }
+                $products = $productQuery->orderBy('name')->limit(200)->get(['id', 'name', 'brand']);
+            }
+
+            return response()->json([
+                'types' => $types,
+                'products' => $products
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error in ImeiCorrection getTypes: " . $e->getMessage());
+            return response()->json([
+                'types' => [],
+                'products' => []
+            ]);
         }
-
-        $types = $query->orderBy('name')->get(['id', 'brand_id', 'name', 'ram', 'storage']);
-
-        // Also fetch known Products of type hp for this brand
-        $productQuery = Product::where('type', 'hp')->where('has_imei', true);
-        if ($brandId) {
-            $productQuery->where('brand_id', $brandId);
-        }
-        $products = $productQuery->orderBy('name')->get(['id', 'name', 'brand', 'brand_id']);
-
-        return response()->json([
-            'types' => $types,
-            'products' => $products
-        ]);
     }
 
     /**
@@ -129,6 +167,12 @@ class ImeiCorrectionController extends Controller
         $user = Auth::user();
         if (!$user || !$user->hasRole('super_admin')) {
             return response()->json(['message' => 'Akses ditolak. Fitur ini khusus Super Admin.'], 403);
+        }
+
+        if (!Schema::hasTable('imei_correction_histories')) {
+            return response()->json([
+                'message' => 'Tabel database imei_correction_histories belum dibuat. Silakan jalankan "php artisan migrate" di server.'
+            ], 422);
         }
 
         $validated = $request->validate([
@@ -190,9 +234,8 @@ class ImeiCorrectionController extends Controller
 
             $cleanTypeName = trim($validated['type_name']);
             if (!$targetProduct) {
-                // Find existing Product with matching name and brand
                 $queryP = Product::where('type', 'hp')->where('name', 'ilike', $cleanTypeName);
-                if ($brandId) {
+                if ($brandId && Schema::hasColumn('products', 'brand_id')) {
                     $queryP->where('brand_id', $brandId);
                 }
                 $targetProduct = $queryP->first();
@@ -200,17 +243,20 @@ class ImeiCorrectionController extends Controller
 
             // Create new Product if it doesn't exist yet
             if (!$targetProduct) {
-                $targetProduct = Product::create([
+                $productParams = [
                     'name' => $cleanTypeName,
                     'brand' => $brandName ?: 'Unknown',
-                    'brand_id' => $brandId,
                     'type' => 'hp',
                     'has_imei' => true,
                     'sku' => 'HP-' . strtoupper(Str::random(8)),
                     'category' => 'HP',
                     'price' => $productDetail->selling_price ?? 0,
                     'is_active' => true,
-                ]);
+                ];
+                if (Schema::hasColumn('products', 'brand_id')) {
+                    $productParams['brand_id'] = $brandId;
+                }
+                $targetProduct = Product::create($productParams);
             }
 
             // Update ProductDetail
@@ -289,26 +335,45 @@ class ImeiCorrectionController extends Controller
      */
     public function history(Request $request)
     {
-        /** @var \App\Models\User $user */
-        $user = Auth::user();
-        if (!$user || !$user->hasRole('super_admin')) {
-            return response()->json(['message' => 'Akses ditolak.'], 403);
+        try {
+            /** @var \App\Models\User $user */
+            $user = Auth::user();
+            if (!$user || !$user->hasRole('super_admin')) {
+                return response()->json(['message' => 'Akses ditolak.'], 403);
+            }
+
+            if (!Schema::hasTable('imei_correction_histories')) {
+                return response()->json([
+                    'current_page' => 1,
+                    'data' => [],
+                    'total' => 0,
+                    'message' => 'Tabel riwayat belum dimigrasi. Silakan jalankan "php artisan migrate".'
+                ]);
+            }
+
+            $search = trim($request->q ?? '');
+            $query = ImeiCorrectionHistory::with(['creator', 'oldProduct', 'newProduct'])->latest();
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('imei', 'like', "%{$search}%")
+                        ->orWhere('cs_name_mistake', 'ilike', "%{$search}%")
+                        ->orWhere('old_product_name', 'ilike', "%{$search}%")
+                        ->orWhere('new_product_name', 'ilike', "%{$search}%");
+                });
+            }
+
+            $histories = $query->paginate(20);
+
+            return response()->json($histories);
+        } catch (\Exception $e) {
+            Log::error("Error in ImeiCorrection history: " . $e->getMessage());
+            return response()->json([
+                'current_page' => 1,
+                'data' => [],
+                'total' => 0,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
-
-        $search = trim($request->q ?? '');
-        $query = ImeiCorrectionHistory::with(['creator', 'oldProduct', 'newProduct', 'oldBrand', 'newBrand'])->latest();
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('imei', 'like', "%{$search}%")
-                    ->orWhere('cs_name_mistake', 'ilike', "%{$search}%")
-                    ->orWhere('old_product_name', 'ilike', "%{$search}%")
-                    ->orWhere('new_product_name', 'ilike', "%{$search}%");
-            });
-        }
-
-        $histories = $query->paginate(20);
-
-        return response()->json($histories);
     }
 }
