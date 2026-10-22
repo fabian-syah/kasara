@@ -377,8 +377,9 @@ class ImeiCorrectionController extends Controller
             $oldRam = $productDetail->ram;
 
             // Resolve target Brand
-            $brandId = $validated['brand_id'] ?? null;
-            $brandName = $validated['brand_name'] ?? null;
+            // Brand is strictly locked to unit's original brand to preserve distributor data integrity
+            $brandId = $oldBrandId ?: ($validated['brand_id'] ?? null);
+            $brandName = $oldBrandName ?: ($validated['brand_name'] ?? null);
             $cleanStr = fn($s) => trim(preg_replace('/[^a-zA-Z0-9]/', '', strtolower($s ?? '')));
 
             if ($brandId && !$brandName) {
@@ -404,7 +405,15 @@ class ImeiCorrectionController extends Controller
             // Resolve NEW Product
             $targetProduct = null;
             if (!empty($validated['product_id'])) {
-                $targetProduct = Product::find($validated['product_id']);
+                $candidate = Product::find($validated['product_id']);
+                // Verify candidate belongs to the same locked brand
+                if ($candidate) {
+                    if ($brandId && Schema::hasColumn('products', 'brand_id') && $candidate->brand_id && $candidate->brand_id !== $brandId) {
+                        $targetProduct = null;
+                    } else {
+                        $targetProduct = $candidate;
+                    }
+                }
             }
 
             $cleanTypeName = trim($validated['type_name']);

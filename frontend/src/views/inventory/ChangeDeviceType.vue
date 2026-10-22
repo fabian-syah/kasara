@@ -7,7 +7,7 @@ import { useToast } from "../../composables/useToast";
 import {
     Search, Loader2, Smartphone, ShieldAlert, CheckCircle2,
     RotateCcw, History, AlertTriangle, ArrowRight, Save,
-    User, HardDrive, Building2, Tag, Calendar
+    User, HardDrive, Building2, Tag, Calendar, Lock
 } from "lucide-vue-next";
 
 const route = useRoute();
@@ -264,7 +264,7 @@ async function doSearch() {
             form.notes = "";
 
             // Load types filtered by brand
-            if (form.brand_id) {
+            if (form.brand_id || form.brand_name) {
                 await loadTypes(form.brand_id);
             }
 
@@ -591,30 +591,32 @@ onMounted(async () => {
                     <form @submit.prevent="submitCorrection" class="space-y-5">
                         <!-- Row 1: Brand & Type -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Brand -->
+                            <!-- Brand (Terkunci) -->
                             <div>
-                                <label class="block text-xs font-bold text-text-primary mb-1.5 flex items-center gap-1.5">
-                                    <Tag :size="14" class="text-purple-400" />
-                                    <span>Merek (Brand)</span>
-                                    <span class="text-red-500">*</span>
-                                </label>
-                                <select
-                                    v-model="form.brand_id"
-                                    @change="onBrandChange"
-                                    class="input-control h-11 w-full text-sm"
-                                    required
-                                >
-                                    <option :value="null">Pilih Brand...</option>
-                                    <option v-for="b in brands" :key="b.id" :value="b.id">
-                                        {{ b.name }}
-                                    </option>
-                                    <option
-                                        v-if="form.brand_name && !brands.some(b => b.id === form.brand_id || b.name === form.brand_name)"
-                                        :value="form.brand_id || form.brand_name"
-                                    >
-                                        {{ form.brand_name }}
-                                    </option>
-                                </select>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                                        <Tag :size="14" class="text-purple-400" />
+                                        <span>Merek (Brand)</span>
+                                    </label>
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                                        <Lock :size="11" /> Terkunci
+                                    </span>
+                                </div>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-500/80">
+                                        <Lock :size="15" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        :value="form.brand_name || (deviceData ? deviceData.brand_name : '') || 'Tidak ada brand'"
+                                        disabled
+                                        readonly
+                                        class="input-control h-11 w-full pl-9 text-sm font-semibold bg-surface-100 dark:bg-surface-800/80 text-text-primary cursor-not-allowed border-dashed border-surface-600/70 select-none opacity-90"
+                                    />
+                                </div>
+                                <p class="text-[11px] text-text-secondary mt-1">
+                                    Merek dikunci sesuai distributor<span v-if="deviceData?.distributor_name && deviceData.distributor_name !== '-'"> ({{ deviceData.distributor_name }})</span> agar data stok tidak bentrok.
+                                </p>
                             </div>
 
                             <!-- Tipe HP -->
