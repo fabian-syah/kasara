@@ -294,6 +294,20 @@ const routes = [
                 }
             },
             {
+                path: 'inventory/change-type',
+                name: 'ChangeDeviceType',
+                component: () => import('../views/inventory/ChangeDeviceType.vue'),
+                meta: {
+                    title: 'Rubah Tipe HP (IMEI)',
+                    menu: 'change_device_type',
+                    permissions: ['super_admin']
+                }
+            },
+            {
+                path: 'admin/change-device-type',
+                redirect: { name: 'ChangeDeviceType' }
+            },
+            {
                 path: 'inventory/monitoring-otw',
                 name: 'InventoryMonitoringHub',
                 component: () => import('../views/inventory/InventoryMonitoringHub.vue'),

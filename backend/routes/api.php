@@ -21,6 +21,7 @@ use App\Http\Controllers\TradeInController;
 use App\Http\Controllers\UnitExchangeController;
 use App\Http\Controllers\FailedTransferController;
 use App\Http\Controllers\ReceiptSettingController;
+use App\Http\Controllers\ImeiCorrectionController;
 
 // ... (previous routes)
 
@@ -167,6 +168,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/fix-data', [InventoryController::class, 'fixMergedImeis']);
         Route::get('/fix-logs', [InventoryController::class, 'fixInventoryLogs']);
         Route::get('/debug-pending', [UserController::class, 'debugPendingDump']);
+
+        // IMEI Type Correction (Super Admin only)
+        Route::prefix('imei-correction')->group(function () {
+            Route::get('/search', [ImeiCorrectionController::class, 'search']);
+            Route::get('/types', [ImeiCorrectionController::class, 'getTypes']);
+            Route::post('/correct', [ImeiCorrectionController::class, 'correct']);
+            Route::get('/history', [ImeiCorrectionController::class, 'history']);
+        });
     });
 
     // Branch League Management (Super Admin only)

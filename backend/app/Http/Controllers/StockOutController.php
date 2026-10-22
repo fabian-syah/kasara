@@ -2875,6 +2875,39 @@ class StockOutController extends Controller
                 }
             }
 
+            // Append IMEI specification correction events (Super Admin corrections)
+            try {
+                $corrections = \App\Models\ImeiCorrectionHistory::with(['creator', 'oldProduct', 'newProduct', 'oldBrand', 'newBrand'])
+                    ->where('imei', $query)
+                    ->get();
+
+                foreach ($corrections as $corr) {
+                    $allEvents[] = [
+                        'type' => 'imei_correction',
+                        'sub_type' => 'correction',
+                        'id' => 'CORR-' . $corr->id,
+                        'imei' => $corr->imei,
+                        'old_product_name' => $corr->old_product_name,
+                        'old_brand' => $corr->old_brand ?? '-',
+                        'old_storage' => $corr->old_storage ?? '-',
+                        'old_color' => $corr->old_color ?? '-',
+                        'old_ram' => $corr->old_ram ?? '-',
+                        'new_product_name' => $corr->new_product_name,
+                        'new_brand' => $corr->new_brand ?? '-',
+                        'new_storage' => $corr->new_storage ?? '-',
+                        'new_color' => $corr->new_color ?? '-',
+                        'new_ram' => $corr->new_ram ?? '-',
+                        'cs_name_mistake' => $corr->cs_name_mistake,
+                        'notes' => $corr->notes,
+                        'admin_name' => $corr->creator?->name ?? 'Super Admin',
+                        'created_at' => $corr->created_at->toDateTimeString(),
+                        'timestamp' => $corr->created_at->timestamp,
+                    ];
+                }
+            } catch (\Exception $eCorr) {
+                \Illuminate\Support\Facades\Log::warning("Could not load imei corrections: " . $eCorr->getMessage());
+            }
+
             // Sort chronologically (Newest first for timeline flow)
             usort($allEvents, function ($a, $b) {
                 return $b['timestamp'] - $a['timestamp'];

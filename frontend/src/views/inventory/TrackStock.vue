@@ -1,13 +1,21 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
+import { useAuthStore } from "../../store/auth";
 import {
     Search, Package, Loader2, Building2, AlertTriangle, RotateCcw,
     ShoppingBag, Calendar, User, Smartphone, ArrowUpRight, MapPin,
-    DollarSign, Box, Printer, Eye, X, Gift, Hash, Wallet, CheckSquare
+    DollarSign, Box, Printer, Eye, X, Gift, Hash, Wallet, CheckSquare,
+    Edit3, ArrowRight
 } from "lucide-vue-next";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
+
+const authStore = useAuthStore();
+const isSuperAdmin = computed(() => {
+    const role = (authStore.userRole || '').toLowerCase().replace(/\s+/g, '_');
+    return role === 'super_admin';
+});
 
 const toast = useToast();
 const query = ref("");
@@ -226,9 +234,16 @@ function getCategoryColor(category) {
 
             <!-- Results List -->
             <div v-else>
-                <p class="text-xs text-text-secondary mb-3 sm:mb-4">
-                    Ditemukan <span class="text-text-primary font-semibold">{{ results.length }}</span> riwayat
-                </p>
+                <div class="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2">
+                    <p class="text-xs text-text-secondary">
+                        Ditemukan <span class="text-text-primary font-semibold">{{ results.length }}</span> riwayat
+                    </p>
+                    <router-link v-if="isSuperAdmin && query.length >= 5" :to="`/inventory/change-type?imei=${query}`"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 text-purple-500 dark:text-purple-400 border border-purple-500/30 rounded-lg text-xs font-semibold transition-all">
+                        <Edit3 :size="13" />
+                        <span>Koreksi / Rubah Tipe IMEI Ini</span>
+                    </router-link>
+                </div>
 
                 <div class="space-y-2.5 sm:space-y-3">
                     <template v-for="(result, rIdx) in results" :key="result.type + '-' + result.id + '-' + rIdx">
@@ -343,6 +358,90 @@ function getCategoryColor(category) {
                                         <Printer :size="12" />
                                         Lihat Nota
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ══ IMEI SPECIFICATION CORRECTION (SUPER ADMIN) ══ -->
+                        <div v-else-if="result.type === 'imei_correction'" class="card-track overflow-hidden border-purple-500/30 shadow-sm">
+                            <!-- Top bar gradient -->
+                            <div class="h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-amber-500"></div>
+
+                            <div class="p-3.5 sm:p-4">
+                                <!-- Header row -->
+                                <div class="flex items-center gap-2.5 sm:gap-3">
+                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-500/10 text-purple-500 dark:text-purple-400 border border-purple-500/20">
+                                        <Edit3 :size="18" />
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="badge-xs bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/20 font-bold">KOREKSI SPESIFIKASI HP</span>
+                                            <span class="badge-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">SUPER ADMIN</span>
+                                        </div>
+                                        <p class="text-sm font-bold text-text-primary mt-0.5 truncate">Perubahan Tipe / Kapasitas Unit</p>
+                                        <p class="text-[11px] text-text-secondary font-mono">{{ result.imei }}</p>
+                                    </div>
+                                    <div class="text-[10px] sm:text-xs text-text-secondary text-right shrink-0 whitespace-nowrap">
+                                        {{ formatDate(result.created_at) }}
+                                    </div>
+                                </div>
+
+                                <!-- Before vs After Comparison Card -->
+                                <div class="mt-3.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                    <!-- Before (Salah Input) -->
+                                    <div class="p-3 rounded-xl bg-red-500/5 dark:bg-red-950/20 border border-red-500/20">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">Sebelum Koreksi (Salah Input)</span>
+                                        </div>
+                                        <p class="text-sm font-bold text-text-primary">{{ result.old_product_name }}</p>
+                                        <div class="flex items-center gap-2 mt-1.5 text-xs text-text-secondary flex-wrap">
+                                            <span>Merek: <strong class="text-text-primary">{{ result.old_brand || '-' }}</strong></span>
+                                            <span>•</span>
+                                            <span>Storage: <strong class="text-text-primary">{{ result.old_storage || '-' }}</strong></span>
+                                            <template v-if="result.old_color && result.old_color !== '-'">
+                                                <span>•</span>
+                                                <span>Warna: <strong class="text-text-primary">{{ result.old_color }}</strong></span>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- After (Koreksi Benar) -->
+                                    <div class="p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-950/20 border border-emerald-500/20">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Setelah Koreksi (Spesifikasi Benar)</span>
+                                        </div>
+                                        <p class="text-sm font-bold text-emerald-600 dark:text-emerald-400">{{ result.new_product_name }}</p>
+                                        <div class="flex items-center gap-2 mt-1.5 text-xs text-text-secondary flex-wrap">
+                                            <span>Merek: <strong class="text-text-primary">{{ result.new_brand || '-' }}</strong></span>
+                                            <span>•</span>
+                                            <span>Storage: <strong class="text-text-primary">{{ result.new_storage || '-' }}</strong></span>
+                                            <template v-if="result.new_color && result.new_color !== '-'">
+                                                <span>•</span>
+                                                <span>Warna: <strong class="text-text-primary">{{ result.new_color }}</strong></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CS Mistake Highlight & Metadata -->
+                                <div class="mt-3 pt-3 border-t border-surface-700/50 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                    <div class="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
+                                        <AlertTriangle :size="16" class="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                                        <div>
+                                            <p class="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">Nama CS Yang Salah Input:</p>
+                                            <p class="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">{{ result.cs_name_mistake }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col justify-center px-1 py-0.5 gap-1.5">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-[10px] text-text-secondary">Super Admin yang Memperbaiki:</span>
+                                            <span class="text-xs font-semibold text-text-primary">{{ result.admin_name || 'Super Admin' }}</span>
+                                        </div>
+                                        <div v-if="result.notes">
+                                            <span class="text-[10px] text-text-secondary">Catatan / Alasan:</span>
+                                            <p class="text-xs text-text-primary italic mt-0.5">{{ result.notes }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
