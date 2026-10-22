@@ -477,22 +477,12 @@ class ImeiCorrectionController extends Controller
                 'created_by' => $user->id,
             ]);
 
-            // Record in InventoryLog for audit trail
-            $csMistake = trim($validated['cs_name_mistake']);
-            InventoryLog::create([
-                'product_id' => $targetProduct->id,
-                'branch_id' => $productDetail->placement_type === 'branch' ? $productDetail->placement_id : null,
-                'warehouse_id' => $productDetail->placement_type === 'warehouse' ? $productDetail->placement_id : null,
-                'online_shop_id' => $productDetail->placement_type === 'online_shop' ? $productDetail->placement_id : null,
-                'user_id' => $user->id,
-                'distributor_id' => $productDetail->distributor_id,
-                'supplier_name' => $productDetail->supplier_name,
-                'type' => 'in',
-                'quantity' => 0,
-                'description' => "Koreksi Tipe HP oleh Super Admin: {$oldProductName} ({$oldStorage}) -> {$targetProduct->name} ({$newStorage}) [CS Salah: {$csMistake}]",
-                'reference_id' => (string) $productDetail->id,
-                'notes' => $validated['notes'] ?? "Koreksi spesifikasi unit IMEI {$imei}. CS salah input: {$csMistake}",
-            ]);
+            // Clean up any stray InventoryLog from previous corrections so they never show up as fake stock_in
+            try {
+                InventoryLog::where('description', 'like', '%Koreksi Tipe HP%')->delete();
+            } catch (\Exception $eClean) {
+                Log::warning("Could not delete stray correction logs: " . $eClean->getMessage());
+            }
 
             DB::commit();
 

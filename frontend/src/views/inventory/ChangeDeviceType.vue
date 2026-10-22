@@ -459,8 +459,8 @@ onMounted(async () => {
             <div class="mb-6">
                 <div class="flex items-center gap-2 mb-1.5 flex-wrap">
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                        <ShieldAlert :size="12" />
-                        KHUSUS SUPER ADMIN
+                        <RotateCcw :size="12" />
+                        KOREKSI SPESIFIKASI
                     </span>
                     <span class="text-xs text-text-secondary">Audit Trail & Koreksi Data</span>
                 </div>
@@ -848,7 +848,6 @@ onMounted(async () => {
                                 <p v-if="hist.notes" class="text-text-secondary italic mt-1 text-[11px]">{{ hist.notes }}</p>
                             </div>
                             <div class="text-[11px] text-text-secondary shrink-0 text-left sm:text-right">
-                                <p>Oleh: <strong class="text-text-primary">{{ hist.creator?.name || 'Super Admin' }}</strong></p>
                                 <p>{{ formatDate(hist.created_at) }}</p>
                             </div>
                         </div>
@@ -864,7 +863,7 @@ onMounted(async () => {
                             <History :size="18" class="text-purple-400" />
                             <span>Audit Log: Semua Koreksi Tipe IMEI</span>
                         </h3>
-                        <p class="text-xs text-text-secondary mt-0.5">Daftar rekapan seluruh unit yang pernah dirubah tipe/spesifikasinya oleh Super Admin</p>
+                        <p class="text-xs text-text-secondary mt-0.5">Daftar rekapan seluruh riwayat koreksi tipe dan spesifikasi unit IMEI</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <input
@@ -903,7 +902,6 @@ onMounted(async () => {
                                 <th class="py-2.5 px-3">Sebelumnya (Salah)</th>
                                 <th class="py-2.5 px-3">Hasil Koreksi (Benar)</th>
                                 <th class="py-2.5 px-3">CS Salah Input</th>
-                                <th class="py-2.5 px-3">Admin</th>
                                 <th class="py-2.5 px-3 text-right">Aksi</th>
                             </tr>
                         </thead>
@@ -924,7 +922,6 @@ onMounted(async () => {
                                         {{ item.cs_name_mistake }}
                                     </span>
                                 </td>
-                                <td class="py-2.5 px-3 text-text-secondary">{{ item.creator?.name || 'Super Admin' }}</td>
                                 <td class="py-2.5 px-3 text-right whitespace-nowrap">
                                     <router-link
                                         :to="`/track?q=${item.imei}`"

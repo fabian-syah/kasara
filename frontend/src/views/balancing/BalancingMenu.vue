@@ -16,7 +16,7 @@ const menuItems = [
     {
         id: 'imei_correction',
         title: 'Rubah Tipe HP (IMEI)',
-        description: 'Koreksi tipe produk, merek, dan kapasitas memori untuk unit IMEI salah input dengan audit trail Super Admin.',
+        description: 'Koreksi tipe produk, merek, dan kapasitas memori untuk unit IMEI salah input dengan riwayat audit trail sistem.',
         icon: Smartphone,
         color: 'from-purple-500 to-indigo-600',
         bgColor: 'bg-purple-50 dark:bg-purple-950/30',

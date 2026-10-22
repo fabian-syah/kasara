@@ -404,7 +404,6 @@ watch(
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <span class="badge-xs bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/20 font-bold">KOREKSI SPESIFIKASI HP</span>
-                                            <span class="badge-xs bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">SUPER ADMIN</span>
                                         </div>
                                         <p class="text-sm font-bold text-text-primary mt-0.5 truncate">Perubahan Tipe / Kapasitas Unit</p>
                                         <p class="text-[11px] text-text-secondary font-mono">{{ result.imei }}</p>
@@ -444,7 +443,7 @@ watch(
                                 </div>
 
                                 <!-- CS Mistake Highlight & Metadata -->
-                                <div class="mt-3 pt-3 border-t border-surface-700/50 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                <div class="mt-3 pt-3 border-t border-surface-700/50 grid grid-cols-1" :class="result.notes ? 'sm:grid-cols-2 gap-3' : ''">
                                     <div class="flex items-start gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
                                         <AlertTriangle :size="16" class="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
                                         <div>
@@ -452,15 +451,9 @@ watch(
                                             <p class="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">{{ result.cs_name_mistake }}</p>
                                         </div>
                                     </div>
-                                    <div class="flex flex-col justify-center px-1 py-0.5 gap-1.5">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-[10px] text-text-secondary">Super Admin yang Memperbaiki:</span>
-                                            <span class="text-xs font-semibold text-text-primary">{{ result.admin_name || 'Super Admin' }}</span>
-                                        </div>
-                                        <div v-if="result.notes">
-                                            <span class="text-[10px] text-text-secondary">Catatan / Alasan:</span>
-                                            <p class="text-xs text-text-primary italic mt-0.5">{{ result.notes }}</p>
-                                        </div>
+                                    <div v-if="result.notes" class="flex flex-col justify-center px-1 py-0.5">
+                                        <span class="text-[10px] text-text-secondary font-semibold">Catatan / Alasan:</span>
+                                        <p class="text-xs text-text-primary italic mt-0.5 bg-surface-800/80 p-2.5 rounded-xl border border-surface-700/60">{{ result.notes }}</p>
                                     </div>
                                 </div>
                             </div>

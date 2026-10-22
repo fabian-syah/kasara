@@ -1908,6 +1908,7 @@ class StockOutController extends Controller
                 })
                 ->where('description', 'not like', 'Pindah Cabang Masuk%')
                 ->where('description', 'not like', 'Transfer Masuk%')
+                ->where('description', 'not like', '%Koreksi%')
                 ->orderBy('created_at');
 
             $stockInLogs = $stockInLogQuery->get();
@@ -2899,7 +2900,6 @@ class StockOutController extends Controller
                         'new_ram' => $corr->new_ram ?? '-',
                         'cs_name_mistake' => $corr->cs_name_mistake,
                         'notes' => $corr->notes,
-                        'admin_name' => $corr->creator?->name ?? 'Super Admin',
                         'created_at' => $corr->created_at->toDateTimeString(),
                         'timestamp' => $corr->created_at->timestamp,
                     ];
