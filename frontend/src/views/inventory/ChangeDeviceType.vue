@@ -479,12 +479,15 @@ onMounted(async () => {
             <div class="card-box p-4 sm:p-5 mb-6">
                 <form @submit.prevent="doSearch" class="flex flex-col sm:flex-row gap-3">
                     <div class="relative flex-1">
-                        <Search class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-500" :size="18" />
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-surface-400">
+                            <Search :size="18" />
+                        </div>
                         <input
                             v-model="searchImei"
                             type="text"
                             placeholder="Masukkan nomor IMEI yang ingin dirubah..."
-                            class="input-control pl-10 h-12 text-sm font-mono w-full"
+                            class="input-control h-12 text-sm font-mono w-full"
+                            style="padding-left: 2.75rem !important;"
                             autofocus
                         />
                     </div>

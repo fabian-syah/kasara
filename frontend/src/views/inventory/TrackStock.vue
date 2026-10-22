@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
 import api from "../../api/axios";
 import { useToast } from "../../composables/useToast";
 import { useAuthStore } from "../../store/auth";
@@ -11,6 +12,7 @@ import {
 } from "lucide-vue-next";
 import ReceiptModal from "../../components/modals/ReceiptModal.vue";
 
+const route = useRoute();
 const authStore = useAuthStore();
 const isSuperAdmin = computed(() => {
     const role = (authStore.userRole || '').toLowerCase().replace(/\s+/g, '_');
@@ -185,6 +187,29 @@ function getCategoryColor(category) {
     if (['dp', 'pelunasan_dp', 'balancing'].includes(category)) return 'emerald';
     return 'emerald';
 }
+
+function handleInitialQuery() {
+    const qParam = route.query.q || route.query.imei;
+    if (qParam && String(qParam).trim().length >= 3) {
+        query.value = String(qParam).trim();
+        search();
+    }
+}
+
+onMounted(() => {
+    handleInitialQuery();
+});
+
+watch(
+    () => [route.query.q, route.query.imei],
+    ([newQ, newImei]) => {
+        const qParam = newQ || newImei;
+        if (qParam && String(qParam).trim().length >= 3 && String(qParam).trim() !== query.value) {
+            query.value = String(qParam).trim();
+            search();
+        }
+    }
+);
 </script>
 
 <template>
@@ -202,9 +227,12 @@ function getCategoryColor(category) {
         <div class="sticky top-0 z-30 bg-surface-900/95 backdrop-blur-md pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:static sm:bg-transparent sm:backdrop-blur-none pt-2 sm:pt-0">
             <form @submit.prevent="search" class="flex gap-2">
                 <div class="relative flex-1">
-                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-surface-500" :size="16" />
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-surface-400">
+                        <Search :size="18" />
+                    </div>
                     <input v-model="query" type="text" placeholder="IMEI, Resi, atau Kode Nota..."
-                        class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-9 sm:pl-10 pr-3 h-11 sm:h-12 text-sm text-text-primary placeholder:text-surface-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all" />
+                        class="w-full bg-surface-800 border border-surface-700 rounded-xl pr-3 h-11 sm:h-12 text-sm text-text-primary placeholder:text-surface-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all font-mono"
+                        style="padding-left: 2.75rem !important;" />
                 </div>
                 <button type="submit" :disabled="isLoading || query.length < 3"
                     class="h-11 sm:h-12 px-4 sm:px-6 bg-primary-600 hover:bg-primary-500 text-white rounded-xl text-sm font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-all shrink-0 flex items-center gap-2">
