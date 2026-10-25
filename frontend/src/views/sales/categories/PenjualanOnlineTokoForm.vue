@@ -10,6 +10,7 @@ import { getProvinces, getCitiesByProvince } from '../../../utils/indonesiaRegio
 import {
     ArrowLeft,
     Plus,
+    Minus,
     Search,
     Trash2,
     Camera,
@@ -194,61 +195,100 @@ const availableInventory = computed(() => {
     let prods = inventoryStore.products || [];
     const q = itemSearchQuery.value.trim().toLowerCase();
 
-    // Exclude items already selected
-    const selectedHpIds = new Set(selectedItems.value.filter(i => i.is_hp).map(i => i.id));
+    // Tab filtering
+    if (itemTypeFilter.value === 'selected') {
+        const selectedHpIds = new Set(selectedItems.value.filter(i => i.is_hp).map(i => i.id));
+        const selectedNonHpIds = new Set(selectedItems.value.filter(i => !i.is_hp).map(i => i.product_id));
+        prods = prods.filter(p => {
+            const isHp = !p.is_non_hp;
+            if (isHp) return selectedHpIds.has(p.id);
+            return selectedNonHpIds.has(p.product_id || p.id);
+        });
+    } else if (itemTypeFilter.value === 'hp') {
+        prods = prods.filter(p => !p.is_non_hp);
+    } else if (itemTypeFilter.value === 'non-hp') {
+        prods = prods.filter(p => p.is_non_hp);
+    }
 
-    prods = prods.filter(p => {
-        const isHp = !p.is_non_hp;
-        if (isHp && selectedHpIds.has(p.id)) return false;
-
-        if (itemTypeFilter.value === 'hp' && !isHp) return false;
-        if (itemTypeFilter.value === 'non-hp' && isHp) return false;
-
-        if (q) {
+    // Search query filtering
+    if (q) {
+        prods = prods.filter(p => {
             const name = (p.product?.name || p.name || '').toLowerCase();
             const imei = (p.imei || '').toLowerCase();
             const brand = (p.product?.brand || p.brand || '').toLowerCase();
             return name.includes(q) || imei.includes(q) || brand.includes(q);
-        }
-        return true;
-    });
+        });
+    }
 
-    return prods.slice(0, 40);
+    return prods.slice(0, 100);
 });
 
 function openItemPicker() {
     itemSearchQuery.value = '';
+    itemTypeFilter.value = 'all';
     showItemPicker.value = true;
+    if (!inventoryStore.products || inventoryStore.products.length === 0) {
+        inventoryStore.fetchInventory?.();
+    }
 }
 
-function addItemToSale(product) {
-    const isHp = !product.is_non_hp;
-    const basePrice = Number(product.selling_price || product.product?.selling_price || product.price || product.product?.price || 0);
+function isProductSelected(prod) {
+    if (!prod) return false;
+    const isHp = !prod.is_non_hp;
+    if (isHp) {
+        return selectedItems.value.some(it => it.is_hp && it.id === prod.id);
+    }
+    const prodId = prod.product_id || prod.id;
+    return selectedItems.value.some(it => !it.is_hp && it.product_id === prodId);
+}
+
+function getSelectedQty(prod) {
+    if (!prod) return 0;
+    const isHp = !prod.is_non_hp;
+    if (isHp) {
+        return selectedItems.value.some(it => it.is_hp && it.id === prod.id) ? 1 : 0;
+    }
+    const prodId = prod.product_id || prod.id;
+    const item = selectedItems.value.find(it => !it.is_hp && it.product_id === prodId);
+    return item ? (Number(item.quantity) || 1) : 0;
+}
+
+function toggleProductSelection(prod) {
+    const isHp = !prod.is_non_hp;
+    const basePrice = Number(prod.selling_price || prod.product?.selling_price || prod.price || prod.product?.price || 0);
 
     if (isHp) {
-        selectedItems.value.push({
-            id: product.id,
-            product_id: product.product_id || product.id,
-            name: product.product?.name || product.name || 'Unit HP',
-            is_hp: true,
-            imei: product.imei || '-',
-            condition: product.condition || 'second',
-            ram: product.ram || '-',
-            storage: product.storage || '-',
-            color: product.color || '-',
-            selling_price: basePrice,
-            quantity: 1
-        });
+        const idx = selectedItems.value.findIndex(it => it.is_hp && it.id === prod.id);
+        if (idx !== -1) {
+            // Already selected, unselect
+            selectedItems.value.splice(idx, 1);
+        } else {
+            // Add HP unit
+            selectedItems.value.push({
+                id: prod.id,
+                product_id: prod.product_id || prod.id,
+                name: prod.product?.name || prod.name || 'Unit HP',
+                is_hp: true,
+                imei: prod.imei || '-',
+                condition: prod.condition || 'second',
+                ram: prod.ram || '-',
+                storage: prod.storage || '-',
+                color: prod.color || '-',
+                selling_price: basePrice,
+                quantity: 1
+            });
+        }
     } else {
-        // Check if non-hp item is already in list
-        const existing = selectedItems.value.find(i => !i.is_hp && i.product_id === (product.product_id || product.id));
+        // Non-HP product
+        const prodId = prod.product_id || prod.id;
+        const existing = selectedItems.value.find(it => !it.is_hp && it.product_id === prodId);
         if (existing) {
             existing.quantity = (Number(existing.quantity) || 1) + 1;
         } else {
             selectedItems.value.push({
-                id: product.id,
-                product_id: product.product_id || product.id,
-                name: product.product?.name || product.name || 'Produk Non-HP',
+                id: prod.id,
+                product_id: prodId,
+                name: prod.product?.name || prod.name || 'Produk Non-HP',
                 is_hp: false,
                 imei: null,
                 condition: 'new',
@@ -257,13 +297,47 @@ function addItemToSale(product) {
                 color: null,
                 selling_price: basePrice,
                 quantity: 1,
-                max_stock: product.stock || 999
+                max_stock: prod.stock || 999
             });
         }
     }
+}
 
-    toast.success(`Item ditambahkan: ${product.product?.name || product.name}`);
+function updateProductQtyFromModal(prod, delta) {
+    const isHp = !prod.is_non_hp;
+    if (isHp) {
+        if (delta < 0) {
+            const idx = selectedItems.value.findIndex(it => it.is_hp && it.id === prod.id);
+            if (idx !== -1) selectedItems.value.splice(idx, 1);
+        }
+        return;
+    }
+
+    const prodId = prod.product_id || prod.id;
+    const idx = selectedItems.value.findIndex(it => !it.is_hp && it.product_id === prodId);
+    if (idx === -1) {
+        if (delta > 0) toggleProductSelection(prod);
+        return;
+    }
+
+    const item = selectedItems.value[idx];
+    const newQty = (Number(item.quantity) || 1) + delta;
+    if (newQty <= 0) {
+        selectedItems.value.splice(idx, 1);
+    } else {
+        item.quantity = newQty;
+    }
+}
+
+function addItemToSale(product) {
+    toggleProductSelection(product);
+}
+
+function closeItemPicker() {
     showItemPicker.value = false;
+    if (selectedItems.value.length > 0) {
+        toast.success(`${totalItemsCount.value} item dipilih`);
+    }
 }
 
 function removeItem(index) {
@@ -929,74 +1003,102 @@ async function executeSubmit(pin = null) {
         </div>
 
         <!-- ITEM PICKER MODAL -->
-        <div v-if="showItemPicker" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showItemPicker = false"></div>
+        <div v-if="showItemPicker" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+            <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="showItemPicker = false"></div>
 
-            <div class="relative bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="relative bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 w-full max-w-2xl max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
                 <!-- Modal Header -->
-                <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between bg-surface-50 dark:bg-surface-900/50">
-                    <div>
-                        <h3 class="text-base font-black text-text-primary">Pilih Produk dari Inventori</h3>
-                        <p class="text-xs text-text-secondary">Pilih unit HP atau aksesoris yang tersedia</p>
+                <div class="px-5 py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between bg-surface-50 dark:bg-surface-900/50 shrink-0">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 class="text-sm sm:text-base font-black text-text-primary">Pilih Produk dari Inventori</h3>
+                                <span v-if="selectedItems.length > 0" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    {{ totalItemsCount }} Terpilih
+                                </span>
+                            </div>
+                            <p class="text-xs text-text-secondary mt-0.5">Pilih satu atau beberapa unit HP dan aksesoris sekaligus</p>
+                        </div>
                     </div>
-                    <button type="button" @click="showItemPicker = false" class="p-2 text-text-secondary hover:text-text-primary rounded-lg">
+                    <button type="button" @click="showItemPicker = false" class="p-2 text-text-secondary hover:text-text-primary rounded-lg shrink-0">
                         <X :size="18" />
                     </button>
                 </div>
 
                 <!-- Modal Filter & Search -->
-                <div class="p-4 border-b border-surface-200 dark:border-surface-700 space-y-3 bg-surface-50/50 dark:bg-surface-900/30">
+                <div class="p-3 sm:p-4 border-b border-surface-200 dark:border-surface-700 space-y-3 bg-surface-50/50 dark:bg-surface-900/30 shrink-0">
                     <div class="relative">
                         <input v-model="itemSearchQuery" type="text" placeholder="Cari nama produk, IMEI, atau merek..."
-                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
+                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" />
                         <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                         <button type="button" @click="itemTypeFilter = 'all'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
-                            :class="itemTypeFilter === 'all' ? 'bg-primary-600 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                            :class="itemTypeFilter === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary hover:text-text-primary'">
                             Semua
                         </button>
                         <button type="button" @click="itemTypeFilter = 'hp'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
-                            :class="itemTypeFilter === 'hp' ? 'bg-primary-600 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                            :class="itemTypeFilter === 'hp' ? 'bg-primary-600 text-white shadow-sm' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary hover:text-text-primary'">
                             HP
                         </button>
                         <button type="button" @click="itemTypeFilter = 'non-hp'"
-                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
-                            :class="itemTypeFilter === 'non-hp' ? 'bg-primary-600 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap"
+                            :class="itemTypeFilter === 'non-hp' ? 'bg-primary-600 text-white shadow-sm' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary hover:text-text-primary'">
                             Non-HP
+                        </button>
+                        <button v-if="selectedItems.length > 0" type="button" @click="itemTypeFilter = 'selected'"
+                            class="px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap flex items-center gap-1.5"
+                            :class="itemTypeFilter === 'selected' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'">
+                            <Check :size="13" stroke-width="3" />
+                            <span>Terpilih ({{ totalItemsCount }})</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Products List -->
-                <div class="p-4 overflow-y-auto max-h-[50vh] space-y-2 custom-scrollbar">
+                <div class="p-3 sm:p-4 overflow-y-auto max-h-[50vh] sm:max-h-[52vh] space-y-2 custom-scrollbar flex-1 min-h-[220px]">
                     <div v-if="availableInventory.length === 0" class="py-12 text-center text-text-secondary text-xs">
-                        Tidak ada barang yang ditemukan.
+                        <Package :size="32" class="mx-auto text-surface-400 dark:text-surface-500 mb-2 opacity-50" />
+                        <p class="font-bold">Tidak ada barang yang ditemukan.</p>
+                        <p v-if="itemTypeFilter === 'selected'" class="text-[11px] mt-1 text-surface-400">Belum ada item yang dipilih</p>
+                        <p v-else-if="itemSearchQuery" class="text-[11px] mt-1 text-surface-400">Coba ubah kata kunci pencarian</p>
                     </div>
 
-                    <button v-for="prod in availableInventory" :key="prod.id" type="button"
-                        @click="addItemToSale(prod)"
-                        class="w-full p-3 rounded-xl border border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-white dark:bg-surface-900 flex items-center justify-between text-left transition-all group">
+                    <div v-for="prod in availableInventory" :key="prod.id"
+                        @click="toggleProductSelection(prod)"
+                        class="w-full p-3 sm:p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none group"
+                        :class="isProductSelected(prod)
+                            ? 'border-primary-500 ring-2 ring-primary-500/20 bg-primary-50/60 dark:bg-primary-950/30'
+                            : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
                         
                         <div class="flex items-center gap-3 min-w-0 flex-1">
-                            <div class="w-9 h-9 rounded-lg bg-surface-100 dark:bg-surface-800 flex items-center justify-center shrink-0 text-text-secondary group-hover:text-primary-500">
-                                <Smartphone v-if="!prod.is_non_hp" :size="18" />
+                            <!-- Left Icon / Check indicator -->
+                            <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                                :class="isProductSelected(prod)
+                                    ? 'bg-primary-600 text-white'
+                                    : 'bg-surface-100 dark:bg-surface-800 text-text-secondary group-hover:text-primary-500'">
+                                <Check v-if="isProductSelected(prod)" :size="16" stroke-width="3" />
+                                <Smartphone v-else-if="!prod.is_non_hp" :size="18" />
                                 <Package v-else :size="18" />
                             </div>
+
                             <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                                     <h4 class="text-xs sm:text-sm font-black text-text-primary truncate">
                                         {{ prod.product?.name || prod.name }}
                                     </h4>
                                     <span v-if="!prod.is_non_hp" class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-primary-500/10 text-primary-600 dark:text-primary-400">
                                         {{ prod.condition || 'second' }}
                                     </span>
+                                    <span v-if="isProductSelected(prod) && !prod.is_non_hp" class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                        Terpilih
+                                    </span>
                                 </div>
-                                <p v-if="!prod.is_non_hp" class="text-[11px] font-mono text-text-secondary mt-0.5">
-                                    IMEI: {{ prod.imei }} <span v-if="prod.ram">• {{ prod.ram }}/{{ prod.storage }}</span>
+                                <p v-if="!prod.is_non_hp" class="text-[11px] font-mono text-text-secondary mt-0.5 truncate">
+                                    IMEI: {{ prod.imei }} <span v-if="prod.ram && prod.ram !== '-'">• {{ prod.ram }}/{{ prod.storage }}</span>
                                 </p>
                                 <p v-else class="text-[11px] text-text-secondary mt-0.5">
                                     Stok: {{ prod.stock || 1 }} unit
@@ -1004,20 +1106,71 @@ async function executeSubmit(pin = null) {
                             </div>
                         </div>
 
-                        <div class="text-right shrink-0 ml-3">
-                            <span class="text-xs sm:text-sm font-black text-primary-600 dark:text-primary-400">
-                                {{ formatCurrency(prod.selling_price || prod.product?.selling_price || prod.price || prod.product?.price || 0) }}
-                            </span>
+                        <!-- Right Actions: Price & Stepper/Check -->
+                        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="text-xs sm:text-sm font-black text-text-primary block font-mono">
+                                    {{ formatCurrency(prod.selling_price || prod.product?.selling_price || prod.price || prod.product?.price || 0) }}
+                                </span>
+                            </div>
+
+                            <!-- Non-HP Stepper when selected -->
+                            <div v-if="prod.is_non_hp && isProductSelected(prod)" 
+                                class="flex items-center gap-1 bg-white dark:bg-surface-800 border border-primary-500/50 rounded-lg p-0.5 shadow-sm"
+                                @click.stop>
+                                <button type="button" @click.stop="updateProductQtyFromModal(prod, -1)"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors">
+                                    <Minus :size="12" stroke-width="2.5" />
+                                </button>
+                                <span class="w-6 text-center text-xs font-black text-primary-600 dark:text-primary-400 font-mono">
+                                    {{ getSelectedQty(prod) }}
+                                </span>
+                                <button type="button" @click.stop="updateProductQtyFromModal(prod, 1)"
+                                    class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors">
+                                    <Plus :size="12" stroke-width="2.5" />
+                                </button>
+                            </div>
+
+                            <!-- Indicator box (HP or unselected non-hp) -->
+                            <div v-else class="w-7 h-7 rounded-lg flex items-center justify-center transition-all"
+                                :class="isProductSelected(prod)
+                                    ? 'bg-primary-600 text-white shadow-sm'
+                                    : 'border border-surface-200 dark:border-surface-700 text-surface-400 group-hover:border-primary-500 group-hover:text-primary-500'">
+                                <Check v-if="isProductSelected(prod)" :size="14" stroke-width="3" />
+                                <Plus v-else :size="14" stroke-width="2.5" />
+                            </div>
                         </div>
-                    </button>
+                    </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="px-6 py-3 border-t border-surface-200 dark:border-surface-700 flex justify-end bg-surface-50 dark:bg-surface-900/50">
-                    <button type="button" @click="showItemPicker = false"
-                        class="px-4 py-2 text-xs font-black uppercase tracking-wider text-text-secondary hover:text-text-primary">
-                        Tutup
-                    </button>
+                <div class="px-4 sm:px-6 py-3.5 border-t border-surface-200 dark:border-surface-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface-50 dark:bg-surface-900/90 backdrop-blur-sm shrink-0">
+                    <div class="flex items-center justify-between sm:justify-start gap-3">
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-wider">
+                                {{ totalItemsCount }} Item Terpilih
+                            </span>
+                            <span class="text-sm font-black text-text-primary font-mono">
+                                {{ formatCurrency(totalBelanja) }}
+                            </span>
+                        </div>
+                        <button v-if="selectedItems.length > 0" type="button" @click="selectedItems = []"
+                            class="text-[11px] font-bold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 hover:underline">
+                            Reset Pilihan
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="showItemPicker = false"
+                            class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-700 text-xs font-black uppercase tracking-wider text-text-secondary hover:text-text-primary hover:bg-surface-100 dark:hover:bg-surface-800 transition-all">
+                            Tutup
+                        </button>
+                        <button type="button" @click="closeItemPicker"
+                            class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-primary-500/20 active:scale-95 flex items-center justify-center gap-2">
+                            <Check :size="16" stroke-width="3" />
+                            <span>Selesai ({{ totalItemsCount }})</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
