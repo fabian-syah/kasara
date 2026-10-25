@@ -45,11 +45,24 @@ import PaymentStep from "./categories/PaymentStep.vue";
 import DpForm from "./categories/DpForm.vue";
 import PelunasanDpForm from "./categories/PelunasanDpForm.vue";
 import RefundDpForm from "./categories/RefundDpForm.vue";
+import PenjualanOnlineTokoForm from "./categories/PenjualanOnlineTokoForm.vue";
 
 const cartStore = useCartStore();
 const inventoryStore = useInventoryStore();
 const authStore = useAuthStore();
 const toast = useToast();
+
+// Branch State & Online Sales Feature Check
+const currentBranchData = ref(null);
+const isOnlineSalesEnabled = computed(() => {
+    if (currentBranchData.value?.enable_online_sales !== undefined) {
+        return !!currentBranchData.value.enable_online_sales;
+    }
+    if (authStore.user?.branch?.enable_online_sales !== undefined) {
+        return !!authStore.user.branch.enable_online_sales;
+    }
+    return false;
+});
 
 // Wizard Steps
 const currentStep = ref(1); // 1: Account, 2: Category, 3: Items/Form, 4: Payment
@@ -75,6 +88,7 @@ const transactionCategory = ref("penjualan_store");
 
 const allCategories = [
     { id: "penjualan_store", label: "Penjualan Store", icon: 'ShoppingCart' },
+    { id: "penjualan_online_toko", label: "Penjualan Online Toko", icon: 'ShoppingBag' },
     { id: "angkat_barang", label: "Angkat Barang", icon: 'PackageOpen' },
     { id: "refund", label: "Refund", icon: 'RotateCcw' },
     { id: "tukar_unit", label: "Tukar Unit", icon: 'RefreshCw' },
@@ -90,7 +104,12 @@ const categoriesPenjualan = computed(() => {
     if (role.includes('toko_online') || role.includes('online')) {
         return allCategories.filter(c => c.id === 'tukar_unit');
     }
-    return allCategories;
+    return allCategories.filter(c => {
+        if (c.id === 'penjualan_online_toko') {
+            return isOnlineSalesEnabled.value;
+        }
+        return true;
+    });
 });
 
 // Persistence Logic
@@ -129,6 +148,7 @@ function clearAllTempStates() {
     const keys = [
         'temp_sale_state',
         'temp_cart_state',
+        'temp_online_toko_form',
         'temp_tukar_unit_form',
         'temp_tukar_tambah_form',
         'temp_downgrade_form',
@@ -322,6 +342,21 @@ onMounted(async () => {
 
         mergeAndSetSalesAccounts(accountsRes.data, usersRes.data, userData);
 
+        // Load current branch data to check online sales capability
+        const branchId = userData?.branch_id || authStore.user?.branch_id;
+        if (branchId) {
+            if (userData?.branch) {
+                currentBranchData.value = userData.branch;
+            } else {
+                try {
+                    const bRes = await api.get(`/branches/${branchId}`);
+                    currentBranchData.value = bRes.data?.data || bRes.data;
+                } catch (be) {
+                    console.error("Gagal load branch data", be);
+                }
+            }
+        }
+
         const isCs = isCsLogin.value || (userData?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
 
         if (isCs && salesAccounts.value.length > 0) {
@@ -368,6 +403,7 @@ function prevStep() {
 
 const categoryLabels = {
     penjualan_store: 'Transaksi Penjualan Store berhasil! 🎉',
+    penjualan_online_toko: 'Transaksi Penjualan Online Toko berhasil! 🛍️',
     cancel_penjualan: 'Cancel Penjualan berhasil diproses! 🚫',
     angkat_barang: 'Angkat Barang berhasil diproses! 📦',
     refund: 'Refund berhasil diproses! 🔄',
@@ -601,6 +637,7 @@ watch(transactionCategory, () => {
                         <div
                             class="w-10 h-10 sm:w-14 sm:h-14 bg-surface-50 dark:bg-surface-900 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-all">
                             <ShoppingCart v-if="cat.id === 'penjualan_store'" :size="20" class="sm:w-8 sm:h-8" />
+                            <ShoppingBag v-else-if="cat.id === 'penjualan_online_toko'" :size="20" class="sm:w-8 sm:h-8" />
                             <PackageOpen v-else-if="cat.id === 'angkat_barang'" :size="20" class="sm:w-8 sm:h-8" />
                             <RotateCcw v-else-if="cat.id === 'refund'" :size="20" class="sm:w-8 sm:h-8" />
                             <RefreshCw v-else-if="cat.id === 'tukar_unit'" :size="20" class="sm:w-8 sm:h-8" />
@@ -644,6 +681,15 @@ watch(transactionCategory, () => {
             <div v-if="currentStep === 3 && !loadingStep3Data" class="flex-1 flex flex-col min-h-0">
                 <PenjualanStep3 v-if="transactionCategory === 'penjualan_store'" :transactionCategory="transactionCategory"
                     :availablePaymentMethods="availablePaymentMethods" @prev="prevStep" @next="currentStep = 4" />
+
+                <PenjualanOnlineTokoForm v-else-if="transactionCategory === 'penjualan_online_toko'"
+                    :availablePaymentMethods="availablePaymentMethods"
+                    :salesAccount="salesAccount"
+                    :selectedAccountObject="selectedAccountObject"
+                    :transactionCategory="transactionCategory"
+                    @back="prevStep"
+                    @transaction-complete="handleTransactionComplete"
+                    @verify-pin="handleVerifyPin" />
 
                 <AngkatBarangForm v-else-if="transactionCategory === 'angkat_barang'"
                     :availablePaymentMethods="availablePaymentMethods" :brands="brands" :productTypes="productTypes"
@@ -720,7 +766,7 @@ watch(transactionCategory, () => {
         <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="closePasswordModal"
             @success="handlePasswordSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
-            :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
+            :auto-send="['penjualan', 'penjualan_store', 'penjualan_online_toko'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
             @close="closeSuccessModal"
             @open-screenshot="showSuccessModal = false; showScreenshotModal = true" />
 

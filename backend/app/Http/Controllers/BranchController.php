@@ -72,6 +72,7 @@ class BranchController extends Controller
             'api_key' => 'nullable|string',
             'api_secret' => 'nullable|string',
             'is_active' => 'boolean',
+            'enable_online_sales' => 'nullable|boolean',
         ]);
 
         $branch = Branch::create($validated);
@@ -110,6 +111,7 @@ class BranchController extends Controller
             'api_key' => 'nullable|string',
             'api_secret' => 'nullable|string',
             'is_active' => 'boolean',
+            'enable_online_sales' => 'nullable|boolean',
         ]);
 
         $branch->update($validated);

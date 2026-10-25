@@ -105,6 +105,8 @@ class StockOut extends Model
         'proof_image',
         'payment_proof_image',
         'payment_proof_images',
+        'photo_unit',
+        'photo_resi',
         // Shopee (legacy single-item fields - kept for backward compatibility)
         'shopee_receiver',
         'shopee_phone',

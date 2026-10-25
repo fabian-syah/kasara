@@ -22,6 +22,7 @@ const form = ref({
     address: '',
     timezone: 'WIB',
     is_active: true,
+    enable_online_sales: false,
     phone: '',
     warranty_terms: '',
     type: props.type || 'physical',
@@ -47,6 +48,7 @@ watch(() => props.branch, (newVal) => {
             address: newVal.address,
             timezone: newVal.timezone || 'WIB',
             is_active: !!newVal.is_active, // Pastikan boolean
+            enable_online_sales: !!newVal.enable_online_sales,
             phone: newVal.phone || '',
             warranty_terms: newVal.warranty_terms || '',
             type: newVal.type || props.type || 'physical',
@@ -85,6 +87,7 @@ function resetForm() {
         address: '',
         timezone: 'WIB',
         is_active: true,
+        enable_online_sales: false,
         phone: '',
         warranty_terms: '',
         type: props.type || 'physical',
@@ -177,12 +180,27 @@ useEscapeKey(() => {
                         <p class="text-sm font-medium text-white">Status Cabang</p>
                         <p class="text-xs text-text-secondary">Nonaktifkan jika cabang tutup sementara/permanen</p>
                     </div>
-                    <button @click="form.is_active = !form.is_active"
+                    <button type="button" @click="form.is_active = !form.is_active"
                         class="relative w-12 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
                         :class="form.is_active ? 'bg-emerald-500' : 'bg-surface-600'">
                         <span
                             class="inline-block w-4 h-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out mt-1 ml-1"
                             :class="form.is_active ? 'translate-x-6' : 'translate-x-0'"></span>
+                    </button>
+                </div>
+
+                <!-- Penjualan Online Toko Feature Toggle -->
+                <div class="flex items-center gap-3 p-4 bg-surface-900/50 rounded-xl border border-surface-700">
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-white">Penjualan Online Toko</p>
+                        <p class="text-xs text-text-secondary">Aktifkan untuk menampilkan kategori Penjualan Online Toko di menu Buat Penjualan cabang ini</p>
+                    </div>
+                    <button type="button" @click="form.enable_online_sales = !form.enable_online_sales"
+                        class="relative w-12 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none"
+                        :class="form.enable_online_sales ? 'bg-primary-500' : 'bg-surface-600'">
+                        <span
+                            class="inline-block w-4 h-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out mt-1 ml-1"
+                            :class="form.enable_online_sales ? 'translate-x-6' : 'translate-x-0'"></span>
                     </button>
                 </div>
 

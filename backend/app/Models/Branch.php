@@ -12,6 +12,7 @@ class Branch extends Model
         'address',
         'timezone',
         'is_active',
+        'enable_online_sales',
         'type', // physical, online
         'platform',
         'phone',
@@ -23,6 +24,7 @@ class Branch extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'enable_online_sales' => 'boolean',
     ];
 
     protected $with = ['receiptSetting'];

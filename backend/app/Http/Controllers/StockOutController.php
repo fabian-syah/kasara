@@ -360,6 +360,7 @@ class StockOutController extends Controller
                     'promo',
                     'inventaris',
                     'penjualan_store',
+                    'penjualan_online_toko',
                     'shopee',
                     'orderan_online',
                     'bundling',
@@ -417,10 +418,18 @@ class StockOutController extends Controller
         ];
 
         // Mandatory fields for Sales
-        $salesCategories = ['penjualan_store', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online', 'dp', 'pelunasan_dp'];
+        $salesCategories = ['penjualan_store', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'penjualan_offline', 'shopee', 'orderan_online', 'dp', 'pelunasan_dp'];
         if (in_array($request->category, $salesCategories)) {
-            // Shopee/Online uses shopee_receiver as customer name
-            if ($request->category === 'shopee' || $request->category === 'orderan_online') {
+            if ($request->category === 'penjualan_online_toko') {
+                $rules['customer_name'] = 'required|string|max:255';
+                $rules['customer_wa'] = 'nullable|string|max:50';
+                $rules['shopee_province'] = 'nullable|string|max:255';
+                $rules['shopee_city'] = 'nullable|string|max:255';
+                $rules['shopee_address'] = 'nullable|string';
+                $rules['expedition_tracking_no'] = 'nullable|string|max:100';
+                $rules['photo_resi'] = 'nullable|image|max:20480';
+                $rules['photo_unit'] = 'nullable|image|max:20480';
+            } elseif ($request->category === 'shopee' || $request->category === 'orderan_online') {
                 $rules['shopee_receiver'] = 'required|string|max:255';
                 $rules['shopee_phone'] = 'required|string|max:50';
                 $rules['shopee_address'] = 'required|string';
@@ -490,7 +499,7 @@ class StockOutController extends Controller
         $request->validate($rules, $messages);
 
         // Validasi khusus: Metode Pembayaran wajib dipilih untuk kategori penjualan
-        if (in_array($request->category, ['penjualan_store', 'penjualan_offline', 'bundling', 'dp', 'pelunasan_dp'])) {
+        if (in_array($request->category, ['penjualan_store', 'penjualan_online_toko', 'penjualan_offline', 'bundling', 'dp', 'pelunasan_dp'])) {
             $hasPayment = false;
             if ($request->payment_method_id) {
                 $hasPayment = true;
@@ -742,6 +751,21 @@ class StockOutController extends Controller
                 $paymentProofImagePath = $request->file('payment_proof_image')->store('stock-outs/payment-proofs', 'public');
             }
 
+            $photoResiPath = null;
+            if ($request->hasFile('photo_resi')) {
+                $photoResiPath = $request->file('photo_resi')->store('stock-outs/resi', 'public');
+            }
+
+            $photoUnitPath = null;
+            if ($request->hasFile('photo_unit')) {
+                $photoUnitPath = $request->file('photo_unit')->store('stock-outs/units', 'public');
+            }
+
+            // Fallback: If proof_image is empty but photo_resi is present, link proof_image to photo_resi
+            if (!$proofImagePath && $photoResiPath) {
+                $proofImagePath = $photoResiPath;
+            }
+
             // For Shopee, store per-item data (Model casts to JSON automatically)
             $shopeeItemsData = null;
             if (($request->category === 'shopee' || $request->category === 'orderan_online') && $request->shopee_items) {
@@ -771,12 +795,14 @@ class StockOutController extends Controller
                 $rawSelling = is_string($request->selling_price) ? preg_replace('/[^0-9]/', '', $request->selling_price) : $request->selling_price;
                 $totalSellingPrice = floatval($rawSelling ?? 0);
 
-                // Fallback Hitung Total dari Item secara otomatis jika 0 (terutama untuk Pindah Cabang)
-                if ($totalSellingPrice == 0 && in_array($request->category, ['pindah_cabang', 'angkat_barang', 'tukar_unit', 'refund', 'downgrade'])) {
+                // Fallback Hitung Total dari Item secara otomatis jika 0 (terutama untuk Pindah Cabang & Penjualan Online)
+                if ($totalSellingPrice == 0 && in_array($request->category, ['penjualan_online_toko', 'pindah_cabang', 'angkat_barang', 'tukar_unit', 'refund', 'downgrade'])) {
                     // Kalkulasi HP
                     if (isset($productDetails) && $productDetails->count() > 0) {
                         foreach ($productDetails as $pd) {
-                            $itemPrice = floatval($pd->selling_price);
+                            $itemPrice = isset($request->hp_items_meta[$pd->id]['selling_price'])
+                                ? floatval($request->hp_items_meta[$pd->id]['selling_price'])
+                                : floatval($pd->selling_price);
 
                             // Jika ProductDetail belum diset selling_price, ambil dari Master Data Harga (ProductPrice)
                             if ($itemPrice == 0 && $pd->product) {
@@ -846,7 +872,7 @@ class StockOutController extends Controller
                 // Status: Jika pindah cabang harus 'pending' supaya muncul di menu Transfer Masuk tujuan
                 'status' => ($request->category === 'pindah_cabang') ? 'pending' : 'received',
 
-                'receiver_name' => $request->receiver_name,
+                'receiver_name' => $request->receiver_name ?? $request->customer_name ?? $request->shopee_receiver,
                 'transfer_notes' => $request->transfer_notes,
 
                 // Kesalahan Input
@@ -856,27 +882,30 @@ class StockOutController extends Controller
                 'retur_officer' => $request->retur_officer,
                 'retur_seal' => $request->retur_seal,
                 'retur_issue' => $request->retur_issue,
-                'customer_name' => $request->customer_name,
-                'customer_phone' => $request->customer_phone,
-                'customer_wa' => $request->customer_wa,
+                'customer_name' => $request->customer_name ?? $request->shopee_receiver,
+                'customer_phone' => $request->customer_phone ?? $request->customer_wa ?? $request->shopee_phone,
+                'customer_wa' => $request->customer_wa ?? $request->customer_phone ?? $request->shopee_phone,
                 'transaction_pin' => $request->transaction_pin,
                 'return_destination_id' => $request->return_destination_id,
                 'proof_image' => $proofImagePath,
                 'payment_proof_image' => $paymentProofImagePath,
+                'photo_unit' => $photoUnitPath,
+                'photo_resi' => $photoResiPath,
+                'expedition_tracking_no' => $request->expedition_tracking_no ?? $request->shopee_tracking_no,
                 'is_bundle' => $request->is_bundle ?? false,
                 'bundle_description' => $request->bundle_description,
 
-                // Shopee / Orderan Online
+                // Shopee / Orderan Online / Penjualan Online Toko
                 'shopee_items_data' => $shopeeItemsData,
-                'shopee_receiver' => $request->shopee_receiver,
-                'shopee_phone' => $request->shopee_phone,
+                'shopee_receiver' => $request->shopee_receiver ?? $request->customer_name,
+                'shopee_phone' => $request->shopee_phone ?? $request->customer_wa ?? $request->customer_phone,
                 'shopee_address' => $request->shopee_address,
                 'shopee_province' => $request->shopee_province,
                 'shopee_city' => $request->shopee_city,
                 'shopee_district' => $request->shopee_district,
                 'shopee_village' => $request->shopee_village,
                 'shopee_postal_code' => $request->shopee_postal_code,
-                'shopee_tracking_no' => $request->shopee_tracking_no,
+                'shopee_tracking_no' => $request->shopee_tracking_no ?? $request->expedition_tracking_no,
 
                 // Giveaway
                 'giveaway_receiver' => $request->giveaway_receiver,
@@ -4289,7 +4318,10 @@ class StockOutController extends Controller
         $resi = $request->resi;
         if (!$resi) return response()->json(['exists' => false]);
 
-        $exists = StockOut::where('shopee_tracking_no', $resi)
+        $exists = StockOut::where(function ($q) use ($resi) {
+                $q->where('shopee_tracking_no', $resi)
+                  ->orWhere('expedition_tracking_no', $resi);
+            })
             ->whereNull('deleted_at')
             ->exists();
 

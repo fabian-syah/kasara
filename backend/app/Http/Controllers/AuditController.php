@@ -252,7 +252,7 @@ class AuditController extends Controller
                 });
             };
 
-            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
+            $successCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'tukar_unit', 'tukar_tambah', 'downgrade', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'];
             $activityCategories = ['refund', 'refund_dp', 'angkat_barang', 'cancel_penjualan', 'balancing'];
             $salesCategories = array_merge($successCategories, $activityCategories);
 
@@ -600,7 +600,7 @@ class AuditController extends Controller
                         ->get()->groupBy('owner_id');
 
                     // Define specific categories
-                    $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'balancing'];
+                    $stdSalesCats = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'balancing'];
                     $normalizedStdSalesCats = array_unique(array_map(fn($c) => strtolower(str_replace(' ', '_', $c)), $stdSalesCats));
                     $activityCats = ['tukar_unit', 'tukar_tambah', 'downgrade', 'angkat_barang', 'refund', 'retur'];
 
@@ -688,7 +688,7 @@ class AuditController extends Controller
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                             $saleType = 'tukar_tambah';
-                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                             $saleType = 'base_sale';
                         } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                             $saleType = 'angkat_barang';
@@ -921,7 +921,7 @@ class AuditController extends Controller
                         $saleType = 'ignored';
                         if ($cat === 'tukar_tambah' || str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
                             $saleType = 'tukar_tambah';
-                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
+                        } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                             $saleType = 'base_sale';
                         } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                             $saleType = 'angkat_barang';
@@ -1422,7 +1422,7 @@ class AuditController extends Controller
                         $pSums = [];
 
                         // Categories that count towards Omset (Revenue)
-                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling', 'cancel_penjualan', 'pelunasan_dp'];
+                        $omsetCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'bundling', 'cancel_penjualan', 'pelunasan_dp'];
 
                         $resolveActualCategory = function ($category, $notes, $salesAccount) {
                             $category = strtolower($category ?? '');
@@ -1434,7 +1434,7 @@ class AuditController extends Controller
                             }
 
                             // If it's a standard sale category, do NOT override with deductions by notes
-                            if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'pelunasan_dp'])) {
+                            if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah', 'pelunasan_dp'])) {
                                 return $category;
                             }
                             if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
@@ -1496,7 +1496,7 @@ class AuditController extends Controller
                             $saleType = 'ignored';
                             if ($cat === 'tukar_tambah') {
                                 $saleType = 'tukar_tambah';
-                            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
+                            } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'dp', 'pelunasan_dp'])) {
                                 $saleType = 'base_sale';
                             } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang') || $cat === 'angkat_barang') {
                                 $saleType = 'angkat_barang';
@@ -1658,7 +1658,7 @@ class AuditController extends Controller
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
                             ->leftJoin('product_details', 'stock_out_items.product_detail_id', '=', 'product_details.id')
                             ->leftJoin('products', 'product_details.product_id', '=', 'products.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'dp', 'pelunasan_dp']);
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'dp', 'pelunasan_dp']);
                         $applyLocalScope($hpItemsQuery);
 
                         $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
@@ -1668,7 +1668,7 @@ class AuditController extends Controller
 
                         $allHpSums = DB::table('stock_out_items')
                             ->join('stock_outs', 'stock_out_items.stock_out_id', '=', 'stock_outs.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->whereNull('stock_outs.deleted_at')
                             ->groupBy('stock_outs.receipt_id')
@@ -1677,7 +1677,7 @@ class AuditController extends Controller
 
                         $allNhpSums = DB::table('stock_out_non_hp_items')
                             ->join('stock_outs', 'stock_out_non_hp_items.stock_out_id', '=', 'stock_outs.id')
-                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
+                            ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('stock_outs.reporting_date', [$startDate, $endDate])
                             ->whereNull('stock_outs.deleted_at')
                             ->groupBy('stock_outs.receipt_id')
@@ -1693,7 +1693,7 @@ class AuditController extends Controller
                             $itemSumsByReceipt[$r->receipt_id] = ($itemSumsByReceipt[$r->receipt_id] ?? 0) + (float) $r->total;
                         }
                         $trxQuery = DB::table('stock_outs')
-                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
+                            ->whereIn('category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'sale', 'pos', 'bundling', 'dp', 'pelunasan_dp'])
                             ->whereBetween('reporting_date', [$startDate, $endDate])
                             ->whereNull('deleted_at')
                             ->select('receipt_id', 'selling_price', 'paid_amount', 'category', 'split_payments');
@@ -2750,7 +2750,7 @@ class AuditController extends Controller
                     'bundle_description' => $trx->bundle_description,
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
-                    'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
+                    'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'penjualan_online_toko' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
                     'notes' => $trx->notes,
                     'audit_score' => $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
