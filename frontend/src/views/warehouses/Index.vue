@@ -26,7 +26,7 @@ const selectedBranch = ref(null);
 const fetchBranches = async () => {
     loading.value = true;
     try {
-        const response = await api.list(); // No filter needed anymore
+        const response = await api.list({ include_all: 1 }); // No filter needed anymore
         branchesList.value = response.data.data;
     } catch (error) {
         toast.error("Gagal memuat data gudang");

@@ -19,9 +19,9 @@ class OnlineShopController extends Controller
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
             // Full access (Global)
-            if ($user->hasAnyRole(['super_admin', 'analist', 'analis'])) {
+            if ($user->hasAnyRole(['analist', 'analis']) && !$user->hasRole('super_admin') && !$request->boolean('include_all')) {
                 $query->where(function ($q) {
-                    $hidden = config('kasara.excluded_keywords');
+                    $hidden = config('kasara.excluded_keywords') ?? [];
                     foreach ($hidden as $name) {
                         $q->where('name', 'not ilike', '%' . $name . '%');
                     }

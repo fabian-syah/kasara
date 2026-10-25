@@ -18,7 +18,7 @@ class BranchController extends Controller
         // Role-based access control
         if ($request->ignore_scope || $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
             // Full access (Global)
-            if ($user->hasAnyRole(['super_admin', 'analist', 'analis']) && !$request->boolean('include_all')) {
+            if ($user->hasAnyRole(['analist', 'analis']) && !$user->hasRole('super_admin') && !$request->boolean('include_all')) {
                 $query->where(function($q) {
                     $hidden = config('kasara.excluded_keywords') ?? [];
                     foreach ($hidden as $name) {

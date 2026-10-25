@@ -25,7 +25,7 @@ const editingShop = ref(null);
 const fetchShops = async () => {
     loading.value = true;
     try {
-        const response = await api.get('/online-shops');
+        const response = await api.get('/online-shops', { params: { include_all: 1 } });
         // Filter is handled by backend or if needed locally, but API should return online shops
         shops.value = response.data.data;
     } catch (error) {

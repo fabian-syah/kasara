@@ -27,7 +27,7 @@ const selectedBranch = ref(null);
 const fetchBranches = async () => {
     loading.value = true;
     try {
-        const response = await api.list({ type: 'physical' });
+        const response = await api.list({ type: 'physical', include_all: 1 });
         branchesList.value = response.data.data.filter(b => b.type === 'physical' || !b.type); // Default to physical if null
     } catch (error) {
         console.error("Failed to fetch branches", error);
