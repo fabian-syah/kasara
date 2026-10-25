@@ -405,11 +405,34 @@ watch([selectedItems, customerForm, paymentForm], () => {
     saveDraft();
 }, { deep: true });
 
+// Filter out "Cash Toko" for online store sales (orders are shipped with tracking resi)
+const filteredPaymentMethods = computed(() => {
+    return (props.availablePaymentMethods || []).filter(pm => {
+        const name = (pm.name || '').trim().toLowerCase();
+        const code = (pm.code || '').trim().toLowerCase();
+        return !name.includes('cash toko') && name !== 'cash' && code !== 'cash' && code !== 'cash_toko';
+    });
+});
+
+// Watch payment methods to ensure payment_method_id is valid and not Cash Toko
+watch(filteredPaymentMethods, (methods) => {
+    if (methods && methods.length > 0) {
+        const currentIsValid = methods.some(m => m.id === paymentForm.value.payment_method_id);
+        if (!paymentForm.value.payment_method_id || !currentIsValid) {
+            paymentForm.value.payment_method_id = methods[0].id;
+        }
+    } else {
+        paymentForm.value.payment_method_id = null;
+    }
+}, { immediate: true });
+
 onMounted(() => {
     restoreDraft();
-    // Default payment method if only one available
-    if (!paymentForm.value.payment_method_id && props.availablePaymentMethods.length > 0) {
-        paymentForm.value.payment_method_id = props.availablePaymentMethods[0].id;
+    if (filteredPaymentMethods.value.length > 0) {
+        const currentIsValid = filteredPaymentMethods.value.some(m => m.id === paymentForm.value.payment_method_id);
+        if (!paymentForm.value.payment_method_id || !currentIsValid) {
+            paymentForm.value.payment_method_id = filteredPaymentMethods.value[0].id;
+        }
     }
 });
 
@@ -545,11 +568,11 @@ async function executeSubmit(pin = null) {
                 <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5 sm:p-6 shadow-sm">
                     <div class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-950/40 text-primary-600 flex items-center justify-center font-black">
+                            <div class="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center font-black">
                                 <Package :size="20" stroke-width="2.5" />
                             </div>
                             <div>
-                                <h3 class="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Pilih Item & Tentukan Harga</h3>
+                                <h3 class="text-base font-black text-text-primary uppercase tracking-tight">Pilih Item & Tentukan Harga</h3>
                                 <p class="text-xs text-text-secondary">Pilih unit HP atau aksesoris dan tentukan harga jual per item</p>
                             </div>
                         </div>
@@ -563,7 +586,7 @@ async function executeSubmit(pin = null) {
 
                     <!-- Selected Items List -->
                     <div v-if="selectedItems.length === 0" class="py-12 px-4 text-center border-2 border-dashed border-surface-200 dark:border-surface-700 rounded-xl bg-surface-50 dark:bg-surface-900/50">
-                        <Package :size="40" class="mx-auto text-surface-400 mb-3" />
+                        <Package :size="40" class="mx-auto text-surface-400 dark:text-surface-500 mb-3" />
                         <p class="text-sm font-bold text-text-primary">Belum ada item yang dipilih</p>
                         <p class="text-xs text-text-secondary mt-1 max-w-sm mx-auto">
                             Klik tombol <strong>"Pilih Item"</strong> di atas untuk menambahkan barang dari stok inventori cabang ini.
@@ -582,7 +605,7 @@ async function executeSubmit(pin = null) {
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <h4 class="text-sm font-black text-slate-900 dark:text-white truncate">{{ item.name }}</h4>
+                                        <h4 class="text-sm font-black text-text-primary truncate">{{ item.name }}</h4>
                                         <span v-if="item.is_hp" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
                                             HP • {{ item.condition }}
                                         </span>
@@ -603,7 +626,7 @@ async function executeSubmit(pin = null) {
                                     <button type="button" @click="updateItemQuantity(idx, -1)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-text-secondary font-black text-sm">
                                         -
                                     </button>
-                                    <span class="w-8 text-center text-xs font-black">{{ item.quantity }}</span>
+                                    <span class="w-8 text-center text-xs font-black text-text-primary">{{ item.quantity }}</span>
                                     <button type="button" @click="updateItemQuantity(idx, 1)" class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-100 dark:hover:bg-surface-700 text-text-secondary font-black text-sm">
                                         +
                                     </button>
@@ -613,7 +636,7 @@ async function executeSubmit(pin = null) {
                                 <div class="flex flex-col items-end">
                                     <label class="text-[10px] font-bold text-text-secondary uppercase mb-0.5">Harga Jual (Rp)</label>
                                     <input v-model.number="item.selling_price" type="number" min="0" step="1000"
-                                        class="w-32 sm:w-36 px-3 py-1.5 text-xs font-black text-right rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
+                                        class="w-32 sm:w-36 px-3 py-1.5 text-xs font-black text-right rounded-lg bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
                                 </div>
 
                                 <!-- Remove Button -->
@@ -626,7 +649,7 @@ async function executeSubmit(pin = null) {
                         </div>
 
                         <!-- Subtotal Bar -->
-                        <div class="flex items-center justify-between p-4 bg-primary-500/5 border border-primary-500/10 rounded-xl mt-4">
+                        <div class="flex items-center justify-between p-4 bg-primary-500/10 dark:bg-primary-900/20 border border-primary-500/20 rounded-xl mt-4">
                             <span class="text-xs font-black text-text-secondary uppercase tracking-wider">Subtotal Item ({{ totalItemsCount }})</span>
                             <span class="text-base font-black text-primary-600 dark:text-primary-400">{{ formatCurrency(totalBelanja) }}</span>
                         </div>
@@ -636,11 +659,11 @@ async function executeSubmit(pin = null) {
                 <!-- SECTION 2: Data Penerima & Pengiriman -->
                 <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5 sm:p-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
-                        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center font-black">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black">
                             <MapPin :size="20" stroke-width="2.5" />
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Data Penerima & Pengiriman</h3>
+                            <h3 class="text-base font-black text-text-primary uppercase tracking-tight">Data Penerima & Pengiriman</h3>
                             <p class="text-xs text-text-secondary">Identitas customer dan tujuan pengiriman paket</p>
                         </div>
                     </div>
@@ -649,23 +672,23 @@ async function executeSubmit(pin = null) {
                         <!-- Penerima & No WA -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                     Nama Penerima <span class="text-rose-500">*</span>
                                 </label>
                                 <div class="relative">
                                     <input v-model="customerForm.receiver" type="text" placeholder="Contoh: Budi Santoso"
-                                        class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all" />
+                                        class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium" />
                                     <User :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                     No WhatsApp Customer
                                 </label>
                                 <div class="relative">
                                     <input v-model="customerForm.phone" type="tel" placeholder="Contoh: 08123456789"
-                                        class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-mono" />
+                                        class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-mono font-medium" />
                                     <Phone :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
                                 </div>
                             </div>
@@ -674,35 +697,35 @@ async function executeSubmit(pin = null) {
                         <!-- Provinsi & Kota Dropdowns -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                     Provinsi <span class="text-rose-500">*</span>
                                 </label>
                                 <select v-model="customerForm.province"
-                                    class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer">
-                                    <option value="" disabled>-- Pilih Provinsi --</option>
-                                    <option v-for="prov in provincesList" :key="prov" :value="prov">{{ prov }}</option>
+                                    class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer font-medium">
+                                    <option value="" disabled class="bg-white dark:bg-surface-900 text-text-primary">-- Pilih Provinsi --</option>
+                                    <option v-for="prov in provincesList" :key="prov" :value="prov" class="bg-white dark:bg-surface-900 text-text-primary">{{ prov }}</option>
                                 </select>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                                <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                     Kota / Kabupaten <span class="text-rose-500">*</span>
                                 </label>
                                 <select v-model="customerForm.city" :disabled="!customerForm.province"
-                                    class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <option value="" disabled>{{ customerForm.province ? '-- Pilih Kota/Kabupaten --' : 'Pilih Provinsi terlebih dahulu' }}</option>
-                                    <option v-for="cty in citiesList" :key="cty" :value="cty">{{ cty }}</option>
+                                    class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <option value="" disabled class="bg-white dark:bg-surface-900 text-text-primary">{{ customerForm.province ? '-- Pilih Kota/Kabupaten --' : 'Pilih Provinsi terlebih dahulu' }}</option>
+                                    <option v-for="cty in citiesList" :key="cty" :value="cty" class="bg-white dark:bg-surface-900 text-text-primary">{{ cty }}</option>
                                 </select>
                             </div>
                         </div>
 
                         <!-- Alamat Lengkap -->
                         <div>
-                            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                 Alamat Lengkap <span class="text-rose-500">*</span>
                             </label>
                             <textarea v-model="customerForm.address" rows="3" placeholder="Nama Jalan, No. Rumah, RT/RW, Kelurahan, Kecamatan, Kode Pos..."
-                                class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all"></textarea>
+                                class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium"></textarea>
                         </div>
                     </div>
                 </div>
@@ -715,25 +738,25 @@ async function executeSubmit(pin = null) {
                 <!-- SECTION 3: Pembayaran & Resi -->
                 <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5 sm:p-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center font-black">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
                             <CreditCard :size="20" stroke-width="2.5" />
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Pembayaran & Resi</h3>
+                            <h3 class="text-base font-black text-text-primary uppercase tracking-tight">Pembayaran & Resi</h3>
                             <p class="text-xs text-text-secondary">Metode bayar, nominal dan nomor resi kurir</p>
                         </div>
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Metode Pembayaran -->
+                        <!-- Metode Pembayaran (Cash Toko Excluded) -->
                         <div>
-                            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                 Metode Pembayaran <span class="text-rose-500">*</span>
                             </label>
                             <select v-model="paymentForm.payment_method_id"
-                                class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer font-bold uppercase">
-                                <option :value="null" disabled>-- Pilih Metode Pembayaran --</option>
-                                <option v-for="pm in availablePaymentMethods" :key="pm.id" :value="pm.id">
+                                class="w-full px-4 py-2.5 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all cursor-pointer font-bold uppercase">
+                                <option :value="null" disabled class="bg-white dark:bg-surface-900 text-text-primary">-- Pilih Metode Pembayaran --</option>
+                                <option v-for="pm in filteredPaymentMethods" :key="pm.id" :value="pm.id" class="bg-white dark:bg-surface-900 text-text-primary">
                                     {{ pm.name }}
                                 </option>
                             </select>
@@ -742,7 +765,7 @@ async function executeSubmit(pin = null) {
                         <!-- Nominal Pembayaran -->
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
-                                <label class="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">
                                     Nominal Bayar (Rp) <span class="text-rose-500">*</span>
                                 </label>
                                 <button type="button" @click="setPaidToTotal"
@@ -751,7 +774,7 @@ async function executeSubmit(pin = null) {
                                 </button>
                             </div>
                             <input v-model.number="paymentForm.paid_amount" type="number" min="0" step="1000"
-                                class="w-full px-4 py-2.5 text-sm sm:text-base font-black rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-mono" />
+                                class="w-full px-4 py-2.5 text-sm sm:text-base font-black rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-mono" />
                             
                             <!-- Selisih Nominal Feedback -->
                             <div v-if="nominalSelisih !== 0 && totalBelanja > 0" class="mt-2 text-xs font-bold">
@@ -766,12 +789,12 @@ async function executeSubmit(pin = null) {
 
                         <!-- No Resi Pesanan -->
                         <div>
-                            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                 No Resi Pesanan <span class="text-rose-500">*</span>
                             </label>
                             <div class="relative">
                                 <input v-model="paymentForm.tracking_no" type="text" placeholder="Contoh: JNE123456789 / SPXID0123"
-                                    class="w-full px-4 py-2.5 pr-10 text-xs sm:text-sm font-mono font-bold rounded-xl bg-surface-50 dark:bg-surface-900 border text-slate-900 dark:text-white focus:outline-none focus:ring-2 transition-all uppercase"
+                                    class="w-full px-4 py-2.5 pr-10 text-xs sm:text-sm font-mono font-bold rounded-xl bg-surface-50 dark:bg-surface-900 border text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 transition-all uppercase"
                                     :class="resiDuplicate ? 'border-rose-500 focus:ring-rose-500/30' : 'border-surface-200 dark:border-surface-700 focus:ring-primary-500/30 focus:border-primary-500'" />
                                 
                                 <div class="absolute right-3 top-1/2 -translate-y-1/2">
@@ -787,11 +810,11 @@ async function executeSubmit(pin = null) {
 
                         <!-- Catatan -->
                         <div>
-                            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                            <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                 Catatan Transaksi
                             </label>
                             <textarea v-model="paymentForm.notes" rows="2" placeholder="Catatan tambahan (opsional)..."
-                                class="w-full px-4 py-2 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all"></textarea>
+                                class="w-full px-4 py-2 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-all font-medium"></textarea>
                         </div>
                     </div>
                 </div>
@@ -799,11 +822,11 @@ async function executeSubmit(pin = null) {
                 <!-- SECTION 4: Foto Bukti (Resi, Pembayaran, Unit) -->
                 <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5 sm:p-6 shadow-sm">
                     <div class="flex items-center gap-3 mb-4 pb-3 border-b border-surface-100 dark:border-surface-700">
-                        <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-950/40 text-violet-600 flex items-center justify-center font-black">
+                        <div class="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 flex items-center justify-center font-black">
                             <ImageIcon :size="20" stroke-width="2.5" />
                         </div>
                         <div>
-                            <h3 class="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">Foto Bukti Transaksi</h3>
+                            <h3 class="text-base font-black text-text-primary uppercase tracking-tight">Foto Bukti Transaksi</h3>
                             <p class="text-xs text-text-secondary">Wajib lampirkan ketiga foto berikut</p>
                         </div>
                     </div>
@@ -811,7 +834,7 @@ async function executeSubmit(pin = null) {
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <!-- 1. Foto Resi -->
                         <div class="flex flex-col items-center">
-                            <label class="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-center">
+                            <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2 text-center">
                                 Foto Resi <span class="text-rose-500">*</span>
                             </label>
 
@@ -823,17 +846,17 @@ async function executeSubmit(pin = null) {
                                 </button>
                             </div>
 
-                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
+                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900/50 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
                                 <input type="file" accept="image/*" class="hidden" @change="handlePhotoUpload($event, 'resi')" />
                                 <Loader2 v-if="compressingResi" :size="20" class="animate-spin text-primary-500 mb-1" />
-                                <Camera v-else :size="24" class="text-surface-400 mb-1.5" />
+                                <Camera v-else :size="24" class="text-surface-400 dark:text-surface-500 mb-1.5" />
                                 <span class="text-[11px] font-bold text-text-secondary">{{ compressingResi ? 'Mengompres...' : 'Unggah Resi' }}</span>
                             </label>
                         </div>
 
                         <!-- 2. Foto Pembayaran -->
                         <div class="flex flex-col items-center">
-                            <label class="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-center">
+                            <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2 text-center">
                                 Foto Pembayaran <span class="text-rose-500">*</span>
                             </label>
 
@@ -845,17 +868,17 @@ async function executeSubmit(pin = null) {
                                 </button>
                             </div>
 
-                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
+                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900/50 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
                                 <input type="file" accept="image/*" class="hidden" @change="handlePhotoUpload($event, 'payment')" />
                                 <Loader2 v-if="compressingPayment" :size="20" class="animate-spin text-primary-500 mb-1" />
-                                <Camera v-else :size="24" class="text-surface-400 mb-1.5" />
+                                <Camera v-else :size="24" class="text-surface-400 dark:text-surface-500 mb-1.5" />
                                 <span class="text-[11px] font-bold text-text-secondary">{{ compressingPayment ? 'Mengompres...' : 'Bukti Bayar' }}</span>
                             </label>
                         </div>
 
                         <!-- 3. Foto Unit -->
                         <div class="flex flex-col items-center">
-                            <label class="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 text-center">
+                            <label class="text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2 text-center">
                                 Foto Unit <span class="text-rose-500">*</span>
                             </label>
 
@@ -867,10 +890,10 @@ async function executeSubmit(pin = null) {
                                 </button>
                             </div>
 
-                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
+                            <label v-else class="w-full aspect-square rounded-xl border-2 border-dashed border-surface-200 dark:border-surface-700 hover:border-primary-500 bg-surface-50 dark:bg-surface-900/50 flex flex-col items-center justify-center cursor-pointer transition-all p-3 text-center">
                                 <input type="file" accept="image/*" class="hidden" @change="handlePhotoUpload($event, 'unit')" />
                                 <Loader2 v-if="compressingUnit" :size="20" class="animate-spin text-primary-500 mb-1" />
-                                <Camera v-else :size="24" class="text-surface-400 mb-1.5" />
+                                <Camera v-else :size="24" class="text-surface-400 dark:text-surface-500 mb-1.5" />
                                 <span class="text-[11px] font-bold text-text-secondary">{{ compressingUnit ? 'Mengompres...' : 'Foto Unit' }}</span>
                             </label>
                         </div>
@@ -881,7 +904,7 @@ async function executeSubmit(pin = null) {
                 <div class="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5 shadow-sm space-y-4">
                     <div class="flex items-center justify-between text-sm">
                         <span class="font-bold text-text-secondary">Total Tagihan</span>
-                        <span class="font-black text-lg text-slate-900 dark:text-white">{{ formatCurrency(totalBelanja) }}</span>
+                        <span class="font-black text-lg text-text-primary">{{ formatCurrency(totalBelanja) }}</span>
                     </div>
 
                     <!-- Incomplete fields prompt if not valid -->
@@ -913,7 +936,7 @@ async function executeSubmit(pin = null) {
                 <!-- Modal Header -->
                 <div class="px-6 py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between bg-surface-50 dark:bg-surface-900/50">
                     <div>
-                        <h3 class="text-base font-black text-slate-900 dark:text-white">Pilih Produk dari Inventori</h3>
+                        <h3 class="text-base font-black text-text-primary">Pilih Produk dari Inventori</h3>
                         <p class="text-xs text-text-secondary">Pilih unit HP atau aksesoris yang tersedia</p>
                     </div>
                     <button type="button" @click="showItemPicker = false" class="p-2 text-text-secondary hover:text-text-primary rounded-lg">
@@ -925,7 +948,7 @@ async function executeSubmit(pin = null) {
                 <div class="p-4 border-b border-surface-200 dark:border-surface-700 space-y-3 bg-surface-50/50 dark:bg-surface-900/30">
                     <div class="relative">
                         <input v-model="itemSearchQuery" type="text" placeholder="Cari nama produk, IMEI, atau merek..."
-                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
+                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm rounded-xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
                         <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
                     </div>
 
@@ -965,7 +988,7 @@ async function executeSubmit(pin = null) {
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h4 class="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                                    <h4 class="text-xs sm:text-sm font-black text-text-primary truncate">
                                         {{ prod.product?.name || prod.name }}
                                     </h4>
                                     <span v-if="!prod.is_non_hp" class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-primary-500/10 text-primary-600 dark:text-primary-400">
