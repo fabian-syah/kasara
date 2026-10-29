@@ -193,7 +193,25 @@ class StockOut extends Model
         'payment_proof_images' => 'array',
     ];
 
-    protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score', 'latest_auditor_name', 'audited_at'];
+    protected $appends = ['payment_method_name', 'split_payments_data', 'audit_score', 'latest_auditor_name', 'audited_at', 'proof_images'];
+
+    public function getProofImagesAttribute()
+    {
+        $images = collect([
+            $this->photo_resi,
+            $this->payment_proof_image,
+            $this->photo_unit,
+            $this->proof_image,
+        ]);
+
+        if (is_array($this->payment_proof_images)) {
+            $images = $images->merge($this->payment_proof_images);
+        }
+
+        return $images->filter()->unique()->map(function ($path) {
+            return str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
+        })->values()->toArray();
+    }
 
     public function getPaymentMethodNameAttribute()
     {

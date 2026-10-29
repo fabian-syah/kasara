@@ -1491,10 +1491,17 @@ class StockOutController extends Controller
         }
 
         $proofImages = collect([
+            $out->photo_resi,
+            $out->payment_proof_image,
+            $out->photo_unit,
             $out->proof_image,
             $exchangeInfo->photo_unit ?? null,
             $exchangeInfo->photo_customer ?? null
-        ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray();
+        ]);
+        if (is_array($out->payment_proof_images)) {
+            $proofImages = $proofImages->merge($out->payment_proof_images);
+        }
+        $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
 
         $rawItems = [];
         if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
@@ -1600,6 +1607,10 @@ class StockOutController extends Controller
             'notes' => $out->notes,
             'proof_images' => $proofImages,
             'proof_image' => $proofImages[0] ?? null,
+            'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
+            'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
+            'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
+            'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
             'items' => $rawItems,
             'raw_items' => $rawItems,
         ];
@@ -2341,10 +2352,17 @@ class StockOutController extends Controller
 
                 // Compile proof images list
                 $proofImages = collect([
+                    $out->photo_resi,
+                    $out->payment_proof_image,
+                    $out->photo_unit,
                     $out->proof_image,
                     $exchangeInfo->photo_unit ?? null,
                     $exchangeInfo->photo_customer ?? null
-                ])->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
+                ]);
+                if (is_array($out->payment_proof_images)) {
+                    $proofImages = $proofImages->merge($out->payment_proof_images);
+                }
+                $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
 
                 // Build detailed raw items for ReceiptModal
                 $rawItems = [];
@@ -2682,9 +2700,11 @@ class StockOutController extends Controller
 
                     // Extra properties for multiple proof images and receipt display
                     'proof_images' => $proofImages,
-                    'proof_image' => $out->proof_image ? asset('storage/' . $out->proof_image) : ($exchangeInfo && $exchangeInfo->photo_unit ? asset('storage/' . $exchangeInfo->photo_unit) : null),
-                    'payment_proof_image' => $out->payment_proof_image ? asset('storage/' . $out->payment_proof_image) : null,
-                    'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => asset('storage/' . $img))->toArray() : [],
+                    'proof_image' => $out->proof_image ? (str_starts_with($out->proof_image, 'http') ? $out->proof_image : asset('storage/' . $out->proof_image)) : ($exchangeInfo && $exchangeInfo->photo_unit ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit)) : null),
+                    'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
+                    'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
+                    'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
+                    'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
                     'order_no' => $out->receipt_id,
                     'branch' => $out->branch,
                     'online_shop' => $out->onlineShop,

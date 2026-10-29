@@ -2755,20 +2755,35 @@ class AuditController extends Controller
                     'audit_score' => $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
                     'audited_at' => $trx->audited_at,
-                    'proof_images' => collect([
-                        $trx->proof_image,
-                        $exchangeInfo->photo_unit ?? null,
-                        $exchangeInfo->photo_customer ?? null
-                    ])->filter()->unique()->map(fn($path) => asset('storage/' . $path))->values()->toArray(),
+                    'proof_images' => (function() use ($trx, $exchangeInfo) {
+                        $list = collect([
+                            $trx->photo_resi,
+                            $trx->payment_proof_image,
+                            $trx->photo_unit,
+                            $trx->proof_image,
+                            $exchangeInfo->photo_unit ?? null,
+                            $exchangeInfo->photo_customer ?? null
+                        ]);
+                        if (is_array($trx->payment_proof_images)) {
+                            $list = $list->merge($trx->payment_proof_images);
+                        }
+                        return $list->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
+                    })(),
                     'proof_image' => $trx->proof_image
-                        ? asset('storage/' . $trx->proof_image)
+                        ? (str_starts_with($trx->proof_image, 'http') ? $trx->proof_image : asset('storage/' . $trx->proof_image))
                         : ($exchangeInfo && $exchangeInfo->photo_unit
-                            ? asset('storage/' . $exchangeInfo->photo_unit)
+                            ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit))
                             : null),
-                    'payment_proof_image' => $trx->payment_proof_image
-                        ? asset('storage/' . $trx->payment_proof_image)
+                    'photo_resi' => $trx->photo_resi
+                        ? (str_starts_with($trx->photo_resi, 'http') ? $trx->photo_resi : asset('storage/' . $trx->photo_resi))
                         : null,
-                    'payment_proof_images' => $trx->payment_proof_images ? collect($trx->payment_proof_images)->map(fn($img) => asset('storage/' . $img))->toArray() : [],
+                    'photo_unit' => $trx->photo_unit
+                        ? (str_starts_with($trx->photo_unit, 'http') ? $trx->photo_unit : asset('storage/' . $trx->photo_unit))
+                        : null,
+                    'payment_proof_image' => $trx->payment_proof_image
+                        ? (str_starts_with($trx->payment_proof_image, 'http') ? $trx->payment_proof_image : asset('storage/' . $trx->payment_proof_image))
+                        : null,
+                    'payment_proof_images' => $trx->payment_proof_images ? collect($trx->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
                     // Specialized Pricing for UI columns if needed
                     'price_out' => $exchangeInfo ? $priceOut : null,
                     'price_in' => $exchangeInfo ? (float) ($exchangeInfo->incoming_cost_price ?? 0) : null,

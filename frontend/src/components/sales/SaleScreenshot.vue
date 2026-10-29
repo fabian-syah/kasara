@@ -357,15 +357,19 @@ const loadProofImages = async () => {
   loadedPhotos.value = []
   photoAspects.value = []
 
-  const allImageUrls = []
-  if (props.sale?.proof_images?.length) {
-    allImageUrls.push(...props.sale.proof_images)
-  } else if (props.sale?.proof_image) {
-    allImageUrls.push(props.sale.proof_image)
-  }
+  const rawList = [
+    ...(props.sale?.proof_images || []),
+    props.sale?.proof_image,
+    props.sale?.photo_resi,
+    props.sale?.payment_proof_image,
+    props.sale?.photo_unit
+  ].filter(Boolean)
 
-  if (props.sale?.payment_proof_image) {
-    allImageUrls.push(props.sale.payment_proof_image)
+  const allImageUrls = []
+  for (const url of rawList) {
+    if (!allImageUrls.includes(url)) {
+      allImageUrls.push(url)
+    }
   }
 
   if (allImageUrls.length === 0) return
@@ -390,7 +394,7 @@ const loadProofImages = async () => {
 }
 
 watch(() => props.isOpen, (val) => {
-  const hasImages = props.sale?.proof_images?.length || props.sale?.proof_image || props.sale?.payment_proof_image
+  const hasImages = props.sale?.proof_images?.length || props.sale?.proof_image || props.sale?.photo_resi || props.sale?.payment_proof_image || props.sale?.photo_unit
   if (val && hasImages) {
     loadProofImages()
   } else {

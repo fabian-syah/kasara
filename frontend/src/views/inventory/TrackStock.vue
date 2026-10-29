@@ -28,13 +28,55 @@ const showReceiptModal = ref(false);
 const currentReceiptData = ref(null);
 const activeImage = ref(null);
 
+const currentTrackResult = ref(null);
+const currentTrackProofImages = ref([]);
+const currentTrackProofLabels = ref([]);
+const activeTrackProofIndex = ref(0);
+
 const printableCategories = [
-    'penjualan', 'penjualan_offline', 'penjualan_store', 'bundling',
+    'penjualan', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'bundling',
     'tukar_unit', 'tukar_tambah', 'downgrade', 'retur', 'keluar',
     'pindah_cabang', 'kesalahan_input', 'brand_ambassador',
     'event_sponsorship', 'giveaway_customer', 'inventaris', 'hilang',
     'dp', 'pelunasan_dp', 'balancing', 'refund', 'angkat_barang'
 ];
+
+const getTrackProofLabel = (result, idx) => {
+    if (result.category === 'penjualan_online_toko' || (result.proof_images && result.proof_images.length === 3)) {
+        if (idx === 0) return 'Foto Resi';
+        if (idx === 1) return 'Bukti Bayar';
+        if (idx === 2) return 'Foto Unit';
+    }
+    if (result.category === 'tukar_tambah' || result.category === 'downgrade' || result.category === 'tukar_unit') {
+        if (idx === 0) return 'Foto Unit';
+        if (idx === 1) return 'Foto Customer';
+    }
+    return `Bukti ${idx + 1}`;
+};
+
+const getTrackProofClass = (result, idx) => {
+    if (result.category === 'penjualan_online_toko' || (result.proof_images && result.proof_images.length === 3)) {
+        if (idx === 0) {
+            return 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 border-blue-500/30';
+        }
+        if (idx === 1) {
+            return 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border-amber-500/30';
+        }
+        if (idx === 2) {
+            return 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/30';
+        }
+    }
+    return 'bg-surface-700/50 hover:bg-surface-700 text-text-primary border-surface-600';
+};
+
+const openProofImage = (result, idx) => {
+    currentTrackResult.value = result;
+    const images = (result.proof_images && result.proof_images.length > 0) ? result.proof_images : (result.proof_image ? [result.proof_image] : []);
+    currentTrackProofImages.value = images;
+    currentTrackProofLabels.value = images.map((_, i) => getTrackProofLabel(result, i));
+    activeTrackProofIndex.value = idx;
+    activeImage.value = images[idx] || images[0] || null;
+};
 
 const canPrintReceipt = (result) => {
     if (result.type === 'stock_out') {
@@ -375,10 +417,12 @@ watch(
                                     <span class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Aksi & Bukti:</span>
                                     <template v-if="result.proof_images && result.proof_images.length > 0">
                                         <button v-for="(img, idx) in result.proof_images" :key="idx"
-                                            @click="activeImage = img"
-                                            class="flex items-center gap-1.5 bg-surface-700/50 hover:bg-surface-700 text-text-primary border border-surface-600 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95">
+                                            @click="openProofImage(result, idx)"
+                                            class="flex items-center gap-1.5 border px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95"
+                                            :class="getTrackProofClass(result, idx)"
+                                            :title="getTrackProofLabel(result, idx)">
                                             <Eye :size="12" class="text-primary-400" />
-                                            Bukti {{ idx + 1 }}
+                                            {{ getTrackProofLabel(result, idx) }}
                                         </button>
                                     </template>
                                     <button v-if="canPrintReceipt(result)" @click="openReceipt(result)"
@@ -702,10 +746,12 @@ watch(
                                     <span class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Aksi & Bukti:</span>
                                     <template v-if="result.proof_images && result.proof_images.length > 0">
                                         <button v-for="(img, idx) in result.proof_images" :key="idx"
-                                            @click="activeImage = img"
-                                            class="flex items-center gap-1.5 bg-surface-700/50 hover:bg-surface-700 text-text-primary border border-surface-600 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95">
+                                            @click="openProofImage(result, idx)"
+                                            class="flex items-center gap-1.5 border px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95"
+                                            :class="getTrackProofClass(result, idx)"
+                                            :title="getTrackProofLabel(result, idx)">
                                             <Eye :size="12" class="text-primary-400" />
-                                            Bukti {{ idx + 1 }}
+                                            {{ getTrackProofLabel(result, idx) }}
                                         </button>
                                     </template>
                                     <button v-if="canPrintReceipt(result)" @click="openReceipt(result)"
@@ -726,13 +772,24 @@ watch(
     <!-- Receipt Modal -->
     <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" :auto-send="false" @close="showReceiptModal = false" />
 
-    <!-- Image Modal -->
+    <!-- Image Modal (Gallery with Tabs / Thumbnails) -->
     <div v-if="activeImage" class="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm" @click.self="activeImage = null">
-        <div class="relative w-full max-w-3xl">
+        <div class="relative w-full max-w-3xl flex flex-col items-center">
             <button @click="activeImage = null" class="absolute -top-12 right-0 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
                 <X :size="20" />
             </button>
-            <img :src="activeImage" alt="Bukti" class="w-full max-h-[80vh] object-contain rounded-xl" />
+
+            <!-- Gallery Tabs if multiple images -->
+            <div v-if="currentTrackProofImages && currentTrackProofImages.length > 1" class="flex flex-wrap items-center justify-center gap-2 mb-3">
+                <button v-for="(img, pIdx) in currentTrackProofImages" :key="pIdx"
+                    @click="activeImage = img; activeTrackProofIndex = pIdx"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border active:scale-95"
+                    :class="activeImage === img ? 'bg-primary-600 text-white border-primary-500 shadow-md' : 'bg-surface-800 text-text-secondary border-surface-700 hover:text-white'">
+                    {{ currentTrackProofLabels[pIdx] || `Bukti ${pIdx + 1}` }}
+                </button>
+            </div>
+
+            <img :src="activeImage" alt="Bukti" class="w-full max-h-[75vh] object-contain rounded-xl shadow-2xl border border-white/10" />
         </div>
     </div>
 </template>

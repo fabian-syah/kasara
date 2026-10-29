@@ -362,37 +362,38 @@
                                             <div v-if="item.proof_images && item.proof_images.length > 0"
                                                 class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                    @click="viewProof(img, 'unit', item)"
-                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
-                                                    :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
+                                                    @click="viewProof(img, getProofType(item, imgIdx), item, imgIdx)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter rounded-lg transition-all border whitespace-nowrap active:scale-95"
+                                                    :class="getProofButtonClass(item, imgIdx)"
+                                                    :title="getProofTitle(item, imgIdx)">
                                                     <Image :size="12" stroke-width="3" />
-                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
-                                                        'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
-                                                            (imgIdx + 1)) }}</span>
+                                                    <span>{{ getProofLabel(item, imgIdx) }}</span>
                                                 </button>
                                             </div>
                                             <!-- Fallback if proof_images is empty but single proof_image exists (Foto Unit/Nota) -->
-                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image, 'unit', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
+                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image, 'unit', item, 0)"
+                                                class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 active:scale-95"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
                                                 <span>Lihat Bukti</span>
                                             </button>
 
-                                            <!-- NEW: Payment Proof Button -->
-                                            <button v-if="item.payment_proof_images && item.payment_proof_images.length > 0"
-                                                @click="viewProof(item.payment_proof_images, 'payment', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
-                                                title="Lihat Foto Bukti Pembayaran">
-                                                <CreditCard :size="12" stroke-width="3" />
-                                                BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '(' + item.payment_proof_images.length + ')' : '' }}
-                                            </button>
-                                            <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
-                                                title="Lihat Foto Bukti Pembayaran/Transfer">
-                                                <Wallet :size="12" stroke-width="3" />
-                                                <span>Bayar</span>
-                                            </button>
+                                            <!-- NEW: Payment Proof Button (shown only when not already in proof_images) -->
+                                            <template v-if="hasSeparatePaymentProof(item)">
+                                                <button v-if="item.payment_proof_images && item.payment_proof_images.length > 0"
+                                                    @click="viewProof(item.payment_proof_images, 'payment', item, 0)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap active:scale-95"
+                                                    title="Lihat Foto Bukti Pembayaran">
+                                                    <CreditCard :size="12" stroke-width="3" />
+                                                    BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '(' + item.payment_proof_images.length + ')' : '' }}
+                                                </button>
+                                                <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item, 0)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap active:scale-95"
+                                                    title="Lihat Foto Bukti Pembayaran/Transfer">
+                                                    <Wallet :size="12" stroke-width="3" />
+                                                    <span>Bayar</span>
+                                                </button>
+                                            </template>
                                             <button type="button" @click="openReceipt(item)"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
@@ -503,37 +504,38 @@
                                             <div v-if="item.proof_images && item.proof_images.length > 0"
                                                 class="flex flex-wrap gap-1.5 max-w-[200px]">
                                                 <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
-                                                    @click="viewProof(img, 'unit', item)"
-                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 whitespace-nowrap"
-                                                    :title="'Lihat ' + (item.proof_images.length === 2 ? (imgIdx === 0 ? 'Foto Unit' : 'Foto Customer') : 'Foto #' + (imgIdx + 1))">
+                                                    @click="viewProof(img, getProofType(item, imgIdx), item, imgIdx)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter rounded-lg transition-all border whitespace-nowrap active:scale-95"
+                                                    :class="getProofButtonClass(item, imgIdx)"
+                                                    :title="getProofTitle(item, imgIdx)">
                                                     <Image :size="12" stroke-width="3" />
-                                                    <span>{{ item.proof_images.length === 2 ? (imgIdx === 0 ? 'Unit' :
-                                                        'Cust') : (item.proof_images.length === 1 ? 'Bukti' : '#' +
-                                                            (imgIdx + 1)) }}</span>
+                                                    <span>{{ getProofLabel(item, imgIdx) }}</span>
                                                 </button>
                                             </div>
                                             <!-- Fallback if proof_images is empty but single proof_image exists (Foto Unit/Nota) -->
-                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image, 'unit', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20"
+                                            <button v-else-if="item.proof_image" @click="viewProof(item.proof_image, 'unit', item, 0)"
+                                                class="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 rounded-lg transition-all border border-primary-100 dark:border-primary-500/20 active:scale-95"
                                                 title="Lihat Foto Bukti">
                                                 <Image :size="14" stroke-width="2.5" />
                                                 <span>Lihat Bukti</span>
                                             </button>
 
-                                            <!-- NEW: Payment Proof Button -->
-                                            <button v-if="item.payment_proof_images && item.payment_proof_images.length > 0"
-                                                @click="viewProof(item.payment_proof_images, 'payment', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
-                                                title="Lihat Foto Bukti Pembayaran">
-                                                <CreditCard :size="12" stroke-width="3" />
-                                                BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '(' + item.payment_proof_images.length + ')' : '' }}
-                                            </button>
-                                            <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item)"
-                                                class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap"
-                                                title="Lihat Foto Bukti Pembayaran/Transfer">
-                                                <Wallet :size="12" stroke-width="3" />
-                                                <span>Bayar</span>
-                                            </button>
+                                            <!-- NEW: Payment Proof Button (shown only when not already in proof_images) -->
+                                            <template v-if="hasSeparatePaymentProof(item)">
+                                                <button v-if="item.payment_proof_images && item.payment_proof_images.length > 0"
+                                                    @click="viewProof(item.payment_proof_images, 'payment', item, 0)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap active:scale-95"
+                                                    title="Lihat Foto Bukti Pembayaran">
+                                                    <CreditCard :size="12" stroke-width="3" />
+                                                    BUKTI PEMBAYARAN {{ item.payment_proof_images.length > 1 ? '(' + item.payment_proof_images.length + ')' : '' }}
+                                                </button>
+                                                <button v-else-if="item.payment_proof_image" @click="viewProof(item.payment_proof_image, 'payment', item, 0)"
+                                                    class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 rounded-lg transition-all border border-amber-100 dark:border-amber-500/20 whitespace-nowrap active:scale-95"
+                                                    title="Lihat Foto Bukti Pembayaran/Transfer">
+                                                    <Wallet :size="12" stroke-width="3" />
+                                                    <span>Bayar</span>
+                                                </button>
+                                            </template>
                                             <button type="button" @click="openReceipt(item)"
                                                 class="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg transition-all border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap active:scale-95 cursor-pointer"
                                                 title="Buat Struk">
@@ -624,6 +626,7 @@
                 <div class="w-full flex-1 overflow-y-auto custom-scrollbar p-1 sm:p-2">
                     <div class="w-full max-w-3xl mx-auto flex flex-col gap-6 items-center">
                         <div v-for="(imgUrl, index) in currentProofImages" :key="index"
+                            :id="'checksales-proof-card-' + index"
                             class="w-full bg-white dark:bg-surface-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)] border border-white/10 group">
 
                             <!-- HD Image Wrapper -->
@@ -647,7 +650,12 @@
                                     <div class="flex flex-col">
                                         <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
                                             FOTO #{{ index + 1 }}
-                                            <template v-if="currentProofType === 'payment'">
+                                            <template v-if="currentProofItem?.category === 'penjualan_online_toko' || (currentProofImages.length === 3 && currentProofType !== 'payment')">
+                                                <span v-if="index === 0" class="ml-2 text-blue-500 font-bold">— RESI PESANAN</span>
+                                                <span v-else-if="index === 1" class="ml-2 text-amber-500 font-bold">— BUKTI PEMBAYARAN</span>
+                                                <span v-else-if="index === 2" class="ml-2 text-emerald-500 font-bold">— FOTO UNIT</span>
+                                            </template>
+                                            <template v-else-if="currentProofType === 'payment'">
                                                 <span class="ml-2 text-amber-500">— BUKTI PEMBAYARAN</span>
                                             </template>
                                             <template v-else>
@@ -658,11 +666,24 @@
                                         </span>
                                         <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1">
                                             <h4 class="text-lg font-black text-text-primary leading-tight whitespace-nowrap">
-                                                {{ currentProofType === 'payment' ? 'Bukti Pembayaran' : 'Bukti CheckSales' }}
+                                                <template v-if="currentProofItem?.category === 'penjualan_online_toko' || (currentProofImages.length === 3 && currentProofType !== 'payment')">
+                                                    {{ index === 0 ? 'Foto Resi Pesanan' : (index === 1 ? 'Bukti Pembayaran' : 'Foto Unit HP/Produk') }}
+                                                </template>
+                                                <template v-else>
+                                                    {{ currentProofType === 'payment' ? 'Bukti Pembayaran' : 'Bukti CheckSales' }}
+                                                </template>
                                             </h4>
                                             
+                                            <!-- Expedition Tracking Details for Resi Proof (index 0) -->
+                                            <div v-if="(currentProofItem?.category === 'penjualan_online_toko' && index === 0) && currentProofItem && (currentProofItem.shopee_tracking_no || currentProofItem.expedition_tracking_no)" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                                <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
+                                                    <span class="text-text-secondary uppercase text-[10px] tracking-wider">No Resi:</span>
+                                                    <span class="text-blue-600 dark:text-blue-400 font-mono font-black">{{ currentProofItem.shopee_tracking_no || currentProofItem.expedition_tracking_no }}</span>
+                                                </div>
+                                            </div>
+
                                             <!-- Payment Details in Title -->
-                                            <div v-if="currentProofType === 'payment' && currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <div v-else-if="(currentProofType === 'payment' || (currentProofItem?.category === 'penjualan_online_toko' && index === 1)) && currentProofItem" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
                                                 <template v-if="currentProofItem.split_payments_data && currentProofItem.split_payments_data.length > 0">
                                                     <div v-for="(split, sIdx) in currentProofItem.split_payments_data" :key="sIdx" class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                         <span class="text-text-secondary uppercase text-[10px] tracking-wider">{{ split.method_name }}:</span>
@@ -677,7 +698,7 @@
                                                 </template>
                                             </div>
                                             <!-- IMEI Details for Unit Proof -->
-                                            <div v-else-if="(currentProofType === 'unit' || currentProofType === 'customer') && currentProofItem && ((currentProofItem.imeis && currentProofItem.imeis !== '-') || (currentProofItem.items && currentProofItem.items.some(i => i.imei && i.imei !== '-')))" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
+                                            <div v-else-if="(currentProofType === 'unit' || currentProofType === 'customer' || (currentProofItem?.category === 'penjualan_online_toko' && index === 2)) && currentProofItem && ((currentProofItem.imeis && currentProofItem.imeis !== '-') || (currentProofItem.items && currentProofItem.items.some(i => i.imei && i.imei !== '-')))" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
                                                 <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                     <span class="text-text-secondary uppercase text-[10px] tracking-wider">IMEI:</span>
                                                     <span class="text-blue-600 dark:text-blue-400 font-mono font-black truncate max-w-[200px] sm:max-w-[300px]" :title="currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '')">
@@ -916,22 +937,111 @@ const sendWaReceipt = (item) => {
     showReceiptModal.value = true
 }
 
-const viewProof = (imgUrl, type = 'unit', item = null) => {
-    if (Array.isArray(imgUrl)) {
-        currentProofImages.value = imgUrl.map(url => {
-            // Append storage/ prefix if it doesn't start with http or /
-            if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('/storage/')) {
-                return '/storage/' + url;
-            }
-            return url;
-        });
-    } else {
-        currentProofImages.value = [imgUrl];
+const getProofLabel = (item, imgIdx) => {
+    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+        if (imgIdx === 0) return 'Resi';
+        if (imgIdx === 1) return 'Bayar';
+        if (imgIdx === 2) return 'Unit';
     }
-    currentProofType.value = type
-    currentProofItem.value = item
-    showProofModal.value = true
-}
+    if (item.proof_images && item.proof_images.length === 2) {
+        return imgIdx === 0 ? 'Unit' : 'Cust';
+    }
+    if (item.proof_images && item.proof_images.length === 1) {
+        return 'Bukti';
+    }
+    return `#${imgIdx + 1}`;
+};
+
+const getProofTitle = (item, imgIdx) => {
+    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+        if (imgIdx === 0) return 'Lihat Foto Resi Pesanan';
+        if (imgIdx === 1) return 'Lihat Foto Bukti Pembayaran';
+        if (imgIdx === 2) return 'Lihat Foto Unit HP/Produk';
+    }
+    if (item.proof_images && item.proof_images.length === 2) {
+        return imgIdx === 0 ? 'Lihat Foto Unit' : 'Lihat Foto Customer';
+    }
+    return `Lihat Foto #${imgIdx + 1}`;
+};
+
+const getProofButtonClass = (item, imgIdx) => {
+    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+        if (imgIdx === 0) {
+            return 'text-blue-600 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border-blue-100 dark:border-blue-500/20';
+        }
+        if (imgIdx === 1) {
+            return 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border-amber-100 dark:border-amber-500/20';
+        }
+        if (imgIdx === 2) {
+            return 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-100 dark:border-emerald-500/20';
+        }
+    }
+    return 'text-primary-600 bg-primary-50 dark:bg-primary-500/10 hover:bg-primary-100 dark:hover:bg-primary-500/20 border-primary-100 dark:border-primary-500/20';
+};
+
+const getProofType = (item, imgIdx) => {
+    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+        if (imgIdx === 0) return 'resi';
+        if (imgIdx === 1) return 'payment';
+        if (imgIdx === 2) return 'unit';
+    }
+    if (item.proof_images && item.proof_images.length === 2) {
+        return imgIdx === 0 ? 'unit' : 'customer';
+    }
+    return 'unit';
+};
+
+const hasSeparatePaymentProof = (item) => {
+    if (item.category === 'penjualan_online_toko') return false;
+    if (!item.payment_proof_image && (!item.payment_proof_images || item.payment_proof_images.length === 0)) return false;
+    if (item.proof_images && item.proof_images.length > 0) {
+        if (item.payment_proof_image && item.proof_images.some(url => url.includes(item.payment_proof_image) || item.payment_proof_image.includes(url))) {
+            return false;
+        }
+    }
+    return true;
+};
+
+const normalizeProofUrl = (url) => {
+    if (!url) return '';
+    if (typeof url === 'string' && !url.startsWith('http') && !url.startsWith('/storage/')) {
+        return '/storage/' + url;
+    }
+    return url;
+};
+
+const viewProof = (imgUrl, type = 'unit', item = null, targetIdx = 0) => {
+    currentProofType.value = type;
+    currentProofItem.value = item;
+
+    let allImages = [];
+    if (item && Array.isArray(item.proof_images) && item.proof_images.length > 0) {
+        allImages = item.proof_images.map(normalizeProofUrl);
+    } else if (Array.isArray(imgUrl)) {
+        allImages = imgUrl.map(normalizeProofUrl);
+    } else if (imgUrl) {
+        allImages = [normalizeProofUrl(imgUrl)];
+    }
+
+    if (item && item.payment_proof_image) {
+        const normPay = normalizeProofUrl(item.payment_proof_image);
+        if (!allImages.includes(normPay)) {
+            allImages.push(normPay);
+        }
+    }
+
+    currentProofImages.value = allImages;
+    showProofModal.value = true;
+
+    if (targetIdx > 0) {
+        setTimeout(() => {
+            const el = document.getElementById('checksales-proof-card-' + targetIdx);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 120);
+    }
+};
 
 const downloadImage = async (url) => {
     try {
