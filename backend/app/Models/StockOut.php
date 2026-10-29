@@ -197,6 +197,18 @@ class StockOut extends Model
 
     public function getProofImagesAttribute()
     {
+        if ($this->category === 'penjualan_online_toko') {
+            $images = collect([
+                $this->photo_resi ?: $this->proof_image,
+                $this->payment_proof_image,
+                $this->photo_unit,
+            ]);
+
+            return $images->filter()->unique()->map(function ($path) {
+                return str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
+            })->values()->toArray();
+        }
+
         $images = collect([
             $this->photo_resi,
             $this->payment_proof_image,

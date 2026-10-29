@@ -357,13 +357,28 @@ const loadProofImages = async () => {
   loadedPhotos.value = []
   photoAspects.value = []
 
-  const rawList = [
-    ...(props.sale?.proof_images || []),
-    props.sale?.proof_image,
-    props.sale?.photo_resi,
-    props.sale?.payment_proof_image,
-    props.sale?.photo_unit
-  ].filter(Boolean)
+  let rawList = []
+  if (props.sale?.category === 'penjualan_online_toko') {
+    if (props.sale?.photo_resi || props.sale?.payment_proof_image || props.sale?.photo_unit) {
+      rawList = [
+        props.sale?.photo_resi || props.sale?.proof_image,
+        props.sale?.payment_proof_image,
+        props.sale?.photo_unit
+      ].filter(Boolean)
+    } else if (Array.isArray(props.sale?.proof_images) && props.sale.proof_images.length > 0) {
+      rawList = props.sale.proof_images.slice(0, 3)
+    } else {
+      rawList = [props.sale?.proof_image].filter(Boolean)
+    }
+  } else {
+    rawList = [
+      ...(props.sale?.proof_images || []),
+      props.sale?.proof_image,
+      props.sale?.photo_resi,
+      props.sale?.payment_proof_image,
+      props.sale?.photo_unit
+    ].filter(Boolean)
+  }
 
   const allImageUrls = []
   for (const url of rawList) {

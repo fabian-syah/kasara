@@ -567,7 +567,6 @@ async function executeSubmit(pin = null) {
         // Photos
         if (photos.value.resi) {
             formData.append('photo_resi', photos.value.resi);
-            formData.append('proof_image', photos.value.resi);
         }
         if (photos.value.payment) {
             formData.append('payment_proof_image', photos.value.payment);

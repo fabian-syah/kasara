@@ -41,8 +41,24 @@ const printableCategories = [
     'dp', 'pelunasan_dp', 'balancing', 'refund', 'angkat_barang'
 ];
 
+const getTrackProofImages = (result) => {
+    if (!result) return [];
+    let images = (result.proof_images && Array.isArray(result.proof_images)) ? [...result.proof_images] : (result.proof_image ? [result.proof_image] : []);
+    if (result.category === 'penjualan_online_toko') {
+        if (images.length > 3) {
+            images = images.slice(0, 3);
+        }
+    }
+    return images;
+};
+
 const getTrackProofLabel = (result, idx) => {
-    if (result.category === 'penjualan_online_toko' || (result.proof_images && result.proof_images.length === 3)) {
+    if (result.category === 'penjualan_online_toko') {
+        if (idx === 0) return 'Foto Resi';
+        if (idx === 1) return 'Bukti Bayar';
+        if (idx === 2) return 'Foto Unit';
+    }
+    if (result.proof_images && result.proof_images.length === 3) {
         if (idx === 0) return 'Foto Resi';
         if (idx === 1) return 'Bukti Bayar';
         if (idx === 2) return 'Foto Unit';
@@ -71,7 +87,7 @@ const getTrackProofClass = (result, idx) => {
 
 const openProofImage = (result, idx) => {
     currentTrackResult.value = result;
-    const images = (result.proof_images && result.proof_images.length > 0) ? result.proof_images : (result.proof_image ? [result.proof_image] : []);
+    const images = getTrackProofImages(result);
     currentTrackProofImages.value = images;
     currentTrackProofLabels.value = images.map((_, i) => getTrackProofLabel(result, i));
     activeTrackProofIndex.value = idx;
@@ -89,7 +105,7 @@ const canPrintReceipt = (result) => {
 };
 
 const showAksiBukti = (result) => {
-    return (result.proof_images && result.proof_images.length > 0) || canPrintReceipt(result);
+    return (getTrackProofImages(result).length > 0) || canPrintReceipt(result);
 };
 
 const getSourceBadgeClass = (sourceType) => {
@@ -139,7 +155,7 @@ const openReceipt = (result) => {
 const categoryIcons = {
     pindah_cabang: Building2, kesalahan_input: AlertTriangle, retur: RotateCcw,
     shopee: ShoppingBag, orderan_online: ShoppingBag, penjualan_offline: ShoppingBag,
-    penjualan: ShoppingBag, penjualan_store: ShoppingBag, bundling: ShoppingBag,
+    penjualan: ShoppingBag, penjualan_store: ShoppingBag, penjualan_online_toko: ShoppingBag, bundling: ShoppingBag,
     tukar_unit: ShoppingBag, tukar_tambah: ShoppingBag, downgrade: ShoppingBag,
     angkat_barang: Box, brand_ambassador: User, event_sponsorship: Calendar,
     keluar: Box, giveaway_customer: Gift, inventaris: Box, hilang: AlertTriangle,
@@ -150,7 +166,7 @@ const categoryIcons = {
 const categoryLabels = {
     pindah_cabang: 'Pindah Cabang', kesalahan_input: 'Kesalahan Input', retur: 'Retur',
     shopee: 'Shopee', orderan_online: 'Orderan Online', penjualan_offline: 'Penjualan Offline',
-    penjualan: 'Penjualan', penjualan_store: 'Penjualan Store', bundling: 'Bundling',
+    penjualan: 'Penjualan', penjualan_store: 'Penjualan Store', penjualan_online_toko: 'Penjualan Online Toko', bundling: 'Bundling',
     tukar_unit: 'Tukar Unit', tukar_tambah: 'Tukar Tambah', downgrade: 'Downgrade',
     angkat_barang: 'Angkat Barang', brand_ambassador: 'Brand Ambassador',
     event_sponsorship: 'Event / Sponsorship', keluar: 'Keluar',
@@ -225,6 +241,7 @@ function getCategoryColor(category) {
     if (category === 'brand_ambassador') return 'pink';
     if (category === 'event_sponsorship') return 'cyan';
     if (['shopee', 'orderan_online'].includes(category)) return 'orange';
+    if (['penjualan_online_toko'].includes(category)) return 'emerald';
     if (['angkat_barang', 'refund'].includes(category)) return 'indigo';
     if (['dp', 'pelunasan_dp', 'balancing'].includes(category)) return 'emerald';
     return 'emerald';
@@ -514,7 +531,7 @@ watch(
                                 'bg-cyan-500': result.category === 'event_sponsorship',
                                 'bg-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                 'bg-indigo-500': ['angkat_barang', 'refund'].includes(result.category),
-                                'bg-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
+                                'bg-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
                             }"></div>
 
                             <!-- Header -->
@@ -528,18 +545,20 @@ watch(
                                         'bg-cyan-500/10 text-cyan-400': result.category === 'event_sponsorship',
                                         'bg-[#EE4D2D]/10 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
                                         'bg-indigo-500/10 text-indigo-400': ['angkat_barang', 'refund'].includes(result.category),
-                                        'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
+                                        'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
                                     }">
                                         <component :is="categoryIcons[result.category]" :size="18" />
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <span v-if="['angkat_barang', 'refund'].includes(result.category)"
-                                                class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20">MASUK</span>
+                                                class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-bold">MASUK</span>
                                             <span v-else-if="result.category === 'cancel_penjualan'"
-                                                class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20">BATAL (MASUK)</span>
-                                            <span v-else class="badge-xs bg-red-500/10 text-red-400 border-red-500/20">KELUAR</span>
-                                            <span class="text-[10px] text-text-secondary">{{ categoryLabels[result.category] }}</span>
+                                                class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold">BATAL (MASUK)</span>
+                                            <span v-else class="badge-xs bg-red-500/10 text-red-400 border-red-500/20 font-bold">KELUAR</span>
+                                            <span class="badge-xs bg-primary-500/10 text-primary-400 border-primary-500/20 font-bold uppercase">
+                                                {{ categoryLabels[result.category] || result.category?.replace(/_/g, ' ') }}
+                                            </span>
                                             <span v-if="result.category === 'pindah_cabang'" class="badge-xs" :class="{
                                                 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20': result.status === 'pending',
                                                 'bg-green-500/10 text-green-400 border-green-500/20': result.status === 'received',
@@ -633,6 +652,32 @@ watch(
                                                 <p class="text-xs text-text-primary font-mono">{{ result.shopee_tracking_no || '-' }}</p>
                                             </div>
                                         </template>
+                                    </template>
+
+                                    <!-- Penjualan Online Toko -->
+                                    <template v-if="result.category === 'penjualan_online_toko'">
+                                        <div>
+                                            <p class="text-[10px] text-text-secondary">Penerima / Customer</p>
+                                            <p class="text-xs text-text-primary font-medium uppercase">{{ result.customer_name || result.shopee_receiver || result.receiver_name || '-' }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-[10px] text-text-secondary">No. Resi</p>
+                                            <p class="text-xs text-text-primary font-mono font-medium">{{ result.expedition_tracking_no || result.shopee_tracking_no || '-' }}</p>
+                                        </div>
+                                        <div v-if="result.customer_wa">
+                                            <p class="text-[10px] text-text-secondary">No. WhatsApp</p>
+                                            <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
+                                        </div>
+                                        <div v-if="result.shopee_city || result.shopee_province || result.shopee_address" class="col-span-full">
+                                            <p class="text-[10px] text-text-secondary">Tujuan / Alamat</p>
+                                            <p class="text-xs text-text-primary">
+                                                {{ [result.shopee_address, result.shopee_district, result.shopee_city, result.shopee_province].filter(Boolean).join(', ') || '-' }}
+                                            </p>
+                                        </div>
+                                        <div v-if="result.notes" class="col-span-full">
+                                            <p class="text-[10px] text-text-secondary">Catatan</p>
+                                            <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
+                                        </div>
                                     </template>
 
                                     <!-- Brand Ambassador -->
@@ -744,8 +789,8 @@ watch(
                                 <!-- Aksi & Bukti -->
                                 <div v-if="showAksiBukti(result)" class="mt-3 pt-3 border-t border-surface-700/50 flex flex-wrap items-center gap-2">
                                     <span class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Aksi & Bukti:</span>
-                                    <template v-if="result.proof_images && result.proof_images.length > 0">
-                                        <button v-for="(img, idx) in result.proof_images" :key="idx"
+                                    <template v-if="getTrackProofImages(result).length > 0">
+                                        <button v-for="(img, idx) in getTrackProofImages(result)" :key="idx"
                                             @click="openProofImage(result, idx)"
                                             class="flex items-center gap-1.5 border px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95"
                                             :class="getTrackProofClass(result, idx)"

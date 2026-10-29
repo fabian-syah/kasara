@@ -742,7 +742,7 @@ class StockOutController extends Controller
 
             // Handle File Upload
             $proofImagePath = null;
-            if ($request->hasFile('proof_image')) {
+            if ($request->category !== 'penjualan_online_toko' && $request->hasFile('proof_image')) {
                 $proofImagePath = $request->file('proof_image')->store('stock-outs/proofs', 'public');
             }
 
@@ -1490,18 +1490,26 @@ class StockOutController extends Controller
             $exchangeInfo = \App\Models\Refund::where('receipt_id', $out->receipt_id)->first();
         }
 
-        $proofImages = collect([
-            $out->photo_resi,
-            $out->payment_proof_image,
-            $out->photo_unit,
-            $out->proof_image,
-            $exchangeInfo->photo_unit ?? null,
-            $exchangeInfo->photo_customer ?? null
-        ]);
-        if (is_array($out->payment_proof_images)) {
-            $proofImages = $proofImages->merge($out->payment_proof_images);
+        if ($catLower === 'penjualan_online_toko') {
+            $proofImages = collect([
+                $out->photo_resi ?: $out->proof_image,
+                $out->payment_proof_image,
+                $out->photo_unit,
+            ])->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
+        } else {
+            $proofImages = collect([
+                $out->photo_resi,
+                $out->payment_proof_image,
+                $out->photo_unit,
+                $out->proof_image,
+                $exchangeInfo->photo_unit ?? null,
+                $exchangeInfo->photo_customer ?? null
+            ]);
+            if (is_array($out->payment_proof_images)) {
+                $proofImages = $proofImages->merge($out->payment_proof_images);
+            }
+            $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
         }
-        $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
 
         $rawItems = [];
         if ($exchangeInfo && in_array($catLower, ['tukar_tambah', 'downgrade', 'tukar_unit'])) {
@@ -2233,8 +2241,12 @@ class StockOutController extends Controller
 
                 if (empty($shopeeReceivers) && $out->shopee_receiver)
                     $shopeeReceivers[] = $out->shopee_receiver;
+                if (empty($shopeeReceivers) && $out->customer_name && $out->category === 'penjualan_online_toko')
+                    $shopeeReceivers[] = $out->customer_name;
                 if (empty($shopeeTrackingNos) && $out->shopee_tracking_no)
                     $shopeeTrackingNos[] = $out->shopee_tracking_no;
+                if ($out->expedition_tracking_no && !in_array($out->expedition_tracking_no, $shopeeTrackingNos))
+                    $shopeeTrackingNos[] = $out->expedition_tracking_no;
 
                 $mergedItems = $out->items->map(function ($i) {
                     $src = $this->getSourceInfo($i, $i->pivot?->notes ?? $i->notes, $i->supplier_name);
@@ -2351,18 +2363,26 @@ class StockOutController extends Controller
                 }
 
                 // Compile proof images list
-                $proofImages = collect([
-                    $out->photo_resi,
-                    $out->payment_proof_image,
-                    $out->photo_unit,
-                    $out->proof_image,
-                    $exchangeInfo->photo_unit ?? null,
-                    $exchangeInfo->photo_customer ?? null
-                ]);
-                if (is_array($out->payment_proof_images)) {
-                    $proofImages = $proofImages->merge($out->payment_proof_images);
+                if ($catLower === 'penjualan_online_toko') {
+                    $proofImages = collect([
+                        $out->photo_resi ?: $out->proof_image,
+                        $out->payment_proof_image,
+                        $out->photo_unit,
+                    ])->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
+                } else {
+                    $proofImages = collect([
+                        $out->photo_resi,
+                        $out->payment_proof_image,
+                        $out->photo_unit,
+                        $out->proof_image,
+                        $exchangeInfo->photo_unit ?? null,
+                        $exchangeInfo->photo_customer ?? null
+                    ]);
+                    if (is_array($out->payment_proof_images)) {
+                        $proofImages = $proofImages->merge($out->payment_proof_images);
+                    }
+                    $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
                 }
-                $proofImages = $proofImages->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
 
                 // Build detailed raw items for ReceiptModal
                 $rawItems = [];
@@ -2685,6 +2705,12 @@ class StockOutController extends Controller
                     'items' => $mergedItems,
                     'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
                     'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                    'expedition_name' => $out->expedition_name,
+                    'expedition_tracking_no' => $out->expedition_tracking_no,
+                    'shopee_province' => $out->shopee_province,
+                    'shopee_city' => $out->shopee_city,
+                    'shopee_district' => $out->shopee_district,
+                    'shopee_address' => $out->shopee_address,
                     'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : ($out->destination_type ? ['name' => match($out->destination_type) { 'warehouse', \App\Models\Warehouse::class => 'Gudang', 'branch', \App\Models\Branch::class => 'Cabang', 'online_shop', \App\Models\OnlineShop::class => 'Toko Online', default => 'Lokasi' } . ' (Terhapus)', 'type' => $out->destination_type] : null)),
                     'receiver_name' => $out->receiver_name,
                     'customer_name' => $out->customer_name,

@@ -389,8 +389,8 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2 transition-opacity">
-                                        <div v-if="item.proof_images && item.proof_images.length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
-                                            <button v-for="(img, imgIdx) in item.proof_images" :key="imgIdx"
+                                        <div v-if="getProofList(item).length > 0" class="flex flex-wrap gap-1.5 max-w-[200px]">
+                                            <button v-for="(img, imgIdx) in getProofList(item)" :key="imgIdx"
                                                 @click="viewProof(img, getProofType(item, imgIdx), item, imgIdx)"
                                                 class="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-black uppercase tracking-tighter rounded-lg transition-all border whitespace-nowrap active:scale-95"
                                                 :class="getProofButtonClass(item, imgIdx)"
@@ -906,8 +906,24 @@ const currentProofImages = ref([])
 const currentProofType = ref('unit')
 const currentProofItem = ref(null)
 
+const getProofList = (item) => {
+    if (!item) return [];
+    let images = (item.proof_images && Array.isArray(item.proof_images)) ? [...item.proof_images] : (item.proof_image ? [item.proof_image] : []);
+    if (item.category === 'penjualan_online_toko') {
+        if (images.length > 3) {
+            images = images.slice(0, 3);
+        }
+    }
+    return images;
+};
+
 const getProofLabel = (item, imgIdx) => {
-    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+    if (item.category === 'penjualan_online_toko') {
+        if (imgIdx === 0) return 'Resi';
+        if (imgIdx === 1) return 'Bayar';
+        if (imgIdx === 2) return 'Unit';
+    }
+    if (item.proof_images && item.proof_images.length === 3) {
         if (imgIdx === 0) return 'Resi';
         if (imgIdx === 1) return 'Bayar';
         if (imgIdx === 2) return 'Unit';
@@ -922,7 +938,12 @@ const getProofLabel = (item, imgIdx) => {
 };
 
 const getProofTitle = (item, imgIdx) => {
-    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+    if (item.category === 'penjualan_online_toko') {
+        if (imgIdx === 0) return 'Lihat Foto Resi Pesanan';
+        if (imgIdx === 1) return 'Lihat Foto Bukti Pembayaran';
+        if (imgIdx === 2) return 'Lihat Foto Unit HP/Produk';
+    }
+    if (item.proof_images && item.proof_images.length === 3) {
         if (imgIdx === 0) return 'Lihat Foto Resi Pesanan';
         if (imgIdx === 1) return 'Lihat Foto Bukti Pembayaran';
         if (imgIdx === 2) return 'Lihat Foto Unit HP/Produk';
@@ -934,7 +955,18 @@ const getProofTitle = (item, imgIdx) => {
 };
 
 const getProofButtonClass = (item, imgIdx) => {
-    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+    if (item.category === 'penjualan_online_toko') {
+        if (imgIdx === 0) {
+            return 'text-blue-600 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border-blue-100 dark:border-blue-500/20';
+        }
+        if (imgIdx === 1) {
+            return 'text-amber-600 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border-amber-100 dark:border-amber-500/20';
+        }
+        if (imgIdx === 2) {
+            return 'text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-100 dark:border-emerald-500/20';
+        }
+    }
+    if (item.proof_images && item.proof_images.length === 3) {
         if (imgIdx === 0) {
             return 'text-blue-600 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border-blue-100 dark:border-blue-500/20';
         }
@@ -949,7 +981,12 @@ const getProofButtonClass = (item, imgIdx) => {
 };
 
 const getProofType = (item, imgIdx) => {
-    if (item.category === 'penjualan_online_toko' || (item.proof_images && item.proof_images.length === 3)) {
+    if (item.category === 'penjualan_online_toko') {
+        if (imgIdx === 0) return 'resi';
+        if (imgIdx === 1) return 'payment';
+        if (imgIdx === 2) return 'unit';
+    }
+    if (item.proof_images && item.proof_images.length === 3) {
         if (imgIdx === 0) return 'resi';
         if (imgIdx === 1) return 'payment';
         if (imgIdx === 2) return 'unit';
@@ -984,15 +1021,15 @@ const viewProof = (imgUrl, type = 'transaction', item = null, targetIdx = 0) => 
     currentProofItem.value = item;
 
     let allImages = [];
-    if (item && Array.isArray(item.proof_images) && item.proof_images.length > 0) {
-        allImages = item.proof_images.map(normalizeProofUrl);
+    if (item) {
+        allImages = getProofList(item).map(normalizeProofUrl);
     } else if (Array.isArray(imgUrl)) {
         allImages = imgUrl.map(normalizeProofUrl);
     } else if (imgUrl) {
         allImages = [normalizeProofUrl(imgUrl)];
     }
 
-    if (item && item.payment_proof_image) {
+    if (item && item.category !== 'penjualan_online_toko' && item.payment_proof_image) {
         const normPay = normalizeProofUrl(item.payment_proof_image);
         if (!allImages.includes(normPay)) {
             allImages.push(normPay);

@@ -2755,7 +2755,16 @@ class AuditController extends Controller
                     'audit_score' => $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
                     'audited_at' => $trx->audited_at,
-                    'proof_images' => (function() use ($trx, $exchangeInfo) {
+                    'proof_images' => (function() use ($trx, $exchangeInfo, $catLower) {
+                        if ($catLower === 'penjualan_online_toko') {
+                            $list = collect([
+                                $trx->photo_resi ?: $trx->proof_image,
+                                $trx->payment_proof_image,
+                                $trx->photo_unit,
+                            ]);
+                            return $list->filter()->unique()->map(fn($path) => str_starts_with($path, 'http') ? $path : asset('storage/' . $path))->values()->toArray();
+                        }
+
                         $list = collect([
                             $trx->photo_resi,
                             $trx->payment_proof_image,
