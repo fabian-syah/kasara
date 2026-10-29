@@ -145,7 +145,7 @@
                                                     No. Nota</div>
                                                 <div
                                                     class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
-                                                    {{ transaction.order_no || '-' }}</div>
+                                                    {{ transaction.order_no || transaction.receipt_id || transaction.invoice_number || '-' }}</div>
                                             </div>
                                         </div>
 
@@ -216,7 +216,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- Column 3: Customer Service -->
+                                    <!-- Column 3: Customer Service & No. Resi -->
                                     <div class="flex flex-col gap-4 pl-4">
                                         <div class="flex items-center gap-2.5">
                                             <div
@@ -238,6 +238,45 @@
                                                 </div>
                                             </div>
                                         </div>
+
+                                        <!-- No. Resi (Khusus Pengiriman / Pesanan Online) -->
+                                        <div v-if="displayTrackingNo" class="flex items-center gap-2.5">
+                                            <div
+                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                                    <path
+                                                        d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                                                </svg>
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <div
+                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    No. Resi</div>
+                                                <div
+                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words font-mono">
+                                                    {{ displayTrackingNo }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Alamat Pengiriman (Khusus Transaksi dengan Tujuan Kirim) -->
+                                <div v-if="displayShippingAddress"
+                                    class="mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-3 border border-neutral-200 flex items-start gap-2.5">
+                                    <div
+                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600 mt-0.5">
+                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                            <path
+                                                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div
+                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                            Alamat Pengiriman</div>
+                                        <div
+                                            class="text-[10px] sm:text-[11px] font-bold text-neutral-900 leading-snug break-words">
+                                            {{ displayShippingAddress }}</div>
                                     </div>
                                 </div>
 
@@ -817,7 +856,7 @@ const sendWaReceiptFromModal = async () => {
             textParam += encodeURIComponent(`Jangan lupa untuk menyimpan (save) nomor WhatsApp toko kami ini ya Kak, untuk mempermudah klaim garansi atau untuk mendapatkan promo menarik kami ke depannya `) + heart + encodeURIComponent(`\n\n`);
             textParam += encodeURIComponent(`Sehat dan sukses selalu untuk Kakak sekeluarga! Terima kasih! `) + folded;
 
-            let cleanPhone = (props.transaction.customer_phone || '').toString().replace(/\D/g, '');
+            let cleanPhone = (props.transaction.customer_phone || props.transaction.customer_wa || props.transaction.shopee_phone || '').toString().replace(/\D/g, '');
             if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
 
             const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${textParam}`;
@@ -1014,6 +1053,7 @@ const receiptTitle = computed(() => {
     const cat = props.transaction?.category || 'penjualan';
     const mapping = {
         'penjualan_store': 'Nota Penjualan Store',
+        'penjualan_online_toko': 'Nota Penjualan Online Toko',
         'penjualan': 'Nota Penjualan',
         'penjualan_offline': 'Nota Penjualan',
         'refund': 'Nota Refund',
@@ -1129,6 +1169,26 @@ const displayCustomerPhone = computed(() => {
     return '-';
 });
 
+// Tracking / Resi Number
+const displayTrackingNo = computed(() => {
+    const t = props.transaction?.tracking_no || props.transaction?.shopee_tracking_no || props.transaction?.expedition_tracking_no;
+    return (t && String(t).trim()) ? String(t).trim() : null;
+});
+
+// Shipping Destination Address
+const displayShippingAddress = computed(() => {
+    const addr = props.transaction?.address || props.transaction?.shopee_address;
+    const prov = props.transaction?.province || props.transaction?.shopee_province;
+    const city = props.transaction?.city || props.transaction?.shopee_city;
+
+    const parts = [];
+    if (addr && String(addr).trim()) parts.push(String(addr).trim());
+    if (city && String(city).trim()) parts.push(String(city).trim());
+    if (prov && String(prov).trim()) parts.push(String(prov).trim());
+
+    return parts.length > 0 ? parts.join(', ') : null;
+});
+
 // Date
 const displayDate = computed(() => {
     let rawDate = props.transaction.created_at || props.transaction.date;
@@ -1188,10 +1248,11 @@ const allReceiptItems = computed(() => {
     // 1. Add HP Items
     if (props.transaction.items?.length > 0) {
         props.transaction.items.forEach(it => {
+            const isHp = it.is_hp !== undefined ? Boolean(it.is_hp) : (!!it.imei && it.imei !== '-');
             list.push({
                 ...it,
                 qty: it.qty || it.quantity || 1,
-                is_hp: true
+                is_hp: isHp
             });
         });
     }

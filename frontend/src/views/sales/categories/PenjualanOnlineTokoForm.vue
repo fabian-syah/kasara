@@ -603,7 +603,99 @@ async function executeSubmit(pin = null) {
         // Clear local draft upon success
         localStorage.removeItem(storageKey.value);
         toast.success('Penjualan Online Toko berhasil disimpan! 🎉');
-        emit('transaction-complete', res.data?.data || res.data);
+
+        const orderNo = res.data?.receipt_id || res.data?.data?.receipt_id || ("TRX-ONL-" + Date.now());
+        const paidAmount = Number(paymentForm.value.paid_amount) || 0;
+        const totalAmount = totalBelanja.value;
+        const changeAmount = Math.max(0, paidAmount - totalAmount);
+        const selectedPm = (props.availablePaymentMethods || []).find(m => m.id === paymentForm.value.payment_method_id);
+        const pmName = selectedPm ? selectedPm.name : (paidAmount > 0 ? 'Transfer' : '-');
+        const now = new Date();
+
+        const hpItems = selectedItems.value.filter(it => it.is_hp).map(it => ({
+            ...it,
+            name: it.name,
+            brand: it.brand || it.product?.brand?.name || it.product?.brand || null,
+            imei: it.imei || '-',
+            condition: it.condition || 'second',
+            ram: it.ram || '-',
+            storage: it.storage || '-',
+            qty: 1,
+            quantity: 1,
+            price: Number(it.selling_price) || 0,
+            selling_price: Number(it.selling_price) || 0,
+            original_price: Number(it.selling_price) || 0,
+            item_discount: 0,
+            is_hp: true
+        }));
+
+        const nonHpItems = selectedItems.value.filter(it => !it.is_hp).map(it => ({
+            ...it,
+            name: it.name,
+            product_name: it.name,
+            imei: '-',
+            qty: Math.max(1, Number(it.quantity) || 1),
+            quantity: Math.max(1, Number(it.quantity) || 1),
+            price: Number(it.selling_price) || 0,
+            selling_price: Number(it.selling_price) || 0,
+            original_price: Number(it.selling_price) || 0,
+            item_discount: 0,
+            is_hp: false
+        }));
+
+        const lastTransaction = {
+            id: res.data?.id || res.data?.data?.id,
+            order_no: orderNo,
+            receipt_id: orderNo,
+            invoice_number: orderNo,
+            category: 'penjualan_online_toko',
+            customer_name: receiverName || 'Umum',
+            receiver_name: receiverName,
+            shopee_receiver: receiverName,
+            customer_phone: waNumber || '-',
+            customer_wa: waNumber || '-',
+            shopee_phone: waNumber,
+            province: customerForm.value.province,
+            shopee_province: customerForm.value.province,
+            city: customerForm.value.city,
+            shopee_city: customerForm.value.city,
+            address: customerForm.value.address.trim(),
+            shopee_address: customerForm.value.address.trim(),
+            tracking_no: cleanResi,
+            shopee_tracking_no: cleanResi,
+            expedition_tracking_no: cleanResi,
+            sales_account: props.salesAccount || props.selectedAccountObject?.name || '-',
+            sales_name: props.salesAccount || props.selectedAccountObject?.name || '-',
+            inventory_account_name: props.salesAccount || props.selectedAccountObject?.name || '-',
+            inventory_user_name: props.salesAccount || props.selectedAccountObject?.name || '-',
+            branch: props.selectedAccountObject?.branch || authStore.user?.branch || null,
+            branch_name: props.selectedAccountObject?.branch?.name || authStore.user?.branch?.name || '',
+            branch_timezone: props.selectedAccountObject?.branch?.timezone || authStore.user?.branch?.timezone || 'WIB',
+            total: totalAmount,
+            grand_total: totalAmount,
+            selling_price: totalAmount,
+            original_price: totalAmount,
+            paid: paidAmount,
+            paid_amount: paidAmount,
+            change: changeAmount,
+            change_amount: changeAmount,
+            total_discount: 0,
+            global_discount_value: 0,
+            payment_method_id: paymentForm.value.payment_method_id,
+            payment_method_name: pmName,
+            payment_method: selectedPm,
+            split_payments_data: [{ method_name: pmName, amount: paidAmount }],
+            items: hpItems,
+            non_hp_items: nonHpItems,
+            non_hp_details: nonHpItems,
+            notes: paymentForm.value.notes.trim(),
+            proof_images: [photos.value.resiPreview, photos.value.paymentPreview, photos.value.unitPreview].filter(Boolean),
+            created_at: now.toISOString(),
+            date: now.toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }),
+            time: now.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })
+        };
+
+        emit('transaction-complete', lastTransaction);
     } catch (err) {
         console.error('Submit error:', err);
         const msg = err.response?.data?.message || 'Gagal menyimpan transaksi penjualan online toko.';

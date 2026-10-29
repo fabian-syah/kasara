@@ -187,6 +187,7 @@ const categoryLabels = {
   penjualan: 'Penjualan',
   penjualan_offline: 'Penjualan Offline',
   penjualan_store: 'Penjualan Store',
+  penjualan_online_toko: 'Penjualan Online Toko',
   shopee: 'Shopee',
   orderan_online: 'Order Online',
   tukar_tambah: 'Tukar Tambah',

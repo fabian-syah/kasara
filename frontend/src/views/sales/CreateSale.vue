@@ -766,7 +766,7 @@ watch(transactionCategory, () => {
         <PinModal v-if="passwordModalMode === 'pin'" :show="showPasswordModal" :mode="'verify'" @close="closePasswordModal"
             @success="handlePasswordSuccess" />
         <ReceiptModal v-if="showSuccessModal" :is-open="showSuccessModal" :transaction="lastTransaction"
-            :auto-send="['penjualan', 'penjualan_store', 'penjualan_online_toko'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
+            :auto-send="['penjualan', 'penjualan_store'].includes(lastTransaction?.category) && (!!lastTransaction?.customer_wa || !!lastTransaction?.customer_phone) && (lastTransaction?.customer_wa !== '-' || lastTransaction?.customer_phone !== '-')"
             @close="closeSuccessModal"
             @open-screenshot="showSuccessModal = false; showScreenshotModal = true" />
 
