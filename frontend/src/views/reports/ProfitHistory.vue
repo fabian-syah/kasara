@@ -212,6 +212,7 @@
                             <option value="all" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Semua Kategori</option>
                             <option value="angkat_tukar_tambah" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Angkat & Tukar Tambah</option>
                             <option value="penjualan_store" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Penjualan Store</option>
+                            <option value="penjualan_online_toko" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Penjualan Online Toko</option>
                             <option value="angkat_barang" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Angkat Barang</option>
                             <option value="tukar_tambah" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Tukar Tambah</option>
                             <option value="tukar_unit" class="bg-white text-gray-900 dark:!bg-surface-800 dark:text-white">Tukar Unit</option>
@@ -1852,6 +1853,7 @@ const formatDateLabel = (dStr) => {
 const formatCategoryLabel = (cat) => {
     const map = {
         'penjualan_store': 'Penjualan Store',
+        'penjualan_online_toko': 'Penjualan Online Toko',
         'angkat_barang': 'Angkat Barang',
         'refund': 'Refund',
         'tukar_unit': 'Tukar Unit',
@@ -1880,6 +1882,8 @@ const getCategoryBadgeClass = (cat) => {
     switch (cat) {
         case 'penjualan_store':
             return 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20';
+        case 'penjualan_online_toko':
+            return 'bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-500/20';
         case 'angkat_barang':
             return 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20';
         case 'tukar_tambah':

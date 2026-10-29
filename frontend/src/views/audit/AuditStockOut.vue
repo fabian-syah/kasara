@@ -105,6 +105,7 @@
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Kategori</option>
                             <option value="penjualan_store">Penjualan Store</option>
+                            <option value="penjualan_online_toko">Penjualan Online Toko</option>
                             <option value="orderan_online">Orderan Online</option>
                             <option value="tukar_unit">Tukar Unit</option>
                             <option value="tukar_tambah">Tukar Tambah</option>

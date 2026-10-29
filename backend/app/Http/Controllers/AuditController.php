@@ -3136,7 +3136,7 @@ class AuditController extends Controller
         }
 
         // Base Query Categories
-        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline'];
+        $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko'];
 
         $requestedBranchId = $request->branch_id;
         $requestedOnlineShopId = $request->online_shop_id;
@@ -3604,7 +3604,7 @@ class AuditController extends Controller
             }
 
             $salesCategories = [
-                'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 
+                'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko',
                 'bundling', 'tukar_tambah', 
                 'pelunasan_dp', 'dp',
                 'pos', 'sale', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store'
@@ -4001,7 +4001,7 @@ class AuditController extends Controller
 
                 // Pre-calculate exact discrepancy to match Omset exactly
                 $catLower = strtolower($trx->category);
-                $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
+                $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
 
                 $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
                 $spTotal = 0;
@@ -5097,7 +5097,7 @@ class AuditController extends Controller
                 // Determine uang masuk / keluar
                 $uangMasuk = '';
                 $uangKeluar = '';
-                if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan', 'shopee', 'orderan_online', 'tukar_tambah', 'tukar_unit'])) {
+                if (in_array($cat, ['penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'penjualan', 'shopee', 'orderan_online', 'tukar_tambah', 'tukar_unit'])) {
                     $uangMasuk = (float) ($firstRow['total_penjualan'] ?? 0);
                 } elseif (in_array($cat, ['downgrade'])) {
                     $uangKeluar = abs((float) ($firstRow['total_pengeluaran'] ?? 0));
@@ -5386,7 +5386,7 @@ class AuditController extends Controller
                 }
             }
 
-            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp', 'tukar_tambah'];
+            $salesCategories = ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp', 'tukar_tambah'];
 
             $branches = Branch::all()->keyBy('id');
             $onlineShops = OnlineShop::all()->keyBy('id');

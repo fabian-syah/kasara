@@ -1201,10 +1201,14 @@ class StockInController extends Controller
 
                 $outCategory = 'Stock Out';
                 if ($item->description) {
-                    $parts = explode('(', $item->description);
-                    $trimmedPart = trim($parts[0]);
-                    if (!empty($trimmedPart)) {
-                        $outCategory = $trimmedPart;
+                    if (preg_match('/Stock Out \(([^)]+)\)/i', $item->description, $m)) {
+                        $outCategory = $m[1];
+                    } else {
+                        $parts = explode('(', $item->description);
+                        $trimmedPart = trim($parts[0]);
+                        if (!empty($trimmedPart)) {
+                            $outCategory = $trimmedPart;
+                        }
                     }
                 }
 
@@ -1419,10 +1423,14 @@ class StockInController extends Controller
 
             $outCategory = 'Stock Out';
             if ($item->description) {
-                $parts = explode('(', $item->description);
-                $trimmedPart = trim($parts[0]);
-                if (!empty($trimmedPart)) {
-                    $outCategory = $trimmedPart;
+                if (preg_match('/Stock Out \(([^)]+)\)/i', $item->description, $m)) {
+                    $outCategory = $m[1];
+                } else {
+                    $parts = explode('(', $item->description);
+                    $trimmedPart = trim($parts[0]);
+                    if (!empty($trimmedPart)) {
+                        $outCategory = $trimmedPart;
+                    }
                 }
             }
 

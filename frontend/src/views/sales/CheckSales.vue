@@ -779,6 +779,7 @@ const selectedPeriod = ref('daily')
 const categoryLabels = {
     'shopee': 'Shopee',
     'orderan_online': 'Order Online',
+    'penjualan_online_toko': 'Penjualan Online Toko',
     'penjualan_offline': 'Penjualan Offline',
     'pindah_cabang': 'Pindah Cabang',
     'retur': 'Retur',
