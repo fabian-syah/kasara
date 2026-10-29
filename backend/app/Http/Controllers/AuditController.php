@@ -4082,7 +4082,7 @@ class AuditController extends Controller
                 $hpItemsData = [];
                 $hpBaseTotal = 0;
                 foreach ($trx->items as $item) {
-                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0));
+                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : (($item->selling_price > 0) ? $item->selling_price : ($item->product?->price ?? 0)));
                     $hpBaseTotal += $basePrice;
 
                     $rawNotes = (string) ($item->notes ?? '');
@@ -5696,6 +5696,7 @@ class AuditController extends Controller
                 }
 
                 $catLower = strtolower($trx->category);
+                $isNormalSales = in_array($catLower, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'dp', 'pelunasan_dp']);
                 $dbSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp']) ? (float) ($trx->paid_amount ?? 0) : (float) ($trx->selling_price ?? 0);
                 $spTotal = 0;
                 if ($trx->split_payments) {
@@ -5776,7 +5777,7 @@ class AuditController extends Controller
                 $hpItemsData = [];
                 $hpBaseTotal = 0;
                 foreach ($trx->items as $item) {
-                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : ($item->product?->price ?? 0));
+                    $basePrice = (float) (($item->pivot->selling_price > 0) ? $item->pivot->selling_price : (($item->selling_price > 0) ? $item->selling_price : ($item->product?->price ?? 0)));
                     $hpBaseTotal += $basePrice;
 
                     $rawNotes = (string) ($item->notes ?? '');
@@ -5833,10 +5834,10 @@ class AuditController extends Controller
                 // Non-HP items maintain exact base prices (e.g. charger 100k stays 100k)
                 // Any bundle or transaction difference is cleanly absorbed by HP unit(s)
                 if ($hpCount > 0) {
-                    $remainingHpOmset = ($targetTrxOmset > 0) ? max(0, $targetTrxOmset - $nonHpTotal) : $hpBaseTotal;
+                    $remainingHpOmset = ($isNormalSales && $targetTrxOmset > 0) ? max(0, $targetTrxOmset - $nonHpTotal) : $hpBaseTotal;
 
                     if ($hpCount === 1) {
-                        $hpItemsData[0]['final_price'] = ($targetTrxOmset > 0) ? $remainingHpOmset : $hpItemsData[0]['base_price'];
+                        $hpItemsData[0]['final_price'] = ($isNormalSales && $targetTrxOmset > 0) ? $remainingHpOmset : $hpItemsData[0]['base_price'];
                     } else {
                         $allocatedSoFar = 0;
                         foreach ($hpItemsData as $hIdx => &$hData) {
@@ -5857,7 +5858,7 @@ class AuditController extends Controller
                     }
                     unset($nhpData);
                 } else {
-                    if ($nonHpTotal > 0 && $targetTrxOmset > 0 && round($nonHpTotal) != round($targetTrxOmset)) {
+                    if ($isNormalSales && $nonHpTotal > 0 && $targetTrxOmset > 0 && round($nonHpTotal) != round($targetTrxOmset)) {
                         $allocatedSoFar = 0;
                         $totalNhp = count($nonHpItemsData);
                         foreach ($nonHpItemsData as $nIdx => &$nhpData) {
@@ -6031,7 +6032,17 @@ class AuditController extends Controller
                     } elseif ($adminCost > 0) {
                         $defaultItemModal = $adminCost;
                     } else {
-                        $defaultItemModal = $isItemNonHp ? round($itemJual * 0.90) : round($itemJual * 0.94);
+                        if ($itemJual > 0) {
+                            if ($isItemNonHp) {
+                                $defaultItemModal = round($itemJual * 0.90);
+                            } else {
+                                $cond = strtolower(trim((string) ($detail['condition'] ?? 'second')));
+                                $isNew = ($cond === 'new' || str_contains($cond, 'baru'));
+                                $defaultItemModal = $isNew ? round($itemJual * 0.97) : round($itemJual * 0.94);
+                            }
+                        } else {
+                            $defaultItemModal = 0;
+                        }
                     }
 
                     $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
