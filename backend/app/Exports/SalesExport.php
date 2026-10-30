@@ -299,7 +299,21 @@ class SalesExport
                     'customer' => $so->customer_name ?? '-',
                     'whatsapp' => $so->customer_wa ?? '-',
                     'category' => strtoupper($so->category),
-                    'keterangan' => $so->notes ?? '-',
+                    'keterangan' => (function() use ($so, $cat) {
+                        $expNotes = $so->notes;
+                        if ($cat === 'penjualan_online_toko') {
+                            $locParts = array_filter([$so->shopee_city, $so->shopee_province]);
+                            $locStr = !empty($locParts) ? implode(', ', $locParts) : null;
+                            if ($locStr) {
+                                if (!$expNotes || $expNotes === '-') {
+                                    $expNotes = $locStr;
+                                } elseif (!str_contains($expNotes, $so->shopee_city ?? '---') && !str_contains($expNotes, $so->shopee_province ?? '---')) {
+                                    $expNotes = $locStr . ' | ' . $expNotes;
+                                }
+                            }
+                        }
+                        return $expNotes ?? '-';
+                    })(),
                     'bundling' => ($cat === 'bundling' || $isBundling) ? 'BUNDLING' : '-',
                     
                     // Conditional Outbound Columns

@@ -923,14 +923,30 @@ class StockOutController extends Controller
                 'event_phone' => $request->event_phone,
                 'event_notes' => $request->event_notes,
 
-                'notes' => $request->category === 'dp' && $request->product_type_id 
-                    ? trim(
-                        (\App\Models\Brand::find($request->brand_id)?->name ?? '') . " " . 
-                        (\App\Models\ProductType::find($request->product_type_id)?->name ?? 'Item') . " " . 
-                        $request->storage . " " . 
-                        $request->condition
-                      ) . ($request->notes ? "\n" . $request->notes : '')
-                    : $request->notes,
+                'notes' => (function() use ($request) {
+                    if ($request->category === 'dp' && $request->product_type_id) {
+                        return trim(
+                            (\App\Models\Brand::find($request->brand_id)?->name ?? '') . " " . 
+                            (\App\Models\ProductType::find($request->product_type_id)?->name ?? 'Item') . " " . 
+                            $request->storage . " " . 
+                            $request->condition
+                        ) . ($request->notes ? "\n" . $request->notes : '');
+                    }
+                    if ($request->category === 'penjualan_online_toko') {
+                        $locParts = array_filter([$request->shopee_city, $request->shopee_province]);
+                        $locStr = !empty($locParts) ? implode(', ', $locParts) : null;
+                        $n = $request->notes ? trim($request->notes) : null;
+                        if ($locStr) {
+                            if (!$n) {
+                                return $locStr;
+                            } elseif (!str_contains($n, $request->shopee_city ?? '---') && !str_contains($n, $request->shopee_province ?? '---')) {
+                                return $locStr . ' | ' . $n;
+                            }
+                        }
+                        return $n;
+                    }
+                    return $request->notes;
+                })(),
                 'non_hp_items' => $request->non_hp_items,
                 'sales_account' => $request->sales_account,
                 'payment_method_id' => $request->payment_method_id,

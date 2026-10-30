@@ -2719,6 +2719,19 @@ class AuditController extends Controller
                 }
                 unset($d);
 
+                $displayNotes = $trx->notes;
+                if ($catLower === 'penjualan_online_toko') {
+                    $locParts = array_filter([$trx->shopee_city, $trx->shopee_province]);
+                    $locStr = !empty($locParts) ? implode(', ', $locParts) : null;
+                    if ($locStr) {
+                        if (!$displayNotes) {
+                            $displayNotes = $locStr;
+                        } elseif (!str_contains($displayNotes, $trx->shopee_city ?? '---') && !str_contains($displayNotes, $trx->shopee_province ?? '---')) {
+                            $displayNotes = $locStr . ' | ' . $displayNotes;
+                        }
+                    }
+                }
+
                 return [
                     'id' => $trx->id,
                     'date' => $trx->created_at?->toDateTimeString() ?? '-',
@@ -2751,7 +2764,11 @@ class AuditController extends Controller
                     'payment_method_name' => $finalPaymentMethods,
                     'split_payments_data' => $detailedSplitPayments,
                     'status' => ($catLower === 'penjualan_store' || $catLower === 'penjualan_offline' || $catLower === 'penjualan_online_toko' || $catLower === 'tukar_tambah' || $catLower === 'downgrade') ? 'Lunas' : (in_array($catLower, ['refund', 'angkat_barang']) ? 'Belum Lunas' : ($trx->status ?? 'Lunas')),
-                    'notes' => $trx->notes,
+                    'notes' => $displayNotes,
+                    'shopee_province' => $trx->shopee_province,
+                    'shopee_city' => $trx->shopee_city,
+                    'province' => $trx->shopee_province,
+                    'city' => $trx->shopee_city,
                     'audit_score' => $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
                     'audited_at' => $trx->audited_at,

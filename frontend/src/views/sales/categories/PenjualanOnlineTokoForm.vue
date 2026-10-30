@@ -563,10 +563,15 @@ async function executeSubmit(pin = null) {
         formData.append('shopee_tracking_no', cleanResi);
 
         // Payment
+        const locParts = [customerForm.value.city, customerForm.value.province].filter(Boolean);
+        const locString = locParts.join(', ');
+        const userNotes = paymentForm.value.notes.trim();
+        const fullNotes = locString ? (userNotes ? `${locString} | ${userNotes}` : locString) : userNotes;
+
         formData.append('payment_method_id', paymentForm.value.payment_method_id);
         formData.append('paid_amount', Number(paymentForm.value.paid_amount) || 0);
         formData.append('selling_price', totalBelanja.value);
-        formData.append('notes', paymentForm.value.notes.trim());
+        formData.append('notes', fullNotes);
 
         // Photos
         if (photos.value.resi) {
@@ -691,7 +696,7 @@ async function executeSubmit(pin = null) {
             items: hpItems,
             non_hp_items: nonHpItems,
             non_hp_details: nonHpItems,
-            notes: paymentForm.value.notes.trim(),
+            notes: fullNotes,
             proof_images: [photos.value.resiPreview, photos.value.paymentPreview, photos.value.unitPreview].filter(Boolean),
             created_at: now.toISOString(),
             date: now.toLocaleDateString("id-ID", { day: '2-digit', month: 'short', year: 'numeric' }),

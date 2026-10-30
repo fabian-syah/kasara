@@ -331,12 +331,19 @@
                                                 PIN disembunyikan
                                             </div>
 
-                                            <div v-if="item.notes"
-                                                class="text-xs text-text-primary leading-tight px-0.5"
-                                                :title="item.notes">
-                                                {{ item.notes }}
+                                            <!-- Lokasi Tujuan Penjualan Online Toko -->
+                                            <div v-if="getLocationString(item)"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold border border-blue-100 dark:border-blue-500/20">
+                                                <MapPin :size="11" stroke-width="2.5" class="shrink-0" />
+                                                <span>{{ getLocationString(item) }}</span>
                                             </div>
-                                            <div v-else-if="!item.inventory_user?.name && !item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
+
+                                            <div v-if="getAdditionalNotes(item)"
+                                                class="text-xs text-text-primary leading-tight px-0.5"
+                                                :title="getAdditionalNotes(item)">
+                                                {{ getAdditionalNotes(item) }}
+                                            </div>
+                                            <div v-else-if="!getLocationString(item) && !item.inventory_user?.name && !item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
                                                 class="text-text-secondary italic text-xs px-0.5">
                                                 Tanpa Catatan
                                             </div>
@@ -471,15 +478,32 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <div class="flex flex-col gap-1">
-                                            <span v-if="String(item.transaction_pin) === '9090'"
+                                        <div class="flex flex-col gap-1 items-start">
+                                            <div v-if="item.inventory_user?.name || item.inventory_user_name || item.sales_account"
+                                                class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 border border-primary-100 dark:border-primary-500/20">
+                                                <User :size="12" stroke-width="2.5" />
+                                                {{ item.inventory_user?.name || item.inventory_user_name || item.sales_account }}
+                                            </div>
+                                            <span v-else-if="String(item.transaction_pin) === '9090'"
                                                 class="text-xs font-bold text-primary-500">
                                                 Akun CS
                                             </span>
-                                            <span v-if="item.notes" class="text-xs text-text-primary leading-tight"
-                                                :title="item.notes">{{ item.notes }}</span>
-                                            <span v-else-if="String(item.transaction_pin) !== '9090'"
-                                                class="text-text-secondary italic text-xs">
+                                            <div v-else-if="item.transaction_pin"
+                                                class="px-2.5 py-1 bg-surface-100 dark:bg-surface-800 text-text-secondary rounded-lg text-[10px] font-bold italic uppercase tracking-wider border border-surface-200 dark:border-surface-700">
+                                                PIN disembunyikan
+                                            </div>
+
+                                            <!-- Lokasi Tujuan Penjualan Online Toko -->
+                                            <div v-if="getLocationString(item)"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold border border-blue-100 dark:border-blue-500/20">
+                                                <MapPin :size="11" stroke-width="2.5" class="shrink-0" />
+                                                <span>{{ getLocationString(item) }}</span>
+                                            </div>
+
+                                            <span v-if="getAdditionalNotes(item)" class="text-xs text-text-primary leading-tight px-0.5"
+                                                :title="getAdditionalNotes(item)">{{ getAdditionalNotes(item) }}</span>
+                                            <span v-else-if="!getLocationString(item) && !item.inventory_user?.name && !item.inventory_user_name && !item.sales_account && String(item.transaction_pin) !== '9090'"
+                                                class="text-text-secondary italic text-xs px-0.5">
                                                 Tanpa Catatan
                                             </span>
                                         </div>
@@ -758,7 +782,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare } from 'lucide-vue-next'
+import { Loader2, FileText, ChevronDown, Calendar, Image, User, Printer, X, Download, Trash2, AlertCircle, TrendingUp, Wallet, Smartphone, Box, Wrench, MessageSquare, MapPin } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import ReceiptModal from '../../components/modals/ReceiptModal.vue'
 import CancelSaleModal from '../../components/modals/CancelSaleModal.vue'
@@ -937,6 +961,41 @@ const sendWaReceipt = (item) => {
     autoSendReceipt.value = true
     showReceiptModal.value = true
 }
+
+const getLocationString = (item) => {
+    if (!item) return null;
+    const cat = (item.category || '').toLowerCase();
+    if (cat !== 'penjualan_online_toko') return null;
+
+    const city = item.shopee_city || item.city;
+    const prov = item.shopee_province || item.province;
+    const parts = [city, prov].filter(Boolean);
+    if (parts.length > 0) {
+        return parts.join(', ');
+    }
+    return null;
+};
+
+const getAdditionalNotes = (item) => {
+    if (!item || !item.notes) return null;
+    const cat = (item.category || '').toLowerCase();
+    if (cat === 'penjualan_online_toko') {
+        const loc = getLocationString(item);
+        if (loc) {
+            const trimmedNotes = item.notes.trim();
+            if (trimmedNotes.toLowerCase() === loc.toLowerCase()) {
+                return null;
+            }
+            if (trimmedNotes.toLowerCase().startsWith(loc.toLowerCase() + ' |')) {
+                return trimmedNotes.substring(loc.length + 2).trim().replace(/^\|\s*/, '');
+            }
+            if (trimmedNotes.toLowerCase().startsWith(loc.toLowerCase())) {
+                return trimmedNotes.substring(loc.length).trim().replace(/^\|\s*/, '');
+            }
+        }
+    }
+    return item.notes;
+};
 
 const getProofList = (item) => {
     if (!item) return [];
@@ -1221,7 +1280,7 @@ const summaryStats = computed(() => {
         }
 
         // If it's a standard sale category, do NOT override with deductions by notes
-        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'pos', 'sale', 'bundling', 'tukar_tambah', 'downgrade'].includes(cat)) {
+        if (['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah', 'downgrade'].includes(cat)) {
             return cat;
         }
 
