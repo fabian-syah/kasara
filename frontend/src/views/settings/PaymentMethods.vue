@@ -20,13 +20,14 @@
                         <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-text-secondary">Nomor Rekening</th>
                         <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-text-secondary">Atas Nama</th>
                         <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-text-secondary">Kategori</th>
+                        <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-text-secondary">Online Toko</th>
                         <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-text-secondary">Status</th>
                         <th class="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-text-secondary">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-700/50">
                     <tr v-if="isLoadingData" class="animate-pulse">
-                         <td colspan="6" class="px-6 py-12 text-center text-text-secondary">
+                         <td colspan="7" class="px-6 py-12 text-center text-text-secondary">
                              <Loader2 class="animate-spin mx-auto mb-2 text-primary-500" :size="32" />
                              Memuat data...
                          </td>
@@ -39,6 +40,22 @@
                             <span v-if="pm.category === 'cash'" class="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Tunai</span>
                             <span v-else-if="pm.category === 'edc'" class="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-amber-500/10 text-amber-500 border border-amber-500/20">EDC</span>
                             <span v-else class="px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter bg-blue-500/10 text-blue-400 border border-blue-500/20">Transfer</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <button @click="toggleOnlineStore(pm)" :disabled="isProcessingOnlineStoreId === pm.id"
+                                    class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-surface-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    :class="pm.is_online_store ? 'bg-emerald-500' : 'bg-surface-600'">
+                                    <span class="sr-only">Toggle Online Toko</span>
+                                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="pm.is_online_store ? 'translate-x-4' : 'translate-x-0'">
+                                        <Loader2 v-if="isProcessingOnlineStoreId === pm.id" class="animate-spin text-primary-500 w-3 h-3 m-0.5" />
+                                    </span>
+                                </button>
+                                <span class="text-xs font-bold" :class="pm.is_online_store ? 'text-emerald-400' : 'text-text-secondary'">
+                                    {{ pm.is_online_store ? 'Aktif' : 'Non-Aktif' }}
+                                </span>
+                            </div>
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-2">
@@ -71,7 +88,7 @@
                         </td>
                     </tr>
                     <tr v-if="!isLoadingData && paymentMethods.length === 0">
-                        <td colspan="6" class="px-6 py-12 text-center text-text-secondary">
+                        <td colspan="7" class="px-6 py-12 text-center text-text-secondary">
                              <div class="max-w-[200px] mx-auto opacity-50 space-y-2">
                                  <PlusCircle :size="48" class="mx-auto" />
                                  <p class="text-sm font-medium">Belum ada metode pembayaran yang dikonfigurasi.</p>
@@ -160,6 +177,25 @@
                                         :class="form.is_active ? 'translate-x-5' : 'translate-x-0'" />
                                 </button>
                             </div>
+
+                            <!-- Online Toko Toggle -->
+                            <div class="flex items-center justify-between p-4 bg-surface-800 rounded-2xl border border-surface-700/50">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-blue-500/10 rounded-lg">
+                                        <ShoppingBag :size="18" class="text-blue-400" />
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-white">Penjualan Online Toko</p>
+                                        <p class="text-[10px] text-text-secondary">Metode muncul di dropdown penjualan online toko</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="form.is_online_store = !form.is_online_store"
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none"
+                                    :class="form.is_online_store ? 'bg-emerald-500' : 'bg-surface-600'">
+                                    <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        :class="form.is_online_store ? 'translate-x-5' : 'translate-x-0'" />
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Actions -->
@@ -187,7 +223,7 @@ import { ref, onMounted } from 'vue';
 import { 
     PlusIcon, Loader2, Edit2, Trash2, X, Save, 
     Banknote, CreditCard, Landmark, CheckCircle2, 
-    PlusCircle 
+    PlusCircle, ShoppingBag 
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useEscapeKey } from '../../composables/useEscapeKey';
@@ -200,6 +236,7 @@ const isEditing = ref(false);
 const isLoadingData = ref(false);
 const isSaving = ref(false);
 const isProcessingId = ref(null);
+const isProcessingOnlineStoreId = ref(null);
 const isDeletingId = ref(null);
 
 const form = ref({
@@ -208,13 +245,14 @@ const form = ref({
     account_number: '',
     account_name: '',
     category: 'transfer',
-    is_active: true
+    is_active: true,
+    is_online_store: false
 });
 
 const loadData = async (silent = false) => {
     if (!silent) isLoadingData.value = true;
     try {
-        const res = await axios.get('/payment-methods');
+        const res = await axios.get('/payment-methods', { params: { all: 1 } });
         paymentMethods.value = res.data;
     } catch (e) {
         console.error("Failed to load payment methods", e);
@@ -229,7 +267,8 @@ const openModal = (pm = null) => {
         isEditing.value = true;
         form.value = {
             ...pm,
-            is_active: Boolean(pm.is_active)
+            is_active: Boolean(pm.is_active),
+            is_online_store: Boolean(pm.is_online_store)
         };
     } else {
         isEditing.value = false;
@@ -239,7 +278,8 @@ const openModal = (pm = null) => {
             account_number: '',
             account_name: '',
             category: 'transfer',
-            is_active: true
+            is_active: true,
+            is_online_store: false
         };
     }
     isModalOpen.value = true;
@@ -306,7 +346,8 @@ const toggleStatus = async (pm) => {
             category: pm.category,
             account_number: pm.account_number,
             account_name: pm.account_name,
-            is_active: newVal 
+            is_active: newVal,
+            is_online_store: pm.is_online_store
         });
         pm.is_active = newVal;
         toast.info(`Metode ${pm.name} kini ${newVal ? 'Aktif' : 'Non-Aktif'}`);
@@ -316,7 +357,31 @@ const toggleStatus = async (pm) => {
     } finally {
         isProcessingId.value = null;
     }
-}
+};
+
+const toggleOnlineStore = async (pm) => {
+    if (isProcessingOnlineStoreId.value === pm.id) return;
+
+    isProcessingOnlineStoreId.value = pm.id;
+    try {
+        const newVal = !pm.is_online_store;
+        await axios.put(`/payment-methods/${pm.id}`, { 
+            name: pm.name,
+            category: pm.category,
+            account_number: pm.account_number,
+            account_name: pm.account_name,
+            is_active: pm.is_active,
+            is_online_store: newVal 
+        });
+        pm.is_online_store = newVal;
+        toast.info(`Metode ${pm.name} kini ${newVal ? 'Aktif' : 'Non-Aktif'} untuk Penjualan Online Toko`);
+    } catch (e) {
+        console.error(e);
+        toast.error('Gagal mengubah status Online Toko');
+    } finally {
+        isProcessingOnlineStoreId.value = null;
+    }
+};
 
 onMounted(() => {
     loadData();

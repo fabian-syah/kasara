@@ -479,9 +479,13 @@ watch([selectedItems, customerForm, paymentForm], () => {
     saveDraft();
 }, { deep: true });
 
-// Filter out "Cash Toko" for online store sales (orders are shipped with tracking resi)
+// Filter payment methods: ONLY show payment methods with is_online_store enabled
 const filteredPaymentMethods = computed(() => {
     return (props.availablePaymentMethods || []).filter(pm => {
+        // Khusus penjualan online toko: hanya muncul jika tombol online toko dinyalakan (is_online_store === true)
+        const isOnlineStoreEnabled = Boolean(pm.is_online_store);
+        if (!isOnlineStoreEnabled) return false;
+
         const name = (pm.name || '').trim().toLowerCase();
         const code = (pm.code || '').trim().toLowerCase();
         return !name.includes('cash toko') && name !== 'cash' && code !== 'cash' && code !== 'cash_toko';
@@ -913,7 +917,7 @@ async function executeSubmit(pin = null) {
                     </div>
 
                     <div class="space-y-4">
-                        <!-- Metode Pembayaran (Cash Toko Excluded) -->
+                        <!-- Metode Pembayaran (Khusus yang diaktifkan untuk Penjualan Online Toko) -->
                         <div>
                             <label class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-1.5">
                                 Metode Pembayaran <span class="text-rose-500">*</span>
@@ -925,6 +929,9 @@ async function executeSubmit(pin = null) {
                                     {{ pm.name }}
                                 </option>
                             </select>
+                            <p v-if="filteredPaymentMethods.length === 0" class="text-[11px] text-amber-500 dark:text-amber-400 mt-1.5 font-semibold">
+                                * Belum ada metode pembayaran yang diaktifkan untuk Penjualan Online Toko. Silakan aktifkan tombol "Penjualan Online Toko" di menu Pengaturan Pembayaran.
+                            </p>
                         </div>
 
                         <!-- Nominal Pembayaran -->

@@ -15,10 +15,12 @@ class PaymentMethod extends Model
         'account_name',
         'category',
         'is_active',
+        'is_online_store',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_online_store' => 'boolean',
     ];
 
     public function branches()
