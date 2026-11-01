@@ -12,17 +12,17 @@
 
                 <!-- Tabs: All - HP - Non-HP -->
                 <div class="flex items-center gap-1 sm:gap-1.5 p-1 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 w-full sm:w-auto shadow-sm">
-                    <button @click="activeTab = 'all'"
+                    <button @click="setTab('all')"
                         class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
                         :class="activeTab === 'all' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
                         All (Semua)
                     </button>
-                    <button @click="activeTab = 'hp'"
+                    <button @click="setTab('hp')"
                         class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
                         :class="activeTab === 'hp' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
                         HP / IMEI
                     </button>
-                    <button @click="activeTab = 'non_hp'"
+                    <button @click="setTab('non_hp')"
                         class="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold rounded-lg transition-all"
                         :class="activeTab === 'non_hp' ? 'bg-primary-600 text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
                         Non-HP
@@ -178,6 +178,17 @@
                     <ChevronDown :size="16"
                         class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
+ 
+                <!-- Search Input -->
+                <div class="relative w-full sm:w-auto min-w-[200px] sm:min-w-[240px] flex-1 sm:flex-initial">
+                    <input type="text" v-model="searchQuery" @keydown.enter="handleSearch"
+                        placeholder="Cari No Pesanan / IMEI / Pelanggan..."
+                        class="w-full bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pl-9 pr-8 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-gray-400" />
+                    <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    <button v-if="searchQuery" @click="clearSearch" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                        <X :size="14" />
+                    </button>
+                </div>
 
                 <!-- Riwayat Profit Link -->
                 <router-link to="/reports/profit-history"
@@ -195,8 +206,8 @@
                 </button>
             </div>
 
-            <!-- Summary Cards (Current Page & Filter) -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4 mb-6" v-if="displayedSales && displayedSales.length > 0">
+            <!-- Summary Cards (All Data / Global Total) -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4 mb-6" v-if="(profitRecords.daily_sales && profitRecords.daily_sales.total > 0) || (displayedSales && displayedSales.length > 0)">
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-3 sm:p-4">
                     <p class="text-[10px] sm:text-xs font-semibold text-text-secondary uppercase mb-1 truncate">Total Transaksi</p>
                     <p class="text-sm sm:text-lg font-bold text-text-primary">{{ summaryStats.totalTransaksi }}</p>
@@ -551,16 +562,32 @@
                 </div>
 
                 <!-- Pagination -->
-                <div v-if="profitRecords.daily_sales.total > 0"
+                <div v-if="profitRecords.daily_sales && profitRecords.daily_sales.total > 0"
                     class="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100 dark:border-surface-700 flex flex-col sm:flex-row justify-between items-center gap-3 bg-gray-50/50 dark:bg-surface-700/30">
-                    <span class="text-xs text-text-secondary font-medium text-center sm:text-left">
-                        Menampilkan {{ (profitRecords.daily_sales.current_page - 1) * profitRecords.daily_sales.per_page +
-                            1 }} -
-                        {{ Math.min(profitRecords.daily_sales.current_page * profitRecords.daily_sales.per_page,
-                            profitRecords.daily_sales.total) }}
-                        dari {{ profitRecords.daily_sales.total }} data
-                    </span>
-                    <div class="flex gap-2">
+                    <div class="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
+                        <span class="text-xs text-text-secondary font-medium text-center sm:text-left">
+                            <template v-if="perPage === 'all' || profitRecords.daily_sales.last_page <= 1">
+                                Menampilkan semua {{ profitRecords.daily_sales.total }} data
+                            </template>
+                            <template v-else>
+                                Menampilkan {{ (profitRecords.daily_sales.current_page - 1) * profitRecords.daily_sales.per_page + 1 }} -
+                                {{ Math.min(profitRecords.daily_sales.current_page * profitRecords.daily_sales.per_page, profitRecords.daily_sales.total) }}
+                                dari {{ profitRecords.daily_sales.total }} data
+                            </template>
+                        </span>
+                        <!-- Per-Page Selector -->
+                        <div class="flex items-center gap-1.5 text-xs text-text-secondary">
+                            <span>Tampilkan:</span>
+                            <select v-model="perPage" @change="fetchData(1)"
+                                class="bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-lg px-2 py-1 text-xs font-semibold focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                                <option value="all">Semua (All)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-2" v-if="perPage !== 'all' && profitRecords.daily_sales.last_page > 1">
                         <button @click="fetchData(profitRecords.daily_sales.current_page - 1)"
                             :disabled="profitRecords.daily_sales.current_page === 1 || loading"
                             class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 dark:border-surface-600 text-gray-500 hover:bg-white dark:hover:bg-surface-600 disabled:opacity-50 transition-colors">
@@ -661,7 +688,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch, reactive } from 'vue'
 import { useEscapeKey } from '../../composables/useEscapeKey'
-import { Loader2, Eye, FileText, ChevronDown, Calendar, TrendingUp, Save, Pencil, Download, Image, Wallet, X, Check } from 'lucide-vue-next'
+import { Loader2, Eye, FileText, ChevronDown, ChevronLeft, ChevronRight, Calendar, TrendingUp, Save, Pencil, Download, Image, Wallet, X, Check, Search } from 'lucide-vue-next'
 import axios from '../../api/axios'
 import { useAuthStore } from '../../store/auth'
 import { useToast } from '../../composables/useToast'
@@ -684,6 +711,22 @@ const loading = ref(false)
 const exporting = ref(false)
 const selectedPeriod = ref('daily')
 const activeTab = ref('all') // 'all', 'hp', 'non_hp'
+const searchQuery = ref('')
+const perPage = ref('50')
+
+const handleSearch = () => {
+    fetchData(1)
+}
+
+const clearSearch = () => {
+    searchQuery.value = ''
+    fetchData(1)
+}
+
+const setTab = (tab) => {
+    activeTab.value = tab
+    fetchData(1)
+}
 
 // Receipt Modal State
 const showReceiptModal = ref(false)
@@ -1135,6 +1178,10 @@ const saveHargaModal = async (item) => {
         })
     }
 
+    const wasAudited = isRowAudited(item);
+    const prevModal = Number(item.harga_modal) || 0;
+    const prevProfit = Number(item.profit) || 0;
+
     savingModalId.value = item.id
     try {
         const noteVal = profitNotes.value[item.id] !== undefined ? profitNotes.value[item.id] : (item.audit_notes || '')
@@ -1162,6 +1209,25 @@ const saveHargaModal = async (item) => {
                 detail.profit = (Number(detail.harga_jual) || 0) - (Number(detail.harga_modal) || 0)
             })
         }
+
+        // Update summary totals and audit stats globally
+        if (profitRecords.value?.summary_totals && profitRecords.value?.audit_stats) {
+            const newModal = Number(res.data.harga_modal) || 0;
+            const newProfit = Number(res.data.profit) || 0;
+            if (!wasAudited) {
+                profitRecords.value.audit_stats.belum_diaudit = Math.max(0, (profitRecords.value.audit_stats.belum_diaudit || 0) - 1);
+                profitRecords.value.audit_stats.sudah_diaudit = (profitRecords.value.audit_stats.sudah_diaudit || 0) + 1;
+                profitRecords.value.summary_totals.belum_diaudit = profitRecords.value.audit_stats.belum_diaudit;
+                profitRecords.value.summary_totals.sudah_diaudit = profitRecords.value.audit_stats.sudah_diaudit;
+                profitRecords.value.summary_totals.total_penjualan = (Number(profitRecords.value.summary_totals.total_penjualan) || 0) + (Number(item.harga_jual) || 0);
+                profitRecords.value.summary_totals.total_modal_audit = (Number(profitRecords.value.summary_totals.total_modal_audit) || 0) + newModal;
+                profitRecords.value.summary_totals.total_profit_audit = (Number(profitRecords.value.summary_totals.total_profit_audit) || 0) + newProfit;
+            } else {
+                profitRecords.value.summary_totals.total_modal_audit = (Number(profitRecords.value.summary_totals.total_modal_audit) || 0) + (newModal - prevModal);
+                profitRecords.value.summary_totals.total_profit_audit = (Number(profitRecords.value.summary_totals.total_profit_audit) || 0) + (newProfit - prevProfit);
+            }
+        }
+
         toast.success('Data modal & catatan audit berhasil disimpan!')
     } catch (e) {
         console.error('Failed to save harga modal', e)
@@ -1270,6 +1336,10 @@ const exportExcel = async () => {
             params.tab = activeTab.value;
         }
 
+        if (searchQuery.value && searchQuery.value.trim()) {
+            params.search = searchQuery.value.trim();
+        }
+
         const response = await axios.get('/audit/profit/export-excel', {
             params,
             responseType: 'blob'
@@ -1368,37 +1438,53 @@ const displayedSales = computed(() => {
 });
 
 const summaryStats = computed(() => {
-    const list = displayedSales.value || []
-    const sudahDiauditCount = list.filter(item => isRowAudited(item)).length
-    const belumDiauditCount = list.filter(item => !isRowAudited(item)).length
-
+    if (profitRecords.value?.audit_stats && profitRecords.value.audit_stats.total_transaksi !== undefined) {
+        return {
+            totalTransaksi: Number(profitRecords.value.audit_stats.total_transaksi) || 0,
+            totalCancel: Number(profitRecords.value.audit_stats.total_cancel) || 0,
+            belumDiaudit: Number(profitRecords.value.audit_stats.belum_diaudit) || 0,
+            sudahDiaudit: Number(profitRecords.value.audit_stats.sudah_diaudit) || 0,
+        };
+    }
+    const list = displayedSales.value || [];
     return {
         totalTransaksi: list.length,
         totalCancel: 0,
-        belumDiaudit: belumDiauditCount,
-        sudahDiaudit: sudahDiauditCount,
-    }
-})
+        belumDiaudit: list.filter(item => !isRowAudited(item)).length,
+        sudahDiaudit: list.filter(item => isRowAudited(item)).length,
+    };
+});
 
-// Summary computeds based on displayedSales (hanya menghitung transaksi yang sudah diaudit)
-const totalHargaJual = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => {
+// Summary computeds based on all transactions (global summary from backend)
+const totalHargaJual = computed(() => {
+    if (profitRecords.value?.summary_totals?.total_penjualan !== undefined) {
+        return Number(profitRecords.value.summary_totals.total_penjualan) || 0;
+    }
+    return (displayedSales.value || []).reduce((sum, item) => {
         if (!isRowAudited(item)) return sum;
         return sum + getItemDisplayJual(item);
-    }, 0)
-)
-const totalHargaModal = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => {
+    }, 0);
+});
+
+const totalHargaModal = computed(() => {
+    if (profitRecords.value?.summary_totals?.total_modal_audit !== undefined) {
+        return Number(profitRecords.value.summary_totals.total_modal_audit) || 0;
+    }
+    return (displayedSales.value || []).reduce((sum, item) => {
         if (!isRowAudited(item)) return sum;
         return sum + getItemDisplayModal(item);
-    }, 0)
-)
-const totalProfit = computed(() =>
-    (displayedSales.value || []).reduce((sum, item) => {
+    }, 0);
+});
+
+const totalProfit = computed(() => {
+    if (profitRecords.value?.summary_totals?.total_profit_audit !== undefined) {
+        return Number(profitRecords.value.summary_totals.total_profit_audit) || 0;
+    }
+    return (displayedSales.value || []).reduce((sum, item) => {
         if (!isRowAudited(item)) return sum;
         return sum + getItemDisplayProfit(item);
-    }, 0)
-)
+    }, 0);
+});
 
 const formattedDateDisplay = computed(() => {
     if (!filters.value.start_date) return 'Pilih Tanggal';
@@ -1562,7 +1648,17 @@ const fetchBranches = async () => {
 const fetchData = async (page = 1) => {
     loading.value = true
     try {
-        const params = { ...filters.value, page };
+        const params = {
+            ...filters.value,
+            page,
+            per_page: perPage.value
+        };
+        if (searchQuery.value && searchQuery.value.trim()) {
+            params.search = searchQuery.value.trim();
+        }
+        if (activeTab.value && activeTab.value !== 'all') {
+            params.tab = activeTab.value;
+        }
         if (selectedSources.value.length > 0 && selectedSources.value.length < sourceOptions.length) {
             params.source = selectedSources.value.join(',');
         } else {

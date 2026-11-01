@@ -3837,9 +3837,41 @@ class AuditController extends Controller
                 })
                 ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
                     if ($request->audit_status === 'belum') {
-                        $q->whereDoesntHave('auditProfit');
+                        $q->whereDoesntHave('auditProfit')
+                          ->whereNull('audit_score')
+                          ->whereNull('latest_auditor_name')
+                          ->whereDoesntHave('auditAnswers');
                     } elseif ($request->audit_status === 'sudah') {
-                        $q->whereHas('auditProfit');
+                        $q->where(function ($sub) {
+                            $sub->whereHas('auditProfit')
+                                ->orWhereNotNull('audit_score')
+                                ->orWhereNotNull('latest_auditor_name')
+                                ->orWhereHas('auditAnswers');
+                        });
+                    }
+                })
+                ->when($request->search, function ($q) use ($request) {
+                    $term = trim($request->search);
+                    $q->where(function ($sub) use ($term) {
+                        $sub->where('receipt_id', 'ilike', "%{$term}%")
+                            ->orWhere('customer_name', 'ilike', "%{$term}%")
+                            ->orWhere('receiver_name', 'ilike', "%{$term}%")
+                            ->orWhere('customer_phone', 'ilike', "%{$term}%")
+                            ->orWhere('notes', 'ilike', "%{$term}%")
+                            ->orWhereHas('items', function ($iq) use ($term) {
+                                $iq->where('imei', 'ilike', "%{$term}%")
+                                    ->orWhereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$term}%"));
+                            })
+                            ->orWhereHas('nonHpItems', function ($nq) use ($term) {
+                                $nq->whereHas('product', fn($pq) => $pq->where('name', 'ilike', "%{$term}%"));
+                            });
+                    });
+                })
+                ->when($request->tab && $request->tab !== 'all', function ($q) use ($request) {
+                    if ($request->tab === 'hp') {
+                        $q->whereHas('items');
+                    } elseif ($request->tab === 'non_hp') {
+                        $q->whereHas('nonHpItems');
                     }
                 })
                 ->when($request->source && $request->source !== 'all', function ($q) use ($request) {
@@ -4484,15 +4516,6 @@ class AuditController extends Controller
                 if ($hargaJual == 0 && $calculatedTotal != 0) {
                     $hargaJual = $calculatedTotal;
                 }
-                $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
-                $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
-                
-                // Ketika belum diaudit, nilai modal audit & profit audit bernilai NOL
-                $effectiveModalAudit = $savedProfit ? $hargaModal : 0;
-                $profitSystem = $hargaJual - $defaultHargaModal;
-                $profitAudit = $savedProfit ? ($hargaJual - $hargaModal) : 0;
-                $profit = $savedProfit ? ($hargaJual - $hargaModal) : 0;
-
                 $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
                 $yesCount = $answers->where('answer', true)->count();
                 $totalQuestions = $questions->count();
@@ -4506,6 +4529,24 @@ class AuditController extends Controller
                         $totalQuestions++;
 
                 $auditScore = ($answers->isNotEmpty() && $totalQuestions > 0) ? round(($yesCount / $totalQuestions) * 100) : null;
+
+                $hasChecklistAudit = ($auditScore !== null) || ($trx->audit_score !== null) || !empty($trx->latest_auditor_name) || !empty($trx->audited_at) || ($answers->isNotEmpty());
+                $hasSavedProfit = ($savedProfit !== null);
+                $isAudited = $hasSavedProfit || $hasChecklistAudit;
+
+                $hargaModal = $savedProfit ? (float) $savedProfit->harga_modal : null;
+                $defaultHargaModal = $totalDefaultModal > 0 ? $totalDefaultModal : ($hargaJual > 0 ? round($hargaJual * 0.94) : 0);
+                
+                // Ketika belum diaudit, nilai modal audit & profit audit bernilai NOL
+                if ($isAudited) {
+                    $effectiveModalAudit = $savedProfit ? $hargaModal : $defaultHargaModal;
+                    $profitAudit = $hargaJual - $effectiveModalAudit;
+                } else {
+                    $effectiveModalAudit = 0;
+                    $profitAudit = 0;
+                }
+                $profitSystem = $hargaJual - $defaultHargaModal;
+                $profit = $profitAudit;
 
                 // Split Payments (Pre-fetched)
                 $processedSplitPayments = [];
@@ -4523,8 +4564,6 @@ class AuditController extends Controller
                 $trxTimeStr = $trx->created_at ? $trx->created_at->format('H:i:s') : '00:00:00';
                 $fullTrxDate = "{$trxDateStr} {$trxTimeStr}";
 
-                $isAudited = ($savedProfit !== null);
-
                 $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($savedProfit->items_modal['__notes'] ?? null)) : null;
 
                 $trxData = [
@@ -4539,19 +4578,21 @@ class AuditController extends Controller
                     'qty' => count($details),
                     'items' => $details,
                     'harga_jual' => $hargaJual,
-                    'harga_modal' => $hargaModal,
+                    'harga_modal' => $savedProfit ? $hargaModal : ($isAudited ? $defaultHargaModal : null),
                     'default_harga_modal' => $defaultHargaModal,
                     'profit' => $profit,
                     'profit_system' => $profitSystem,
-                    'profit_audit' => $savedProfit ? $profitAudit : null,
+                    'profit_audit' => $isAudited ? $profitAudit : null,
                     'total_modal_system' => $defaultHargaModal,
                     'total_modal_audit' => $effectiveModalAudit,
                     'is_audited' => $isAudited,
                     'outlet_name' => $outletName,
-                    'audit_score' => $auditScore,
+                    'audit_score' => $auditScore ?? $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
-                    'auditor_name' => $savedProfit?->auditor?->name ?? $trx->latest_auditor_name,
-                    'audited_at' => $savedProfit?->updated_at ? $savedProfit->updated_at->toDateTimeString() : $trx->audited_at,
+                    'auditor_name' => $savedProfit?->auditor?->name ?? $trx->latest_auditor_name ?? ($answers->first()?->auditor?->name ?? null),
+                    'audited_at' => $savedProfit?->updated_at 
+                        ? ($savedProfit->updated_at instanceof \DateTimeInterface ? $savedProfit->updated_at->toDateTimeString() : (string)$savedProfit->updated_at)
+                        : ($trx->audited_at ? ($trx->audited_at instanceof \DateTimeInterface ? $trx->audited_at->toDateTimeString() : (string)$trx->audited_at) : null),
                     'source_types' => array_values(array_unique(array_filter(array_column($details, 'source_type')))),
                     'audit_total' => $totalQuestions,
                     'audit_yes' => $yesCount,
@@ -4576,25 +4617,25 @@ class AuditController extends Controller
                     ];
                 }
 
-                $dailyRecap[$trxDateStr]['count']++;
-                $dailyRecap[$trxDateStr]['totalPenjualan'] += ($savedProfit ? $hargaJual : 0);
-                $dailyRecap[$trxDateStr]['totalModalSystem'] += $defaultHargaModal;
-                $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
-                $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
-                $dailyRecap[$trxDateStr]['totalProfitAudit'] += $profitAudit;
-
-                if (!$isAudited && $auditScore === null) {
+                if ($isAudited) {
+                    $summaryTotals['sudah_diaudit']++;
+                    $summaryTotals['total_penjualan'] += $hargaJual;
+                    $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
+                    $summaryTotals['total_profit_audit'] += $profitAudit;
+                    $dailyRecap[$trxDateStr]['totalPenjualan'] += $hargaJual;
+                    $dailyRecap[$trxDateStr]['totalModalAudit'] += $effectiveModalAudit;
+                    $dailyRecap[$trxDateStr]['totalProfitAudit'] += $profitAudit;
+                } else {
                     $dailyRecap[$trxDateStr]['unAuditedCount']++;
                     $summaryTotals['belum_diaudit']++;
-                } else {
-                    $summaryTotals['sudah_diaudit']++;
                 }
 
-                $summaryTotals['total_penjualan'] += ($savedProfit ? $hargaJual : 0);
+                $dailyRecap[$trxDateStr]['count']++;
+                $dailyRecap[$trxDateStr]['totalModalSystem'] += $defaultHargaModal;
+                $dailyRecap[$trxDateStr]['totalProfitSystem'] += $profitSystem;
+
                 $summaryTotals['total_modal_system'] += $defaultHargaModal;
-                $summaryTotals['total_modal_audit'] += $effectiveModalAudit;
                 $summaryTotals['total_profit_system'] += $profitSystem;
-                $summaryTotals['total_profit_audit'] += $profitAudit;
                 $summaryTotals['total_transaksi']++;
 
                 $processedSales->push($trxData);
@@ -5629,6 +5670,15 @@ class AuditController extends Controller
                 });
             }
 
+            // Tab filter (hp / non_hp)
+            if ($request->tab && $request->tab !== 'all') {
+                if ($request->tab === 'hp') {
+                    $query->whereHas('items');
+                } elseif ($request->tab === 'non_hp') {
+                    $query->whereHas('nonHpItems');
+                }
+            }
+
             $transactions = $query->orderBy('reporting_date', 'desc')->orderBy('created_at', 'desc')->get();
 
             $headers = [
@@ -5671,8 +5721,18 @@ class AuditController extends Controller
 
             foreach ($transactions as $trx) {
                 $savedProfit = $trx->auditProfit;
-                $auditorName = $savedProfit?->auditor?->name ?? $trx->latest_auditor_name ?? '-';
-                $isAudited = ($savedProfit !== null);
+                $answers = $trx->auditAnswers ?? collect();
+                $hasScore = $trx->audit_score !== null;
+                $hasAnswers = $answers->isNotEmpty();
+                $hasAuditor = !empty($trx->latest_auditor_name);
+                $hasAuditedAt = !empty($trx->audited_at);
+                $hasSavedProfit = ($savedProfit !== null);
+                $isAudited = $hasSavedProfit || $hasScore || $hasAnswers || $hasAuditor || $hasAuditedAt;
+
+                $auditorName = $savedProfit?->auditor?->name ?? $trx->latest_auditor_name ?? ($answers->first()?->auditor?->name ?? '-');
+                $auditedAtStr = $savedProfit?->updated_at 
+                    ? ($savedProfit->updated_at instanceof \DateTimeInterface ? $savedProfit->updated_at->toDateTimeString() : (string)$savedProfit->updated_at)
+                    : ($trx->audited_at ? ($trx->audited_at instanceof \DateTimeInterface ? $trx->audited_at->toDateTimeString() : (string)$trx->audited_at) : '-');
 
                 // Audit Status Filter
                 if ($request->audit_status === 'sudah' && !$isAudited) continue;
@@ -6063,9 +6123,14 @@ class AuditController extends Controller
                     }
 
                     $savedItemModal = isset($itemsModalData[$detail['id']]) ? (float) $itemsModalData[$detail['id']] : null;
-                    $effectiveModalAudit = $savedItemModal !== null ? $savedItemModal : 0;
+                    if ($isAudited) {
+                        $effectiveModalAudit = $savedItemModal !== null ? $savedItemModal : $defaultItemModal;
+                        $profitAudit = $itemJual - $effectiveModalAudit;
+                    } else {
+                        $effectiveModalAudit = 0;
+                        $profitAudit = 0;
+                    }
                     $profitSystem = $itemJual - $defaultItemModal;
-                    $profitAudit = $savedItemModal !== null ? ($itemJual - $savedItemModal) : 0;
 
                     $totalQty += $detail['qty'];
                     $totalJual += $itemJual;
@@ -6092,9 +6157,9 @@ class AuditController extends Controller
                         $detail['qty'],
                         (float) $itemJual,
                         (float) $defaultItemModal,
-                        $isAudited ? (float) $effectiveModalAudit : 0,
+                        (float) $effectiveModalAudit,
                         (float) $profitSystem,
-                        $isAudited ? (float) $profitAudit : 0,
+                        (float) $profitAudit,
                         $isAudited ? 'Sudah Diaudit' : 'Belum Diaudit',
                         $auditorName,
                         $auditedAtStr,
