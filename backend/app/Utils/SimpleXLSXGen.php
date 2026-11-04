@@ -137,7 +137,7 @@ class SimpleXLSXGen {
                         $isCurrency = true;
                     }
                 } else {
-                    if (in_array($h, $nonCurrencyKeywords) || str_contains($h, '(qty)') || str_contains($h, 'qty') || str_contains($h, 'jumlah') || str_contains($h, 'imei')) {
+                    if (in_array($h, $nonCurrencyKeywords) || str_contains($h, '(qty)') || str_contains($h, 'qty') || str_contains($h, 'jumlah') || str_contains($h, 'imei') || str_contains($h, 'telepon') || str_contains($h, 'phone')) {
                         $isNonCurr = true;
                     } elseif (
                         str_contains($h, '(rp)') 

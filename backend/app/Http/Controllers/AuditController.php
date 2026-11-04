@@ -4574,6 +4574,7 @@ class AuditController extends Controller
                     'updated_at' => $trx->updated_at?->toDateTimeString(),
                     'order_no' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
+                    'customer_phone' => $trx->customer_phone ?: $trx->customer_wa ?: $trx->shopee_phone ?: '-',
                     'category' => $trx->category,
                     'qty' => count($details),
                     'items' => $details,
@@ -5688,6 +5689,7 @@ class AuditController extends Controller
                 'Outlet / Lokasi',
                 'Customer Service',
                 'Nama Pelanggan',
+                'No Telepon Pelanggan',
                 'Kategori',
                 'Tipe Item',
                 'Brand',
@@ -6139,6 +6141,8 @@ class AuditController extends Controller
                     $totalProfitSistem += $profitSystem;
                     $totalProfitAudit += $profitAudit;
 
+                    $customerPhone = $trx->customer_phone ?: $trx->customer_wa ?: $trx->shopee_phone ?: '-';
+
                     $excelRows[] = [
                         $rowNo++,
                         $trxDateStr,
@@ -6146,6 +6150,7 @@ class AuditController extends Controller
                         $outletName,
                         $trx->inventoryUser?->name ?? $trx->user?->name ?? '-',
                         $trx->customer_name ?? $trx->receiver_name ?? '-',
+                        (!empty($customerPhone) && $customerPhone !== '-') ? "\t" . $customerPhone : '-',
                         $trx->category,
                         $detail['type'],
                         $detail['brand'],
@@ -6171,6 +6176,7 @@ class AuditController extends Controller
 
             // Total row
             $excelRows[] = [
+                '',
                 '',
                 '',
                 '',
