@@ -4512,9 +4512,13 @@ class AuditController extends Controller
                 $paidVal = (float)($trx->paid_amount ?? 0);
                 $sellVal = (float)($trx->selling_price ?? 0);
                 $effectiveDpVal = ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal));
-                $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? $effectiveDpVal : $sellVal);
-                if ($hargaJual == 0 && $calculatedTotal != 0) {
+                if ($catLower === 'tukar_tambah' && $calculatedTotal > 0) {
                     $hargaJual = $calculatedTotal;
+                } else {
+                    $hargaJual = ($spTotal > 0) ? $spTotal : (in_array($catLower, ['dp', 'pelunasan_dp']) ? $effectiveDpVal : $sellVal);
+                    if ($hargaJual == 0 && $calculatedTotal != 0) {
+                        $hargaJual = $calculatedTotal;
+                    }
                 }
                 $answers = $trx->auditAnswers->filter(fn($a) => $questions->contains('id', $a->question_id) || $a->question_id === null);
                 $yesCount = $answers->where('answer', true)->count();
@@ -4737,9 +4741,23 @@ class AuditController extends Controller
         $dpVal = (float)($stockOut->dp_amount ?? 0);
         $paidVal = (float)($stockOut->paid_amount ?? 0);
         $sellVal = (float)($stockOut->selling_price ?? 0);
-        $effectiveSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp'])
-            ? ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal))
-            : $sellVal;
+
+        if ($catLower === 'tukar_tambah') {
+            $itemsTotal = 0;
+            foreach ($stockOut->items as $item) {
+                $itemsTotal += (float)(($item->pivot->selling_price > 0) ? $item->pivot->selling_price : (($item->selling_price > 0) ? $item->selling_price : ($item->product?->price ?? 0)));
+            }
+            if ($stockOut->non_hp_items && is_array($stockOut->non_hp_items)) {
+                foreach ($stockOut->non_hp_items as $nhp) {
+                    $itemsTotal += (float)(($nhp['selling_price'] ?? ($nhp['price'] ?? 0)) * ($nhp['quantity'] ?? 1));
+                }
+            }
+            $effectiveSellingPrice = $itemsTotal > 0 ? $itemsTotal : $sellVal;
+        } else {
+            $effectiveSellingPrice = in_array($catLower, ['dp', 'pelunasan_dp'])
+                ? ($paidVal > 0 ? $paidVal : ($dpVal > 0 ? $dpVal : $sellVal))
+                : $sellVal;
+        }
 
         $profit = $effectiveSellingPrice - $totalModal;
 
