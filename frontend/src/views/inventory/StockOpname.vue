@@ -210,11 +210,6 @@ const fetchAllInventory = async () => {
 };
 
 onMounted(async () => {
-    const role = (authStore.userRole || '').toLowerCase();
-    if (!['super_admin', 'owner', 'analist'].some(r => role.includes(r))) {
-        router.replace('/inventory/opname');
-        return;
-    }
     // ALWAYS resolve user's location - even non-privileged users need branch scoping
     await fetchBranches();
     fetchAllInventory();
@@ -1065,7 +1060,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                     <ArrowLeft :size="20" class="text-text-secondary" />
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Data Stok</h1>
+                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Stok Opname</h1>
                     <p class="text-text-secondary mt-0.5 text-sm">
                         {{ currentView === 'menu' ? 'Pilih jenis laporan untuk melihat detail' :
                             currentView === 'brand' ? 'Ringkasan stok per merek' :

@@ -409,11 +409,16 @@ onMounted(() => {
         <!-- Top Navigation & Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm">
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2.5">
                     <button @click="router.back()" class="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors">
                         <ArrowLeft :size="20" />
                     </button>
-                    <h1 class="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">Stok Opname</h1>
+                    <h1 class="text-xl sm:text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2 flex-wrap">
+                        <span>Data Stok</span>
+                        <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                            Jangan Dipakai Dulu
+                        </span>
+                    </h1>
                 </div>
                 <p class="text-text-secondary text-xs sm:text-sm mt-1 ml-10">
                     Pemeriksaan & pencatatan fisik stok toko harian

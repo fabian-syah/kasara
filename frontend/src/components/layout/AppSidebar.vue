@@ -141,13 +141,14 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
+            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
             {
                 id: "inventory_data_stok_group",
                 label: "Data Stok",
+                badge: "Jangan Dipakai Dulu",
                 items: [
                     { id: "opname_run", path: "/inventory/opname", label: "Stok Opname" },
                     { id: "opname_history", path: "/inventory/opname/history", label: "History Stok Opname" },
-                    { id: "inventory_opname", path: "/inventory/stock-opname", label: "Semua Data Stok" },
                 ]
             },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
@@ -276,7 +277,7 @@ const effectiveAllowedMenus = computed(() => {
         if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
             return [...getMenuForRole(creatorRole), 'profile_inventory'];
         }
-        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_data_stok_group', 'opname_run', 'opname_history', 'support_group', 'track', 'profile_inventory'];
+        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_opname', 'inventory_data_stok_group', 'opname_run', 'opname_history', 'support_group', 'track', 'profile_inventory'];
     }
 
     if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
@@ -368,7 +369,7 @@ const visibleMenuItems = computed(() => {
                             };
                         }
                         return sub;
-                    }).filter(sub => sub.id === 'inventory_data_stok_group')
+                    }).filter(sub => ['inventory_opname', 'inventory_data_stok_group'].includes(sub.id))
                 };
             }
             if (group.id === 'support_group' && group.items) {
@@ -564,11 +565,15 @@ watch(() => route.path, () => {
                                         ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 font-semibold'
                                         : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
                                 >
-                                    <div class="flex items-center gap-2.5">
+                                    <div class="flex items-center gap-2 min-w-0 flex-1">
                                         <div class="w-1.5 h-1.5 rounded-full shrink-0"
                                             :class="isSubGroupActive(subitem.items) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
                                         </div>
-                                        <span>{{ subitem.label }}</span>
+                                        <span class="truncate">{{ subitem.label }}</span>
+                                        <span v-if="subitem.badge"
+                                            class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-tight bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap ml-1 shrink-0">
+                                            {{ subitem.badge }}
+                                        </span>
                                     </div>
                                     <ChevronDown :size="14"
                                         class="shrink-0 transition-transform duration-300 opacity-60 group-hover:opacity-100"
@@ -601,15 +606,21 @@ watch(() => route.path, () => {
                             <router-link
                                 v-else-if="subitem.path"
                                 :to="subitem.path"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
+                                class="flex items-center justify-between px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                                 :class="isActiveRoute(subitem.path)
                                     ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
                                     : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
                             >
-                                <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                    :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-1.5 h-1.5 rounded-full shrink-0"
+                                        :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                    </div>
+                                    <span class="truncate">{{ subitem.label }}</span>
                                 </div>
-                                <span>{{ subitem.label }}</span>
+                                <span v-if="subitem.badge"
+                                    class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-tight bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 whitespace-nowrap ml-1 shrink-0">
+                                    {{ subitem.badge }}
+                                </span>
                             </router-link>
                         </template>
                     </div>
