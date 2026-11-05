@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-    Smartphone, Package, Check, X, CheckCircle2, XCircle,
+    Smartphone, Package, Check, X, CheckCircle2, XCircle, ClipboardCheck,
     Camera, Upload, Plus, Trash2, AlertTriangle, Building2,
     User, Lock, ShieldCheck, History, ArrowLeft, ChevronDown,
     RefreshCw, Search, Eye
@@ -405,7 +405,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 pb-32 sm:pb-24">
+    <div class="space-y-6 pb-6">
         <!-- Top Navigation & Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm">
             <div>
@@ -809,36 +809,51 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Sticky Bottom Summary & Submit Bar -->
-        <div class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#050505]/90 backdrop-blur-xl border-t border-gray-200 dark:border-surface-700 px-4 py-3 sm:py-4 shadow-lg">
-            <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-                <!-- Summary Metrics -->
-                <div class="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-semibold">
-                    <div>
-                        <span class="text-text-secondary">Sistem:</span>
-                        <span class="ml-1 font-bold text-text-primary">{{ summaryStats.totalSystem }}</span>
+        <!-- Sticky Bottom Summary & Submit Dock -->
+        <div class="sticky bottom-4 z-30 bg-white/95 dark:!bg-surface-800/95 backdrop-blur-xl rounded-2xl border border-gray-200/80 dark:border-surface-700 p-4 sm:p-5 shadow-xl shadow-black/5 dark:shadow-black/30 transition-all">
+            <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <!-- Summary Metrics Group -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full lg:w-auto">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                            <ClipboardCheck :size="20" />
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-black text-text-secondary tracking-wider">Hasil Pemeriksaan Fisik</div>
+                            <div class="text-sm font-black text-text-primary">
+                                {{ summaryStats.totalPhysical }} <span class="font-normal text-text-secondary text-xs">dari {{ summaryStats.totalSystem }} unit</span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-text-secondary">Fisik Ada:</span>
-                        <span class="ml-1 font-bold text-emerald-600 dark:text-emerald-400">{{ summaryStats.totalPhysical }}</span>
-                    </div>
-                    <div v-if="summaryStats.totalMissing > 0">
-                        <span class="text-rose-600 dark:text-rose-400">Selisih:</span>
-                        <span class="ml-1 font-bold text-rose-600 dark:text-rose-400">-{{ summaryStats.totalMissing }}</span>
-                    </div>
-                    <div v-if="summaryStats.totalExcess > 0">
-                        <span class="text-amber-600 dark:text-amber-400">Lebih:</span>
-                        <span class="ml-1 font-bold text-amber-600 dark:text-amber-400">+{{ summaryStats.totalExcess }}</span>
+
+                    <!-- Metrics Badges -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <div class="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-surface-700/80 border border-gray-200/60 dark:border-surface-600 font-semibold text-text-secondary flex items-center gap-1.5">
+                            <span>Sistem:</span>
+                            <span class="font-bold font-mono text-text-primary">{{ summaryStats.totalSystem }}</span>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                            <span>Fisik Ada:</span>
+                            <span class="font-bold font-mono">{{ summaryStats.totalPhysical }}</span>
+                        </div>
+                        <div v-if="summaryStats.totalMissing > 0" class="px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200/60 dark:border-rose-800/60 font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                            <span>Selisih:</span>
+                            <span class="font-bold font-mono">-{{ summaryStats.totalMissing }}</span>
+                        </div>
+                        <div v-if="summaryStats.totalExcess > 0" class="px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                            <span>Lebih:</span>
+                            <span class="font-bold font-mono">+{{ summaryStats.totalExcess }}</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Action Button -->
-                <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                <!-- Submit Button -->
+                <div class="w-full lg:w-auto">
                     <button type="button" @click="handleVerifyAndSubmit" :disabled="submitting || (pendingItems.length === 0 && excessItems.length === 0)"
-                        class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]">
-                        <RefreshCw v-if="submitting" :size="16" class="animate-spin" />
-                        <CheckCircle2 v-else :size="16" />
-                        <span>{{ submitting ? 'Menyimpan...' : 'Simpan & Selesaikan SO' }}</span>
+                        class="w-full lg:w-auto px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:from-emerald-700 active:to-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]">
+                        <RefreshCw v-if="submitting" :size="18" class="animate-spin" />
+                        <CheckCircle2 v-else :size="18" />
+                        <span>{{ submitting ? 'Menyimpan Hasil SO...' : 'Simpan & Selesaikan SO' }}</span>
                     </button>
                 </div>
             </div>
