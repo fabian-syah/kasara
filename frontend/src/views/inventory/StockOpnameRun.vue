@@ -5,7 +5,7 @@ import {
     Smartphone, Package, Check, X, CheckCircle2, XCircle, ClipboardCheck,
     Camera, Upload, Plus, Trash2, AlertTriangle, Building2,
     User, Lock, ShieldCheck, History, ArrowLeft, ChevronDown,
-    RefreshCw, Search, Eye, ArrowRight, Shield, UserCheck
+    RefreshCw, Search, Eye, ArrowRight, Shield, UserCheck, Store
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -747,12 +747,26 @@ onMounted(async () => {
                             <span v-if="activeBranch?.code" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-100 dark:bg-surface-700 text-text-secondary">
                                 {{ activeBranch.code }}
                             </span>
+                            <!-- Role Scope Pill Badge -->
+                            <span v-if="isAudit" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                <ShieldCheck :size="12" />
+                                <span>SO AUDIT</span>
+                            </span>
+                            <span v-else-if="isLeader" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+                                <UserCheck :size="12" />
+                                <span>SO LEADER</span>
+                            </span>
+                            <span v-else class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                <Store :size="12" />
+                                <span>SO CS TOKO</span>
+                            </span>
                         </div>
                         <p class="text-xs text-text-secondary mt-0.5 flex items-center gap-1.5 flex-wrap">
                             <span>Pelaksana:</span>
                             <strong class="text-text-primary">{{ isLeaderOrAudit ? (authStore.user?.name || authStore.userName) : (activeCsUser?.name || 'CS') }}</strong>
-                            <span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10">
-                                {{ isLeader ? 'Leader' : isAudit ? 'Audit' : 'CS' }}
+                            <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                                :class="isAudit ? 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40' : isLeader ? 'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/40' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40'">
+                                {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'CS' }}
                             </span>
                         </p>
                     </div>
@@ -784,13 +798,15 @@ onMounted(async () => {
                     <RefreshCw :size="13" class="animate-spin text-emerald-500" />
                     <span>Memeriksa stok...</span>
                 </div>
-                <div v-else-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-                    <CheckCircle2 :size="14" class="text-emerald-500" />
-                    <span>Semua unit sudah di-SO hari ini (Reset 05:00 AM) ✅</span>
+                <div v-else-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName" class="text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5"
+                    :class="isAudit ? 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800' : isLeader ? 'text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800'">
+                    <CheckCircle2 :size="14" />
+                    <span>Semua unit sudah di-{{ isAudit ? 'SO Audit' : isLeader ? 'SO Leader' : 'SO' }} hari ini (Reset 05:00 AM) ✅</span>
                 </div>
-                <div v-else-if="totalAvailableUnits === 0" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
-                    <CheckCircle2 :size="14" class="text-emerald-500" />
-                    <span>Filter ini sudah di-SO (Reset 05:00 AM) ✅</span>
+                <div v-else-if="totalAvailableUnits === 0" class="text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5"
+                    :class="isAudit ? 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800' : isLeader ? 'text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800'">
+                    <CheckCircle2 :size="14" />
+                    <span>Filter ini sudah di-{{ isAudit ? 'SO Audit' : isLeader ? 'SO Leader' : 'SO' }} (Reset 05:00 AM) ✅</span>
                 </div>
                 <div v-else class="text-xs font-medium text-text-secondary bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
                     Belum di-SO hari ini: <span class="font-bold text-amber-700 dark:text-amber-300">{{ totalAvailableUnits }} unit</span>
@@ -914,10 +930,10 @@ onMounted(async () => {
                 <template v-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName">
                     <CheckCircle2 :size="38" class="mx-auto text-emerald-500 mb-2" />
                     <p class="text-base font-bold text-text-primary">
-                        Semua Stok Sudah Selesai di-SO Hari Ini ✅
+                        Semua Stok Sudah Selesai di-{{ isAudit ? 'SO Audit' : isLeader ? 'SO Leader' : 'SO' }} Hari Ini ✅
                     </p>
                     <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
-                        Seluruh unit fisik di cabang ini telah berhasil di-stok opname dan tercatat di sistem. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
+                        Seluruh unit fisik di cabang ini telah berhasil diperiksa oleh tim {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'Toko' }} dan tercatat di sistem. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
                     </p>
                     <div class="mt-4">
                         <router-link to="/inventory/opname/history"

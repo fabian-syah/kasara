@@ -5,7 +5,8 @@ import {
     History, Search, Calendar, Building2, User, Filter,
     CheckCircle2, AlertTriangle, Eye, ChevronDown, ChevronRight, ChevronUp,
     RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Check, Download,
-    Copy, CheckCheck, ListFilter, Layers, Sparkles, ImageOff
+    Copy, CheckCheck, ListFilter, Layers, Sparkles, ImageOff,
+    ShieldCheck, UserCheck, Store, Crown
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -48,6 +49,7 @@ const filters = ref({
     category_type: '',
     method: '',
     status: '',
+    executor_role: '', // 'audit', 'leader', 'store', 'admin', '' (Semua)
     date: '', // Default: Semua Tanggal
     search: ''
 });
@@ -134,12 +136,63 @@ const setTab = (tab) => {
     fetchHistory(1);
 };
 
-// User role check
-const userRole = computed(() => (authStore.userRole || '').toLowerCase());
-const isPrivilegedRole = computed(() => {
-    const privileged = ['super_admin', 'leader', 'audit', 'owner', 'analist'];
+// User role check & tier segregation
+const userRole = computed(() => (authStore.userRole || '').toLowerCase().trim());
+
+const isLeader = computed(() => {
+    const role = userRole.value;
+    if (role.includes('leader')) return true;
+    if (authStore.user?.role && String(authStore.user.role).toLowerCase().includes('leader')) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        return authStore.user.roles.some(r => (typeof r === 'string' ? r : r?.name || '').toLowerCase().includes('leader'));
+    }
+    return false;
+});
+
+const isAudit = computed(() => {
+    const role = userRole.value;
+    if (role.includes('audit')) return true;
+    if (authStore.user?.role && String(authStore.user.role).toLowerCase().includes('audit')) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        return authStore.user.roles.some(r => (typeof r === 'string' ? r : r?.name || '').toLowerCase().includes('audit'));
+    }
+    return false;
+});
+
+const isSuperAdminOrOwner = computed(() => {
+    const privileged = ['super_admin', 'owner', 'analist', 'analis', 'admin_produk'];
     return privileged.some(r => userRole.value.includes(r));
 });
+
+const isPrivilegedRole = computed(() => isLeader.value || isAudit.value || isSuperAdminOrOwner.value);
+
+// Helper for record role
+const getRecordRole = (rec) => {
+    if (rec?.executor_role) return rec.executor_role;
+    const uRole = (rec?.user?.role || '').toLowerCase();
+    if (uRole.includes('audit')) return 'audit';
+    if (uRole.includes('leader')) return 'leader';
+    if (uRole.includes('admin') || uRole.includes('owner') || uRole.includes('analist')) return 'admin';
+    return 'store';
+};
+
+const getRoleLabel = (role) => {
+    switch (role) {
+        case 'audit': return 'SO Audit';
+        case 'leader': return 'SO Leader';
+        case 'admin': return 'SO Admin';
+        default: return 'SO CS Toko';
+    }
+};
+
+const getRoleBadgeClass = (role) => {
+    switch (role) {
+        case 'audit': return 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800';
+        case 'leader': return 'bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 border-sky-200 dark:border-sky-800';
+        case 'admin': return 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800';
+        default: return 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+    }
+};
 
 // Fetch branches
 const fetchBranches = async () => {
@@ -292,7 +345,41 @@ const formatDateTime = (dateStr) => {
     });
 };
 
+const resetFilters = () => {
+    let defaultRole = '';
+    if (isAudit.value) defaultRole = 'audit';
+    else if (isLeader.value) defaultRole = 'leader';
+    else if (!isSuperAdminOrOwner.value) defaultRole = 'store';
+
+    filters.value = {
+        branch_id: branches.value.length === 1 ? branches.value[0].id : '',
+        cs_user_id: '',
+        category_type: '',
+        method: activeTab.value,
+        status: '',
+        executor_role: defaultRole,
+        date: '',
+        search: ''
+    };
+    fetchHistory(1);
+};
+
 onMounted(async () => {
+    if (!authStore.user && typeof authStore.fetchUser === 'function') {
+        try {
+            await authStore.fetchUser();
+        } catch (e) {}
+    }
+
+    // Role-specific initial filter: Audit defaults to Audit history, Leader defaults to Leader, Store defaults to Store
+    if (isAudit.value) {
+        filters.value.executor_role = 'audit';
+    } else if (isLeader.value) {
+        filters.value.executor_role = 'leader';
+    } else if (!isSuperAdminOrOwner.value) {
+        filters.value.executor_role = 'store';
+    }
+
     await fetchBranches();
     await fetchHistory();
 });
@@ -311,6 +398,10 @@ watch(() => filters.value.status, () => {
 });
 
 watch(() => filters.value.cs_user_id, () => {
+    fetchHistory(1);
+});
+
+watch(() => filters.value.executor_role, () => {
     fetchHistory(1);
 });
 </script>
@@ -382,9 +473,61 @@ watch(() => filters.value.cs_user_id, () => {
             </button>
         </div>
 
+        <!-- ROLE TIER SEGMENTED SELECTOR: Scoped History by Role Tier (Audit, Leader, Store) -->
+        <div v-if="isPrivilegedRole" class="bg-white dark:!bg-surface-800 p-2 sm:p-2.5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                <span class="text-[10px] font-black uppercase text-text-secondary tracking-wider pl-2 pr-1 shrink-0">
+                    Kategori Laporan:
+                </span>
+
+                <!-- Filter: Semua Tipe -->
+                <button type="button" @click="filters.executor_role = ''"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    :class="filters.executor_role === '' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                    <span>Semua Tipe</span>
+                </button>
+
+                <!-- Filter: SO Audit (Audit, Leader, Super Admin) -->
+                <button v-if="isAudit || isSuperAdminOrOwner || isLeader" type="button" @click="filters.executor_role = 'audit'"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    :class="filters.executor_role === 'audit' ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30' : 'text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40'">
+                    <ShieldCheck :size="14" />
+                    <span>SO Audit</span>
+                    <span v-if="isAudit" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-purple-700/80 text-white uppercase">Saya</span>
+                </button>
+
+                <!-- Filter: SO Leader -->
+                <button v-if="isLeader || isSuperAdminOrOwner || isAudit" type="button" @click="filters.executor_role = 'leader'"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    :class="filters.executor_role === 'leader' ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/30' : 'text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40'">
+                    <UserCheck :size="14" />
+                    <span>SO Leader</span>
+                    <span v-if="isLeader" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-sky-700/80 text-white uppercase">Saya</span>
+                </button>
+
+                <!-- Filter: SO CS Toko -->
+                <button type="button" @click="filters.executor_role = 'store'"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                    :class="filters.executor_role === 'store' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'">
+                    <Store :size="14" />
+                    <span>SO CS Toko</span>
+                </button>
+            </div>
+
+            <!-- Context Info -->
+            <div class="text-[11px] text-text-secondary px-2 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full"
+                    :class="filters.executor_role === 'audit' ? 'bg-purple-500' : filters.executor_role === 'leader' ? 'bg-sky-500' : filters.executor_role === 'store' ? 'bg-emerald-500' : 'bg-gray-400'"></span>
+                <span v-if="filters.executor_role === 'audit'" class="text-purple-600 dark:text-purple-400 font-semibold">Riwayat pemeriksaan fisik tim Audit</span>
+                <span v-else-if="filters.executor_role === 'leader'" class="text-sky-600 dark:text-sky-400 font-semibold">Riwayat supervisi stok Leader</span>
+                <span v-else-if="filters.executor_role === 'store'" class="text-emerald-600 dark:text-emerald-400 font-semibold">Riwayat stok opname harian CS Toko</span>
+                <span v-else>Riwayat gabungan seluruh peran (Audit, Leader, Toko)</span>
+            </div>
+        </div>
+
         <!-- Filter Controls -->
         <div class="bg-white dark:!bg-surface-800 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <!-- Tanggal -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -431,6 +574,21 @@ watch(() => filters.value.cs_user_id, () => {
                     </div>
                 </div>
 
+                <!-- Tipe Pelaksana (Jika Privileged) -->
+                <div>
+                    <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Tipe Pelaksana</label>
+                    <div class="relative">
+                        <select v-model="filters.executor_role"
+                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Tipe Pelaksana</option>
+                            <option value="audit" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO Audit 🛡️</option>
+                            <option value="leader" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO Leader 👤</option>
+                            <option value="store" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO CS Toko 🏪</option>
+                        </select>
+                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
+
                 <!-- Status Hasil -->
                 <div>
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Status Hasil</label>
@@ -458,8 +616,8 @@ watch(() => filters.value.cs_user_id, () => {
                     class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-text-primary text-xs font-bold transition-all">
                     Cari
                 </button>
-                <button type="button" @click="filters = { branch_id: '', cs_user_id: '', category_type: '', method: activeTab, status: '', date: '', search: '' }; fetchHistory(1)"
-                    class="px-3 py-2 rounded-xl border border-gray-200 dark:border-surface-600 text-text-secondary hover:text-text-primary text-xs font-semibold">
+                <button type="button" @click="resetFilters"
+                    class="px-3 py-2 rounded-xl border border-gray-200 dark:border-surface-600 text-text-secondary hover:text-text-primary text-xs font-semibold cursor-pointer">
                     Reset
                 </button>
             </div>
@@ -597,7 +755,12 @@ watch(() => filters.value.cs_user_id, () => {
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="font-medium text-text-primary">{{ it.branch_name }}</div>
-                                    <div class="text-[10px] text-text-secondary">CS: {{ it.cs_name }}</div>
+                                    <div class="text-[10px] text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                        <span :class="getRoleBadgeClass(getRecordRole(it.session_record))" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border">
+                                            {{ getRoleLabel(getRecordRole(it.session_record)) }}
+                                        </span>
+                                        <span>CS: {{ it.cs_name }}</span>
+                                    </div>
                                 </td>
                                 <td class="py-3 px-4">
                                     <div class="font-mono text-[11px] font-bold text-text-primary">{{ it.opname_number }}</div>
@@ -665,7 +828,12 @@ watch(() => filters.value.cs_user_id, () => {
                                 <Building2 :size="12" class="text-emerald-500" />
                                 <span>{{ it.branch_name }}</span>
                             </div>
-                            <div class="text-[11px] text-text-secondary">CS: {{ it.cs_name }} • {{ formatDateTime(it.session_created_at) }}</div>
+                            <div class="text-[11px] text-text-secondary flex items-center gap-1.5 flex-wrap">
+                                <span :class="getRoleBadgeClass(getRecordRole(it.session_record))" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border">
+                                    {{ getRoleLabel(getRecordRole(it.session_record)) }}
+                                </span>
+                                <span>CS: {{ it.cs_name }} • {{ formatDateTime(it.session_created_at) }}</span>
+                            </div>
                         </div>
 
                         <button type="button" @click="openDetail(it.session_record)"
@@ -685,6 +853,15 @@ watch(() => filters.value.cs_user_id, () => {
                 <div v-for="rec in records" :key="rec.id" class="p-4 space-y-3 hover:bg-gray-50/50 dark:hover:bg-surface-700/20 transition-colors">
                     <div class="flex items-start justify-between gap-2">
                         <div>
+                            <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                                <span :class="getRoleBadgeClass(getRecordRole(rec))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border">
+                                    <ShieldCheck v-if="getRecordRole(rec) === 'audit'" :size="11" />
+                                    <UserCheck v-else-if="getRecordRole(rec) === 'leader'" :size="11" />
+                                    <Crown v-else-if="getRecordRole(rec) === 'admin'" :size="11" />
+                                    <Store v-else :size="11" />
+                                    <span>{{ getRoleLabel(getRecordRole(rec)) }}</span>
+                                </span>
+                            </div>
                             <div class="font-mono font-bold text-sm text-text-primary">{{ rec.opname_number }}</div>
                             <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
                         </div>
@@ -700,8 +877,16 @@ watch(() => filters.value.cs_user_id, () => {
 
                     <div class="space-y-1 text-xs">
                         <div class="flex items-center justify-between">
-                            <span class="text-text-secondary">Cabang & CS:</span>
-                            <span class="font-semibold text-text-primary">{{ rec.branch?.name || '-' }} ({{ rec.cs_user?.name || '-' }})</span>
+                            <span class="text-text-secondary">Cabang & Pelaksana:</span>
+                            <span class="font-semibold text-text-primary">
+                                {{ rec.branch?.name || '-' }}
+                                <span v-if="getRecordRole(rec) === 'audit' || getRecordRole(rec) === 'leader'">
+                                    ({{ rec.user?.name || '-' }})
+                                </span>
+                                <span v-else>
+                                    ({{ rec.cs_user?.name || '-' }})
+                                </span>
+                            </span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-text-secondary">Metode:</span>
@@ -782,7 +967,7 @@ watch(() => filters.value.cs_user_id, () => {
                     <thead>
                         <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/50 dark:bg-surface-700/30 text-[11px] font-bold text-text-secondary uppercase">
                             <th class="py-3 px-4">No SO & Waktu</th>
-                            <th class="py-3 px-4">Cabang & CS</th>
+                            <th class="py-3 px-4">Cabang & Pelaksana</th>
                             <th class="py-3 px-4">Kategori & Metode</th>
                             <th class="py-3 px-4 text-center">Sistem</th>
                             <th class="py-3 px-4 text-center">Fisik Ada</th>
@@ -798,11 +983,20 @@ watch(() => filters.value.cs_user_id, () => {
                             <tr class="hover:bg-gray-50/60 dark:hover:bg-surface-700/30 transition-colors">
                                 <!-- No SO & Waktu -->
                                 <td class="py-3.5 px-4">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <span :class="getRoleBadgeClass(getRecordRole(rec))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border">
+                                            <ShieldCheck v-if="getRecordRole(rec) === 'audit'" :size="11" />
+                                            <UserCheck v-else-if="getRecordRole(rec) === 'leader'" :size="11" />
+                                            <Crown v-else-if="getRecordRole(rec) === 'admin'" :size="11" />
+                                            <Store v-else :size="11" />
+                                            <span>{{ getRoleLabel(getRecordRole(rec)) }}</span>
+                                        </span>
+                                    </div>
                                     <div class="font-mono font-bold text-xs text-text-primary">{{ rec.opname_number }}</div>
                                     <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
                                 </td>
 
-                                <!-- Cabang & CS -->
+                                <!-- Cabang & Pelaksana -->
                                 <td class="py-3.5 px-4">
                                     <div class="font-semibold text-text-primary flex items-center gap-1.5">
                                         <Building2 :size="13" class="text-emerald-500 shrink-0" />
@@ -810,7 +1004,12 @@ watch(() => filters.value.cs_user_id, () => {
                                     </div>
                                     <div class="text-[11px] text-text-secondary flex items-center gap-1.5 mt-0.5">
                                         <User :size="12" class="text-gray-400 shrink-0" />
-                                        <span>CS: {{ rec.cs_user?.name || '-' }}</span>
+                                        <span v-if="getRecordRole(rec) === 'audit' || getRecordRole(rec) === 'leader'">
+                                            Oleh: <strong>{{ rec.user?.name || '-' }}</strong>
+                                        </span>
+                                        <span v-else>
+                                            CS: {{ rec.cs_user?.name || '-' }}
+                                        </span>
                                     </div>
                                 </td>
 
@@ -963,6 +1162,13 @@ watch(() => filters.value.cs_user_id, () => {
                 <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700 flex items-center justify-between shrink-0">
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
+                            <span :class="getRoleBadgeClass(getRecordRole(selectedDetail))" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border">
+                                <ShieldCheck v-if="getRecordRole(selectedDetail) === 'audit'" :size="11" />
+                                <UserCheck v-else-if="getRecordRole(selectedDetail) === 'leader'" :size="11" />
+                                <Crown v-else-if="getRecordRole(selectedDetail) === 'admin'" :size="11" />
+                                <Store v-else :size="11" />
+                                <span>{{ getRoleLabel(getRecordRole(selectedDetail)) }}</span>
+                            </span>
                             <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ selectedDetail?.opname_number }}</span>
                             <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full"
                                 :class="selectedDetail?.method === 'by_imei' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'">
@@ -973,8 +1179,17 @@ watch(() => filters.value.cs_user_id, () => {
                             </span>
                         </div>
                         <h3 class="text-base sm:text-lg font-bold text-text-primary mt-1">Rincian Hasil Stok Opname</h3>
-                        <p class="text-xs text-text-secondary mt-0.5">
-                            {{ selectedDetail?.branch?.name }} • CS: {{ selectedDetail?.cs_user?.name }} • {{ formatDateTime(selectedDetail?.created_at) }}
+                        <p class="text-xs text-text-secondary mt-0.5 flex items-center gap-2 flex-wrap">
+                            <span>{{ selectedDetail?.branch?.name }}</span>
+                            <span>•</span>
+                            <span v-if="getRecordRole(selectedDetail) === 'audit' || getRecordRole(selectedDetail) === 'leader'">
+                                Pelaksana: <strong>{{ selectedDetail?.user?.name || '-' }}</strong>
+                            </span>
+                            <span v-else>
+                                CS: <strong>{{ selectedDetail?.cs_user?.name || '-' }}</strong>
+                            </span>
+                            <span>•</span>
+                            <span>{{ formatDateTime(selectedDetail?.created_at) }}</span>
                         </p>
                     </div>
                     <button @click="showDetailModal = false" class="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors">

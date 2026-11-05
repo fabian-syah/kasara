@@ -15,6 +15,7 @@ class StockOpname extends Model
         'branch_id',
         'user_id',
         'cs_user_id',
+        'executor_role',
         'category_type',
         'method',
         'brand',
@@ -36,6 +37,18 @@ class StockOpname extends Model
         'total_missing' => 'integer',
         'total_excess' => 'integer',
     ];
+
+    protected $appends = ['executor_role_label'];
+
+    public function getExecutorRoleLabelAttribute()
+    {
+        return match($this->executor_role) {
+            'audit' => 'SO Audit',
+            'leader' => 'SO Leader',
+            'admin' => 'SO Admin',
+            default => 'SO CS Toko',
+        };
+    }
 
     public function branch()
     {

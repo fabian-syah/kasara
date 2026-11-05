@@ -37,6 +37,42 @@ class StockOpnameController extends Controller
                 Log::warning('StockOpnameController auto-migration note: ' . $e->getMessage());
             }
         }
+
+        // Ensure executor_role column exists on stock_opnames
+        if (Schema::hasTable('stock_opnames') && !Schema::hasColumn('stock_opnames', 'executor_role')) {
+            try {
+                Schema::table('stock_opnames', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('executor_role', 30)->default('store')->index()->after('cs_user_id');
+                });
+            } catch (\Throwable $e) {
+                Log::warning('StockOpnameController executor_role migration note: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
+     * Determine user role scope for Stock Opname segregation (store, leader, audit, admin).
+     */
+    public static function getUserRoleScope($user): string
+    {
+        if (!$user) {
+            return 'store';
+        }
+
+        if ($user->hasRole('audit') || strtolower($user->role ?? '') === 'audit') {
+            return 'audit';
+        }
+
+        if ($user->hasRole('leader') || strtolower($user->role ?? '') === 'leader') {
+            return 'leader';
+        }
+
+        if ($user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])
+            || in_array(strtolower($user->role ?? ''), ['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])) {
+            return 'admin';
+        }
+
+        return 'store';
     }
 
     /**
@@ -184,21 +220,60 @@ class StockOpnameController extends Controller
         $selectedBrand = $request->filled('brand') ? (string) $request->brand : null;
         $selectedProductName = $request->filled('product_name') ? (string) $request->product_name : null;
 
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $userRoleScope = self::getUserRoleScope($user);
+
+        // If privileged/admin, allow explicit scope override via query param if provided
+        if ($userRoleScope === 'admin' && $request->filled('executor_role') && $request->executor_role !== 'all') {
+            $effectiveRoleScope = $request->executor_role;
+        } else {
+            $effectiveRoleScope = $userRoleScope;
+        }
+
         $cycle = self::getLogicalCycleRange();
         $todayDates = array_unique([$cycle['date'], now()->toDateString()]);
 
-        // Check already audited items today at this branch (matching current 05:00 AM cycle)
+        // Check already audited items today at this branch for THIS specific role scope
         $auditedImeis = [];
         $auditedProductNamesByUnit = [];
         $auditedNonHpProductIds = [];
 
         if (Schema::hasTable('stock_opnames') && Schema::hasTable('stock_opname_items')) {
-            $todayOpnameIds = StockOpname::where('branch_id', $branchId)
+            $todayOpnameQuery = StockOpname::where('branch_id', $branchId)
                 ->where(function ($q) use ($cycle, $todayDates) {
                     $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
                       ->orWhereIn('date', $todayDates);
-                })
-                ->pluck('id');
+                });
+
+            // Independent SO cycles: Audit, Leader, and Store do NOT block each other!
+            if ($effectiveRoleScope === 'audit') {
+                $todayOpnameQuery->where(function ($q) {
+                    $q->where('executor_role', 'audit')
+                      ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'audit'))->orWhereRaw("LOWER(role) = 'audit'"));
+                });
+            } elseif ($effectiveRoleScope === 'leader') {
+                $todayOpnameQuery->where(function ($q) {
+                    $q->where('executor_role', 'leader')
+                      ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'leader'))->orWhereRaw("LOWER(role) = 'leader'"));
+                });
+            } elseif ($effectiveRoleScope === 'admin') {
+                $todayOpnameQuery->where('executor_role', 'admin');
+            } else {
+                // Store / CS tier
+                $todayOpnameQuery->where(function ($q) {
+                    $q->where('executor_role', 'store')
+                      ->orWhereNull('executor_role')
+                      ->orWhere(function ($subQ) {
+                          $subQ->whereNotIn('executor_role', ['audit', 'leader', 'admin'])
+                               ->whereHas('user', function ($uq) {
+                                   $uq->whereDoesntHave('roles', fn($rq) => $rq->whereIn('name', ['audit', 'leader']));
+                               });
+                      });
+                });
+            }
+
+            $todayOpnameIds = $todayOpnameQuery->pluck('id');
 
             if ($todayOpnameIds->isNotEmpty()) {
                 $auditedImeis = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)
@@ -299,6 +374,13 @@ class StockOpnameController extends Controller
                 return response()->json([
                     'category_type' => 'hp',
                     'method' => 'by_unit',
+                    'role_scope' => $effectiveRoleScope,
+                    'role_label' => match($effectiveRoleScope) {
+                        'audit' => 'SO Audit',
+                        'leader' => 'SO Leader',
+                        'admin' => 'SO Admin',
+                        default => 'SO CS Toko',
+                    },
                     'available_brands' => $availableBrands,
                     'total_available_units' => $totalPendingUnits,
                     'items' => $resultList,
@@ -385,6 +467,13 @@ class StockOpnameController extends Controller
                 return response()->json([
                     'category_type' => 'hp',
                     'method' => 'by_imei',
+                    'role_scope' => $effectiveRoleScope,
+                    'role_label' => match($effectiveRoleScope) {
+                        'audit' => 'SO Audit',
+                        'leader' => 'SO Leader',
+                        'admin' => 'SO Admin',
+                        default => 'SO CS Toko',
+                    },
                     'available_brands' => $availableBrands,
                     'available_types' => $availableTypes,
                     'total_available_units' => $totalPendingUnits,
@@ -461,6 +550,13 @@ class StockOpnameController extends Controller
             return response()->json([
                 'category_type' => 'non_hp',
                 'method' => 'by_unit',
+                'role_scope' => $effectiveRoleScope,
+                'role_label' => match($effectiveRoleScope) {
+                    'audit' => 'SO Audit',
+                    'leader' => 'SO Leader',
+                    'admin' => 'SO Admin',
+                    default => 'SO CS Toko',
+                },
                 'available_brands' => $availableBrands,
                 'total_available_units' => $totalPendingUnits,
                 'items' => $resultList,
@@ -522,14 +618,42 @@ class StockOpnameController extends Controller
             }
         }
 
-        // Prevent redundant submission if already audited in current 05:00 AM cycle
+        $userRoleScope = self::getUserRoleScope($user);
+
+        // Prevent redundant submission if already audited in current 05:00 AM cycle within the SAME role scope
         $cycle = self::getLogicalCycleRange();
-        $todayOpnameIds = StockOpname::where('branch_id', $request->branch_id)
+        $todayOpnameQuery = StockOpname::where('branch_id', $request->branch_id)
             ->where(function ($q) use ($cycle) {
                 $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
                   ->orWhere('date', $cycle['date']);
-            })
-            ->pluck('id');
+            });
+
+        if ($userRoleScope === 'audit') {
+            $todayOpnameQuery->where(function ($q) {
+                $q->where('executor_role', 'audit')
+                  ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'audit'))->orWhereRaw("LOWER(role) = 'audit'"));
+            });
+        } elseif ($userRoleScope === 'leader') {
+            $todayOpnameQuery->where(function ($q) {
+                $q->where('executor_role', 'leader')
+                  ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'leader'))->orWhereRaw("LOWER(role) = 'leader'"));
+            });
+        } elseif ($userRoleScope === 'admin') {
+            $todayOpnameQuery->where('executor_role', 'admin');
+        } else {
+            $todayOpnameQuery->where(function ($q) {
+                $q->where('executor_role', 'store')
+                  ->orWhereNull('executor_role')
+                  ->orWhere(function ($subQ) {
+                      $subQ->whereNotIn('executor_role', ['audit', 'leader', 'admin'])
+                           ->whereHas('user', function ($uq) {
+                               $uq->whereDoesntHave('roles', fn($rq) => $rq->whereIn('name', ['audit', 'leader']));
+                           });
+                  });
+            });
+        }
+
+        $todayOpnameIds = $todayOpnameQuery->pluck('id');
 
         if ($todayOpnameIds->isNotEmpty() && $request->method === 'by_imei') {
             $auditedImeis = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)
@@ -632,6 +756,7 @@ class StockOpnameController extends Controller
                 'branch_id' => $request->branch_id,
                 'user_id' => $user->id,
                 'cs_user_id' => $csUser->id,
+                'executor_role' => $userRoleScope,
                 'category_type' => $request->category_type,
                 'method' => $request->method,
                 'brand' => $brandVal,
@@ -800,6 +925,49 @@ class StockOpnameController extends Controller
 
         if ($request->filled('cs_user_id') && $request->cs_user_id !== 'all') {
             $query->where('cs_user_id', $request->cs_user_id);
+        }
+
+        // Executor role segregation & filtering
+        $userRoleScope = self::getUserRoleScope($user);
+        $requestedRole = $request->query('executor_role');
+
+        if ($requestedRole && $requestedRole !== 'all') {
+            if ($requestedRole === 'audit') {
+                $query->where(function ($q) {
+                    $q->where('executor_role', 'audit')
+                      ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'audit'))->orWhereRaw("LOWER(role) = 'audit'"));
+                });
+            } elseif ($requestedRole === 'leader') {
+                $query->where(function ($q) {
+                    $q->where('executor_role', 'leader')
+                      ->orWhereHas('user', fn($uq) => $uq->whereHas('roles', fn($rq) => $rq->where('name', 'leader'))->orWhereRaw("LOWER(role) = 'leader'"));
+                });
+            } elseif ($requestedRole === 'store') {
+                $query->where(function ($q) {
+                    $q->where('executor_role', 'store')
+                      ->orWhereNull('executor_role')
+                      ->orWhere(function ($subQ) {
+                          $subQ->whereNotIn('executor_role', ['audit', 'leader', 'admin'])
+                               ->whereHas('user', function ($uq) {
+                                   $uq->whereDoesntHave('roles', fn($rq) => $rq->whereIn('name', ['audit', 'leader']));
+                               });
+                      });
+                });
+            } elseif ($requestedRole === 'admin') {
+                $query->where('executor_role', 'admin');
+            }
+        } elseif (!$requestedRole && $userRoleScope === 'store') {
+            // Default store users to store SO only
+            $query->where(function ($q) {
+                $q->where('executor_role', 'store')
+                  ->orWhereNull('executor_role')
+                  ->orWhere(function ($subQ) {
+                      $subQ->whereNotIn('executor_role', ['audit', 'leader', 'admin'])
+                           ->whereHas('user', function ($uq) {
+                               $uq->whereDoesntHave('roles', fn($rq) => $rq->whereIn('name', ['audit', 'leader']));
+                           });
+                  });
+            });
         }
 
         if ($request->filled('search')) {
