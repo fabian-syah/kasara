@@ -5,7 +5,7 @@ import {
     Smartphone, Package, Check, X, CheckCircle2, XCircle, ClipboardCheck,
     Camera, Upload, Plus, Trash2, AlertTriangle, Building2,
     User, Lock, ShieldCheck, History, ArrowLeft, ChevronDown,
-    RefreshCw, Search, Eye
+    RefreshCw, Search, Eye, ArrowRight, Shield, UserCheck
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -21,17 +21,55 @@ const loadingCs = ref(false);
 const loadingItems = ref(false);
 const submitting = ref(false);
 
+// Step Navigation (1: Pilih Cabang / Akun, 2: Pemeriksaan Fisik)
+const currentStep = ref(1);
+
 // Step 1: Branch & CS Selection
 const branches = ref([]);
 const selectedBranchId = ref(null);
+const searchBranch = ref('');
 const csUsers = ref([]);
 const selectedCsUserId = ref(null);
+const searchCs = ref('');
 
 // Password verification for store accounts
 const showPasswordModal = ref(false);
 const csPassword = ref('');
 const passwordVerified = ref(false);
 const verifyingPassword = ref(false);
+
+// Filtered Lists & Context Helpers for Step 1 & 2
+const filteredBranches = computed(() => {
+    if (!searchBranch.value.trim()) return branches.value;
+    const q = searchBranch.value.toLowerCase().trim();
+    return branches.value.filter(b => 
+        (b.name && b.name.toLowerCase().includes(q)) ||
+        (b.code && b.code.toLowerCase().includes(q))
+    );
+});
+
+const filteredCsUsers = computed(() => {
+    if (!searchCs.value.trim()) return csUsers.value;
+    const q = searchCs.value.toLowerCase().trim();
+    return csUsers.value.filter(u => 
+        (u.name && u.name.toLowerCase().includes(q)) ||
+        (u.username && u.username.toLowerCase().includes(q))
+    );
+});
+
+const activeBranch = computed(() => {
+    return branches.value.find(b => Number(b.id) === Number(selectedBranchId.value)) || null;
+});
+
+const activeCsUser = computed(() => {
+    if (isLeaderOrAudit.value) return authStore.user;
+    return csUsers.value.find(u => Number(u.id) === Number(selectedCsUserId.value)) || null;
+});
+
+const getInitials = (name) => {
+    if (!name) return 'CB';
+    return name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+};
 
 // Step 2: Configuration
 const categoryType = ref('hp'); // 'hp' | 'non_hp'
@@ -116,12 +154,13 @@ const fetchBranches = async () => {
             // Default select user's branch if matches, otherwise first branch
             const userBranchId = authStore.user?.branch_id;
             const match = branches.value.find(b => Number(b.id) === Number(userBranchId));
-            selectedBranchId.value = match ? match.id : branches.value[0].id;
+            if (!selectedBranchId.value) {
+                selectedBranchId.value = match ? match.id : branches.value[0].id;
+            }
 
             if (isLeaderOrAudit.value) {
                 selectedCsUserId.value = authStore.user?.id;
                 passwordVerified.value = true;
-                await fetchPendingItems();
             } else {
                 await fetchCsUsers();
             }
@@ -140,7 +179,6 @@ const fetchCsUsers = async () => {
     if (isLeaderOrAudit.value) {
         selectedCsUserId.value = authStore.user?.id;
         passwordVerified.value = true;
-        await fetchPendingItems();
         return;
     }
 
@@ -156,19 +194,59 @@ const fetchCsUsers = async () => {
             if (myCs) {
                 selectedCsUserId.value = myCs.id;
                 passwordVerified.value = true;
-            } else {
+            } else if (!selectedCsUserId.value) {
                 selectedCsUserId.value = csUsers.value[0].id;
                 passwordVerified.value = false;
             }
         } else {
             selectedCsUserId.value = null;
         }
-
-        await fetchPendingItems();
     } catch (err) {
         console.error('Error fetching CS users:', err);
     } finally {
         loadingCs.value = false;
+    }
+};
+
+// Proceed from Step 1 (Pilih Cabang / Akun) to Step 2 (Pemeriksaan Fisik)
+const proceedToOpname = async () => {
+    if (isLeaderOrAudit.value) {
+        if (!selectedBranchId.value) {
+            toast.warning('Silakan pilih cabang terlebih dahulu.');
+            return;
+        }
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+        selectedBrand.value = '';
+        selectedProductName.value = '';
+        excessItems.value = [];
+        photoPreviews.value = [];
+        await fetchPendingItems();
+        currentStep.value = 2;
+    } else if (userRole.value === 'toko_offline') {
+        if (!selectedCsUserId.value) {
+            toast.warning('Silakan pilih akun CS pelaksana.');
+            return;
+        }
+        selectedBrand.value = '';
+        selectedProductName.value = '';
+        excessItems.value = [];
+        photoPreviews.value = [];
+        await fetchPendingItems();
+        currentStep.value = 2;
+    } else {
+        if (!selectedBranchId.value) {
+            const userBranchId = authStore.user?.branch_id;
+            selectedBranchId.value = userBranchId || (branches.value[0]?.id ?? null);
+        }
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+        selectedBrand.value = '';
+        selectedProductName.value = '';
+        excessItems.value = [];
+        photoPreviews.value = [];
+        await fetchPendingItems();
+        currentStep.value = 2;
     }
 };
 
@@ -225,9 +303,11 @@ watch(selectedBranchId, () => {
     if (isLeaderOrAudit.value) {
         selectedCsUserId.value = authStore.user?.id;
         passwordVerified.value = true;
-        fetchPendingItems();
     } else {
         fetchCsUsers();
+    }
+    if (currentStep.value === 2) {
+        fetchPendingItems();
     }
 });
 
@@ -499,82 +579,191 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- Section 1: Lokasi Cabang & Akun Penanggung Jawab -->
-        <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
-            <h2 class="text-sm font-bold text-text-primary flex items-center gap-2">
-                <Building2 :size="16" class="text-emerald-500" />
-                <span>Cabang & Akun Penanggung Jawab</span>
-            </h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Dropdown Cabang -->
-                <div>
-                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                        <span>Cabang Fisik</span>
-                        <span v-if="isLeaderOrAudit" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                            {{ branches.length }} Cabang Tersedia
-                        </span>
-                    </label>
-                    <div class="relative">
-                        <select v-model="selectedBranchId" :disabled="!isPrivilegedRole && branches.length <= 1"
-                            class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer disabled:bg-gray-100 dark:disabled:bg-surface-900 disabled:cursor-not-allowed">
-                            <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
-                                {{ b.name }}
-                            </option>
-                        </select>
-                        <ChevronDown :size="16" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
+        <!-- STEP WIZARD NAV -->
+        <div class="bg-white dark:bg-surface-800 rounded-2xl p-2.5 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0 overflow-x-auto custom-scrollbar">
+            <div class="flex items-center justify-between relative px-6 sm:px-16 max-w-xl mx-auto">
+                <div v-for="step in 2" :key="step" class="z-10 flex flex-col items-center gap-1.5 py-1">
+                    <button type="button" @click="step < currentStep ? currentStep = step : null"
+                        class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black transition-all cursor-pointer text-xs sm:text-sm"
+                        :class="currentStep === step ? 'bg-emerald-600 text-white shadow-lg ring-4 ring-emerald-500/20' : step < currentStep ? 'bg-emerald-500 text-white' : 'bg-surface-100 dark:bg-surface-900 text-text-secondary opacity-50'">
+                        <CheckCircle2 v-if="step < currentStep" :size="18" />
+                        <span v-else>{{ step }}</span>
+                    </button>
+                    <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider"
+                        :class="currentStep === step ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary opacity-60'">
+                        {{ [isLeaderOrAudit ? 'Pilih Cabang' : 'Pilih Akun', 'Pemeriksaan Stok'][step - 1] }}
+                    </span>
                 </div>
-
-                <!-- Akun Pelaksana untuk Leader & Audit (Otomatis akun sendiri, tidak bisa pilih CS) -->
-                <div v-if="isLeaderOrAudit">
-                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                        <span>Akun Pelaksana SO</span>
-                        <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                            <ShieldCheck :size="13" /> Akun {{ isLeader ? 'Leader' : 'Audit' }}
-                        </span>
-                    </label>
-                    <div class="flex items-center justify-between gap-3 bg-gray-50 dark:!bg-surface-700/70 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2 min-h-[44px]">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/20">
-                                {{ (authStore.user?.name || authStore.userName || 'U')[0].toUpperCase() }}
-                            </div>
-                            <div class="min-w-0">
-                                <p class="text-sm font-bold text-text-primary truncate leading-tight">
-                                    {{ authStore.user?.name || authStore.userName }}
-                                </p>
-                                <p class="text-[11px] text-text-secondary truncate font-medium">
-                                    @{{ authStore.user?.username || 'user' }} • <span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase">{{ isLeader ? 'Leader' : 'Audit' }}</span>
-                                </p>
-                            </div>
-                        </div>
-                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                            Akun Sendiri
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Dropdown Akun CS untuk Akun Toko / Lainnya -->
-                <div v-else>
-                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                        <span>Akun CS Pelaksana</span>
-                        <span v-if="isStoreAccount && !passwordVerified" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
-                            <Lock :size="12" /> Wajib Verifikasi
-                        </span>
-                    </label>
-                    <div class="relative">
-                        <select v-model="selectedCsUserId"
-                            class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer">
-                            <option v-if="csUsers.length === 0" :value="null" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Tidak ada akun CS di cabang ini</option>
-                            <option v-for="u in csUsers" :key="u.id" :value="u.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
-                                {{ u.name }} (@{{ u.username || 'cs' }})
-                            </option>
-                        </select>
-                        <ChevronDown :size="16" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    </div>
+                <!-- Connector line -->
+                <div class="absolute left-16 right-16 top-5 -translate-y-1/2 h-0.5 -z-0"
+                    :class="currentStep > 1 ? 'bg-emerald-500' : 'bg-surface-200 dark:bg-surface-700'">
                 </div>
             </div>
         </div>
+
+        <!-- STEP 1: DEDICATED SELECTION CARD (PILIH CABANG / PILIH AKUN CS) -->
+        <div v-if="currentStep === 1" class="flex items-center justify-center p-2 sm:p-0 my-4">
+            <div class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-8 ring-emerald-500/10">
+                        <Building2 v-if="isLeaderOrAudit" class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                        <Shield v-else class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-2">
+                        {{ isLeaderOrAudit ? 'Pilih Cabang' : 'Pilih Akun CS' }}
+                    </h2>
+                    <p class="text-text-secondary text-center mb-6 font-medium text-xs sm:text-sm">
+                        {{ isLeaderOrAudit ? 'Silakan pilih cabang yang akan dilakukan pemeriksaan stok opname hari ini.' : 'Silakan pilih akun CS yang bertugas untuk transaksi stok opname ini.' }}
+                    </p>
+
+                    <!-- Identity Badge for Leader / Audit -->
+                    <div v-if="isLeaderOrAudit" class="mb-6 flex items-center justify-center">
+                        <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs text-text-primary">
+                            <ShieldCheck :size="15" class="text-emerald-600 dark:text-emerald-400" />
+                            <span>Pelaksana: <strong>{{ authStore.user?.name || authStore.userName }}</strong> (@{{ authStore.user?.username }}) • <span class="uppercase text-emerald-600 dark:text-emerald-400 font-bold">{{ isLeader ? 'Leader' : 'Audit' }}</span></span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- List Header -->
+                        <div class="flex items-center justify-between px-1">
+                            <label class="block text-xs font-black text-text-secondary uppercase tracking-widest">
+                                {{ isLeaderOrAudit ? 'Daftar Cabang Binaan / Akses' : 'Daftar Akun CS' }}
+                            </label>
+                            <span class="text-xs text-text-secondary font-medium">
+                                {{ isLeaderOrAudit ? filteredBranches.length + ' cabang' : filteredCsUsers.length + ' akun' }}
+                            </span>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="relative">
+                            <input v-if="isLeaderOrAudit" v-model="searchBranch" type="text" placeholder="Cari nama cabang atau kode..."
+                                class="w-full px-4 py-2.5 pl-10 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-emerald-500 focus:outline-none transition-all" />
+                            <input v-else v-model="searchCs" type="text" placeholder="Cari nama CS..."
+                                class="w-full px-4 py-2.5 pl-10 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-emerald-500 focus:outline-none transition-all" />
+                            <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+                        </div>
+
+                        <!-- Leader / Audit: Grid of Branches -->
+                        <div v-if="isLeaderOrAudit" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+                            <div v-if="loadingBranches" class="col-span-1 sm:col-span-2 py-8 text-center text-text-secondary text-xs flex items-center justify-center gap-2">
+                                <RefreshCw :size="14" class="animate-spin text-emerald-500" />
+                                <span>Memuat daftar cabang...</span>
+                            </div>
+                            <div v-else-if="filteredBranches.length === 0" class="col-span-1 sm:col-span-2 py-8 text-center text-text-secondary text-xs">
+                                Tidak ada cabang yang ditemukan.
+                            </div>
+                            <button v-for="b in filteredBranches" :key="b.id"
+                                type="button"
+                                @click="selectedBranchId = b.id"
+                                @dblclick="proceedToOpname"
+                                class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
+                                :class="selectedBranchId === b.id ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
+                                <div class="flex items-center gap-3 min-w-0 pr-6">
+                                    <div class="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-surface-200 dark:bg-surface-700 flex items-center justify-center font-black text-xs text-text-primary border border-surface-300 dark:border-surface-600">
+                                        {{ b.code ? b.code.substring(0, 3).toUpperCase() : getInitials(b.name) }}
+                                    </div>
+                                    <div class="flex flex-col items-start truncate min-w-0">
+                                        <span class="font-black text-xs sm:text-sm truncate w-full"
+                                            :class="selectedBranchId === b.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'">
+                                            {{ b.name }}
+                                        </span>
+                                        <span class="text-[10px] sm:text-xs font-semibold text-text-secondary truncate w-full mt-0.5">
+                                            Kode: {{ b.code || '-' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all absolute top-1/2 -translate-y-1/2 right-4"
+                                    :class="selectedBranchId === b.id ? 'border-emerald-600 bg-emerald-600' : 'border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800'">
+                                    <div v-if="selectedBranchId === b.id" class="w-2 h-2 rounded-full bg-white"></div>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Toko Offline / CS: Grid of CS Accounts -->
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+                            <div v-if="loadingCs" class="col-span-1 sm:col-span-2 py-8 text-center text-text-secondary text-xs flex items-center justify-center gap-2">
+                                <RefreshCw :size="14" class="animate-spin text-emerald-500" />
+                                <span>Memuat daftar akun CS...</span>
+                            </div>
+                            <div v-else-if="filteredCsUsers.length === 0" class="col-span-1 sm:col-span-2 py-8 text-center text-text-secondary text-xs">
+                                Tidak ada akun CS di cabang ini.
+                            </div>
+                            <button v-for="u in filteredCsUsers" :key="u.id"
+                                type="button"
+                                @click="selectedCsUserId = u.id"
+                                @dblclick="proceedToOpname"
+                                class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
+                                :class="selectedCsUserId === u.id ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
+                                <div class="flex items-center gap-3 min-w-0 pr-6">
+                                    <div class="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-surface-200 dark:bg-surface-700 flex items-center justify-center font-black text-xs text-text-primary border border-surface-300 dark:border-surface-600">
+                                        {{ getInitials(u.name) }}
+                                    </div>
+                                    <div class="flex flex-col items-start truncate min-w-0">
+                                        <span class="font-black text-xs sm:text-sm truncate w-full"
+                                            :class="selectedCsUserId === u.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'">
+                                            {{ u.name }}
+                                        </span>
+                                        <span class="text-[10px] sm:text-xs font-semibold text-text-secondary truncate w-full mt-0.5">
+                                            @{{ u.username || 'cs' }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center transition-all absolute top-1/2 -translate-y-1/2 right-4"
+                                    :class="selectedCsUserId === u.id ? 'border-emerald-600 bg-emerald-600' : 'border-surface-300 dark:border-surface-600 bg-white dark:bg-surface-800'">
+                                    <div v-if="selectedCsUserId === u.id" class="w-2 h-2 rounded-full bg-white"></div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Continue Button -->
+                    <button type="button" @click="proceedToOpname"
+                        :disabled="isLeaderOrAudit ? !selectedBranchId : !selectedCsUserId"
+                        class="w-full mt-8 h-12 sm:h-14 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                        <span>Lanjutkan ke Stok Opname</span>
+                        <ArrowRight :size="20" stroke-width="2.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 2: FORM PEMERIKSAAN FISIK STOK OPNAME -->
+        <div v-else-if="currentStep === 2" class="space-y-6">
+            <!-- Active Context Header Banner -->
+            <div class="bg-white dark:!bg-surface-800 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                        <Building2 :size="20" />
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-sm sm:text-base font-black text-text-primary tracking-tight">
+                                {{ activeBranch?.name || 'Cabang Terpilih' }}
+                            </h3>
+                            <span v-if="activeBranch?.code" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-100 dark:bg-surface-700 text-text-secondary">
+                                {{ activeBranch.code }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-text-secondary mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span>Pelaksana:</span>
+                            <strong class="text-text-primary">{{ isLeaderOrAudit ? (authStore.user?.name || authStore.userName) : (activeCsUser?.name || 'CS') }}</strong>
+                            <span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-500/10">
+                                {{ isLeader ? 'Leader' : isAudit ? 'Audit' : 'CS' }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <button type="button" @click="currentStep = 1"
+                    class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700 hover:border-emerald-500 transition-all cursor-pointer self-stretch sm:self-auto justify-center">
+                    <ArrowLeft :size="14" />
+                    <span>{{ isLeaderOrAudit ? 'Ganti Cabang' : 'Ganti Akun CS' }}</span>
+                </button>
+            </div>
 
         <!-- Section 2: Mode & Kategori Stok Opname -->
         <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
@@ -1013,6 +1202,7 @@ onMounted(async () => {
                     </button>
                 </div>
             </div>
+        </div>
         </div>
 
         <!-- Modal Catat Barang Lebih -->
