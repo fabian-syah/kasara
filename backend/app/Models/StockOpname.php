@@ -42,7 +42,8 @@ class StockOpname extends Model
 
     public function getExecutorRoleLabelAttribute()
     {
-        return match($this->executor_role) {
+        $role = $this->getAttribute('executor_role');
+        return match($role) {
             'audit' => 'SO Audit',
             'leader' => 'SO Leader',
             'admin' => 'SO Admin',

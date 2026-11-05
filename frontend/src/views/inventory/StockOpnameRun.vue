@@ -71,6 +71,18 @@ const getInitials = (name) => {
     return name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 };
 
+const getCsPhotoUrl = (acc) => {
+    if (!acc) return null;
+    const rawPhoto = acc.photo || acc.photo_inventory;
+    if (!rawPhoto) return null;
+    if (rawPhoto.startsWith('http://') || rawPhoto.startsWith('https://') || rawPhoto.startsWith('data:image/')) return rawPhoto;
+    let path = rawPhoto;
+    if (path.startsWith('/')) path = path.substring(1);
+    if (path.startsWith('storage/')) path = path.substring(8);
+    const baseUrl = (authStore.storageBaseUrl || 'https://api.stokps.com').replace(/\/+$/, '').replace(/\/api\/?$/, '');
+    return `${baseUrl}/storage/${path}`;
+};
+
 // Step 2: Configuration
 const categoryType = ref('hp'); // 'hp' | 'non_hp'
 const method = ref('by_unit'); // 'by_unit' | 'by_imei'
@@ -699,16 +711,18 @@ onMounted(async () => {
                                 class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
                                 :class="selectedCsUserId === u.id ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
                                 <div class="flex items-center gap-3 min-w-0 pr-6">
-                                    <div class="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-surface-200 dark:bg-surface-700 flex items-center justify-center font-black text-xs text-text-primary border border-surface-300 dark:border-surface-600">
-                                        {{ getInitials(u.name) }}
+                                    <div class="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-full bg-surface-200 dark:bg-surface-700 flex items-center justify-center overflow-hidden border border-surface-300 dark:border-surface-600">
+                                        <img v-if="getCsPhotoUrl(u)" :src="getCsPhotoUrl(u)" class="w-full h-full object-cover" alt="Profile"
+                                            @error="(e) => e.target.style.display='none'" />
+                                        <span class="text-xs sm:text-sm font-black text-text-secondary">{{ getInitials(u.name) }}</span>
                                     </div>
-                                    <div class="flex flex-col items-start truncate min-w-0">
+                                    <div class="flex flex-col items-start truncate min-w-0 flex-1">
                                         <span class="font-black text-xs sm:text-sm truncate w-full"
                                             :class="selectedCsUserId === u.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'">
                                             {{ u.name }}
                                         </span>
                                         <span class="text-[10px] sm:text-xs font-semibold text-text-secondary truncate w-full mt-0.5">
-                                            @{{ u.username || 'cs' }}
+                                            {{ u.created_by ? 'by ' + (u.created_by.full_name || u.created_by.name) : '@' + (u.username || 'cs') }}
                                         </span>
                                     </div>
                                 </div>

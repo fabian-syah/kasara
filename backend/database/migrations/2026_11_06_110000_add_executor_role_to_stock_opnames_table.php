@@ -13,7 +13,7 @@ return new class extends Migration
     {
         if (Schema::hasTable('stock_opnames') && !Schema::hasColumn('stock_opnames', 'executor_role')) {
             Schema::table('stock_opnames', function (Blueprint $table) {
-                $table->string('executor_role', 30)->default('store')->index()->after('cs_user_id');
+                $table->string('executor_role', 30)->default('store')->index();
             });
         }
     }

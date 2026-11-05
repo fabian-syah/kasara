@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, unref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     History, Search, Calendar, Building2, User, Filter,
@@ -84,7 +84,8 @@ const getPhotoUrl = (p) => {
     if (clean.startsWith('/')) clean = clean.substring(1);
     if (clean.startsWith('storage/')) clean = clean.substring(8);
 
-    const baseUrl = (authStore.storageBaseUrl || '').replace(/\/+$/, '');
+    const rawBase = unref(authStore.storageBaseUrl) || 'https://api.stokps.com';
+    const baseUrl = String(rawBase).replace(/\/+$/, '').replace(/\/api\/?$/, '');
     return `${baseUrl}/storage/${clean}`;
 };
 
@@ -97,7 +98,8 @@ const getPhotoProxyUrl = (p) => {
     if (clean.startsWith('/')) clean = clean.substring(1);
     if (clean.startsWith('storage/')) clean = clean.substring(8);
 
-    const baseUrl = (authStore.storageBaseUrl || '').replace(/\/+$/, '');
+    const rawBase = unref(authStore.storageBaseUrl) || 'https://api.stokps.com';
+    const baseUrl = String(rawBase).replace(/\/+$/, '').replace(/\/api\/?$/, '');
     return `${baseUrl}/api/storage-proxy/${clean}`;
 };
 
