@@ -61,12 +61,30 @@ const isMiniSidebar = ref(false);
 
 // Navigation state
 const expandedMenus = ref({});
+const expandedSubMenus = ref({});
 
 const toggleMenu = (id) => {
     expandedMenus.value = {
         ...expandedMenus.value,
         [id]: !expandedMenus.value[id]
     };
+};
+
+const toggleSubMenu = (id, items) => {
+    const current = expandedSubMenus.value[id] !== undefined
+        ? expandedSubMenus.value[id]
+        : isSubGroupActive(items);
+    expandedSubMenus.value = {
+        ...expandedSubMenus.value,
+        [id]: !current
+    };
+};
+
+const isSubMenuExpanded = (id, items) => {
+    if (expandedSubMenus.value[id] !== undefined) {
+        return expandedSubMenus.value[id];
+    }
+    return isSubGroupActive(items);
 };
 
 // Menu configuration
@@ -123,9 +141,15 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
-            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Data Stok" },
-            { id: "opname_run", path: "/inventory/opname", label: "Stok Opname" },
-            { id: "opname_history", path: "/inventory/opname/history", label: "History Stok Opname" },
+            {
+                id: "inventory_data_stok_group",
+                label: "Data Stok",
+                items: [
+                    { id: "opname_run", path: "/inventory/opname", label: "Stok Opname" },
+                    { id: "opname_history", path: "/inventory/opname/history", label: "History Stok Opname" },
+                    { id: "inventory_opname", path: "/inventory/stock-opname", label: "Semua Data Stok" },
+                ]
+            },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
             { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Kirim Cabang" },
@@ -252,7 +276,7 @@ const effectiveAllowedMenus = computed(() => {
         if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
             return [...getMenuForRole(creatorRole), 'profile_inventory'];
         }
-        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'opname_run', 'opname_history', 'support_group', 'track', 'profile_inventory'];
+        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_data_stok_group', 'opname_run', 'opname_history', 'support_group', 'track', 'profile_inventory'];
     }
 
     if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
@@ -260,7 +284,12 @@ const effectiveAllowedMenus = computed(() => {
         menuItems.forEach(item => {
             allIds.push(item.id);
             if (item.items) {
-                item.items.forEach(sub => allIds.push(sub.id));
+                item.items.forEach(sub => {
+                    allIds.push(sub.id);
+                    if (sub.items) {
+                        sub.items.forEach(nested => allIds.push(nested.id));
+                    }
+                });
             }
         });
         return allIds.filter(id => !['audit_sales', 'audit_inventory', 'audit_analysis'].includes(id));
@@ -276,6 +305,24 @@ const visibleMenuItems = computed(() => {
 
     let filtered = [];
 
+    const filterSubItems = (items, allowed) => {
+        return items.map(sub => {
+            if (sub.items) {
+                const nestedFiltered = sub.items.filter(nested => allowed.includes(nested.id));
+                return {
+                    ...sub,
+                    items: nestedFiltered
+                };
+            }
+            return sub;
+        }).filter(sub => {
+            if (sub.items) {
+                return sub.items.length > 0;
+            }
+            return allowed.includes(sub.id);
+        });
+    };
+
     // Khusus untuk role inventory, sesuaikan dengan role akun utamanya
     if (role === 'inventory') {
         const creatorRole = authStore.user?.creator_role || authStore.user?.createdBy?.roles?.[0]?.name || authStore.user?.created_by?.roles?.[0]?.name;
@@ -288,7 +335,7 @@ const visibleMenuItems = computed(() => {
                 if (group.items) {
                     return {
                         ...group,
-                        items: group.items.filter(sub => allowedMenus.includes(sub.id))
+                        items: filterSubItems(group.items, allowedMenus)
                     };
                 }
                 return group;
@@ -313,7 +360,15 @@ const visibleMenuItems = computed(() => {
             if (group.id === 'inventory' && group.items) {
                 return {
                     ...group,
-                    items: group.items.filter(sub => ['opname_run', 'opname_history'].includes(sub.id))
+                    items: group.items.map(sub => {
+                        if (sub.id === 'inventory_data_stok_group' && sub.items) {
+                            return {
+                                ...sub,
+                                items: sub.items.filter(nested => ['opname_run', 'opname_history'].includes(nested.id))
+                            };
+                        }
+                        return sub;
+                    }).filter(sub => sub.id === 'inventory_data_stok_group')
                 };
             }
             if (group.id === 'support_group' && group.items) {
@@ -338,7 +393,7 @@ const visibleMenuItems = computed(() => {
             if (group.items) {
                 return {
                     ...group,
-                    items: group.items.filter(sub => allowedMenus.includes(sub.id))
+                    items: filterSubItems(group.items, allowedMenus)
                 };
             }
             return group;
@@ -397,12 +452,33 @@ async function handleLogout() {
 
 // Check active route
 function isActiveRoute(path) {
-    if (path === "/") return route.path === "/";
-    return route.path.startsWith(path);
+    if (!path) return false;
+    if (route.path === path) return true;
+    if (path === "/") return false;
+    if (path === '/inventory/opname') {
+        return route.path === '/inventory/opname';
+    }
+    return route.path.startsWith(path + "/");
 }
 
 function isGroupActive(items) {
-    return items.some(item => isActiveRoute(item.path));
+    if (!items || !Array.isArray(items)) return false;
+    return items.some(item => {
+        if (item.items && Array.isArray(item.items)) {
+            return isGroupActive(item.items);
+        }
+        return item.path ? isActiveRoute(item.path) : false;
+    });
+}
+
+function isSubGroupActive(items) {
+    if (!items || !Array.isArray(items)) return false;
+    return items.some(item => {
+        if (item.items && Array.isArray(item.items)) {
+            return isSubGroupActive(item.items);
+        }
+        return item.path ? isActiveRoute(item.path) : false;
+    });
 }
 
 // Close mobile menu on route change
@@ -477,19 +553,65 @@ watch(() => route.path, () => {
                     <!-- Submenu Items -->
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
                         class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
-                        <router-link
-                            v-for="subitem in item.items.filter(si => effectiveAllowedMenus.includes(si.id) || visibleMenuItems.some(v => v.id === si.id))"
-                            :key="subitem.id" :to="subitem.path"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
-                            :class="isActiveRoute(subitem.path)
-                                ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'
-                                ">
-                            <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                        <template v-for="subitem in item.items" :key="subitem.id">
+                            <!-- Nested Level 2 Sub-Group (Dropdown like Data Stok) -->
+                            <div v-if="subitem.items && subitem.items.length > 0" class="space-y-1 my-1">
+                                <button
+                                    @click.prevent="toggleSubMenu(subitem.id, subitem.items)"
+                                    type="button"
+                                    class="w-full flex items-center justify-between px-3 py-2 rounded-[12px] text-[13px] font-medium transition-all duration-300 group"
+                                    :class="isSubGroupActive(subitem.items)
+                                        ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 font-semibold'
+                                        : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
+                                >
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-1.5 h-1.5 rounded-full shrink-0"
+                                            :class="isSubGroupActive(subitem.items) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                        </div>
+                                        <span>{{ subitem.label }}</span>
+                                    </div>
+                                    <ChevronDown :size="14"
+                                        class="shrink-0 transition-transform duration-300 opacity-60 group-hover:opacity-100"
+                                        :class="{ 'rotate-180': isSubMenuExpanded(subitem.id, subitem.items) }" />
+                                </button>
+
+                                <!-- Level 3 Nested Items -->
+                                <div
+                                    v-show="isSubMenuExpanded(subitem.id, subitem.items)"
+                                    class="ml-3.5 pl-2.5 space-y-1 border-l-2 border-primary-500/20 dark:border-primary-500/10 py-1 transition-all duration-200"
+                                >
+                                    <router-link
+                                        v-for="nestedItem in subitem.items"
+                                        :key="nestedItem.id"
+                                        :to="nestedItem.path"
+                                        class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[12px] font-medium transition-all duration-200"
+                                        :class="isActiveRoute(nestedItem.path)
+                                            ? 'text-primary-600 dark:text-primary-400 bg-primary-500/15 font-semibold shadow-xs'
+                                            : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60'"
+                                    >
+                                        <div class="w-1 h-1 rounded-full shrink-0"
+                                            :class="isActiveRoute(nestedItem.path) ? 'bg-primary-500 scale-125' : 'bg-neutral-400 dark:bg-neutral-500'">
+                                        </div>
+                                        <span>{{ nestedItem.label }}</span>
+                                    </router-link>
+                                </div>
                             </div>
-                            <span>{{ subitem.label }}</span>
-                        </router-link>
+
+                            <!-- Regular Level 2 Link -->
+                            <router-link
+                                v-else-if="subitem.path"
+                                :to="subitem.path"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
+                                :class="isActiveRoute(subitem.path)
+                                    ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
+                                    : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
+                            >
+                                <div class="w-1.5 h-1.5 rounded-full shrink-0"
+                                    :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                </div>
+                                <span>{{ subitem.label }}</span>
+                            </router-link>
+                        </template>
                     </div>
                 </div>
 

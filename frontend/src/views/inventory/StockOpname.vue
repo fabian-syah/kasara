@@ -210,6 +210,11 @@ const fetchAllInventory = async () => {
 };
 
 onMounted(async () => {
+    const role = (authStore.userRole || '').toLowerCase();
+    if (!['super_admin', 'owner', 'analist'].some(r => role.includes(r))) {
+        router.replace('/inventory/opname');
+        return;
+    }
     // ALWAYS resolve user's location - even non-privileged users need branch scoping
     await fetchBranches();
     fetchAllInventory();
@@ -1047,9 +1052,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
     }
 });
 
-onMounted(() => { 
-    fetchAllInventory(); 
-    });
+
 </script>
 
 <template>
