@@ -206,8 +206,8 @@ onMounted(async () => {
                     <div class="relative">
                         <select v-model="filters.branch_id" :disabled="!isPrivilegedRole && branches.length <= 1"
                             class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="">Semua Cabang</option>
-                            <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Cabang</option>
+                            <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
                         </select>
                         <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -219,8 +219,8 @@ onMounted(async () => {
                     <div class="relative">
                         <select v-model="filters.cs_user_id"
                             class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="">Semua CS</option>
-                            <option v-for="cs in csUsers" :key="cs.id" :value="cs.id">{{ cs.name }}</option>
+                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua CS</option>
+                            <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ cs.name }}</option>
                         </select>
                         <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -232,9 +232,9 @@ onMounted(async () => {
                     <div class="relative">
                         <select v-model="filters.status"
                             class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="">Semua Status</option>
-                            <option value="completed">Cocok (Lengkap) ✅</option>
-                            <option value="has_difference">Ada Selisih ⚠️</option>
+                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Status</option>
+                            <option value="completed" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Cocok (Lengkap) ✅</option>
+                            <option value="has_difference" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Ada Selisih ⚠️</option>
                         </select>
                         <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                     </div>
@@ -275,8 +275,83 @@ onMounted(async () => {
                 <p class="text-xs text-text-secondary mt-1">Gunakan filter lain atau mulai sesi Stok Opname baru.</p>
             </div>
 
-            <!-- Records List Table -->
-            <div v-else class="overflow-x-auto">
+            <!-- Records Mobile Card View (< md) -->
+            <div v-else class="md:hidden divide-y divide-gray-100 dark:divide-surface-700">
+                <div v-for="rec in records" :key="rec.id" class="p-4 space-y-3 hover:bg-gray-50/50 dark:hover:bg-surface-700/20 transition-colors">
+                    <!-- Top row: No SO, Status & Waktu -->
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <div class="font-mono font-bold text-sm text-text-primary">{{ rec.opname_number }}</div>
+                            <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
+                        </div>
+                        <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 shrink-0">
+                            <CheckCircle2 :size="12" />
+                            <span>Cocok</span>
+                        </span>
+                        <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 shrink-0">
+                            <AlertTriangle :size="12" />
+                            <span>Selisih</span>
+                        </span>
+                    </div>
+
+                    <!-- Cabang & CS & Kategori -->
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="inline-flex items-center gap-1 font-semibold text-text-primary bg-gray-100 dark:bg-surface-700 px-2 py-0.5 rounded-md">
+                            <Building2 :size="12" class="text-emerald-500" />
+                            {{ rec.branch ? rec.branch.name : '-' }}
+                        </span>
+                        <span class="text-text-secondary">CS: {{ rec.cs_user ? rec.cs_user.name : '-' }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase"
+                            :class="rec.category_type === 'hp' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
+                            {{ rec.category_type === 'hp' ? 'HP' : 'Non-HP' }} • {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
+                        </span>
+                    </div>
+
+                    <!-- Metrics Mini-Grid -->
+                    <div class="grid grid-cols-4 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-surface-700/50 border border-gray-100 dark:border-surface-700 text-center text-xs">
+                        <div>
+                            <div class="text-[10px] text-text-secondary uppercase">Sistem</div>
+                            <div class="font-mono font-bold text-text-primary mt-0.5">{{ rec.total_system }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-text-secondary uppercase">Fisik</div>
+                            <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{{ rec.total_physical }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-text-secondary uppercase">Selisih</div>
+                            <div class="font-mono font-bold mt-0.5" :class="rec.total_missing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400'">
+                                {{ rec.total_missing > 0 ? '-' + rec.total_missing : '0' }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-text-secondary uppercase">Lebih</div>
+                            <div class="font-mono font-bold mt-0.5" :class="rec.total_excess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'">
+                                {{ rec.total_excess > 0 ? '+' + rec.total_excess : '0' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Action & Photos -->
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="text-xs text-text-secondary flex items-center gap-1.5">
+                            <span v-if="rec.photos && rec.photos.length > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded">
+                                <Camera :size="12" />
+                                <span>{{ rec.photos.length }} foto</span>
+                            </span>
+                            <span v-else class="text-[11px] text-gray-400">Tanpa foto</span>
+                        </div>
+
+                        <button type="button" @click="openDetail(rec)"
+                            class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-600 text-xs font-bold text-text-primary transition-all flex items-center gap-1.5 min-h-[38px]">
+                            <Eye :size="14" />
+                            <span>Rincian</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Records Desktop Table (>= md) -->
+            <div v-if="records.length > 0" class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[760px]">
                     <thead>
                         <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/50 dark:bg-surface-700/30 text-[11px] font-bold text-text-secondary uppercase">
@@ -418,7 +493,7 @@ onMounted(async () => {
                             {{ selectedDetail?.branch?.name }} • CS: {{ selectedDetail?.cs_user?.name }} • {{ formatDateTime(selectedDetail?.created_at) }}
                         </p>
                     </div>
-                    <button @click="showDetailModal = false" class="p-2 text-gray-400 hover:text-gray-600">
+                    <button @click="showDetailModal = false" class="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors">
                         <X :size="20" />
                     </button>
                 </div>
@@ -468,7 +543,7 @@ onMounted(async () => {
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                                        <tr v-for="it in selectedDetail.items" :key="it.id" class="hover:bg-gray-50/50">
+                                        <tr v-for="it in selectedDetail.items" :key="it.id" class="hover:bg-gray-50/50 dark:hover:bg-surface-700/50 transition-colors">
                                             <td class="py-2 px-3">
                                                 <div class="font-bold text-text-primary">{{ it.product_name }}</div>
                                                 <div v-if="it.imei" class="font-mono text-[11px] text-text-secondary">IMEI: {{ it.imei }}</div>
@@ -478,10 +553,10 @@ onMounted(async () => {
                                             <td class="py-2 px-3 text-center font-mono">{{ it.system_qty }}</td>
                                             <td class="py-2 px-3 text-center font-mono font-bold">{{ it.physical_qty }}</td>
                                             <td class="py-2 px-3 text-center">
-                                                <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                                                <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/50">
                                                     Ada ✅
                                                 </span>
-                                                <span v-else class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">
+                                                <span v-else class="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded border border-rose-200/50 dark:border-rose-800/50">
                                                     Tidak Ada ❌
                                                 </span>
                                             </td>
@@ -507,7 +582,7 @@ onMounted(async () => {
                                             <span v-if="ex.notes" class="font-sans italic text-gray-400 ml-2">"{{ ex.notes }}"</span>
                                         </div>
                                     </div>
-                                    <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">
+                                    <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold text-[10px] border border-amber-200/60 dark:border-amber-800/60">
                                         +{{ ex.quantity }} Unit
                                     </span>
                                 </div>
@@ -541,7 +616,7 @@ onMounted(async () => {
                 <!-- Modal Footer -->
                 <div class="p-4 border-t border-gray-100 dark:border-surface-700 flex justify-end shrink-0">
                     <button type="button" @click="showDetailModal = false"
-                        class="px-5 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 text-text-primary text-xs font-bold">
+                        class="px-5 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-text-primary text-xs font-bold transition-colors">
                         Tutup
                     </button>
                 </div>

@@ -405,7 +405,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="space-y-6 pb-24">
+    <div class="space-y-6 pb-32 sm:pb-24">
         <!-- Top Navigation & Header -->
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm">
             <div>
@@ -445,7 +445,7 @@ onMounted(() => {
                     <div class="relative">
                         <select v-model="selectedBranchId" :disabled="!isPrivilegedRole"
                             class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer disabled:bg-gray-100 dark:disabled:bg-surface-900 disabled:cursor-not-allowed">
-                            <option v-for="b in branches" :key="b.id" :value="b.id">
+                            <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
                                 {{ b.name }}
                             </option>
                         </select>
@@ -464,8 +464,8 @@ onMounted(() => {
                     <div class="relative">
                         <select v-model="selectedCsUserId"
                             class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer">
-                            <option v-if="csUsers.length === 0" :value="null">Tidak ada akun CS di cabang ini</option>
-                            <option v-for="u in csUsers" :key="u.id" :value="u.id">
+                            <option v-if="csUsers.length === 0" :value="null" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Tidak ada akun CS di cabang ini</option>
+                            <option v-for="u in csUsers" :key="u.id" :value="u.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
                                 {{ u.name }} (@{{ u.username || 'cs' }})
                             </option>
                         </select>
@@ -552,8 +552,8 @@ onMounted(() => {
                 <div class="relative max-w-md">
                     <select v-model="selectedProductName"
                         class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer">
-                        <option value="">-- Pilih Tipe Produk untuk Checklist IMEI --</option>
-                        <option v-for="t in availableTypes" :key="t.product_name" :value="t.product_name">
+                        <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">-- Pilih Tipe Produk untuk Checklist IMEI --</option>
+                        <option v-for="t in availableTypes" :key="t.product_name" :value="t.product_name" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
                             {{ t.product_name }} ({{ t.count }} unit)
                         </option>
                     </select>
@@ -616,7 +616,7 @@ onMounted(() => {
             <div v-else-if="method === 'by_unit'" class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[640px]">
                     <thead>
-                        <tr class="border-b border-gray-200 dark:border-surface-700 text-[11px] font-bold text-text-secondary uppercase">
+                        <tr class="border-b border-gray-200 dark:border-surface-700 bg-gray-50/80 dark:bg-surface-700/40 text-[11px] font-bold text-text-secondary uppercase">
                             <th class="py-3 px-3">Brand & Tipe Produk</th>
                             <th class="py-3 px-3 text-center">Kapasitas (GB)</th>
                             <th class="py-3 px-3 text-center">Stok Sistem</th>
@@ -697,13 +697,13 @@ onMounted(() => {
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button type="button" @click="it.is_present = true"
                             class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px]"
-                            :class="it.is_present ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/30' : 'border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-text-secondary hover:bg-emerald-50 hover:text-emerald-600'">
+                            :class="it.is_present ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/30' : 'border border-gray-200 dark:border-surface-600 bg-gray-50/80 dark:bg-surface-700/80 text-text-secondary hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300'">
                             <Check :size="16" />
                             <span>Ada ✅</span>
                         </button>
                         <button type="button" @click="it.is_present = false"
                             class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px]"
-                            :class="!it.is_present ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-500/30' : 'border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-700 text-text-secondary hover:bg-rose-50 hover:text-rose-600'">
+                            :class="!it.is_present ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-500/30' : 'border border-gray-200 dark:border-surface-600 bg-gray-50/80 dark:bg-surface-700/80 text-text-secondary hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'">
                             <X :size="16" />
                             <span>Tidak Ada ❌</span>
                         </button>
@@ -852,7 +852,7 @@ onMounted(() => {
                         <Plus :size="18" class="text-amber-500" />
                         <span>Tambah Barang Lebih</span>
                     </h3>
-                    <button @click="showExcessModal = false" class="text-gray-400 hover:text-gray-600">
+                    <button @click="showExcessModal = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors">
                         <X :size="18" />
                     </button>
                 </div>
