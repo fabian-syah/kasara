@@ -489,8 +489,20 @@ onMounted(() => {
                 </h2>
 
                 <!-- Total Sisa Belum SO -->
-                <div class="text-xs font-medium text-text-secondary bg-gray-50 dark:bg-surface-700/60 px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-surface-600">
-                    Belum di-SO hari ini: <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ totalAvailableUnits }} unit</span>
+                <div v-if="loadingItems" class="text-xs font-medium text-gray-400 flex items-center gap-1.5 bg-gray-50 dark:bg-surface-700/60 px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-surface-600">
+                    <RefreshCw :size="13" class="animate-spin text-emerald-500" />
+                    <span>Memeriksa stok...</span>
+                </div>
+                <div v-else-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle2 :size="14" class="text-emerald-500" />
+                    <span>Semua unit sudah di-SO hari ini ✅</span>
+                </div>
+                <div v-else-if="totalAvailableUnits === 0" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle2 :size="14" class="text-emerald-500" />
+                    <span>Filter ini sudah di-SO ✅</span>
+                </div>
+                <div v-else class="text-xs font-medium text-text-secondary bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
+                    Belum di-SO hari ini: <span class="font-bold text-amber-700 dark:text-amber-300">{{ totalAvailableUnits }} unit</span>
                 </div>
             </div>
 
@@ -607,14 +619,41 @@ onMounted(() => {
             </div>
 
             <!-- Empty State -->
-            <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-text-secondary bg-gray-50/50 dark:bg-surface-900/30 rounded-xl border border-dashed border-gray-200 dark:border-surface-700">
-                <Package :size="32" class="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                <p class="text-sm font-semibold text-text-primary">
-                    {{ method === 'by_imei' && !selectedProductName ? 'Silakan pilih Tipe HP di atas untuk memulai checklist' : 'Tidak ada barang yang perlu di-SO' }}
-                </p>
-                <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
-                    {{ method === 'by_imei' && !selectedProductName ? 'Pilih salah satu tipe produk untuk menampilkan seluruh IMEI yang tersedia di cabang.' : 'Semua barang untuk filter ini sudah selesai di-SO hari ini, atau stok di cabang ini kosong.' }}
-                </p>
+            <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-text-secondary bg-gray-50/50 dark:bg-surface-900/30 rounded-xl border border-dashed border-gray-200 dark:border-surface-700 px-4">
+                <template v-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName">
+                    <CheckCircle2 :size="38" class="mx-auto text-emerald-500 mb-2" />
+                    <p class="text-base font-bold text-text-primary">
+                        Semua Stok Sudah Selesai di-SO Hari Ini ✅
+                    </p>
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
+                        Seluruh unit fisik di cabang ini telah berhasil di-stok opname dan tercatat di sistem.
+                    </p>
+                    <div class="mt-4">
+                        <router-link to="/inventory/opname/history"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all">
+                            <History :size="15" />
+                            <span>Buka History Stok Opname</span>
+                        </router-link>
+                    </div>
+                </template>
+                <template v-else-if="method === 'by_imei' && !selectedProductName">
+                    <Package :size="32" class="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                    <p class="text-sm font-semibold text-text-primary">
+                        Silakan pilih Tipe HP di atas untuk memulai checklist
+                    </p>
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
+                        Pilih salah satu tipe produk untuk menampilkan seluruh IMEI yang tersedia di cabang.
+                    </p>
+                </template>
+                <template v-else>
+                    <Package :size="32" class="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                    <p class="text-sm font-semibold text-text-primary">
+                        Tidak ada barang yang perlu di-SO untuk filter ini
+                    </p>
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
+                        Semua barang untuk filter ini sudah selesai di-SO hari ini, atau stok di cabang ini kosong.
+                    </p>
+                </template>
             </div>
 
             <!-- CASE A: STOK BY UNIT -->
@@ -854,7 +893,17 @@ onMounted(() => {
 
                 <!-- Submit Button -->
                 <div class="w-full lg:w-auto">
-                    <button type="button" @click="handleVerifyAndSubmit" :disabled="submitting || (pendingItems.length === 0 && excessItems.length === 0)"
+                    <button v-if="pendingItems.length === 0 && excessItems.length === 0 && totalAvailableUnits === 0"
+                        type="button"
+                        disabled
+                        class="w-full lg:w-auto px-7 py-3 rounded-xl bg-gray-100 dark:bg-surface-700 border border-gray-200 dark:border-surface-600 text-gray-400 dark:text-gray-500 font-bold text-sm flex items-center justify-center gap-2.5 cursor-not-allowed min-h-[48px]">
+                        <CheckCircle2 :size="18" class="text-emerald-500" />
+                        <span>Sudah Selesai di-SO Hari Ini</span>
+                    </button>
+                    <button v-else
+                        type="button"
+                        @click="handleVerifyAndSubmit"
+                        :disabled="submitting || (pendingItems.length === 0 && excessItems.length === 0)"
                         class="w-full lg:w-auto px-7 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:from-emerald-700 active:to-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]">
                         <RefreshCw v-if="submitting" :size="18" class="animate-spin" />
                         <CheckCircle2 v-else :size="18" />

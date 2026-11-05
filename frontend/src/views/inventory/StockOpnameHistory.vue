@@ -27,13 +27,21 @@ const pagination = ref({
 // Filters
 const branches = ref([]);
 const csUsers = ref([]);
+const getLocalDateStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const filters = ref({
     branch_id: '',
     cs_user_id: '',
     category_type: '',
     method: '',
     status: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: '', // Default: Semua Tanggal agar riwayat terbaru langsung terlihat tanpa terpotong timezone
     search: ''
 });
 
@@ -89,7 +97,7 @@ const fetchHistory = async (page = 1) => {
 
         // Clean empty parameters
         Object.keys(params).forEach(k => {
-            if (params[k] === '' || params[k] === null || params[k] === undefined) {
+            if (params[k] === '' || params[k] === null || params[k] === undefined || params[k] === 'all') {
                 delete params[k];
             }
         });
@@ -180,6 +188,12 @@ onMounted(async () => {
             </div>
 
             <div class="flex items-center gap-2 self-stretch sm:self-auto">
+                <button @click="fetchHistory(1)" :disabled="loading" type="button"
+                    class="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-xs sm:text-sm font-semibold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-all shadow-sm cursor-pointer"
+                    title="Segarkan data riwayat">
+                    <RefreshCw :size="15" :class="{ 'animate-spin': loading }" />
+                    <span class="hidden sm:inline">Segarkan</span>
+                </button>
                 <router-link to="/inventory/opname"
                     class="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-md transition-all flex-1 sm:flex-initial min-h-[44px]">
                     <Plus :size="16" />
@@ -193,10 +207,21 @@ onMounted(async () => {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <!-- Tanggal -->
                 <div>
-                    <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Tanggal</label>
-                    <div class="relative">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-[11px] font-bold text-text-secondary uppercase">Tanggal</label>
+                        <button v-if="filters.date" @click="filters.date = ''" type="button" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                            Semua Tanggal
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
                         <input type="date" v-model="filters.date"
-                            class="w-full py-2 px-3 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500" />
+                            class="flex-1 min-w-0 py-2 px-3 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500" />
+                        <button type="button" @click="filters.date = getLocalDateStr()"
+                            :class="filters.date === getLocalDateStr() ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
+                            class="px-2.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                            title="Filter hanya hari ini">
+                            Hari Ini
+                        </button>
                     </div>
                 </div>
 

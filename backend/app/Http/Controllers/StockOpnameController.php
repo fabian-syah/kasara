@@ -20,6 +20,26 @@ use Illuminate\Support\Facades\Storage;
 class StockOpnameController extends Controller
 {
     /**
+     * Auto-ensure stock opname tables exist before operations.
+     */
+    public static function ensureTablesExist()
+    {
+        if (!Schema::hasTable('stock_opnames')) {
+            try {
+                $path = database_path('migrations/2026_11_05_100000_create_stock_opnames_tables.php');
+                if (file_exists($path)) {
+                    $migration = require $path;
+                    if (is_object($migration) && method_exists($migration, 'up')) {
+                        $migration->up();
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('StockOpnameController auto-migration note: ' . $e->getMessage());
+            }
+        }
+    }
+
+    /**
      * Get accessible branches for Stock Opname.
      */
     public function getBranches(Request $request)
@@ -110,8 +130,10 @@ class StockOpnameController extends Controller
     /**
      * Get pending items to be audited today (excluding items already audited today).
      */
-    public function getPendingItems(Request $request)
+        public function getPendingItems(Request $request)
     {
+        self::ensureTablesExist();
+
         $request->validate([
             'branch_id' => 'required|integer',
             'category_type' => 'nullable|in:hp,non_hp',
@@ -125,16 +147,23 @@ class StockOpnameController extends Controller
         $method = $request->query('method', 'by_unit');
         $selectedBrand = $request->query('brand');
         $selectedProductName = $request->query('product_name');
-        $todayDate = now()->toDateString();
 
-        // Check already audited items today at this branch
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $logicalToday = $logicalNow->toDateString();
+        $calendarToday = now()->toDateString();
+        $todayDates = array_unique([$logicalToday, $calendarToday]);
+
+        // Check already audited items today at this branch (matching logical or calendar date)
         $auditedImeis = [];
         $auditedProductNamesByUnit = [];
         $auditedNonHpProductIds = [];
 
         if (Schema::hasTable('stock_opnames') && Schema::hasTable('stock_opname_items')) {
             $todayOpnameIds = StockOpname::where('branch_id', $branchId)
-                ->whereDate('date', $todayDate)
+                ->where(function ($q) use ($todayDates) {
+                    $q->whereIn('date', $todayDates)
+                      ->orWhereBetween('created_at', [min($todayDates) . ' 00:00:00', max($todayDates) . ' 23:59:59']);
+                })
                 ->pluck('id');
 
             if ($todayOpnameIds->isNotEmpty()) {
@@ -170,38 +199,16 @@ class StockOpnameController extends Controller
                 ->whereIn('status', ['available', 'booking', 'returned', 'process'])
                 ->whereHas('product', fn($q) => $q->where('type', 'hp')->orWhere('has_imei', true));
 
-            if (!empty($auditedImeis)) {
-                $hpQuery->whereNotIn(DB::raw('UPPER(TRIM(imei))'), $auditedImeis);
-            }
-
             $rawHp = $hpQuery->get();
-
-            // Extract available brands with count
-            $brandsMap = [];
-            foreach ($rawHp as $item) {
-                $bName = trim($item->product?->brand ?? 'Unknown');
-                if (!$bName || $bName === '-') $bName = 'Other';
-                $brandsMap[$bName] = ($brandsMap[$bName] ?? 0) + 1;
-            }
-            arsort($brandsMap);
-            $availableBrands = [];
-            foreach ($brandsMap as $bName => $bCount) {
-                $availableBrands[] = [
-                    'brand' => $bName,
-                    'count' => $bCount,
-                ];
-            }
 
             if ($method === 'by_unit') {
                 // Group by Brand -> Tipe + Storage (GB)
                 $grouped = [];
+                $pendingBrandsMap = [];
+
                 foreach ($rawHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
-
-                    if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
-                        continue;
-                    }
 
                     $pName = trim($item->product?->name ?? 'Unknown');
                     $storage = trim($item->storage ?? '');
@@ -212,6 +219,13 @@ class StockOpnameController extends Controller
                     $key = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage);
                     if (isset($auditedProductNamesByUnit[$key])) {
                         // Skip if already audited by unit today
+                        continue;
+                    }
+
+                    // Count towards pending brands
+                    $pendingBrandsMap[$bName] = ($pendingBrandsMap[$bName] ?? 0) + 1;
+
+                    if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
                         continue;
                     }
 
@@ -231,22 +245,59 @@ class StockOpnameController extends Controller
                     $grouped[$key]['system_qty']++;
                 }
 
+                // Available brands only includes brands that STILL HAVE PENDING UNITS to be audited
+                arsort($pendingBrandsMap);
+                $availableBrands = [];
+                foreach ($pendingBrandsMap as $bName => $bCount) {
+                    $availableBrands[] = [
+                        'brand' => $bName,
+                        'count' => $bCount,
+                    ];
+                }
+
                 // Sort descending by system_qty
                 $resultList = array_values($grouped);
                 usort($resultList, fn($a, $b) => $b['system_qty'] <=> $a['system_qty']);
+
+                // Total available units is the count of units that are ACTUALLY pending
+                $totalPendingUnits = array_sum(array_column($resultList, 'system_qty'));
 
                 return response()->json([
                     'category_type' => 'hp',
                     'method' => 'by_unit',
                     'available_brands' => $availableBrands,
-                    'total_available_units' => count($rawHp),
+                    'total_available_units' => $totalPendingUnits,
                     'items' => $resultList,
                 ]);
             } else {
                 // Method: by_imei
-                // If brand is chosen, extract available product types under that brand sorted by stock desc
+                // Exclude already audited IMEIs
+                $filteredHp = $rawHp;
+                if (!empty($auditedImeis)) {
+                    $filteredHp = $filteredHp->reject(function ($item) use ($auditedImeis) {
+                        return in_array(strtoupper(trim((string)$item->imei)), $auditedImeis);
+                    });
+                }
+
+                // Extract available brands from un-audited items
+                $brandsMap = [];
+                foreach ($filteredHp as $item) {
+                    $bName = trim($item->product?->brand ?? 'Unknown');
+                    if (!$bName || $bName === '-') $bName = 'Other';
+                    $brandsMap[$bName] = ($brandsMap[$bName] ?? 0) + 1;
+                }
+                arsort($brandsMap);
+                $availableBrands = [];
+                foreach ($brandsMap as $bName => $bCount) {
+                    $availableBrands[] = [
+                        'brand' => $bName,
+                        'count' => $bCount,
+                    ];
+                }
+
+                // Available types under selected brand
                 $typesMap = [];
-                foreach ($rawHp as $item) {
+                foreach ($filteredHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
 
@@ -258,19 +309,17 @@ class StockOpnameController extends Controller
                     $typesMap[$pName] = ($typesMap[$pName] ?? 0) + 1;
                 }
                 arsort($typesMap);
-
                 $availableTypes = [];
-                foreach ($typesMap as $tName => $tCount) {
+                foreach ($typesMap as $pName => $pCount) {
                     $availableTypes[] = [
-                        'product_name' => $tName,
-                        'count' => $tCount,
+                        'product_name' => $pName,
+                        'count' => $pCount,
                     ];
                 }
 
-                // If product_name is selected, get detailed IMEI list
                 $imeiList = [];
                 if ($selectedProductName) {
-                    $filteredHp = $rawHp->filter(function ($item) use ($selectedBrand, $selectedProductName) {
+                    $selectedHpItems = $filteredHp->filter(function ($item) use ($selectedBrand, $selectedProductName) {
                         $bName = trim($item->product?->brand ?? 'Unknown');
                         if (!$bName || $bName === '-') $bName = 'Other';
                         if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) return false;
@@ -279,7 +328,7 @@ class StockOpnameController extends Controller
                         return strcasecmp($pName, $selectedProductName) === 0;
                     });
 
-                    foreach ($filteredHp as $item) {
+                    foreach ($selectedHpItems as $item) {
                         $imeiList[] = [
                             'product_detail_id' => $item->id,
                             'product_id' => $item->product_id,
@@ -290,17 +339,21 @@ class StockOpnameController extends Controller
                             'imei' => $item->imei,
                             'distributor' => $item->distributor?->name ?? '-',
                             'status' => $item->status,
-                            'is_present' => true, // default: Ada
+                            'is_present' => true,
                         ];
                     }
                 }
+
+                $totalPendingUnits = $selectedBrand
+                    ? ($brandsMap[$selectedBrand] ?? 0)
+                    : $filteredHp->count();
 
                 return response()->json([
                     'category_type' => 'hp',
                     'method' => 'by_imei',
                     'available_brands' => $availableBrands,
                     'available_types' => $availableTypes,
-                    'total_available_units' => count($rawHp),
+                    'total_available_units' => $totalPendingUnits,
                     'items' => $imeiList,
                 ]);
             }
@@ -322,7 +375,7 @@ class StockOpnameController extends Controller
 
             $rawNonHp = $nonHpQuery->get();
 
-            // Extract available brands
+            // Extract available brands for un-audited items
             $brandsMap = [];
             foreach ($rawNonHp as $item) {
                 $bName = trim($item->product?->brand ?? 'Unknown');
@@ -369,11 +422,13 @@ class StockOpnameController extends Controller
             $resultList = array_values($grouped);
             usort($resultList, fn($a, $b) => $b['system_qty'] <=> $a['system_qty']);
 
+            $totalPendingUnits = array_sum(array_column($resultList, 'system_qty'));
+
             return response()->json([
                 'category_type' => 'non_hp',
                 'method' => 'by_unit',
                 'available_brands' => $availableBrands,
-                'total_available_units' => $rawNonHp->sum('quantity'),
+                'total_available_units' => $totalPendingUnits,
                 'items' => $resultList,
             ]);
         }
@@ -384,6 +439,8 @@ class StockOpnameController extends Controller
      */
     public function store(Request $request)
     {
+        self::ensureTablesExist();
+
         $request->validate([
             'branch_id' => 'required|integer',
             'cs_user_id' => 'required|integer',
@@ -491,14 +548,18 @@ class StockOpnameController extends Controller
             $status = $hasDifference ? 'has_difference' : 'completed';
 
             // Generate unique opname number
+            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+            $recordDate = $logicalNow->toDateString();
             $todayStr = date('Ymd');
-            $countToday = StockOpname::whereDate('date', now()->toDateString())->count() + 1;
+            $countToday = StockOpname::where(function($q) use ($recordDate) {
+                $q->whereDate('date', $recordDate)->orWhereDate('created_at', now()->toDateString());
+            })->count() + 1;
             $opnameNumber = 'SO-' . $todayStr . '-' . str_pad($countToday, 4, '0', STR_PAD_LEFT);
 
             // Create StockOpname record
             $stockOpname = StockOpname::create([
                 'opname_number' => $opnameNumber,
-                'date' => now()->toDateString(),
+                'date' => $recordDate,
                 'branch_id' => $request->branch_id,
                 'user_id' => $user->id,
                 'cs_user_id' => $csUser->id,
@@ -606,10 +667,22 @@ class StockOpnameController extends Controller
      */
     public function history(Request $request)
     {
+        self::ensureTablesExist();
+
         /** @var \App\Models\User $user */
         $user = Auth::user();
         if (!$user) {
             return response()->json(['data' => []], 401);
+        }
+
+        if (!Schema::hasTable('stock_opnames')) {
+            return response()->json([
+                'current_page' => 1,
+                'data' => [],
+                'last_page' => 1,
+                'total' => 0,
+                'per_page' => 15,
+            ]);
         }
 
         $query = StockOpname::with([
@@ -619,12 +692,11 @@ class StockOpnameController extends Controller
         ]);
 
         // Branch filtering based on user role and request
-        $role = strtolower($user->roles->first()?->name ?? '');
         $requestedBranchId = $request->query('branch_id');
 
         if ($requestedBranchId && $requestedBranchId !== 'all') {
             $query->where('branch_id', $requestedBranchId);
-        } elseif (!in_array($role, ['super_admin', 'owner', 'admin_produk', 'analist'])) {
+        } elseif (!$user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist'])) {
             $branchIds = (array) ($user->getAccessibleBranchIds() ?: []);
             if ($user->branch_id) $branchIds[] = $user->branch_id;
             $branchIds = array_unique(array_filter($branchIds));
@@ -635,8 +707,12 @@ class StockOpnameController extends Controller
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
-        } elseif ($request->filled('date')) {
-            $query->whereDate('date', $request->date);
+        } elseif ($request->filled('date') && $request->date !== 'all') {
+            $dateVal = $request->date;
+            $query->where(function ($q) use ($dateVal) {
+                $q->whereDate('date', $dateVal)
+                  ->orWhereDate('created_at', $dateVal);
+            });
         }
 
         if ($request->filled('category_type') && $request->category_type !== 'all') {
@@ -677,6 +753,8 @@ class StockOpnameController extends Controller
      */
     public function show($id)
     {
+        self::ensureTablesExist();
+
         $stockOpname = StockOpname::with([
             'branch:id,name,code',
             'user:id,name,username',
