@@ -68,27 +68,45 @@ class StockOpnameController extends Controller
             return response()->json(['data' => []], 401);
         }
 
-        $role = strtolower($user->roles->first()?->name ?? '');
+        $isUnrestricted = $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis'])
+            || in_array(strtolower($user->role ?? ''), ['super_admin', 'owner', 'admin_produk', 'analist', 'analis']);
 
         // Unrestricted roles can access all branches
-        if (in_array($role, ['super_admin', 'owner', 'admin_produk', 'analist'])) {
+        if ($isUnrestricted) {
             $branches = Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
             return response()->json(['data' => $branches]);
         }
 
+        $isLeader = $user->hasRole('leader') || strtolower($user->role ?? '') === 'leader';
+        $isAudit = $user->hasRole('audit') || strtolower($user->role ?? '') === 'audit';
+
         // Leader or Audit: get assigned branches via placements or direct branch_id
-        if (in_array($role, ['leader', 'audit'])) {
+        if ($isLeader || $isAudit) {
             $branchIds = (array) ($user->getAccessibleBranchIds() ?: []);
             if ($user->branch_id) {
                 $branchIds[] = $user->branch_id;
             }
-            $branchIds = array_unique(array_filter($branchIds));
+            if (method_exists($user, 'placements')) {
+                $placementBranchIds = $user->placements()
+                    ->where(function ($q) {
+                        $q->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch'])
+                          ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                    })
+                    ->pluck('model_id')
+                    ->toArray();
+                $branchIds = array_merge($branchIds, $placementBranchIds);
+            }
+            $branchIds = array_unique(array_filter(array_map('intval', $branchIds)));
 
             if (empty($branchIds)) {
                 // If no specific branch restriction, allow active branches
                 $branches = Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
             } else {
                 $branches = Branch::whereIn('id', $branchIds)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+            }
+
+            if ($branches->isEmpty()) {
+                $branches = Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
             }
 
             return response()->json(['data' => $branches]);
@@ -479,11 +497,14 @@ class StockOpnameController extends Controller
 
         $csUser = User::find($request->cs_user_id);
         if (!$csUser) {
-            return response()->json(['message' => 'Akun CS tidak ditemukan.'], 404);
+            return response()->json(['message' => 'Akun penanggung jawab tidak ditemukan.'], 404);
         }
 
+        $isLeaderOrAudit = $user->hasAnyRole(['leader', 'audit', 'super_admin', 'owner', 'analist', 'analis'])
+            || in_array(strtolower($user->role ?? ''), ['leader', 'audit', 'super_admin', 'owner', 'analist', 'analis']);
+
         // Toko offline role or accessing as store account requires password verification
-        $isStoreAccount = $user->hasRole('toko_offline') || ($user->id !== $csUser->id && !$user->hasAnyRole(['super_admin', 'leader', 'audit', 'analist']));
+        $isStoreAccount = !$isLeaderOrAudit && ($user->hasRole('toko_offline') || ($user->id !== $csUser->id));
         if ($isStoreAccount) {
             if (empty($request->password)) {
                 return response()->json(['message' => 'Verifikasi password CS diperlukan untuk akun toko.'], 422);

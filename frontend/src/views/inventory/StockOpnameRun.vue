@@ -65,13 +65,44 @@ const photoPreviews = ref([]);
 const generalNotes = ref('');
 
 // User Role Helpers
-const userRole = computed(() => (authStore.userRole || '').toLowerCase());
-const isPrivilegedRole = computed(() => {
-    const privileged = ['super_admin', 'leader', 'audit', 'owner', 'analist'];
-    return privileged.some(r => userRole.value.includes(r));
+const userRole = computed(() => (authStore.userRole || '').toLowerCase().trim());
+
+const isLeader = computed(() => {
+    const role = userRole.value;
+    if (role === 'leader' || role.includes('leader')) return true;
+    if (authStore.user?.role && String(authStore.user.role).toLowerCase().includes('leader')) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        return authStore.user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r?.name || '');
+            return name.toLowerCase().includes('leader');
+        });
+    }
+    return false;
 });
+
+const isAudit = computed(() => {
+    const role = userRole.value;
+    if (role === 'audit' || role.includes('audit')) return true;
+    if (authStore.user?.role && String(authStore.user.role).toLowerCase().includes('audit')) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        return authStore.user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r?.name || '');
+            return name.toLowerCase().includes('audit');
+        });
+    }
+    return false;
+});
+
+const isLeaderOrAudit = computed(() => isLeader.value || isAudit.value);
+
+const isPrivilegedRole = computed(() => {
+    const privileged = ['super_admin', 'leader', 'audit', 'owner', 'analist', 'analis'];
+    return isLeaderOrAudit.value || privileged.some(r => userRole.value.includes(r));
+});
+
 const isStoreAccount = computed(() => {
-    return userRole.value === 'toko_offline' || (!isPrivilegedRole.value && authStore.user?.id !== selectedCsUserId.value);
+    if (isLeaderOrAudit.value || isPrivilegedRole.value) return false;
+    return userRole.value === 'toko_offline' || (authStore.user?.id !== selectedCsUserId.value);
 });
 
 // Fetch branches
@@ -82,11 +113,18 @@ const fetchBranches = async () => {
         branches.value = res.data.data || [];
 
         if (branches.value.length > 0) {
-            // Default select first or user's branch
+            // Default select user's branch if matches, otherwise first branch
             const userBranchId = authStore.user?.branch_id;
             const match = branches.value.find(b => Number(b.id) === Number(userBranchId));
             selectedBranchId.value = match ? match.id : branches.value[0].id;
-            await fetchCsUsers();
+
+            if (isLeaderOrAudit.value) {
+                selectedCsUserId.value = authStore.user?.id;
+                passwordVerified.value = true;
+                await fetchPendingItems();
+            } else {
+                await fetchCsUsers();
+            }
         }
     } catch (err) {
         console.error('Error fetching branches for opname:', err);
@@ -99,6 +137,13 @@ const fetchBranches = async () => {
 // Fetch CS accounts for selected branch
 const fetchCsUsers = async () => {
     if (!selectedBranchId.value) return;
+    if (isLeaderOrAudit.value) {
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+        await fetchPendingItems();
+        return;
+    }
+
     loadingCs.value = true;
     try {
         const res = await axios.get(`/inventory/opname/branch-cs/${selectedBranchId.value}`);
@@ -177,7 +222,13 @@ const fetchPendingItems = async () => {
 watch(selectedBranchId, () => {
     selectedBrand.value = '';
     selectedProductName.value = '';
-    fetchCsUsers();
+    if (isLeaderOrAudit.value) {
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+        fetchPendingItems();
+    } else {
+        fetchCsUsers();
+    }
 });
 
 watch(categoryType, (newVal) => {
@@ -408,8 +459,13 @@ const submitOpname = async () => {
     }
 };
 
-onMounted(() => {
-    fetchBranches();
+onMounted(async () => {
+    if (!authStore.user && typeof authStore.fetchUser === 'function') {
+        try {
+            await authStore.fetchUser();
+        } catch (e) {}
+    }
+    await fetchBranches();
 });
 </script>
 
@@ -443,7 +499,7 @@ onMounted(() => {
             </div>
         </div>
 
-        <!-- Section 1: Lokasi Cabang & Akun CS -->
+        <!-- Section 1: Lokasi Cabang & Akun Penanggung Jawab -->
         <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
             <h2 class="text-sm font-bold text-text-primary flex items-center gap-2">
                 <Building2 :size="16" class="text-emerald-500" />
@@ -453,11 +509,14 @@ onMounted(() => {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Dropdown Cabang -->
                 <div>
-                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">
-                        Cabang Fisik
+                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Cabang Fisik</span>
+                        <span v-if="isLeaderOrAudit" class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                            {{ branches.length }} Cabang Tersedia
+                        </span>
                     </label>
                     <div class="relative">
-                        <select v-model="selectedBranchId" :disabled="!isPrivilegedRole"
+                        <select v-model="selectedBranchId" :disabled="!isPrivilegedRole && branches.length <= 1"
                             class="w-full appearance-none bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-semibold text-text-primary focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer disabled:bg-gray-100 dark:disabled:bg-surface-900 disabled:cursor-not-allowed">
                             <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">
                                 {{ b.name }}
@@ -467,8 +526,36 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Dropdown Akun CS -->
-                <div>
+                <!-- Akun Pelaksana untuk Leader & Audit (Otomatis akun sendiri, tidak bisa pilih CS) -->
+                <div v-if="isLeaderOrAudit">
+                    <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Akun Pelaksana SO</span>
+                        <span class="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                            <ShieldCheck :size="13" /> Akun {{ isLeader ? 'Leader' : 'Audit' }}
+                        </span>
+                    </label>
+                    <div class="flex items-center justify-between gap-3 bg-gray-50 dark:!bg-surface-700/70 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2 min-h-[44px]">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-emerald-500/20">
+                                {{ (authStore.user?.name || authStore.userName || 'U')[0].toUpperCase() }}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-text-primary truncate leading-tight">
+                                    {{ authStore.user?.name || authStore.userName }}
+                                </p>
+                                <p class="text-[11px] text-text-secondary truncate font-medium">
+                                    @{{ authStore.user?.username || 'user' }} • <span class="text-emerald-600 dark:text-emerald-400 font-bold uppercase">{{ isLeader ? 'Leader' : 'Audit' }}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                            Akun Sendiri
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Dropdown Akun CS untuk Akun Toko / Lainnya -->
+                <div v-else>
                     <label class="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 flex items-center justify-between">
                         <span>Akun CS Pelaksana</span>
                         <span v-if="isStoreAccount && !passwordVerified" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
