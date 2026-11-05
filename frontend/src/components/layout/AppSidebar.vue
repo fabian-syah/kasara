@@ -123,7 +123,9 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
-            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Opname" },
+            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Data Stok" },
+            { id: "opname_run", path: "/inventory/opname", label: "Stok Opname" },
+            { id: "opname_history", path: "/inventory/opname/history", label: "History Stok Opname" },
             { id: "download_center", path: "/inventory/download-center", label: "Download Center" },
             { id: "inventory_monitoring_hub", path: "/inventory/monitoring-otw", label: "Monitoring OTW" },
             { id: "audit_input_transfer", path: "/audit/input-transfer", label: "Kirim Cabang" },
@@ -250,7 +252,7 @@ const effectiveAllowedMenus = computed(() => {
         if (['gudang', 'toko_online', 'security'].includes(creatorRole)) {
             return [...getMenuForRole(creatorRole), 'profile_inventory'];
         }
-        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'inventory_opname', 'support_group', 'track', 'profile_inventory'];
+        return ['dashboard', 'sales_create', 'sales_check', 'sales_check_main', 'inventory', 'opname_run', 'opname_history', 'support_group', 'track', 'profile_inventory'];
     }
 
     if (role.toLowerCase().replace(/\s+/g, '_') === "super_admin") {
@@ -311,7 +313,7 @@ const visibleMenuItems = computed(() => {
             if (group.id === 'inventory' && group.items) {
                 return {
                     ...group,
-                    items: group.items.filter(sub => sub.id === 'inventory_opname')
+                    items: group.items.filter(sub => ['opname_run', 'opname_history'].includes(sub.id))
                 };
             }
             if (group.id === 'support_group' && group.items) {

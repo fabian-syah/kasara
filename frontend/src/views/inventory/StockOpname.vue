@@ -1062,7 +1062,7 @@ onMounted(() => {
                     <ArrowLeft :size="20" class="text-text-secondary" />
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Stock Opname</h1>
+                    <h1 class="text-2xl font-bold text-text-primary tracking-tight">Data Stok</h1>
                     <p class="text-text-secondary mt-0.5 text-sm">
                         {{ currentView === 'menu' ? 'Pilih jenis laporan untuk melihat detail' :
                             currentView === 'brand' ? 'Ringkasan stok per merek' :

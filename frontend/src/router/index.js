@@ -199,12 +199,33 @@ const routes = [
             },
             {
                 path: 'inventory/stock-opname',
+                alias: ['inventory/data-stok'],
                 name: 'StockOpname',
                 component: () => import('../views/inventory/StockOpname.vue'),
                 meta: {
-                    title: 'Stock Opname',
+                    title: 'Data Stok',
                     menu: 'inventory',
                     permissions: ['inventory.view', 'audit.view']
+                }
+            },
+            {
+                path: 'inventory/opname',
+                name: 'StockOpnameRun',
+                component: () => import('../views/inventory/StockOpnameRun.vue'),
+                meta: {
+                    title: 'Stok Opname',
+                    menu: 'opname_run',
+                    permissions: ['inventory.view', 'audit.view', 'inventory']
+                }
+            },
+            {
+                path: 'inventory/opname/history',
+                name: 'StockOpnameHistory',
+                component: () => import('../views/inventory/StockOpnameHistory.vue'),
+                meta: {
+                    title: 'History Stok Opname',
+                    menu: 'opname_history',
+                    permissions: ['inventory.view', 'audit.view', 'inventory']
                 }
             },
             {
