@@ -40,6 +40,24 @@ class StockOpnameController extends Controller
     }
 
     /**
+     * Get the current logical business cycle range (resets at 05:00 AM daily).
+     */
+    public static function getLogicalCycleRange()
+    {
+        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
+        $sessionStart = $logicalNow->copy()->setTime(5, 0, 0);
+        $sessionEnd = $sessionStart->copy()->addDay()->subSecond();
+        $sessionDate = $logicalNow->toDateString();
+
+        return [
+            'start' => $sessionStart,
+            'end' => $sessionEnd,
+            'date' => $sessionDate,
+            'reset_time' => '05:00 AM',
+        ];
+    }
+
+    /**
      * Get accessible branches for Stock Opname.
      */
     public function getBranches(Request $request)
@@ -138,31 +156,29 @@ class StockOpnameController extends Controller
             'branch_id' => 'required|integer',
             'category_type' => 'nullable|in:hp,non_hp',
             'method' => 'nullable|in:by_unit,by_imei',
-            'brand' => 'nullable|string',
-            'product_name' => 'nullable|string',
+            'brand' => 'nullable',
+            'product_name' => 'nullable',
         ]);
 
         $branchId = (int) $request->branch_id;
         $categoryType = $request->query('category_type', 'hp');
         $method = $request->query('method', 'by_unit');
-        $selectedBrand = $request->query('brand');
-        $selectedProductName = $request->query('product_name');
+        $selectedBrand = $request->filled('brand') ? (string) $request->brand : null;
+        $selectedProductName = $request->filled('product_name') ? (string) $request->product_name : null;
 
-        $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-        $logicalToday = $logicalNow->toDateString();
-        $calendarToday = now()->toDateString();
-        $todayDates = array_unique([$logicalToday, $calendarToday]);
+        $cycle = self::getLogicalCycleRange();
+        $todayDates = array_unique([$cycle['date'], now()->toDateString()]);
 
-        // Check already audited items today at this branch (matching logical or calendar date)
+        // Check already audited items today at this branch (matching current 05:00 AM cycle)
         $auditedImeis = [];
         $auditedProductNamesByUnit = [];
         $auditedNonHpProductIds = [];
 
         if (Schema::hasTable('stock_opnames') && Schema::hasTable('stock_opname_items')) {
             $todayOpnameIds = StockOpname::where('branch_id', $branchId)
-                ->where(function ($q) use ($todayDates) {
-                    $q->whereIn('date', $todayDates)
-                      ->orWhereBetween('created_at', [min($todayDates) . ' 00:00:00', max($todayDates) . ' 23:59:59']);
+                ->where(function ($q) use ($cycle, $todayDates) {
+                    $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
+                      ->orWhereIn('date', $todayDates);
                 })
                 ->pluck('id');
 
@@ -446,8 +462,8 @@ class StockOpnameController extends Controller
             'cs_user_id' => 'required|integer',
             'category_type' => 'required|in:hp,non_hp',
             'method' => 'required|in:by_unit,by_imei',
-            'brand' => 'nullable|string',
-            'product_type' => 'nullable|string',
+            'brand' => 'nullable',
+            'product_type' => 'nullable',
             'items' => 'required|array|min:1',
             'excess_items' => 'nullable|array',
             'photos' => 'nullable|array',
@@ -482,6 +498,32 @@ class StockOpnameController extends Controller
 
             if (!$passwordMatches) {
                 return response()->json(['message' => 'Password verifikasi CS salah.'], 422);
+            }
+        }
+
+        // Prevent redundant submission if already audited in current 05:00 AM cycle
+        $cycle = self::getLogicalCycleRange();
+        $todayOpnameIds = StockOpname::where('branch_id', $request->branch_id)
+            ->where(function ($q) use ($cycle) {
+                $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
+                  ->orWhere('date', $cycle['date']);
+            })
+            ->pluck('id');
+
+        if ($todayOpnameIds->isNotEmpty() && $request->method === 'by_imei') {
+            $auditedImeis = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)
+                ->whereNotNull('imei')
+                ->where('imei', '!=', '-')
+                ->pluck('imei')
+                ->map(fn($v) => strtoupper(trim((string)$v)))
+                ->toArray();
+
+            $submittedImeis = array_filter(array_map(fn($it) => strtoupper(trim((string)($it['imei'] ?? ''))), $request->items));
+            if (!empty($submittedImeis) && empty(array_diff($submittedImeis, $auditedImeis))) {
+                return response()->json([
+                    'message' => 'Seluruh IMEI yang dipilih sudah selesai di-SO hari ini. Sesi SO baru akan aktif otomatis besok pukul 05:00 AM.',
+                    'success' => false,
+                ], 422);
             }
         }
 
@@ -556,6 +598,9 @@ class StockOpnameController extends Controller
             })->count() + 1;
             $opnameNumber = 'SO-' . $todayStr . '-' . str_pad($countToday, 4, '0', STR_PAD_LEFT);
 
+            $brandVal = $request->filled('brand') ? (string) $request->brand : null;
+            $productTypeVal = $request->filled('product_type') ? (string) $request->product_type : null;
+
             // Create StockOpname record
             $stockOpname = StockOpname::create([
                 'opname_number' => $opnameNumber,
@@ -565,8 +610,8 @@ class StockOpnameController extends Controller
                 'cs_user_id' => $csUser->id,
                 'category_type' => $request->category_type,
                 'method' => $request->method,
-                'brand' => $request->brand,
-                'product_type' => $request->product_type,
+                'brand' => $brandVal,
+                'product_type' => $productTypeVal,
                 'total_system' => $totalSystem,
                 'total_physical' => $totalPhysical,
                 'total_missing' => $totalMissing,
@@ -583,16 +628,16 @@ class StockOpnameController extends Controller
                     $stockOpname->items()->create([
                         'product_id' => $item['product_id'] ?? null,
                         'product_detail_id' => $item['product_detail_id'] ?? null,
-                        'brand' => $item['brand'] ?? $request->brand,
-                        'product_name' => $item['product_name'] ?? $request->product_type,
-                        'storage' => $item['storage'] ?? null,
-                        'condition' => $item['condition'] ?? 'second',
-                        'imei' => $item['imei'] ?? null,
+                        'brand' => isset($item['brand']) ? (string)$item['brand'] : $brandVal,
+                        'product_name' => isset($item['product_name']) ? (string)$item['product_name'] : $productTypeVal,
+                        'storage' => isset($item['storage']) ? (string)$item['storage'] : null,
+                        'condition' => isset($item['condition']) ? (string)$item['condition'] : 'second',
+                        'imei' => isset($item['imei']) ? (string)$item['imei'] : null,
                         'system_qty' => 1,
                         'physical_qty' => $isPresent ? 1 : 0,
                         'difference' => $isPresent ? 0 : -1,
                         'is_present' => $isPresent,
-                        'notes' => $item['notes'] ?? null,
+                        'notes' => isset($item['notes']) ? (string)$item['notes'] : null,
                     ]);
                 } else {
                     $sysQty = (int)($item['system_qty'] ?? 0);
@@ -602,16 +647,16 @@ class StockOpnameController extends Controller
                     $stockOpname->items()->create([
                         'product_id' => $item['product_id'] ?? null,
                         'product_detail_id' => null,
-                        'brand' => $item['brand'] ?? $request->brand,
-                        'product_name' => $item['product_name'] ?? '-',
-                        'storage' => $item['storage'] ?? null,
+                        'brand' => isset($item['brand']) ? (string)$item['brand'] : $brandVal,
+                        'product_name' => isset($item['product_name']) ? (string)$item['product_name'] : '-',
+                        'storage' => isset($item['storage']) ? (string)$item['storage'] : null,
                         'condition' => null,
                         'imei' => null,
                         'system_qty' => $sysQty,
                         'physical_qty' => $physQty,
                         'difference' => $diff,
                         'is_present' => ($diff >= 0),
-                        'notes' => $item['notes'] ?? null,
+                        'notes' => isset($item['notes']) ? (string)$item['notes'] : null,
                     ]);
                 }
             }
@@ -738,7 +783,8 @@ class StockOpnameController extends Controller
                     ->orWhere('brand', 'ilike', "%{$term}%")
                     ->orWhere('product_type', 'ilike', "%{$term}%")
                     ->orWhereHas('csUser', fn($uq) => $uq->where('name', 'ilike', "%{$term}%"))
-                    ->orWhereHas('branch', fn($bq) => $bq->where('name', 'ilike', "%{$term}%"));
+                    ->orWhereHas('branch', fn($bq) => $bq->where('name', 'ilike', "%{$term}%"))
+                    ->orWhereHas('items', fn($iq) => $iq->where('imei', 'like', "%{$term}%"));
             });
         }
 

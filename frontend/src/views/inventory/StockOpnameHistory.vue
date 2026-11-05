@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router';
 import {
     History, Search, Calendar, Building2, User, Filter,
     CheckCircle2, AlertTriangle, Eye, ChevronDown, ChevronRight,
-    RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Check, Download
+    RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Check, Download,
+    Copy, CheckCheck
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -50,6 +51,41 @@ const selectedDetail = ref(null);
 const loadingDetail = ref(false);
 const showDetailModal = ref(false);
 const selectedPhotoModal = ref(null);
+const modalItemSearch = ref('');
+const modalStatusFilter = ref('all'); // 'all', 'ada', 'tidak_ada'
+const copiedImei = ref('');
+
+const copyImei = (imei) => {
+    if (!imei) return;
+    navigator.clipboard.writeText(imei);
+    copiedImei.value = imei;
+    toast.success(`IMEI ${imei} disalin!`);
+    setTimeout(() => {
+        if (copiedImei.value === imei) copiedImei.value = '';
+    }, 2000);
+};
+
+const filteredDetailItems = computed(() => {
+    if (!selectedDetail.value?.items) return [];
+    let items = selectedDetail.value.items;
+
+    if (modalStatusFilter.value === 'ada') {
+        items = items.filter(it => it.is_present && it.difference >= 0);
+    } else if (modalStatusFilter.value === 'tidak_ada') {
+        items = items.filter(it => !it.is_present || it.difference < 0);
+    }
+
+    if (!modalItemSearch.value) return items;
+    const q = modalItemSearch.value.toLowerCase().trim();
+    return items.filter(it => {
+        return (it.imei && String(it.imei).toLowerCase().includes(q)) ||
+               (it.product_name && String(it.product_name).toLowerCase().includes(q)) ||
+               (it.brand && String(it.brand).toLowerCase().includes(q)) ||
+               (it.storage && String(it.storage).toLowerCase().includes(q)) ||
+               (it.condition && String(it.condition).toLowerCase().includes(q)) ||
+               (it.notes && String(it.notes).toLowerCase().includes(q));
+    });
+});
 
 // User role check
 const userRole = computed(() => (authStore.userRole || '').toLowerCase());
@@ -122,6 +158,9 @@ const fetchHistory = async (page = 1) => {
 const openDetail = async (item) => {
     loadingDetail.value = true;
     showDetailModal.value = true;
+    modalItemSearch.value = '';
+    modalStatusFilter.value = 'all';
+    copiedImei.value = '';
     try {
         const res = await axios.get(`/inventory/opname/history/${item.id}`);
         selectedDetail.value = res.data.data;
@@ -204,7 +243,7 @@ onMounted(async () => {
 
         <!-- Filter Controls -->
         <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <!-- Tanggal -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -251,6 +290,20 @@ onMounted(async () => {
                     </div>
                 </div>
 
+                <!-- Metode SO -->
+                <div>
+                    <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Metode SO</label>
+                    <div class="relative">
+                        <select v-model="filters.method"
+                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Metode</option>
+                            <option value="by_unit" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Stok by Unit</option>
+                            <option value="by_imei" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Stok by IMEI (Checklist)</option>
+                        </select>
+                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                    </div>
+                </div>
+
                 <!-- Status Hasil -->
                 <div>
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Status Hasil</label>
@@ -270,7 +323,7 @@ onMounted(async () => {
             <div class="pt-1 flex items-center gap-2">
                 <div class="relative flex-1">
                     <input type="text" v-model="filters.search" @keydown.enter="fetchHistory(1)"
-                        placeholder="Cari No SO / Brand / Tipe / CS..."
+                        placeholder="Cari No SO / Brand / Tipe / IMEI / CS..."
                         class="w-full py-2 pl-9 pr-4 bg-gray-50 dark:bg-surface-700/50 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm text-text-primary placeholder:text-gray-400 focus:ring-1 focus:ring-emerald-500" />
                     <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 </div>
@@ -508,13 +561,22 @@ onMounted(async () => {
 
         <!-- Detail Modal -->
         <div v-if="showDetailModal" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div class="bg-white dark:!bg-surface-800 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-gray-100 dark:border-surface-700 shadow-2xl overflow-hidden">
+            <div class="bg-white dark:!bg-surface-800 rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col border border-gray-100 dark:border-surface-700 shadow-2xl overflow-hidden">
                 <!-- Modal Header -->
                 <div class="p-5 border-b border-gray-100 dark:border-surface-700 flex items-center justify-between shrink-0">
                     <div>
-                        <div class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ selectedDetail?.opname_number }}</div>
-                        <h3 class="text-lg font-bold text-text-primary mt-0.5">Rincian Hasil Stok Opname</h3>
-                        <p class="text-xs text-text-secondary">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ selectedDetail?.opname_number }}</span>
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full"
+                                :class="selectedDetail?.method === 'by_imei' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'">
+                                {{ selectedDetail?.method === 'by_imei' ? 'Stok By IMEI (Checklist)' : 'Stok By Unit' }}
+                            </span>
+                            <span v-if="selectedDetail?.brand || selectedDetail?.product_type" class="text-xs font-semibold text-text-secondary">
+                                • {{ selectedDetail?.brand }} {{ selectedDetail?.product_type }}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-text-primary mt-1">Rincian Hasil Stok Opname</h3>
+                        <p class="text-xs text-text-secondary mt-0.5">
                             {{ selectedDetail?.branch?.name }} • CS: {{ selectedDetail?.cs_user?.name }} • {{ formatDateTime(selectedDetail?.created_at) }}
                         </p>
                     </div>
@@ -533,15 +595,21 @@ onMounted(async () => {
                         <!-- Metrics Cards -->
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                             <div class="p-3 rounded-xl bg-gray-50 dark:bg-surface-700/50 border border-gray-100 dark:border-surface-700 text-center">
-                                <div class="text-[10px] uppercase font-bold text-text-secondary">Stok Sistem</div>
+                                <div class="text-[10px] uppercase font-bold text-text-secondary">
+                                    {{ selectedDetail.method === 'by_imei' ? 'Total IMEI Di-SO' : 'Stok Sistem' }}
+                                </div>
                                 <div class="text-lg font-bold font-mono text-text-primary mt-0.5">{{ selectedDetail.total_system }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
-                                <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300">Fisik Cocok</div>
+                                <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300">
+                                    {{ selectedDetail.method === 'by_imei' ? 'Fisik Ada (Cocok)' : 'Fisik Cocok' }}
+                                </div>
                                 <div class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{{ selectedDetail.total_physical }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-center">
-                                <div class="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300">Selisih (Kurang)</div>
+                                <div class="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300">
+                                    {{ selectedDetail.method === 'by_imei' ? 'Tidak Ada (Selisih)' : 'Selisih (Kurang)' }}
+                                </div>
                                 <div class="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">{{ selectedDetail.total_missing }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
@@ -550,40 +618,168 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <!-- Checked Items Section -->
-                        <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                                Daftar Unit Yang Diperiksa ({{ selectedDetail.items?.length || 0 }} item)
-                            </h4>
+                        <!-- SECTION A: If Method By IMEI (Detailed Unit List with Copyable IMEI) -->
+                        <div v-if="selectedDetail.method === 'by_imei'" class="space-y-3">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                                    <Smartphone :size="14" class="text-purple-500" />
+                                    <span>Rincian Unit IMEI ({{ selectedDetail.items?.length || 0 }} unit)</span>
+                                </h4>
 
-                            <div class="border border-gray-200 dark:border-surface-700 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+                                <!-- Filter & Search Controls in Modal -->
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <!-- Ada / Tidak Ada Pill Filter -->
+                                    <div class="inline-flex rounded-lg border border-gray-200 dark:border-surface-600 p-0.5 text-[11px] font-semibold bg-gray-50 dark:bg-surface-700">
+                                        <button type="button" @click="modalStatusFilter = 'all'"
+                                            class="px-2.5 py-1 rounded-md transition-colors"
+                                            :class="modalStatusFilter === 'all' ? 'bg-white dark:bg-surface-800 text-text-primary shadow-xs' : 'text-text-secondary hover:text-text-primary'">
+                                            Semua ({{ selectedDetail.items?.length || 0 }})
+                                        </button>
+                                        <button type="button" @click="modalStatusFilter = 'ada'"
+                                            class="px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
+                                            :class="modalStatusFilter === 'ada' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800'">
+                                            Ada ({{ selectedDetail.items?.filter(it => it.is_present && it.difference >= 0).length || 0 }})
+                                        </button>
+                                        <button type="button" @click="modalStatusFilter = 'tidak_ada'"
+                                            class="px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
+                                            :class="modalStatusFilter === 'tidak_ada' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 dark:text-rose-400 hover:text-rose-800'">
+                                            Tidak Ada ({{ selectedDetail.items?.filter(it => !it.is_present || it.difference < 0).length || 0 }})
+                                        </button>
+                                    </div>
+
+                                    <!-- Search In Modal -->
+                                    <div class="relative w-44 sm:w-56">
+                                        <input type="text" v-model="modalItemSearch" placeholder="Cari IMEI / Tipe / GB..."
+                                            class="w-full text-xs py-1.5 pl-7 pr-2.5 bg-gray-50 dark:bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-lg text-text-primary placeholder:text-gray-400 focus:ring-1 focus:ring-emerald-500" />
+                                        <Search :size="12" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- IMEI Table -->
+                            <div class="border border-gray-200 dark:border-surface-700 rounded-xl overflow-hidden max-h-80 overflow-y-auto">
                                 <table class="w-full text-left text-xs">
-                                    <thead class="bg-gray-50 dark:bg-surface-700/60 font-bold text-text-secondary sticky top-0">
+                                    <thead class="bg-gray-50 dark:bg-surface-700/60 font-bold text-text-secondary sticky top-0 z-10 shadow-xs">
                                         <tr>
-                                            <th class="py-2.5 px-3">Barang / IMEI</th>
-                                            <th class="py-2.5 px-3 text-center">GB</th>
-                                            <th class="py-2.5 px-3 text-center">Sistem</th>
-                                            <th class="py-2.5 px-3 text-center">Fisik</th>
-                                            <th class="py-2.5 px-3 text-center">Status</th>
+                                            <th class="py-2.5 px-3 w-10 text-center">No</th>
+                                            <th class="py-2.5 px-3">Tipe & Brand</th>
+                                            <th class="py-2.5 px-3">Nomor IMEI</th>
+                                            <th class="py-2.5 px-3 text-center">Kapasitas</th>
+                                            <th class="py-2.5 px-3 text-center">Kondisi</th>
+                                            <th class="py-2.5 px-3 text-center">Status Fisik</th>
+                                            <th class="py-2.5 px-3">Catatan</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                                        <tr v-for="it in selectedDetail.items" :key="it.id" class="hover:bg-gray-50/50 dark:hover:bg-surface-700/50 transition-colors">
+                                        <tr v-if="filteredDetailItems.length === 0">
+                                            <td colspan="7" class="py-8 text-center text-text-secondary italic">
+                                                Tidak ada unit IMEI yang cocok dengan pencarian / filter.
+                                            </td>
+                                        </tr>
+                                        <tr v-for="(it, idx) in filteredDetailItems" :key="it.id || idx" class="hover:bg-gray-50/50 dark:hover:bg-surface-700/50 transition-colors">
+                                            <td class="py-2.5 px-3 text-center font-mono text-gray-400 text-[11px]">{{ idx + 1 }}</td>
+                                            <td class="py-2.5 px-3 font-semibold text-text-primary">
+                                                <span>{{ it.product_name }}</span>
+                                                <span v-if="it.brand" class="text-[10px] text-text-secondary ml-1 font-normal">({{ it.brand }})</span>
+                                            </td>
+                                            <td class="py-2.5 px-3">
+                                                <div class="flex items-center gap-1.5 font-mono font-bold text-text-primary">
+                                                    <span>{{ it.imei || '-' }}</span>
+                                                    <button v-if="it.imei" type="button" @click="copyImei(it.imei)" :title="'Salin IMEI: ' + it.imei"
+                                                        class="p-1 rounded hover:bg-gray-200 dark:hover:bg-surface-600 text-gray-400 hover:text-emerald-600 transition-colors">
+                                                        <CheckCheck v-if="copiedImei === it.imei" :size="13" class="text-emerald-500" />
+                                                        <Copy v-else :size="13" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center font-mono font-semibold">{{ it.storage || '-' }}</td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                                                    :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600'">
+                                                    {{ it.condition || 'second' }}
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-center">
+                                                <span v-if="it.is_present && it.difference >= 0"
+                                                    class="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-800/60 inline-flex items-center gap-1">
+                                                    <Check :size="12" />
+                                                    <span>Ada</span>
+                                                </span>
+                                                <span v-else
+                                                    class="text-[10px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded border border-rose-200/60 dark:border-rose-800/60 inline-flex items-center gap-1">
+                                                    <X :size="12" />
+                                                    <span>Tidak Ada</span>
+                                                </span>
+                                            </td>
+                                            <td class="py-2.5 px-3 text-text-secondary text-[11px]">
+                                                <span v-if="it.notes" class="italic">"{{ it.notes }}"</span>
+                                                <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- SECTION B: If Method By Unit (Grouped Product Summary Table) -->
+                        <div v-else class="space-y-3">
+                            <div class="flex items-center justify-between gap-2.5">
+                                <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                                    <Package :size="14" class="text-blue-500" />
+                                    <span>Daftar Unit Yang Diperiksa ({{ selectedDetail.items?.length || 0 }} item)</span>
+                                </h4>
+                                <div class="relative w-44 sm:w-56">
+                                    <input type="text" v-model="modalItemSearch" placeholder="Cari Brand / Tipe / GB..."
+                                        class="w-full text-xs py-1.5 pl-7 pr-2.5 bg-gray-50 dark:bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-lg text-text-primary placeholder:text-gray-400 focus:ring-1 focus:ring-emerald-500" />
+                                    <Search :size="12" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div class="border border-gray-200 dark:border-surface-700 rounded-xl overflow-hidden max-h-80 overflow-y-auto">
+                                <table class="w-full text-left text-xs">
+                                    <thead class="bg-gray-50 dark:bg-surface-700/60 font-bold text-text-secondary sticky top-0 z-10 shadow-xs">
+                                        <tr>
+                                            <th class="py-2.5 px-3 w-10 text-center">No</th>
+                                            <th class="py-2.5 px-3">Brand & Tipe</th>
+                                            <th class="py-2.5 px-3 text-center">GB</th>
+                                            <th class="py-2.5 px-3 text-center">Sistem</th>
+                                            <th class="py-2.5 px-3 text-center">Fisik Ada</th>
+                                            <th class="py-2.5 px-3 text-center">Selisih</th>
+                                            <th class="py-2.5 px-3 text-center">Status</th>
+                                            <th class="py-2.5 px-3">Catatan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
+                                        <tr v-if="filteredDetailItems.length === 0">
+                                            <td colspan="8" class="py-8 text-center text-text-secondary italic">
+                                                Tidak ada item yang cocok dengan pencarian.
+                                            </td>
+                                        </tr>
+                                        <tr v-for="(it, idx) in filteredDetailItems" :key="it.id || idx" class="hover:bg-gray-50/50 dark:hover:bg-surface-700/50 transition-colors">
+                                            <td class="py-2 px-3 text-center font-mono text-gray-400 text-[11px]">{{ idx + 1 }}</td>
                                             <td class="py-2 px-3">
                                                 <div class="font-bold text-text-primary">{{ it.product_name }}</div>
-                                                <div v-if="it.imei" class="font-mono text-[11px] text-text-secondary">IMEI: {{ it.imei }}</div>
-                                                <div v-if="it.notes" class="text-[10px] text-gray-400 italic">"{{ it.notes }}"</div>
+                                                <div v-if="it.brand" class="text-[10px] text-text-secondary font-normal">{{ it.brand }}</div>
                                             </td>
                                             <td class="py-2 px-3 text-center font-mono">{{ it.storage || '-' }}</td>
                                             <td class="py-2 px-3 text-center font-mono">{{ it.system_qty }}</td>
                                             <td class="py-2 px-3 text-center font-mono font-bold">{{ it.physical_qty }}</td>
+                                            <td class="py-2 px-3 text-center font-mono font-bold">
+                                                <span v-if="it.difference < 0" class="text-rose-600 dark:text-rose-400">{{ it.difference }}</span>
+                                                <span v-else-if="it.difference > 0" class="text-emerald-600 dark:text-emerald-400">+{{ it.difference }}</span>
+                                                <span v-else class="text-gray-400">0</span>
+                                            </td>
                                             <td class="py-2 px-3 text-center">
-                                                <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/50">
-                                                    Ada ✅
+                                                <span v-if="it.difference === 0" class="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/50 dark:border-emerald-800/50">
+                                                    Cocok ✅
                                                 </span>
                                                 <span v-else class="text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded border border-rose-200/50 dark:border-rose-800/50">
-                                                    Tidak Ada ❌
+                                                    Selisih ❌
                                                 </span>
+                                            </td>
+                                            <td class="py-2 px-3 text-text-secondary text-[11px]">
+                                                <span v-if="it.notes" class="italic">"{{ it.notes }}"</span>
+                                                <span v-else class="text-gray-300 dark:text-gray-600">-</span>
                                             </td>
                                         </tr>
                                     </tbody>

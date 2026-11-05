@@ -370,13 +370,22 @@ const submitOpname = async () => {
     submitting.value = true;
     try {
         const payload = {
-            branch_id: selectedBranchId.value,
-            cs_user_id: selectedCsUserId.value,
+            branch_id: Number(selectedBranchId.value),
+            cs_user_id: Number(selectedCsUserId.value),
             category_type: categoryType.value,
             method: method.value,
-            brand: selectedBrand.value || null,
-            product_type: selectedProductName.value || null,
-            items: pendingItems.value,
+            brand: selectedBrand.value ? String(selectedBrand.value) : null,
+            product_type: selectedProductName.value !== null && selectedProductName.value !== undefined ? String(selectedProductName.value) : null,
+            items: pendingItems.value.map(it => ({
+                ...it,
+                product_id: it.product_id ? Number(it.product_id) : null,
+                product_detail_id: it.product_detail_id ? Number(it.product_detail_id) : null,
+                product_name: it.product_name !== null && it.product_name !== undefined ? String(it.product_name) : null,
+                brand: it.brand !== null && it.brand !== undefined ? String(it.brand) : null,
+                storage: it.storage !== null && it.storage !== undefined ? String(it.storage) : null,
+                imei: it.imei !== null && it.imei !== undefined ? String(it.imei) : null,
+                is_present: Boolean(it.is_present)
+            })),
             excess_items: excessItems.value,
             photos: photoPreviews.value,
             notes: generalNotes.value,
@@ -483,10 +492,16 @@ onMounted(() => {
         <!-- Section 2: Mode & Kategori Stok Opname -->
         <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                <h2 class="text-sm font-bold text-text-primary flex items-center gap-2">
-                    <Smartphone :size="16" class="text-emerald-500" />
-                    <span>Kategori & Metode Opname</span>
-                </h2>
+                <div>
+                    <h2 class="text-sm font-bold text-text-primary flex items-center gap-2">
+                        <Smartphone :size="16" class="text-emerald-500" />
+                        <span>Kategori & Metode Opname</span>
+                    </h2>
+                    <span class="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
+                        <span>Siklus harian aktif • Reset otomatis pukul</span>
+                        <strong class="text-emerald-600 dark:text-emerald-400">05:00 AM</strong>
+                    </span>
+                </div>
 
                 <!-- Total Sisa Belum SO -->
                 <div v-if="loadingItems" class="text-xs font-medium text-gray-400 flex items-center gap-1.5 bg-gray-50 dark:bg-surface-700/60 px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-surface-600">
@@ -495,11 +510,11 @@ onMounted(() => {
                 </div>
                 <div v-else-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                     <CheckCircle2 :size="14" class="text-emerald-500" />
-                    <span>Semua unit sudah di-SO hari ini ✅</span>
+                    <span>Semua unit sudah di-SO hari ini (Reset 05:00 AM) ✅</span>
                 </div>
                 <div v-else-if="totalAvailableUnits === 0" class="text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                     <CheckCircle2 :size="14" class="text-emerald-500" />
-                    <span>Filter ini sudah di-SO ✅</span>
+                    <span>Filter ini sudah di-SO (Reset 05:00 AM) ✅</span>
                 </div>
                 <div v-else class="text-xs font-medium text-text-secondary bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
                     Belum di-SO hari ini: <span class="font-bold text-amber-700 dark:text-amber-300">{{ totalAvailableUnits }} unit</span>
@@ -625,8 +640,8 @@ onMounted(() => {
                     <p class="text-base font-bold text-text-primary">
                         Semua Stok Sudah Selesai di-SO Hari Ini ✅
                     </p>
-                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
-                        Seluruh unit fisik di cabang ini telah berhasil di-stok opname dan tercatat di sistem.
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
+                        Seluruh unit fisik di cabang ini telah berhasil di-stok opname dan tercatat di sistem. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
                     </p>
                     <div class="mt-4">
                         <router-link to="/inventory/opname/history"
@@ -898,7 +913,7 @@ onMounted(() => {
                         disabled
                         class="w-full lg:w-auto px-7 py-3 rounded-xl bg-gray-100 dark:bg-surface-700 border border-gray-200 dark:border-surface-600 text-gray-400 dark:text-gray-500 font-bold text-sm flex items-center justify-center gap-2.5 cursor-not-allowed min-h-[48px]">
                         <CheckCircle2 :size="18" class="text-emerald-500" />
-                        <span>Sudah Selesai di-SO Hari Ini</span>
+                        <span>Sudah Selesai di-SO Hari Ini (Reset 05:00 AM)</span>
                     </button>
                     <button v-else
                         type="button"
