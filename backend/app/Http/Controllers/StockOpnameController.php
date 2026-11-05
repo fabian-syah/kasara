@@ -533,6 +533,9 @@ class StockOpnameController extends Controller
             // Save uploaded photos (base64 or paths)
             $savedPhotos = [];
             if (!empty($request->photos)) {
+                if (!Storage::disk('public')->exists('stock_opname_photos')) {
+                    Storage::disk('public')->makeDirectory('stock_opname_photos');
+                }
                 foreach ($request->photos as $pData) {
                     if (is_string($pData) && preg_match('/^data:image\/(\w+);base64,/', $pData, $type)) {
                         $data = substr($pData, strpos($pData, ',') + 1);
@@ -733,7 +736,9 @@ class StockOpnameController extends Controller
         $query = StockOpname::with([
             'branch:id,name,code',
             'user:id,name,username',
-            'csUser:id,name,username'
+            'csUser:id,name,username',
+            'items' => fn($q) => $q->select('id', 'stock_opname_id', 'product_id', 'product_detail_id', 'brand', 'product_name', 'storage', 'condition', 'imei', 'system_qty', 'physical_qty', 'difference', 'is_present', 'notes')->orderBy('id', 'asc'),
+            'excessItems' => fn($q) => $q->select('id', 'stock_opname_id', 'brand', 'product_name', 'storage', 'imei', 'quantity', 'notes')->orderBy('id', 'asc')
         ]);
 
         // Branch filtering based on user role and request
