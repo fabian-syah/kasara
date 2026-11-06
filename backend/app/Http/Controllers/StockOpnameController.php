@@ -59,6 +59,17 @@ class StockOpnameController extends Controller
                     Log::warning('StockOpnameController executor_role migration note: ' . $e2->getMessage());
                 }
             }
+
+            // Normalize 'date' column so past records align with the 05:00 AM daily cycle
+            try {
+                if (DB::getDriverName() === 'pgsql') {
+                    DB::statement("UPDATE stock_opnames SET date = (created_at - INTERVAL '5 hour')::date WHERE created_at IS NOT NULL");
+                } else {
+                    DB::statement("UPDATE stock_opnames SET date = DATE(SUBDATE(created_at, INTERVAL 5 HOUR)) WHERE created_at IS NOT NULL");
+                }
+            } catch (\Throwable $e) {
+                Log::warning('StockOpnameController date normalization note: ' . $e->getMessage());
+            }
         }
     }
 
@@ -245,19 +256,15 @@ class StockOpnameController extends Controller
         }
 
         $cycle = self::getLogicalCycleRange();
-        $todayDates = array_unique([$cycle['date'], now()->toDateString()]);
 
-        // Check already audited items today at this branch for THIS specific role scope
+        // Check already audited items in the current 05:00 AM daily cycle for THIS specific role scope
         $auditedImeis = [];
         $auditedProductNamesByUnit = [];
         $auditedNonHpProductIds = [];
 
         if (Schema::hasTable('stock_opnames') && Schema::hasTable('stock_opname_items')) {
             $todayOpnameQuery = StockOpname::where('branch_id', $branchId)
-                ->where(function ($q) use ($cycle, $todayDates) {
-                    $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
-                      ->orWhereIn('date', $todayDates);
-                });
+                ->whereBetween('created_at', [$cycle['start'], $cycle['end']]);
 
             $hasExecutorRole = Schema::hasColumn('stock_opnames', 'executor_role');
 
@@ -652,10 +659,7 @@ class StockOpnameController extends Controller
         // Prevent redundant submission if already audited in current 05:00 AM cycle within the SAME role scope
         $cycle = self::getLogicalCycleRange();
         $todayOpnameQuery = StockOpname::where('branch_id', $request->branch_id)
-            ->where(function ($q) use ($cycle) {
-                $q->whereBetween('created_at', [$cycle['start'], $cycle['end']])
-                  ->orWhere('date', $cycle['date']);
-            });
+            ->whereBetween('created_at', [$cycle['start'], $cycle['end']]);
 
         $hasExecutorRole = Schema::hasColumn('stock_opnames', 'executor_role');
 
@@ -783,12 +787,9 @@ class StockOpnameController extends Controller
             $status = $hasDifference ? 'has_difference' : 'completed';
 
             // Generate unique opname number
-            $logicalNow = now()->hour < 5 ? now()->subDay() : now();
-            $recordDate = $logicalNow->toDateString();
+            $recordDate = $cycle['date'];
             $todayStr = date('Ymd');
-            $countToday = StockOpname::where(function($q) use ($recordDate) {
-                $q->whereDate('date', $recordDate)->orWhereDate('created_at', now()->toDateString());
-            })->count() + 1;
+            $countToday = StockOpname::whereBetween('created_at', [$cycle['start'], $cycle['end']])->count() + 1;
             $opnameNumber = 'SO-' . $todayStr . '-' . str_pad($countToday, 4, '0', STR_PAD_LEFT);
 
             $brandVal = $request->filled('brand') ? (string) $request->brand : null;
