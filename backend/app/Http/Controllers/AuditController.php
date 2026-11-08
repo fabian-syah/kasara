@@ -654,10 +654,10 @@ class AuditController extends Controller
                             'stock_outs.total_discount',
                             'stock_outs.notes',
                             'stock_outs.sales_account',
-                            DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                            DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
-                            DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
-                            DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
+                            DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_outgoing_price'),
+                            DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_incoming_cost_price'),
+                            DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_outgoing_price'),
+                            DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_incoming_cost_price')
                         )->get();
 
                     $ownerGroups = [];
@@ -891,10 +891,10 @@ class AuditController extends Controller
                         'stock_outs.total_discount',
                         'stock_outs.notes',
                         'stock_outs.sales_account',
-                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                        DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
-                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
-                        DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
+                        DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_incoming_cost_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_outgoing_price'),
+                        DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_incoming_cost_price')
                     )->get();
 
                     $dailyStats = [];
@@ -1433,21 +1433,25 @@ class AuditController extends Controller
                                 return $category;
                             }
 
-                            // If it's a standard sale category, do NOT override with deductions by notes
-                            if (in_array($category, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah', 'pelunasan_dp'])) {
+                            // If it's a known transaction category, do NOT override with deductions by notes
+                            if (in_array($category, [
+                                'shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store',
+                                'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah',
+                                'downgrade', 'tukar_unit', 'angkat_barang', 'refund', 'pelunasan_dp', 'dp'
+                            ])) {
                                 return $category;
                             }
                             if (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($salesAccount, 'barang angkat') || str_contains($salesAccount, 'angkat barang') || str_contains($salesAccount, 'angkat_barang')) {
                                 return 'angkat_barang';
-                            }
-                            if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
-                                return 'refund';
                             }
                             if (str_contains($notes, 'downgrade') || str_contains($salesAccount, 'downgrade')) {
                                 return 'downgrade';
                             }
                             if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($salesAccount, 'tukar tambah') || str_contains($salesAccount, 'tukar_tambah')) {
                                 return 'tukar_tambah';
+                            }
+                            if (str_contains($notes, 'refund') || str_contains($salesAccount, 'refund')) {
+                                return 'refund';
                             }
 
                             return $category;
@@ -1468,10 +1472,10 @@ class AuditController extends Controller
                                 'notes',
                                 'sales_account',
                                 DB::raw('(SELECT COUNT(id) FROM audit_answers WHERE audit_answers.stock_out_id = stock_outs.id LIMIT 1) as audit_answered'),
-                                DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_outgoing_price'),
-                                DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id LIMIT 1) as tt_incoming_cost_price'),
-                                DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_outgoing_price'),
-                                DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id LIMIT 1) as dg_incoming_cost_price')
+                                DB::raw('(SELECT COALESCE(SUM(tt.outgoing_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_outgoing_price'),
+                                DB::raw('(SELECT COALESCE(SUM(tt.incoming_cost_price), 0) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as tt_incoming_cost_price'),
+                                DB::raw('(SELECT COALESCE(SUM(dg.outgoing_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_outgoing_price'),
+                                DB::raw('(SELECT COALESCE(SUM(dg.incoming_cost_price), 0) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id)) LIMIT 1) as dg_incoming_cost_price')
                             )
                             ->get();
 
@@ -1661,7 +1665,7 @@ class AuditController extends Controller
                             ->whereIn('stock_outs.category', ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'tukar_unit', 'tukar_tambah', 'downgrade', 'cancel_penjualan', 'refund', 'angkat_barang', 'sale', 'pos', 'SALE', 'POS', 'Sale', 'Pos', 'PENJUALAN_STORE', 'Penjualan_Store', 'bundling', 'dp', 'pelunasan_dp']);
                         $applyLocalScope($hpItemsQuery);
 
-                        $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => []];
+                        $activityDetails = ['refund' => [], 'retur' => [], 'angkat_barang' => [], 'tukar_unit' => [], 'tukar_tambah' => [], 'downgrade' => [], 'in_tt' => [], 'in_dg' => [], 'out_dg' => []];
 
                         // Deduct discrepancy strictly from HP items
                         $receiptHpDiscounts = [];
@@ -1779,7 +1783,9 @@ class AuditController extends Controller
 
                         // 1b. Fetch ALL Incoming Trade-In Units (In TT) explicitly for report activity breakdown
                         $ttIncomingQuery = DB::table('tukar_tambahs')
-                            ->join('stock_outs', 'tukar_tambahs.receipt_id', '=', 'stock_outs.receipt_id')
+                            ->join('stock_outs', function ($join) {
+                                $join->on(DB::raw('LOWER(TRIM(tukar_tambahs.receipt_id))'), '=', DB::raw('LOWER(TRIM(stock_outs.receipt_id))'));
+                            })
                             ->leftJoin('product_types', 'tukar_tambahs.incoming_product_type_id', '=', 'product_types.id')
                             ->whereNull('stock_outs.deleted_at')
                             ->where('stock_outs.category', '!=', 'cancel_penjualan');
@@ -1829,7 +1835,9 @@ class AuditController extends Controller
 
                         // 1c. Fetch ALL Incoming Downgrade Units explicitly for report activity breakdown
                         $dgIncomingQuery = DB::table('downgrades')
-                            ->join('stock_outs', 'downgrades.receipt_id', '=', 'stock_outs.receipt_id')
+                            ->join('stock_outs', function ($join) {
+                                $join->on(DB::raw('LOWER(TRIM(downgrades.receipt_id))'), '=', DB::raw('LOWER(TRIM(stock_outs.receipt_id))'));
+                            })
                             ->leftJoin('product_types', 'downgrades.incoming_product_type_id', '=', 'product_types.id')
                             ->whereNull('stock_outs.deleted_at')
                             ->where('stock_outs.category', '!=', 'cancel_penjualan');
@@ -2135,31 +2143,43 @@ class AuditController extends Controller
 
 
             $receiptIds = collect($paginatedSales->items())->pluck('receipt_id')->unique()->toArray();
-            $ttData = \App\Models\TukarTambah::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-            $dgData = \App\Models\Downgrade::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-            $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])->whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
-            $rfData = \App\Models\Refund::whereIn('receipt_id', $receiptIds)->get()->keyBy('receipt_id');
+            $ttData = \App\Models\TukarTambah::with(['incomingProductType', 'distributor'])
+                ->whereIn('receipt_id', $receiptIds)
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
+            $dgData = \App\Models\Downgrade::with(['incomingProductType', 'distributor'])
+                ->whereIn('receipt_id', $receiptIds)
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
+            $ueData = \App\Models\UnitExchange::with(['incomingProductType', 'distributor'])
+                ->whereIn('receipt_id', $receiptIds)
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
+            $rfData = \App\Models\Refund::whereIn('receipt_id', $receiptIds)
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
             $dailySales = collect($paginatedSales->items())->map(function ($trx) use ($branches, $onlineShops, $warehouses, $questions, $paymentMethods, $distributors, $ttData, $dgData, $ueData, $rfData) {
                 $details = [];
                 $catLower = strtolower($trx->category);
                 $receiptId = $trx->receipt_id;
+                $cleanReceiptKey = strtolower(trim($receiptId ?? ''));
                 $isNeg = in_array($catLower, ['tukar_tambah', 'downgrade', 'refund', 'angkat_barang']);
 
                 // Pre-identify exchange data
                 $exchangeInfo = null;
                 $exchangeType = '';
                 if ($catLower === 'tukar_tambah') {
-                    $exchangeInfo = $ttData->get($receiptId);
+                    $exchangeInfo = $ttData->get($cleanReceiptKey) ?? $ttData->get($receiptId);
                     $exchangeType = 'TUKAR TAMBAH';
                 } elseif ($catLower === 'downgrade') {
-                    $exchangeInfo = $dgData->get($receiptId);
+                    $exchangeInfo = $dgData->get($cleanReceiptKey) ?? $dgData->get($receiptId);
                     $exchangeType = 'DOWNGRADE';
                 } elseif ($catLower === 'tukar_unit') {
-                    $exchangeInfo = $ueData->get($receiptId);
+                    $exchangeInfo = $ueData->get($cleanReceiptKey) ?? $ueData->get($receiptId);
                     $exchangeType = 'TUKAR UNIT';
                 } elseif ($catLower === 'refund') {
-                    $exchangeInfo = $rfData->get($receiptId);
+                    $exchangeInfo = $rfData->get($cleanReceiptKey) ?? $rfData->get($receiptId);
                     $exchangeType = 'REFUND';
                 }
 
