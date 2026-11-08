@@ -111,7 +111,7 @@
 
                 <!-- Category Filter (Removed: tukar_unit, refund, refund_dp, angkat_barang) -->
                 <div class="relative w-full sm:w-auto min-w-[140px] sm:min-w-[160px]">
-                    <select v-model="filters.category" @change="fetchData"
+                    <select v-model="filters.category" @change="fetchData(1)"
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                         <option value="all">Semua Kategori</option>
                         <option value="penjualan_store">Penjualan Store</option>
@@ -169,7 +169,7 @@
 
                 <!-- Filter Status Audit -->
                 <div class="relative w-full sm:w-auto min-w-[130px] sm:min-w-[150px]">
-                    <select v-model="filters.audit_status" @change="fetchData"
+                    <select v-model="filters.audit_status" @change="fetchData(1)"
                         class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                         <option value="all">Semua Status Audit</option>
                         <option value="sudah">Sudah Diaudit</option>
@@ -1427,13 +1427,7 @@ const displayedSales = computed(() => {
         });
     }
 
-    // Filter by Audit Status (Client-side safety)
-    if (filters.value.audit_status === 'sudah') {
-        list = list.filter(item => isRowAudited(item));
-    } else if (filters.value.audit_status === 'belum') {
-        list = list.filter(item => !isRowAudited(item));
-    }
-
+    // Audit status filtering is handled on backend
     return list;
 });
 
@@ -1646,11 +1640,12 @@ const fetchBranches = async () => {
 }
 
 const fetchData = async (page = 1) => {
-    loading.value = true
+    const pageNum = typeof page === 'number' ? page : 1;
+    loading.value = true;
     try {
         const params = {
             ...filters.value,
-            page,
+            page: pageNum,
             per_page: perPage.value
         };
         if (searchQuery.value && searchQuery.value.trim()) {

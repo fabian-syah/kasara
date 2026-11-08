@@ -3855,21 +3855,6 @@ class AuditController extends Controller
                         $q->where('category', $request->category);
                     }
                 })
-                ->when($request->audit_status && $request->audit_status !== 'all', function ($q) use ($request) {
-                    if ($request->audit_status === 'belum') {
-                        $q->whereDoesntHave('auditProfit')
-                          ->whereNull('audit_score')
-                          ->whereNull('latest_auditor_name')
-                          ->whereDoesntHave('auditAnswers');
-                    } elseif ($request->audit_status === 'sudah') {
-                        $q->where(function ($sub) {
-                            $sub->whereHas('auditProfit')
-                                ->orWhereNotNull('audit_score')
-                                ->orWhereNotNull('latest_auditor_name')
-                                ->orWhereHas('auditAnswers');
-                        });
-                    }
-                })
                 ->when($request->search, function ($q) use ($request) {
                     $term = trim($request->search);
                     $q->where(function ($sub) use ($term) {
@@ -4668,8 +4653,17 @@ class AuditController extends Controller
 
             krsort($dailyRecap);
 
+            // Filter processedSales by audit_status if specified so summaryTotals retain global stats
+            if ($request->audit_status && $request->audit_status !== 'all') {
+                if ($request->audit_status === 'belum') {
+                    $processedSales = $processedSales->filter(fn($item) => empty($item['is_audited']))->values();
+                } elseif ($request->audit_status === 'sudah') {
+                    $processedSales = $processedSales->filter(fn($item) => !empty($item['is_audited']))->values();
+                }
+            }
+
             $perPageParam = $request->query('per_page', '50');
-            $page = (int) $request->query('page', 1);
+            $page = max(1, (int) $request->query('page', 1));
             $totalCount = $processedSales->count();
 
             if ($perPageParam === 'all') {
