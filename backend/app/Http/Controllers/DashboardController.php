@@ -114,9 +114,14 @@ class DashboardController extends Controller
 
         if (!empty($accessibleBranchIds)) {
             $todaySalesQuery->where(function ($q) use ($accessibleBranchIds) {
-                $q->whereIn('branch_id', $accessibleBranchIds)
-                  ->orWhereHas('user', function ($qu) use ($accessibleBranchIds) {
-                      $qu->whereIn('branch_id', $accessibleBranchIds);
+                $q->whereIn('stock_outs.branch_id', $accessibleBranchIds)
+                  ->orWhere(function ($fallback) use ($accessibleBranchIds) {
+                      $fallback->whereNull('stock_outs.branch_id')
+                               ->whereNull('stock_outs.online_shop_id')
+                               ->where(function ($qu) use ($accessibleBranchIds) {
+                                   $qu->whereHas('user', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds))
+                                      ->orWhereHas('inventoryUser', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds));
+                               });
                   });
             });
         } else {
@@ -130,12 +135,12 @@ class DashboardController extends Controller
         $ttMap = empty($receiptIds) ? collect() : DB::table('tukar_tambahs')
             ->whereIn('receipt_id', $receiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+            ->groupBy('receipt_id')->get()->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
         $dgMap = empty($receiptIds) ? collect() : DB::table('downgrades')
             ->whereIn('receipt_id', $receiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+            ->groupBy('receipt_id')->get()->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
         // Pre-fetch non-hp products
         $nonHpProductIds = [];
@@ -200,9 +205,10 @@ class DashboardController extends Controller
 
             $omsetContribution = 0;
             $netContribution = 0;
+            $cleanReceiptId = strtolower(trim($sale->receipt_id ?? ''));
 
             if ($saleType === 'tukar_tambah') {
-                $ttRec = $ttMap->get($sale->receipt_id);
+                $ttRec = $ttMap->get($cleanReceiptId) ?? $ttMap->get($sale->receipt_id);
                 $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
                 if ($outVal <= 0) $outVal = $price;
                 $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
@@ -215,7 +221,7 @@ class DashboardController extends Controller
                 $omsetContribution = 0;
                 $netContribution = -$price;
             } elseif ($saleType === 'downgrade') {
-                $dgRec = $dgMap->get($sale->receipt_id);
+                $dgRec = $dgMap->get($cleanReceiptId) ?? $dgMap->get($sale->receipt_id);
                 $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
                 $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
                 if ($outDg > 0 || $inDg > 0) {
@@ -324,9 +330,14 @@ class DashboardController extends Controller
 
         if (!empty($accessibleBranchIds)) {
             $monthSales->where(function ($q) use ($accessibleBranchIds) {
-                $q->whereIn('branch_id', $accessibleBranchIds)
-                  ->orWhereHas('user', function ($qu) use ($accessibleBranchIds) {
-                      $qu->whereIn('branch_id', $accessibleBranchIds);
+                $q->whereIn('stock_outs.branch_id', $accessibleBranchIds)
+                  ->orWhere(function ($fallback) use ($accessibleBranchIds) {
+                      $fallback->whereNull('stock_outs.branch_id')
+                               ->whereNull('stock_outs.online_shop_id')
+                               ->where(function ($qu) use ($accessibleBranchIds) {
+                                   $qu->whereHas('user', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds))
+                                      ->orWhereHas('inventoryUser', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds));
+                               });
                   });
             });
         } else {
@@ -342,11 +353,11 @@ class DashboardController extends Controller
         $monthTtMap = empty($monthReceiptIds) ? collect() : DB::table('tukar_tambahs')
             ->whereIn('receipt_id', $monthReceiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+            ->groupBy('receipt_id')->get()->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
         $monthDgMap = empty($monthReceiptIds) ? collect() : DB::table('downgrades')
             ->whereIn('receipt_id', $monthReceiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')->get()->keyBy('receipt_id');
+            ->groupBy('receipt_id')->get()->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
         foreach ($allMonthSales as $sale) {
             $cat = strtolower(str_replace(' ', '_', $sale->category ?? ''));
@@ -374,9 +385,10 @@ class DashboardController extends Controller
 
             $omsetContribution = 0;
             $netContribution = 0;
+            $cleanReceiptId = strtolower(trim($sale->receipt_id ?? ''));
 
             if ($saleType === 'tukar_tambah') {
-                $ttRec = $monthTtMap->get($sale->receipt_id);
+                $ttRec = $monthTtMap->get($cleanReceiptId) ?? $monthTtMap->get($sale->receipt_id);
                 $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
                 if ($outVal <= 0) $outVal = $price;
                 $inVal = $ttRec ? floatval($ttRec->incoming_cost_price) : 0;
@@ -389,7 +401,7 @@ class DashboardController extends Controller
                 $omsetContribution = 0;
                 $netContribution = -$price;
             } elseif ($saleType === 'downgrade') {
-                $dgRec = $monthDgMap->get($sale->receipt_id);
+                $dgRec = $monthDgMap->get($cleanReceiptId) ?? $monthDgMap->get($sale->receipt_id);
                 $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
                 $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
                 if ($outDg > 0 || $inDg > 0) {
@@ -561,23 +573,37 @@ class DashboardController extends Controller
         $isRestricted = !$user->hasRole('super_admin') && !$user->hasRole('analist');
 
         if ($isRestricted) {
-            $todaySalesQuery->where(function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                $q->whereHas('user', function ($qu) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                    $qu->where(function ($sub) use ($accessibleBranchIds, $accessibleOnlineShopIds) {
-                        if (!empty($accessibleBranchIds))
-                            $sub->orWhereIn('branch_id', $accessibleBranchIds);
-                        if (!empty($accessibleOnlineShopIds))
-                            $sub->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-                    });
-                });
-
-                if (!empty($accessibleBranchIds))
-                    $q->orWhereIn('branch_id', $accessibleBranchIds);
-                if (!empty($accessibleOnlineShopIds))
-                    $q->orWhereIn('online_shop_id', $accessibleOnlineShopIds);
-
-                if (empty($accessibleBranchIds) && empty($accessibleOnlineShopIds))
-                    $q->whereRaw('1=0');
+            $todaySalesQuery->where(function ($q) use ($accessibleBranchIds, $accessibleOnlineShopIds, $role) {
+                if ($role === 'online_shop') {
+                    if (!empty($accessibleOnlineShopIds)) {
+                        $q->whereIn('stock_outs.online_shop_id', $accessibleOnlineShopIds)
+                          ->orWhere(function ($fallback) use ($accessibleOnlineShopIds) {
+                              $fallback->whereNull('stock_outs.online_shop_id')
+                                       ->whereNull('stock_outs.branch_id')
+                                       ->where(function ($qu) use ($accessibleOnlineShopIds) {
+                                           $qu->whereHas('user', fn($u) => $u->whereIn('online_shop_id', $accessibleOnlineShopIds))
+                                              ->orWhereHas('inventoryUser', fn($u) => $u->whereIn('online_shop_id', $accessibleOnlineShopIds));
+                                       });
+                          });
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                } else {
+                    // toko_offline or other branch roles
+                    if (!empty($accessibleBranchIds)) {
+                        $q->whereIn('stock_outs.branch_id', $accessibleBranchIds)
+                          ->orWhere(function ($fallback) use ($accessibleBranchIds) {
+                              $fallback->whereNull('stock_outs.branch_id')
+                                       ->whereNull('stock_outs.online_shop_id')
+                                       ->where(function ($qu) use ($accessibleBranchIds) {
+                                           $qu->whereHas('user', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds))
+                                              ->orWhereHas('inventoryUser', fn($u) => $u->whereIn('branch_id', $accessibleBranchIds));
+                                       });
+                          });
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                }
             });
         }
 
@@ -589,14 +615,14 @@ class DashboardController extends Controller
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
             ->groupBy('receipt_id')
             ->get()
-            ->keyBy('receipt_id');
+            ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
         $dgMap = empty($receiptIds) ? collect() : DB::table('downgrades')
             ->whereIn('receipt_id', $receiptIds)
             ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
             ->groupBy('receipt_id')
             ->get()
-            ->keyBy('receipt_id');
+            ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
         $totalRevenue = 0;
         $totalNetRevenue = 0;
@@ -651,9 +677,10 @@ class DashboardController extends Controller
 
             $omsetContribution = 0;
             $netContribution = 0;
+            $cleanReceiptId = strtolower(trim($sale->receipt_id ?? ''));
 
             if ($saleType === 'tukar_tambah') {
-                $ttRec = $ttMap->get($sale->receipt_id);
+                $ttRec = $ttMap->get($cleanReceiptId) ?? $ttMap->get($sale->receipt_id);
                 $outVal = $ttRec ? floatval($ttRec->outgoing_price) : 0;
                 if ($outVal <= 0) {
                     $outVal = $price;
@@ -672,7 +699,7 @@ class DashboardController extends Controller
                 $omsetContribution = 0;
                 $netContribution = -$price;
             } elseif ($saleType === 'downgrade') {
-                $dgRec = $dgMap->get($sale->receipt_id);
+                $dgRec = $dgMap->get($cleanReceiptId) ?? $dgMap->get($sale->receipt_id);
                 $outDg = $dgRec ? floatval($dgRec->outgoing_price) : 0;
                 $inDg = $dgRec ? floatval($dgRec->incoming_cost_price) : 0;
 
@@ -1052,17 +1079,17 @@ class DashboardController extends Controller
                 });
 
                 $stats = $query->select(
-                    DB::raw('COALESCE(stock_outs.branch_id, users.branch_id) as branch_id'),
-                    DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id) as online_shop_id'),
+                    DB::raw('COALESCE(stock_outs.branch_id, CASE WHEN stock_outs.online_shop_id IS NULL THEN users.branch_id ELSE NULL END) as branch_id'),
+                    DB::raw('COALESCE(stock_outs.online_shop_id, CASE WHEN stock_outs.branch_id IS NULL THEN users.online_shop_id ELSE NULL END) as online_shop_id'),
                     DB::raw("SUM(
                         CASE 
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
+                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), 0)
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
                             THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
@@ -1073,7 +1100,7 @@ class DashboardController extends Controller
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
                             THEN COALESCE(
-                                (SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), 
+                                (SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), 
                                 ABS(COALESCE(stock_outs.selling_price, 0))
                             )
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
@@ -1083,14 +1110,17 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
                             THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
                         END
                     ) as omset_bersih")
                 )
-                    ->groupBy(DB::raw('COALESCE(stock_outs.branch_id, users.branch_id)'), DB::raw('COALESCE(stock_outs.online_shop_id, users.online_shop_id)'))
+                    ->groupBy(
+                        DB::raw('COALESCE(stock_outs.branch_id, CASE WHEN stock_outs.online_shop_id IS NULL THEN users.branch_id ELSE NULL END)'),
+                        DB::raw('COALESCE(stock_outs.online_shop_id, CASE WHEN stock_outs.branch_id IS NULL THEN users.online_shop_id ELSE NULL END)')
+                    )
                     ->get();
 
                 $ranks = collect();
@@ -1136,10 +1166,18 @@ class DashboardController extends Controller
                 $query->where(function ($q) use ($primaryBranchId, $primaryOnlineShopId) {
                     if ($primaryBranchId) {
                         $q->where('stock_outs.branch_id', $primaryBranchId)
-                            ->orWhere('users.branch_id', $primaryBranchId);
+                            ->orWhere(function ($fallback) use ($primaryBranchId) {
+                                $fallback->whereNull('stock_outs.branch_id')
+                                         ->whereNull('stock_outs.online_shop_id')
+                                         ->where('users.branch_id', $primaryBranchId);
+                            });
                     } elseif ($primaryOnlineShopId) {
                         $q->where('stock_outs.online_shop_id', $primaryOnlineShopId)
-                            ->orWhere('users.online_shop_id', $primaryOnlineShopId);
+                            ->orWhere(function ($fallback) use ($primaryOnlineShopId) {
+                                $fallback->whereNull('stock_outs.online_shop_id')
+                                         ->whereNull('stock_outs.branch_id')
+                                         ->where('users.online_shop_id', $primaryOnlineShopId);
+                            });
                     }
                 });
 
@@ -1162,11 +1200,11 @@ class DashboardController extends Controller
                         CASE 
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0))))
+                            THEN GREATEST(0, COALESCE((SELECT SUM(tt.outgoing_price) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), ABS(COALESCE(stock_outs.selling_price, 0))))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade' OR LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%')
-                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), 0)
+                            THEN COALESCE((SELECT SUM(dg.outgoing_price) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), 0)
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
                             THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
@@ -1176,7 +1214,7 @@ class DashboardController extends Controller
                         CASE 
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'cancel_penjualan' THEN 0
                             WHEN (LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'tukar_tambah' OR LOWER(stock_outs.notes) LIKE '%tukar tambah%' OR LOWER(stock_outs.notes) LIKE '%tukar_tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar tambah%' OR LOWER(stock_outs.sales_account) LIKE '%tukar_tambah%')
-                            THEN COALESCE((SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE tt.receipt_id = stock_outs.receipt_id), ABS(COALESCE(stock_outs.selling_price, 0)))
+                            THEN COALESCE((SELECT SUM(COALESCE(tt.outgoing_price, 0) - COALESCE(tt.incoming_cost_price, 0)) FROM tukar_tambahs tt WHERE LOWER(TRIM(tt.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp')
                             THEN GREATEST(0, CASE WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'dp' THEN ABS(COALESCE(stock_outs.dp_amount, COALESCE(stock_outs.paid_amount, stock_outs.selling_price))) WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'pelunasan_dp' THEN ABS(COALESCE(stock_outs.paid_amount, stock_outs.selling_price)) ELSE ABS(COALESCE(stock_outs.selling_price, 0)) END)
                             WHEN (LOWER(stock_outs.notes) LIKE '%barang angkat%' OR LOWER(stock_outs.notes) LIKE '%angkat barang%' OR LOWER(stock_outs.notes) LIKE '%angkat_barang%' OR LOWER(stock_outs.sales_account) LIKE '%barang angkat%' OR LOWER(stock_outs.sales_account) LIKE '%angkat barang%' OR LOWER(stock_outs.sales_account) LIKE '%angkat_barang%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'angkat_barang')
@@ -1184,7 +1222,7 @@ class DashboardController extends Controller
                             WHEN (LOWER(stock_outs.notes) LIKE '%refund%' OR LOWER(stock_outs.sales_account) LIKE '%refund%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) IN ('refund', 'refund_dp'))
                             THEN -ABS(COALESCE(stock_outs.selling_price, 0))
                             WHEN (LOWER(stock_outs.notes) LIKE '%downgrade%' OR LOWER(stock_outs.sales_account) LIKE '%downgrade%' OR LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'downgrade')
-                            THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE dg.receipt_id = stock_outs.receipt_id), -ABS(COALESCE(stock_outs.selling_price, 0)))
+                            THEN COALESCE((SELECT SUM(COALESCE(dg.outgoing_price, 0) - COALESCE(dg.incoming_cost_price, 0)) FROM downgrades dg WHERE LOWER(TRIM(dg.receipt_id)) = LOWER(TRIM(stock_outs.receipt_id))), -ABS(COALESCE(stock_outs.selling_price, 0)))
                             WHEN LOWER(REPLACE(stock_outs.category, ' ', '_')) = 'balancing'
                             THEN COALESCE(stock_outs.selling_price, 0)
                             ELSE 0
