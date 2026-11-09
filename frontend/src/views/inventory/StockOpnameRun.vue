@@ -23,9 +23,12 @@ const loadingItems = ref(false);
 const submitting = ref(false);
 
 // Step Navigation:
-// Step 1: Pilih Toko (Cabang)
+// Step 1: Pilih Toko
 // Step 2: Pilih CS
-// Step 3: Pemeriksaan Stok (HP/Non-HP -> By Unit/IMEI -> Brand/Kondisi / Tipe)
+// Step 3: Pilih HP / Non-HP
+// Step 4: Pilih SO by unit / SO by IMEI
+// Step 5: Pilih Brand & Kondisi (jika Unit) / Pilih Tipe HP (jika IMEI)
+// Step 6: Pemeriksaan Fisik (Tabel Unit / Checklist IMEI)
 const currentStep = ref(1);
 
 // Step 1: Branch Selection
@@ -38,15 +41,17 @@ const csUsers = ref([]);
 const selectedCsUserId = ref(null);
 const searchCs = ref('');
 
-// Step 3: Configuration (Kategori & Metode Opname)
+// Step 3 & 4: Configuration
 const categoryType = ref('hp'); // 'hp' | 'non_hp'
 const method = ref('by_unit'); // 'by_unit' | 'by_imei'
+
+// Step 5: Brand, Kondisi, and Tipe
 const selectedBrand = ref('');
 const selectedCondition = ref('all'); // 'all' | 'new' | 'second'
 const selectedProductName = ref(''); // For SO by IMEI
 const searchType = ref(''); // Search bar for phone model in SO by IMEI
 
-// Items Data from Server
+// Server Data
 const availableBrands = ref([]);
 const availableConditions = ref([]);
 const availableTypes = ref([]);
@@ -116,7 +121,35 @@ const isStoreAccount = computed(() => {
     return userRole.value === 'toko_offline' || (authStore.user?.id !== selectedCsUserId.value);
 });
 
-// Computed Filters
+// Stepper Progress Definitions
+const activeSteps = computed(() => {
+    if (categoryType.value === 'non_hp') {
+        return [
+            { step: 1, label: '1. Toko' },
+            { step: 2, label: '2. CS' },
+            { step: 3, label: '3. Kategori' },
+            { step: 5, label: '4. Brand' },
+            { step: 6, label: '5. Fisik' },
+        ];
+    }
+    return [
+        { step: 1, label: '1. Toko' },
+        { step: 2, label: '2. CS' },
+        { step: 3, label: '3. HP / Non-HP' },
+        { step: 4, label: '4. Unit / IMEI' },
+        { step: 5, label: method.value === 'by_imei' ? '5. Tipe HP' : '5. Brand & Kondisi' },
+        { step: 6, label: '6. Fisik' },
+    ];
+});
+
+const progressPercentage = computed(() => {
+    const list = activeSteps.value;
+    const curIdx = list.findIndex(s => s.step === currentStep.value);
+    if (curIdx <= 0) return 0;
+    return Math.min(100, Math.round((curIdx / (list.length - 1)) * 100));
+});
+
+// Filter Helpers
 const filteredBranches = computed(() => {
     if (!searchBranch.value.trim()) return branches.value;
     const q = searchBranch.value.toLowerCase().trim();
@@ -178,7 +211,7 @@ const getCsPhotoUrl = (acc) => {
     return `${baseUrl}/storage/${path}`;
 };
 
-// API Calls
+// API Fetching
 const fetchBranches = async () => {
     loadingBranches.value = true;
     try {
@@ -186,7 +219,6 @@ const fetchBranches = async () => {
         branches.value = res.data.data || [];
 
         if (branches.value.length > 0) {
-            // Default select user's branch if matches, otherwise first branch
             const userBranchId = authStore.user?.branch_id;
             const match = branches.value.find(b => Number(b.id) === Number(userBranchId));
             if (!selectedBranchId.value) {
@@ -278,7 +310,7 @@ const fetchPendingItems = async () => {
     }
 };
 
-// Wizard Step Navigation
+// Wizard Step Navigation Transitions
 const goToStep = (step) => {
     if (step === 1) {
         currentStep.value = 1;
@@ -289,52 +321,87 @@ const goToStep = (step) => {
         }
         currentStep.value = 2;
     } else if (step === 3) {
-        if (!selectedBranchId.value) {
-            toast.warning('Silakan pilih toko terlebih dahulu.');
-            return;
-        }
-        if (!selectedCsUserId.value) {
-            toast.warning('Silakan pilih akun CS pelaksana terlebih dahulu.');
+        if (!selectedBranchId.value || !selectedCsUserId.value) {
+            toast.warning('Silakan pilih toko & CS terlebih dahulu.');
             return;
         }
         currentStep.value = 3;
+    } else if (step === 4) {
+        if (categoryType.value !== 'hp') return;
+        currentStep.value = 4;
+    } else if (step === 5) {
+        currentStep.value = 5;
+    } else if (step === 6) {
+        if (method.value === 'by_imei' && !selectedProductName.value) {
+            toast.warning('Silakan pilih tipe HP terlebih dahulu.');
+            return;
+        }
+        currentStep.value = 6;
     }
 };
 
-const proceedToStep2 = async () => {
+// Step 1 -> Step 2
+const proceedFromStep1 = async () => {
     if (!selectedBranchId.value) {
-        toast.warning('Silakan pilih toko terlebih dahulu.');
+        toast.warning('Silakan pilih toko / cabang terlebih dahulu.');
         return;
     }
     await fetchCsUsers();
     currentStep.value = 2;
 };
 
-const proceedToStep3 = async () => {
+// Step 2 -> Step 3
+const proceedFromStep2 = () => {
     if (!selectedCsUserId.value) {
         toast.warning('Silakan pilih akun CS pelaksana.');
         return;
     }
+    currentStep.value = 3;
+};
+
+// Step 3 (Category Selection)
+const selectCategory = (cat) => {
+    categoryType.value = cat;
     selectedBrand.value = '';
     selectedCondition.value = 'all';
     selectedProductName.value = '';
     searchType.value = '';
-    excessItems.value = [];
-    photoPreviews.value = [];
-    await fetchPendingItems();
-    currentStep.value = 3;
+
+    if (cat === 'hp') {
+        currentStep.value = 4; // Go to Choose Method
+    } else {
+        method.value = 'by_unit';
+        fetchPendingItems();
+        currentStep.value = 5; // Go to Brand selection for non-hp
+    }
 };
 
-// Select Tipe for SO by IMEI
-const selectType = (typeName) => {
-    selectedProductName.value = typeName;
-    fetchPendingItems();
-};
-
-const clearSelectedType = () => {
+// Step 4 (Method Selection for HP)
+const selectMethod = (m) => {
+    method.value = m;
     selectedProductName.value = '';
-    pendingItems.value = [];
+    selectedCondition.value = 'all';
+    searchType.value = '';
     fetchPendingItems();
+    currentStep.value = 5; // Go to Step 5 (Brand & Kondisi if by_unit, Tipe HP if by_imei)
+};
+
+// Step 5A (Brand & Condition for by_unit -> Step 6)
+const proceedFromStep5Unit = async () => {
+    await fetchPendingItems();
+    currentStep.value = 6;
+};
+
+// Step 5B (Type Selection for by_imei -> Step 6)
+const selectTypeAndProceed = async (typeName) => {
+    selectedProductName.value = typeName;
+    await fetchPendingItems();
+    currentStep.value = 6;
+};
+
+const changeSelectedType = () => {
+    selectedProductName.value = '';
+    currentStep.value = 5;
 };
 
 // Watchers
@@ -344,44 +411,6 @@ watch(selectedBranchId, () => {
     selectedCondition.value = 'all';
     selectedProductName.value = '';
     fetchCsUsers();
-    if (currentStep.value === 3) {
-        fetchPendingItems();
-    }
-});
-
-watch(categoryType, (newVal) => {
-    selectedBrand.value = '';
-    selectedCondition.value = 'all';
-    selectedProductName.value = '';
-    searchType.value = '';
-    if (newVal === 'non_hp') {
-        method.value = 'by_unit';
-    }
-    if (currentStep.value === 3) {
-        fetchPendingItems();
-    }
-});
-
-watch(method, () => {
-    selectedProductName.value = '';
-    selectedCondition.value = 'all';
-    searchType.value = '';
-    if (currentStep.value === 3) {
-        fetchPendingItems();
-    }
-});
-
-watch(selectedBrand, () => {
-    selectedProductName.value = '';
-    if (currentStep.value === 3) {
-        fetchPendingItems();
-    }
-});
-
-watch(selectedCondition, () => {
-    if (method.value === 'by_unit' && currentStep.value === 3) {
-        fetchPendingItems();
-    }
 });
 
 // Calculations & Quick Actions
@@ -617,7 +646,7 @@ onMounted(async () => {
                     </h1>
                 </div>
                 <p class="text-text-secondary text-xs sm:text-sm mt-1 ml-10">
-                    Pemeriksaan & pencatatan fisik stok toko harian
+                    Pemeriksaan & pencatatan fisik stok toko harian (Reset 05:00 AM)
                 </p>
             </div>
 
@@ -630,31 +659,31 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- 3-STEP WIZARD NAV -->
+        <!-- PROGRESS STEPPER BAR -->
         <div class="bg-white dark:bg-surface-800 rounded-2xl p-3 border border-surface-200 dark:border-surface-700 shadow-sm shrink-0 overflow-x-auto custom-scrollbar">
-            <div class="flex items-center justify-between relative px-4 sm:px-12 max-w-2xl mx-auto">
-                <div v-for="step in 3" :key="step" class="z-10 flex flex-col items-center gap-1.5 py-1">
-                    <button type="button" @click="goToStep(step)"
-                        class="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-black transition-all cursor-pointer text-xs sm:text-sm"
-                        :class="currentStep === step ? 'bg-emerald-600 text-white shadow-lg ring-4 ring-emerald-500/20' : step < currentStep ? 'bg-emerald-500 text-white' : 'bg-surface-100 dark:bg-surface-900 text-text-secondary opacity-50'">
-                        <CheckCircle2 v-if="step < currentStep" :size="18" />
-                        <span v-else>{{ step }}</span>
+            <div class="flex items-center justify-between relative px-2 sm:px-6 max-w-4xl mx-auto min-w-[580px]">
+                <div v-for="(s, sIdx) in activeSteps" :key="s.step" class="z-10 flex flex-col items-center gap-1.5 py-1 flex-1">
+                    <button type="button" @click="goToStep(s.step)"
+                        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center font-black transition-all cursor-pointer text-xs"
+                        :class="currentStep === s.step ? 'bg-emerald-600 text-white shadow-lg ring-4 ring-emerald-500/20' : s.step < currentStep ? 'bg-emerald-500 text-white' : 'bg-surface-100 dark:bg-surface-900 text-text-secondary opacity-50'">
+                        <CheckCircle2 v-if="s.step < currentStep" :size="16" />
+                        <span v-else>{{ sIdx + 1 }}</span>
                     </button>
-                    <span class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-center"
-                        :class="currentStep === step ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary opacity-60'">
-                        {{ ['1. Pilih Toko', '2. Pilih CS', '3. Pemeriksaan Stok'][step - 1] }}
+                    <span class="text-[10px] font-black uppercase tracking-wider text-center truncate max-w-[100px]"
+                        :class="currentStep === s.step ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-secondary opacity-60'">
+                        {{ s.label }}
                     </span>
                 </div>
                 <!-- Connector line behind steps -->
-                <div class="absolute left-12 right-12 top-5 -translate-y-1/2 h-0.5 -z-0 bg-surface-200 dark:bg-surface-700">
+                <div class="absolute left-10 right-10 top-4 sm:top-4.5 -translate-y-1/2 h-0.5 -z-0 bg-surface-200 dark:bg-surface-700">
                     <div class="h-full bg-emerald-500 transition-all duration-300"
-                        :style="{ width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%' }"></div>
+                        :style="{ width: progressPercentage + '%' }"></div>
                 </div>
             </div>
         </div>
 
         <!-- ========================================== -->
-        <!-- STEP 1: PILIH TOKO (CABANG)                -->
+        <!-- STEP 1: PILIH TOKO                         -->
         <!-- ========================================== -->
         <div v-if="currentStep === 1" class="flex items-center justify-center p-2 sm:p-0 my-4">
             <div class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
@@ -669,7 +698,7 @@ onMounted(async () => {
                         1. Pilih Toko / Cabang
                     </h2>
                     <p class="text-text-secondary text-center mb-6 font-medium text-xs sm:text-sm">
-                        Silakan pilih toko atau cabang tempat fisik stok akan diperiksa.
+                        Silakan pilih toko atau cabang tempat fisik stok akan diperiksa hari ini.
                     </p>
 
                     <div class="space-y-4">
@@ -702,7 +731,7 @@ onMounted(async () => {
                             <button v-for="b in filteredBranches" :key="b.id"
                                 type="button"
                                 @click="selectedBranchId = b.id"
-                                @dblclick="proceedToStep2"
+                                @dblclick="proceedFromStep1"
                                 class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
                                 :class="selectedBranchId === b.id ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
                                 <div class="flex items-center gap-3 min-w-0 pr-6">
@@ -728,7 +757,7 @@ onMounted(async () => {
                     </div>
 
                     <!-- Continue to Step 2 Button -->
-                    <button type="button" @click="proceedToStep2"
+                    <button type="button" @click="proceedFromStep1"
                         :disabled="!selectedBranchId"
                         class="w-full mt-8 h-12 sm:h-14 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
                         <span>Lanjutkan ke Pilih CS</span>
@@ -759,7 +788,7 @@ onMounted(async () => {
                             </div>
                         </div>
                         <button type="button" @click="currentStep = 1"
-                            class="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0 flex items-center gap-1">
+                            class="text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0 flex items-center gap-1 cursor-pointer">
                             <ArrowLeft :size="13" />
                             <span>Ganti Toko</span>
                         </button>
@@ -830,7 +859,7 @@ onMounted(async () => {
                             <button v-for="u in filteredCsUsers" :key="u.id"
                                 type="button"
                                 @click="selectedCsUserId = u.id; passwordVerified = false"
-                                @dblclick="proceedToStep3"
+                                @dblclick="proceedFromStep2"
                                 class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
                                 :class="selectedCsUserId === u.id ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20' : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-surface-300 dark:hover:border-surface-600'">
                                 <div class="flex items-center gap-3 min-w-0 pr-6">
@@ -860,14 +889,14 @@ onMounted(async () => {
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-3 mt-8">
                         <button type="button" @click="currentStep = 1"
-                            class="px-5 h-12 sm:h-14 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center justify-center gap-2">
+                            class="px-5 h-12 sm:h-14 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <ArrowLeft :size="16" />
-                            <span>Kembali</span>
+                            <span>Kembali ke Toko</span>
                         </button>
-                        <button type="button" @click="proceedToStep3"
+                        <button type="button" @click="proceedFromStep2"
                             :disabled="!selectedCsUserId"
                             class="flex-1 h-12 sm:h-14 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
-                            <span>Lanjutkan ke Pemeriksaan Stok</span>
+                            <span>Lanjutkan ke Pilih Kategori</span>
                             <ArrowRight :size="20" stroke-width="2.5" />
                         </button>
                     </div>
@@ -876,10 +905,405 @@ onMounted(async () => {
         </div>
 
         <!-- ========================================== -->
-        <!-- STEP 3: PEMERIKSAAN STOK                   -->
+        <!-- STEP 3: PILIH HP / NON-HP                  -->
         <!-- ========================================== -->
-        <div v-else-if="currentStep === 3" class="space-y-6">
-            <!-- Active Context Header Banner -->
+        <div v-else-if="currentStep === 3" class="flex items-center justify-center p-2 sm:p-0 my-4">
+            <div class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <!-- Context Pill -->
+                    <div class="mb-6 p-3 rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 flex items-center justify-between text-xs">
+                        <div class="truncate">
+                            <span class="text-text-secondary">Toko:</span>
+                            <strong class="text-text-primary ml-1">{{ activeBranch?.name }}</strong>
+                            <span class="mx-2 text-surface-400">•</span>
+                            <span class="text-text-secondary">CS:</span>
+                            <strong class="text-text-primary ml-1">{{ activeCsUser?.name }}</strong>
+                        </div>
+                        <button type="button" @click="currentStep = 2" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                            Ganti CS
+                        </button>
+                    </div>
+
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-8 ring-emerald-500/10">
+                        <Smartphone class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-2">
+                        3. Pilih Kategori Barang
+                    </h2>
+                    <p class="text-text-secondary text-center mb-8 font-medium text-xs sm:text-sm">
+                        Pilih jenis barang yang akan diperiksa stok fisiknya di toko hari ini.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Card HP -->
+                        <button type="button" @click="selectCategory('hp')"
+                            class="p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-3 group cursor-pointer text-left"
+                            :class="categoryType === 'hp' ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-lg ring-2 ring-emerald-500/20' : 'border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/20'">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <Smartphone :size="28" />
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Dengan IMEI
+                                </span>
+                                <h3 class="text-base sm:text-lg font-black text-text-primary mt-2">HP (Smartphone)</h3>
+                                <p class="text-xs text-text-secondary mt-1">
+                                    iPhone, Samsung, Xiaomi, dan unit smartphone lain yang memiliki nomor IMEI.
+                                </p>
+                            </div>
+                            <div class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                <span>Pilih HP</span>
+                                <ArrowRight :size="14" />
+                            </div>
+                        </button>
+
+                        <!-- Card Non-HP -->
+                        <button type="button" @click="selectCategory('non_hp')"
+                            class="p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-3 group cursor-pointer text-left"
+                            :class="categoryType === 'non_hp' ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-lg ring-2 ring-emerald-500/20' : 'border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/20'">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <Package :size="28" />
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Tanpa IMEI
+                                </span>
+                                <h3 class="text-base sm:text-lg font-black text-text-primary mt-2">Non-HP / Aksesoris</h3>
+                                <p class="text-xs text-text-secondary mt-1">
+                                    Charger, kabel, casing, TWS, tempered glass, dan barang non-HP lainnya.
+                                </p>
+                            </div>
+                            <div class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                <span>Pilih Non-HP</span>
+                                <ArrowRight :size="14" />
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Back Button -->
+                    <div class="flex items-center justify-start mt-8">
+                        <button type="button" @click="currentStep = 2"
+                            class="px-5 h-12 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <ArrowLeft :size="16" />
+                            <span>Kembali ke Pilih CS</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 4: PILIH SO BY UNIT / SO BY IMEI      -->
+        <!-- ========================================== -->
+        <div v-else-if="currentStep === 4" class="flex items-center justify-center p-2 sm:p-0 my-4">
+            <div class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <!-- Context Pill -->
+                    <div class="mb-6 p-3 rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 flex items-center justify-between text-xs">
+                        <div class="truncate">
+                            <span class="text-text-secondary">Toko:</span>
+                            <strong class="text-text-primary ml-1">{{ activeBranch?.name }}</strong>
+                            <span class="mx-2 text-surface-400">•</span>
+                            <span class="text-text-secondary">Kategori:</span>
+                            <strong class="text-emerald-600 dark:text-emerald-400 ml-1">HP (IMEI)</strong>
+                        </div>
+                        <button type="button" @click="currentStep = 3" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                            Ganti Kategori
+                        </button>
+                    </div>
+
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-8 ring-emerald-500/10">
+                        <Layers class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-2">
+                        4. Pilih Metode Stok Opname
+                    </h2>
+                    <p class="text-text-secondary text-center mb-8 font-medium text-xs sm:text-sm">
+                        Pilih cara pemeriksaan unit smartphone yang tersedia di cabang toko.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- SO by Unit -->
+                        <button type="button" @click="selectMethod('by_unit')"
+                            class="p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-3 group cursor-pointer text-left"
+                            :class="method === 'by_unit' ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-lg ring-2 ring-emerald-500/20' : 'border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/20'">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <Layers :size="28" />
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Hitung Kuantitas
+                                </span>
+                                <h3 class="text-base sm:text-lg font-black text-text-primary mt-2">SO by Unit</h3>
+                                <p class="text-xs text-text-secondary mt-1">
+                                    Hitung total unit fisik berdasarkan brand, tipe, dan kondisi (Baru/Second). Cepat & ringkas.
+                                </p>
+                            </div>
+                            <div class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                <span>Pilih SO by Unit</span>
+                                <ArrowRight :size="14" />
+                            </div>
+                        </button>
+
+                        <!-- SO by IMEI -->
+                        <button type="button" @click="selectMethod('by_imei')"
+                            class="p-5 sm:p-6 rounded-2xl border-2 transition-all flex flex-col items-center text-center gap-3 group cursor-pointer text-left"
+                            :class="method === 'by_imei' ? 'border-emerald-600 bg-emerald-50/60 dark:bg-emerald-950/30 shadow-lg ring-2 ring-emerald-500/20' : 'border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/20'">
+                            <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <QrCode :size="28" />
+                            </div>
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                                    Checklist Seri
+                                </span>
+                                <h3 class="text-base sm:text-lg font-black text-text-primary mt-2">SO by IMEI</h3>
+                                <p class="text-xs text-text-secondary mt-1">
+                                    Pilih tipe HP lalu periksa dan checklist nomor IMEI fisik satu per satu. Detail & akurat.
+                                </p>
+                            </div>
+                            <div class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                <span>Pilih SO by IMEI</span>
+                                <ArrowRight :size="14" />
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Back Button -->
+                    <div class="flex items-center justify-start mt-8">
+                        <button type="button" @click="currentStep = 3"
+                            class="px-5 h-12 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <ArrowLeft :size="16" />
+                            <span>Kembali ke Pilih Kategori</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 5A: PILIH BRAND & KONDISI (SO BY UNIT)-->
+        <!-- ========================================== -->
+        <div v-else-if="currentStep === 5 && method === 'by_unit'" class="flex items-center justify-center p-2 sm:p-0 my-4">
+            <div class="w-full max-w-2xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <!-- Context Pill -->
+                    <div class="mb-6 p-3 rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 flex items-center justify-between text-xs">
+                        <div class="truncate">
+                            <span class="text-text-secondary">Toko:</span>
+                            <strong class="text-text-primary ml-1">{{ activeBranch?.name }}</strong>
+                            <span class="mx-2 text-surface-400">•</span>
+                            <span class="text-text-secondary">Metode:</span>
+                            <strong class="text-emerald-600 dark:text-emerald-400 ml-1">
+                                {{ categoryType === 'hp' ? 'HP by Unit' : 'Non-HP / Aksesoris' }}
+                            </strong>
+                        </div>
+                        <button type="button" @click="currentStep = (categoryType === 'hp' ? 4 : 3)" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                            Ubah Metode
+                        </button>
+                    </div>
+
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-8 ring-emerald-500/10">
+                        <Layers class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-2">
+                        5. Pilih Brand & Kondisi
+                    </h2>
+                    <p class="text-text-secondary text-center mb-6 font-medium text-xs sm:text-sm">
+                        Pilih brand dan kondisi unit yang akan dihitung fisik tokonya.
+                    </p>
+
+                    <!-- Brand Selection -->
+                    <div class="space-y-2 mb-6">
+                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider">
+                            Pilih Brand (Merek)
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="selectedBrand = ''; fetchPendingItems()"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer"
+                                :class="selectedBrand === '' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                                Semua Brand
+                            </button>
+                            <button v-for="b in availableBrands" :key="b.brand" type="button" @click="selectedBrand = b.brand; fetchPendingItems()"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="selectedBrand === b.brand ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                                <span>{{ b.brand }}</span>
+                                <span class="text-[10px] px-1.5 py-0.2 rounded-full"
+                                    :class="selectedBrand === b.brand ? 'bg-emerald-700 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                                    {{ b.count }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Condition Selection (Only for HP) -->
+                    <div v-if="categoryType === 'hp'" class="space-y-2 mb-6">
+                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider">
+                            Pilih Kondisi Unit
+                        </label>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" @click="selectedCondition = 'all'; fetchPendingItems()"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer"
+                                :class="selectedCondition === 'all' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                                Semua Kondisi
+                            </button>
+                            <button type="button" @click="selectedCondition = 'new'; fetchPendingItems()"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="selectedCondition === 'new' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                                <span>Baru (New)</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full"
+                                    :class="selectedCondition === 'new' ? 'bg-emerald-700 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                                    {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
+                                </span>
+                            </button>
+                            <button type="button" @click="selectedCondition = 'second'; fetchPendingItems()"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="selectedCondition === 'second' ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                                <span>Second (Bekas)</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'second')" class="text-[10px] px-1.5 py-0.2 rounded-full"
+                                    :class="selectedCondition === 'second' ? 'bg-emerald-700 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                                    {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Box -->
+                    <div class="p-4 rounded-2xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 flex items-center justify-between gap-3">
+                        <div class="text-xs text-text-secondary">
+                            <span>Stok sistem siap diperiksa:</span>
+                            <strong class="ml-1 text-sm font-black text-text-primary">{{ pendingItems.length }} item ({{ totalAvailableUnits }} unit)</strong>
+                        </div>
+                        <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Siap Dihitung</span>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-3 mt-8">
+                        <button type="button" @click="currentStep = (categoryType === 'hp' ? 4 : 3)"
+                            class="px-5 h-12 sm:h-14 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <ArrowLeft :size="16" />
+                            <span>Kembali</span>
+                        </button>
+                        <button type="button" @click="proceedFromStep5Unit"
+                            class="flex-1 h-12 sm:h-14 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                            <span>Mulai Perhitungan Fisik</span>
+                            <ArrowRight :size="20" stroke-width="2.5" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 5B: PILIH TIPE HP (SO BY IMEI)        -->
+        <!-- ========================================== -->
+        <div v-else-if="currentStep === 5 && method === 'by_imei'" class="flex items-center justify-center p-2 sm:p-0 my-4">
+            <div class="w-full max-w-3xl bg-white dark:bg-surface-800 rounded-[2rem] sm:rounded-[2.5rem] border border-surface-200 dark:border-surface-700 p-6 sm:p-10 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none"></div>
+
+                <div class="relative z-10">
+                    <!-- Context Pill -->
+                    <div class="mb-6 p-3 rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 flex items-center justify-between text-xs">
+                        <div class="truncate">
+                            <span class="text-text-secondary">Toko:</span>
+                            <strong class="text-text-primary ml-1">{{ activeBranch?.name }}</strong>
+                            <span class="mx-2 text-surface-400">•</span>
+                            <span class="text-text-secondary">Metode:</span>
+                            <strong class="text-emerald-600 dark:text-emerald-400 ml-1">SO by IMEI</strong>
+                        </div>
+                        <button type="button" @click="currentStep = 4" class="text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                            Ganti Metode
+                        </button>
+                    </div>
+
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl flex items-center justify-center mb-6 mx-auto ring-8 ring-emerald-500/10">
+                        <Smartphone class="text-emerald-600 dark:text-emerald-400" :size="36" stroke-width="2.5" />
+                    </div>
+
+                    <h2 class="text-2xl sm:text-3xl font-black text-text-primary text-center mb-2">
+                        5. Pilih Tipe HP
+                    </h2>
+                    <p class="text-text-secondary text-center mb-6 font-medium text-xs sm:text-sm">
+                        Pilih salah satu tipe HP di bawah untuk memulai checklist nomor IMEI unit fisik.
+                    </p>
+
+                    <!-- Quick Brand Filter for Types -->
+                    <div class="flex flex-wrap items-center gap-1.5 mb-4">
+                        <button type="button" @click="selectedBrand = ''; fetchPendingItems()"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer"
+                            :class="selectedBrand === '' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                            Semua Brand
+                        </button>
+                        <button v-for="b in availableBrands" :key="b.brand" type="button" @click="selectedBrand = b.brand; fetchPendingItems()"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                            :class="selectedBrand === b.brand ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-surface-50 dark:bg-surface-900 text-text-secondary border-surface-200 dark:border-surface-700 hover:border-emerald-500'">
+                            <span>{{ b.brand }}</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded-full"
+                                :class="selectedBrand === b.brand ? 'bg-emerald-700 text-white' : 'bg-surface-200 dark:bg-surface-700 text-text-secondary'">
+                                {{ b.count }}
+                            </span>
+                        </button>
+                    </div>
+
+                    <!-- Search Type Input -->
+                    <div class="relative mb-4">
+                        <input v-model="searchType" type="text" placeholder="Cari nama tipe HP (contoh: iPhone 11, Samsung S24)..."
+                            class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-emerald-500 focus:outline-none transition-all" />
+                        <Search :size="18" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
+                    </div>
+
+                    <!-- Types Cards Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+                        <div v-if="filteredAvailableTypes.length === 0" class="col-span-full py-12 text-center text-text-secondary text-xs">
+                            Tidak ada tipe HP yang perlu di-SO untuk filter ini.
+                        </div>
+                        <button v-for="t in filteredAvailableTypes" :key="t.product_name"
+                            type="button"
+                            @click="selectTypeAndProceed(t.product_name)"
+                            class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between gap-3 group cursor-pointer"
+                            :class="selectedProductName === t.product_name ? 'border-emerald-600 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20' : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/20'">
+                            <div class="min-w-0 flex-1">
+                                <span class="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                                    {{ t.brand || 'HP' }}
+                                </span>
+                                <div class="font-black text-xs sm:text-sm text-text-primary truncate group-hover:text-emerald-600 transition-colors mt-0.5">
+                                    {{ t.product_name }}
+                                </div>
+                            </div>
+                            <div class="shrink-0 flex flex-col items-end gap-1">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">
+                                    {{ t.count }} unit
+                                </span>
+                                <ArrowRight :size="14" class="text-text-secondary group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" />
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Back Button -->
+                    <div class="flex items-center justify-start mt-8">
+                        <button type="button" @click="currentStep = 4"
+                            class="px-5 h-12 rounded-2xl border border-gray-200 dark:border-surface-600 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-gray-50 dark:hover:bg-surface-700 transition-all flex items-center gap-2 cursor-pointer">
+                            <ArrowLeft :size="16" />
+                            <span>Kembali ke Pilih Metode</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- STEP 6: PEMERIKSAAN FISIK STOK             -->
+        <!-- ========================================== -->
+        <div v-else-if="currentStep === 6" class="space-y-6">
+            <!-- Active Context Banner -->
             <div class="bg-white dark:!bg-surface-800 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
@@ -910,15 +1334,34 @@ onMounted(async () => {
                         <p class="text-xs text-text-secondary mt-0.5 flex items-center gap-1.5 flex-wrap">
                             <span>Pelaksana:</span>
                             <strong class="text-text-primary">{{ activeCsUser?.name || 'CS' }}</strong>
-                            <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
-                                :class="isAudit ? 'text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/40' : isLeader ? 'text-sky-700 dark:text-sky-300 bg-sky-100 dark:bg-sky-900/40' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/40'">
-                                {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'CS' }}
+                            <span class="mx-1.5 text-surface-400">•</span>
+                            <span class="font-bold text-emerald-600 dark:text-emerald-400">
+                                <template v-if="categoryType === 'hp' && method === 'by_imei'">
+                                    Tipe: {{ selectedProductName }} ({{ pendingItems.length }} unit)
+                                </template>
+                                <template v-else-if="categoryType === 'hp'">
+                                    SO by Unit • {{ selectedBrand || 'Semua Brand' }} ({{ selectedCondition === 'all' ? 'Semua Kondisi' : selectedCondition === 'new' ? 'Baru' : 'Second' }})
+                                </template>
+                                <template v-else>
+                                    Non-HP • {{ selectedBrand || 'Semua Brand' }}
+                                </template>
                             </span>
                         </p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2 self-stretch sm:self-auto">
+                <!-- Fast Navigation Buttons -->
+                <div class="flex items-center gap-2 self-stretch sm:self-auto flex-wrap">
+                    <button v-if="method === 'by_imei'" type="button" @click="changeSelectedType"
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer">
+                        <Smartphone :size="13" />
+                        <span>Ganti Tipe HP</span>
+                    </button>
+                    <button v-else type="button" @click="currentStep = 5"
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer">
+                        <Layers :size="13" />
+                        <span>Ubah Brand / Kondisi</span>
+                    </button>
                     <button type="button" @click="currentStep = 2"
                         class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700 hover:border-emerald-500 transition-all cursor-pointer">
                         <User :size="13" />
@@ -932,231 +1375,12 @@ onMounted(async () => {
                 </div>
             </div>
 
-            <!-- Configuration & Filter Controls (Strict Sequence) -->
-            <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-5">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div>
-                        <h2 class="text-sm sm:text-base font-bold text-text-primary flex items-center gap-2">
-                            <Smartphone :size="18" class="text-emerald-500" />
-                            <span>Metode Pemeriksaan Stok</span>
-                        </h2>
-                        <span class="text-[11px] text-text-secondary flex items-center gap-1 mt-0.5">
-                            <span>Siklus harian aktif • Reset otomatis pukul</span>
-                            <strong class="text-emerald-600 dark:text-emerald-400">05:00 AM</strong>
-                        </span>
-                    </div>
-
-                    <!-- Status Sisa Unit Belum SO -->
-                    <div v-if="loadingItems" class="text-xs font-medium text-gray-400 flex items-center gap-1.5 bg-gray-50 dark:bg-surface-700/60 px-3 py-1.5 rounded-lg border border-gray-200/60 dark:border-surface-600">
-                        <RefreshCw :size="13" class="animate-spin text-emerald-500" />
-                        <span>Memeriksa stok sistem...</span>
-                    </div>
-                    <div v-else-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName" class="text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5"
-                        :class="isAudit ? 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800' : isLeader ? 'text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800' : 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800'">
-                        <CheckCircle2 :size="14" />
-                        <span>Semua unit sudah di-{{ isAudit ? 'SO Audit' : isLeader ? 'SO Leader' : 'SO' }} hari ini (Reset 05:00 AM) ✅</span>
-                    </div>
-                    <div v-else class="text-xs font-medium text-text-secondary bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800/60">
-                        Belum di-SO hari ini: <span class="font-bold text-amber-700 dark:text-amber-300">{{ totalAvailableUnits }} unit</span>
-                    </div>
-                </div>
-
-                <!-- 1. PILIH HP / NON-HP & 2. PILIH SO BY UNIT / SO BY IMEI -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- 1. PILIH HP / NON-HP -->
-                    <div class="space-y-1.5">
-                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider">
-                            1. Pilih Kategori Barang
-                        </label>
-                        <div class="flex items-center p-1 bg-gray-100 dark:bg-surface-700 rounded-xl border border-gray-200 dark:border-surface-600">
-                            <button type="button" @click="categoryType = 'hp'"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all"
-                                :class="categoryType === 'hp' ? 'bg-white dark:bg-surface-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                                <Smartphone :size="16" />
-                                <span>HP (IMEI)</span>
-                            </button>
-                            <button type="button" @click="categoryType = 'non_hp'"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all"
-                                :class="categoryType === 'non_hp' ? 'bg-white dark:bg-surface-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                                <Package :size="16" />
-                                <span>Non-HP / Aksesoris</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 2. PILIH SO BY UNIT / SO BY IMEI -->
-                    <div v-if="categoryType === 'hp'" class="space-y-1.5">
-                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider">
-                            2. Pilih Metode Stok Opname
-                        </label>
-                        <div class="flex items-center p-1 bg-gray-100 dark:bg-surface-700 rounded-xl border border-gray-200 dark:border-surface-600">
-                            <button type="button" @click="method = 'by_unit'"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all"
-                                :class="method === 'by_unit' ? 'bg-white dark:bg-surface-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                                <Layers :size="16" />
-                                <span>SO by Unit</span>
-                            </button>
-                            <button type="button" @click="method = 'by_imei'"
-                                class="flex-1 flex items-center justify-center gap-2 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all"
-                                :class="method === 'by_imei' ? 'bg-white dark:bg-surface-800 text-emerald-600 dark:text-emerald-400 shadow-sm' : 'text-text-secondary hover:text-text-primary'">
-                                <QrCode :size="16" />
-                                <span>SO by IMEI</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3A. JIKA SO BY UNIT: PILIH BRAND & PILIH KONDISI -->
-                <div v-if="method === 'by_unit'" class="space-y-4 pt-3 border-t border-gray-100 dark:border-surface-700">
-                    <!-- PILIH BRAND -->
-                    <div>
-                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider mb-2">
-                            Pilih Brand (Merek)
-                        </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" @click="selectedBrand = ''"
-                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                :class="selectedBrand === '' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600 hover:border-emerald-500'">
-                                Semua Brand
-                            </button>
-                            <button v-for="b in availableBrands" :key="b.brand" type="button" @click="selectedBrand = b.brand"
-                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5"
-                                :class="selectedBrand === b.brand ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600 hover:border-emerald-500'">
-                                <span>{{ b.brand }}</span>
-                                <span class="text-[10px] px-1.5 py-0.2 rounded-full"
-                                    :class="selectedBrand === b.brand ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-surface-600 text-text-secondary'">
-                                    {{ b.count }}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- PILIH KONDISI (BARU / SECOND) -->
-                    <div v-if="categoryType === 'hp'">
-                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider mb-2">
-                            Pilih Kondisi Unit
-                        </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" @click="selectedCondition = 'all'"
-                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border"
-                                :class="selectedCondition === 'all' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600 hover:border-emerald-500'">
-                                Semua Kondisi
-                            </button>
-                            <button type="button" @click="selectedCondition = 'new'"
-                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5"
-                                :class="selectedCondition === 'new' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600 hover:border-emerald-500'">
-                                <span>Baru (New)</span>
-                                <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full"
-                                    :class="selectedCondition === 'new' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-surface-600 text-text-secondary'">
-                                    {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
-                                </span>
-                            </button>
-                            <button type="button" @click="selectedCondition = 'second'"
-                                class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5"
-                                :class="selectedCondition === 'second' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600 hover:border-emerald-500'">
-                                <span>Second (Bekas)</span>
-                                <span v-if="availableConditions.find(c => c.condition === 'second')" class="text-[10px] px-1.5 py-0.2 rounded-full"
-                                    :class="selectedCondition === 'second' ? 'bg-emerald-700 text-white' : 'bg-gray-100 dark:bg-surface-600 text-text-secondary'">
-                                    {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3B. JIKA SO BY IMEI: PILIH TIPE HP (DEDICATED SELECTOR) -->
-                <div v-else-if="method === 'by_imei'" class="space-y-4 pt-3 border-t border-gray-100 dark:border-surface-700">
-                    <div>
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
-                            <div>
-                                <label class="block text-xs font-black text-text-secondary uppercase tracking-wider">
-                                    Pilih Tipe HP
-                                </label>
-                                <p class="text-[11px] text-text-secondary">
-                                    Pilih salah satu tipe HP untuk melakukan checklist nomor IMEI unit fisik.
-                                </p>
-                            </div>
-
-                            <!-- Optional Brand Quick Filter for Types -->
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <button type="button" @click="selectedBrand = ''"
-                                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border"
-                                    :class="selectedBrand === '' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600'">
-                                    Semua
-                                </button>
-                                <button v-for="b in availableBrands" :key="b.brand" type="button" @click="selectedBrand = b.brand"
-                                    class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all border"
-                                    :class="selectedBrand === b.brand ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 dark:bg-surface-700 text-text-secondary border-gray-200 dark:border-surface-600'">
-                                    {{ b.brand }}
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Active Selected Type Banner (If selected) -->
-                        <div v-if="selectedProductName" class="p-3.5 sm:p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm mb-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">
-                                    <Smartphone :size="20" />
-                                </div>
-                                <div>
-                                    <div class="text-xs uppercase font-bold text-emerald-700 dark:text-emerald-300">Tipe Terpilih</div>
-                                    <div class="text-base sm:text-lg font-black text-text-primary tracking-tight">
-                                        {{ selectedProductName }}
-                                    </div>
-                                    <div class="text-xs text-text-secondary">
-                                        {{ pendingItems.length }} unit IMEI belum di-SO
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" @click="clearSelectedType"
-                                class="px-3.5 py-2 rounded-xl bg-white dark:bg-surface-800 border border-emerald-300 dark:border-emerald-700 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer self-stretch sm:self-auto flex items-center justify-center gap-1.5">
-                                <RefreshCw :size="13" />
-                                <span>Ganti Tipe HP</span>
-                            </button>
-                        </div>
-
-                        <!-- Search Type Input -->
-                        <div v-if="!selectedProductName" class="space-y-3">
-                            <div class="relative max-w-md">
-                                <input v-model="searchType" type="text" placeholder="Cari tipe HP (contoh: iPhone 11, Samsung S24)..."
-                                    class="w-full px-4 py-2 pl-9 text-xs rounded-xl bg-surface-50 dark:bg-surface-900 border border-surface-200 dark:border-surface-700 text-text-primary placeholder:text-text-secondary focus:border-emerald-500 focus:outline-none transition-all" />
-                                <Search :size="15" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
-                            </div>
-
-                            <!-- Phone Types Cards Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                                <div v-if="filteredAvailableTypes.length === 0" class="col-span-full py-6 text-center text-text-secondary text-xs">
-                                    Tidak ada tipe HP yang perlu di-SO untuk filter ini.
-                                </div>
-                                <button v-for="t in filteredAvailableTypes" :key="t.product_name"
-                                    type="button"
-                                    @click="selectType(t.product_name)"
-                                    class="p-3 rounded-xl border transition-all text-left flex items-center justify-between gap-2.5 group cursor-pointer"
-                                    :class="selectedProductName === t.product_name ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40' : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 hover:border-emerald-500 hover:bg-emerald-50/30'">
-                                    <div class="min-w-0 flex-1">
-                                        <div class="font-bold text-xs text-text-primary truncate group-hover:text-emerald-600 transition-colors">
-                                            {{ t.product_name }}
-                                        </div>
-                                        <div class="text-[10px] text-text-secondary font-medium">
-                                            {{ t.brand || 'HP' }}
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 shrink-0">
-                                        {{ t.count }} unit
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Section: Daftar Barang yang Di-SO (Tabel by Unit ATAU Checklist by IMEI) -->
+            <!-- Examination Content (Tabel by Unit ATAU Checklist by IMEI) -->
             <div class="bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                         <h2 class="text-base font-bold text-text-primary">
-                            {{ method === 'by_imei' ? 'Checklist IMEI Fisik' : 'Perhitungan Unit Fisik' }}
+                            {{ method === 'by_imei' ? 'Checklist IMEI Fisik: ' + selectedProductName : 'Perhitungan Unit Fisik Toko' }}
                         </h2>
                         <p class="text-xs text-text-secondary mt-0.5">
                             {{ method === 'by_imei' ? 'Tandai Ada ✅ jika unit fisik ditemukan di toko, atau ❌ jika tidak ada' : 'Masukkan jumlah fisik unit yang ditemukan di toko' }}
@@ -1166,17 +1390,17 @@ onMounted(async () => {
                     <!-- Quick Action Buttons -->
                     <div class="flex items-center gap-2 self-stretch sm:self-auto">
                         <button v-if="method === 'by_unit' && pendingItems.length > 0" type="button" @click="fillAllMatchingSystem"
-                            class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 bg-gray-50 dark:bg-surface-700 text-xs font-semibold text-text-secondary hover:text-text-primary hover:border-emerald-500 transition-all">
+                            class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 bg-gray-50 dark:bg-surface-700 text-xs font-semibold text-text-secondary hover:text-text-primary hover:border-emerald-500 transition-all cursor-pointer">
                             Isi Sesuai Sistem
                         </button>
                         <template v-else-if="method === 'by_imei' && pendingItems.length > 0">
                             <button type="button" @click="markAllPresent(true)"
-                                class="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1">
+                                class="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1 cursor-pointer">
                                 <Check :size="14" />
                                 <span>Semua Ada ✅</span>
                             </button>
                             <button type="button" @click="markAllPresent(false)"
-                                class="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-100 transition-all flex items-center gap-1">
+                                class="px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-100 transition-all flex items-center gap-1 cursor-pointer">
                                 <X :size="14" />
                                 <span>Semua Tidak Ada ❌</span>
                             </button>
@@ -1192,43 +1416,27 @@ onMounted(async () => {
 
                 <!-- Empty State -->
                 <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-text-secondary bg-gray-50/50 dark:bg-surface-900/30 rounded-xl border border-dashed border-gray-200 dark:border-surface-700 px-4">
-                    <template v-if="totalAvailableUnits === 0 && !selectedBrand && !selectedProductName">
-                        <CheckCircle2 :size="38" class="mx-auto text-emerald-500 mb-2" />
-                        <p class="text-base font-bold text-text-primary">
-                            Semua Stok Sudah Selesai di-{{ isAudit ? 'SO Audit' : isLeader ? 'SO Leader' : 'SO' }} Hari Ini ✅
-                        </p>
-                        <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
-                            Seluruh unit fisik di cabang ini telah berhasil diperiksa oleh tim {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'Toko' }} dan tercatat di sistem. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
-                        </p>
-                        <div class="mt-4">
-                            <router-link to="/inventory/opname/history"
-                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all">
-                                <History :size="15" />
-                                <span>Buka History Stok Opname</span>
-                            </router-link>
-                        </div>
-                    </template>
-                    <template v-else-if="method === 'by_imei' && !selectedProductName">
-                        <Smartphone :size="32" class="mx-auto text-emerald-500/80 mb-2" />
-                        <p class="text-sm font-bold text-text-primary">
-                            Silakan pilih Tipe HP di atas untuk memulai checklist IMEI
-                        </p>
-                        <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
-                            Klik salah satu kartu tipe HP di bagian <strong>Pilih Tipe HP</strong> untuk menampilkan seluruh nomor IMEI yang tersedia.
-                        </p>
-                    </template>
-                    <template v-else>
-                        <Package :size="32" class="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
-                        <p class="text-sm font-semibold text-text-primary">
-                            Tidak ada barang yang perlu di-SO untuk filter ini
-                        </p>
-                        <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto">
-                            Semua barang untuk filter ini sudah selesai di-SO hari ini, atau stok di cabang ini sedang kosong.
-                        </p>
-                    </template>
+                    <CheckCircle2 :size="38" class="mx-auto text-emerald-500 mb-2" />
+                    <p class="text-base font-bold text-text-primary">
+                        Semua Unit Untuk Pilihan Ini Sudah Selesai di-SO Hari Ini ✅
+                    </p>
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
+                        Seluruh unit untuk filter ini telah tercatat di sistem hari ini. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
+                    </p>
+                    <div class="mt-4 flex items-center justify-center gap-2">
+                        <button type="button" @click="currentStep = 5"
+                            class="px-4 py-2 rounded-xl border border-gray-200 dark:border-surface-600 bg-white dark:bg-surface-800 text-xs font-bold text-text-primary hover:border-emerald-500 transition-all cursor-pointer">
+                            Pilih Brand / Tipe Lain
+                        </button>
+                        <router-link to="/inventory/opname/history"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all">
+                            <History :size="15" />
+                            <span>Buka History Stok Opname</span>
+                        </router-link>
+                    </div>
                 </div>
 
-                <!-- CASE A: STOK BY UNIT (TABEL DENGAN KOLOM KONDISI) -->
+                <!-- CASE A: STOK BY UNIT (TABEL PERHITUNGAN FISIK) -->
                 <div v-else-if="method === 'by_unit'" class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[700px]">
                         <thead>
@@ -1322,13 +1530,13 @@ onMounted(async () => {
                         <!-- Checklist Action Buttons: Ada (✅) / Tidak Ada (❌) -->
                         <div class="grid grid-cols-2 gap-2 pt-1">
                             <button type="button" @click="it.is_present = true"
-                                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px]"
+                                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
                                 :class="it.is_present ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-500/30' : 'border border-gray-200 dark:border-surface-600 bg-gray-50/80 dark:bg-surface-700/80 text-text-secondary hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300'">
                                 <Check :size="16" />
                                 <span>Ada ✅</span>
                             </button>
                             <button type="button" @click="it.is_present = false"
-                                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px]"
+                                class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
                                 :class="!it.is_present ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-500/30' : 'border border-gray-200 dark:border-surface-600 bg-gray-50/80 dark:bg-surface-700/80 text-text-secondary hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'">
                                 <X :size="16" />
                                 <span>Tidak Ada ❌</span>
@@ -1358,7 +1566,7 @@ onMounted(async () => {
                     </div>
 
                     <button type="button" @click="showExcessModal = true"
-                        class="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-1.5">
+                        class="px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer">
                         <Plus :size="16" />
                         <span>Catat Barang Lebih</span>
                     </button>
@@ -1379,7 +1587,7 @@ onMounted(async () => {
                                 <span v-if="ex.notes" class="text-gray-400 font-sans italic">— "{{ ex.notes }}"</span>
                             </div>
                         </div>
-                        <button type="button" @click="removeExcessItem(idx)" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors">
+                        <button type="button" @click="removeExcessItem(idx)" class="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer">
                             <Trash2 :size="16" />
                         </button>
                     </div>
@@ -1417,7 +1625,7 @@ onMounted(async () => {
                             <div v-for="(p, pIdx) in photoPreviews" :key="pIdx" class="relative group w-20 h-20 rounded-xl border border-gray-200 dark:border-surface-600 overflow-hidden bg-gray-100">
                                 <img :src="p" alt="Bukti SO" class="w-full h-full object-cover" />
                                 <button type="button" @click="removePhoto(pIdx)"
-                                    class="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition-colors">
+                                    class="absolute top-1 right-1 p-1 bg-black/70 text-white rounded-full hover:bg-rose-600 transition-colors cursor-pointer">
                                     <X :size="12" />
                                 </button>
                             </div>
@@ -1581,11 +1789,11 @@ onMounted(async () => {
 
                 <div class="flex items-center gap-2 pt-1">
                     <button type="button" @click="showPasswordModal = false"
-                        class="flex-1 py-2.5 rounded-xl text-xs font-semibold text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-700 border border-gray-200 dark:border-surface-600">
+                        class="flex-1 py-2.5 rounded-xl text-xs font-semibold text-text-secondary hover:bg-gray-100 dark:hover:bg-surface-700 border border-gray-200 dark:border-surface-600 cursor-pointer">
                         Batal
                     </button>
                     <button type="button" @click="submitWithPassword" :disabled="verifyingPassword || !csPassword"
-                        class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5">
+                        class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer">
                         <RefreshCw v-if="verifyingPassword" :size="14" class="animate-spin" />
                         <span>Verifikasi & Simpan</span>
                     </button>
