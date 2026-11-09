@@ -170,17 +170,30 @@ class StockOpnameController extends Controller
             return response()->json(['data' => $branches]);
         }
 
-        // Toko Offline / CS (Inventory): locked to user's branch
-        $branchId = $user->branch_id;
-        if (!$branchId) {
-            $branchIds = (array) ($user->getAccessibleBranchIds() ?: []);
-            $branchId = !empty($branchIds) ? $branchIds[0] : null;
+        // Toko Offline / CS: get accessible branches
+        $branchIds = (array) ($user->getAccessibleBranchIds() ?: []);
+        if ($user->branch_id) {
+            $branchIds[] = $user->branch_id;
         }
+        if (method_exists($user, 'placements')) {
+            $placementBranchIds = $user->placements()
+                ->where(function ($q) {
+                    $q->whereIn('model_type', ['branch', 'Branch', 'App\Models\Branch'])
+                      ->orWhereRaw("LOWER(model_type) LIKE '%branch%'");
+                })
+                ->pluck('model_id')
+                ->toArray();
+            $branchIds = array_merge($branchIds, $placementBranchIds);
+        }
+        $branchIds = array_unique(array_filter(array_map('intval', $branchIds)));
 
-        if ($branchId) {
-            $branches = Branch::where('id', $branchId)->get(['id', 'name', 'code']);
+        if (!empty($branchIds)) {
+            $branches = Branch::whereIn('id', $branchIds)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+            if ($branches->isEmpty()) {
+                $branches = Branch::whereIn('id', $branchIds)->get(['id', 'name', 'code']);
+            }
         } else {
-            $branches = Branch::where('is_active', true)->orderBy('name')->take(1)->get(['id', 'name', 'code']);
+            $branches = Branch::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
         }
 
         return response()->json(['data' => $branches]);
@@ -235,6 +248,7 @@ class StockOpnameController extends Controller
             'category_type' => 'nullable|in:hp,non_hp',
             'method' => 'nullable|in:by_unit,by_imei',
             'brand' => 'nullable',
+            'condition' => 'nullable|string',
             'product_name' => 'nullable',
         ]);
 
@@ -242,6 +256,7 @@ class StockOpnameController extends Controller
         $categoryType = $request->query('category_type', 'hp');
         $method = $request->query('method', 'by_unit');
         $selectedBrand = $request->filled('brand') ? (string) $request->brand : null;
+        $selectedCondition = $request->filled('condition') && $request->condition !== 'all' ? strtolower(trim((string) $request->condition)) : null;
         $selectedProductName = $request->filled('product_name') ? (string) $request->product_name : null;
 
         /** @var \App\Models\User $user */
@@ -322,8 +337,17 @@ class StockOpnameController extends Controller
                 $auditedItemsData = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)->get();
                 foreach ($auditedItemsData as $ait) {
                     if ($ait->product_name) {
-                        $key = strtoupper(trim($ait->brand ?? '')) . '|' . strtoupper(trim($ait->product_name)) . '|' . strtoupper(trim($ait->storage ?? ''));
-                        $auditedProductNamesByUnit[$key] = true;
+                        $bKey = strtoupper(trim($ait->brand ?? ''));
+                        $pKey = strtoupper(trim($ait->product_name));
+                        $sKey = strtoupper(trim($ait->storage ?? ''));
+                        $rawAitCond = strtolower(trim((string)($ait->condition ?? '')));
+                        if ($rawAitCond) {
+                            $condNorm = ($rawAitCond === 'new' || str_contains($rawAitCond, 'baru')) ? 'new' : 'second';
+                            $key = $bKey . '|' . $pKey . '|' . $sKey . '|' . $condNorm;
+                            $auditedProductNamesByUnit[$key] = true;
+                        }
+                        $legacyKey = $bKey . '|' . $pKey . '|' . $sKey;
+                        $auditedProductNamesByUnit[$legacyKey] = true;
                     }
                     if ($ait->product_id) {
                         $auditedNonHpProductIds[] = $ait->product_id;
@@ -347,9 +371,10 @@ class StockOpnameController extends Controller
             $rawHp = $hpQuery->get();
 
             if ($method === 'by_unit') {
-                // Group by Brand -> Tipe + Storage (GB)
+                // Group by Brand -> Tipe + Storage (GB) + Condition (New vs Second)
                 $grouped = [];
                 $pendingBrandsMap = [];
+                $conditionsCount = ['all' => 0, 'new' => 0, 'second' => 0];
 
                 foreach ($rawHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
@@ -361,8 +386,13 @@ class StockOpnameController extends Controller
                         $storage = strtoupper($m[1]);
                     }
 
-                    $key = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage);
-                    if (isset($auditedProductNamesByUnit[$key])) {
+                    $rawCond = strtolower(trim((string)($item->condition ?? 'second')));
+                    $itemCond = ($rawCond === 'new' || str_contains($rawCond, 'baru')) ? 'new' : 'second';
+
+                    $key = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage) . '|' . $itemCond;
+                    $legacyKey = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage);
+
+                    if (isset($auditedProductNamesByUnit[$key]) || (isset($auditedProductNamesByUnit[$legacyKey]) && !isset($auditedProductNamesByUnit[$key]))) {
                         // Skip if already audited by unit today
                         continue;
                     }
@@ -370,7 +400,21 @@ class StockOpnameController extends Controller
                     // Count towards pending brands
                     $pendingBrandsMap[$bName] = ($pendingBrandsMap[$bName] ?? 0) + 1;
 
+                    // Condition counts (respecting selectedBrand if chosen)
+                    if (!$selectedBrand || strcasecmp($bName, $selectedBrand) === 0) {
+                        $conditionsCount['all']++;
+                        if ($itemCond === 'new') {
+                            $conditionsCount['new']++;
+                        } else {
+                            $conditionsCount['second']++;
+                        }
+                    }
+
                     if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
+                        continue;
+                    }
+
+                    if ($selectedCondition && $itemCond !== $selectedCondition) {
                         continue;
                     }
 
@@ -381,6 +425,8 @@ class StockOpnameController extends Controller
                             'brand' => $bName,
                             'product_name' => $pName,
                             'storage' => $storage ?: '-',
+                            'condition' => $itemCond,
+                            'condition_label' => $itemCond === 'new' ? 'Baru' : 'Second',
                             'system_qty' => 0,
                             'physical_qty' => 0,
                             'difference' => 0,
@@ -400,6 +446,12 @@ class StockOpnameController extends Controller
                     ];
                 }
 
+                $availableConditions = [
+                    ['condition' => 'all', 'label' => 'Semua Kondisi', 'count' => $conditionsCount['all']],
+                    ['condition' => 'new', 'label' => 'Baru (New)', 'count' => $conditionsCount['new']],
+                    ['condition' => 'second', 'label' => 'Second (Bekas)', 'count' => $conditionsCount['second']],
+                ];
+
                 // Sort descending by system_qty
                 $resultList = array_values($grouped);
                 usort($resultList, fn($a, $b) => $b['system_qty'] <=> $a['system_qty']);
@@ -418,6 +470,7 @@ class StockOpnameController extends Controller
                         default => 'SO CS Toko',
                     },
                     'available_brands' => $availableBrands,
+                    'available_conditions' => $availableConditions,
                     'total_available_units' => $totalPendingUnits,
                     'items' => $resultList,
                 ]);
@@ -448,7 +501,7 @@ class StockOpnameController extends Controller
                 }
 
                 // Available types under selected brand
-                $typesMap = [];
+                $typesData = [];
                 foreach ($filteredHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
@@ -458,16 +511,17 @@ class StockOpnameController extends Controller
                     }
 
                     $pName = trim($item->product?->name ?? 'Unknown');
-                    $typesMap[$pName] = ($typesMap[$pName] ?? 0) + 1;
+                    if (!isset($typesData[$pName])) {
+                        $typesData[$pName] = [
+                            'product_name' => $pName,
+                            'brand' => $bName,
+                            'count' => 0,
+                        ];
+                    }
+                    $typesData[$pName]['count']++;
                 }
-                arsort($typesMap);
-                $availableTypes = [];
-                foreach ($typesMap as $pName => $pCount) {
-                    $availableTypes[] = [
-                        'product_name' => $pName,
-                        'count' => $pCount,
-                    ];
-                }
+                uasort($typesData, fn($a, $b) => $b['count'] <=> $a['count']);
+                $availableTypes = array_values($typesData);
 
                 $imeiList = [];
                 if ($selectedProductName) {
@@ -481,13 +535,17 @@ class StockOpnameController extends Controller
                     });
 
                     foreach ($selectedHpItems as $item) {
+                        $rawCond = strtolower(trim((string)($item->condition ?? 'second')));
+                        $itemCond = ($rawCond === 'new' || str_contains($rawCond, 'baru')) ? 'new' : 'second';
+
                         $imeiList[] = [
                             'product_detail_id' => $item->id,
                             'product_id' => $item->product_id,
                             'brand' => $item->product?->brand ?? '-',
                             'product_name' => $item->product?->name ?? '-',
                             'storage' => $item->storage ?? '-',
-                            'condition' => $item->condition ?? 'second',
+                            'condition' => $itemCond,
+                            'condition_label' => $itemCond === 'new' ? 'Baru' : 'Second',
                             'imei' => $item->imei,
                             'distributor' => $item->distributor?->name ?? '-',
                             'status' => $item->status,
@@ -848,7 +906,7 @@ class StockOpnameController extends Controller
                         'brand' => isset($item['brand']) ? (string)$item['brand'] : $brandVal,
                         'product_name' => isset($item['product_name']) ? (string)$item['product_name'] : '-',
                         'storage' => isset($item['storage']) ? (string)$item['storage'] : null,
-                        'condition' => null,
+                        'condition' => isset($item['condition']) ? (string)$item['condition'] : null,
                         'imei' => null,
                         'system_qty' => $sysQty,
                         'physical_qty' => $physQty,
