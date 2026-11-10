@@ -248,16 +248,54 @@ class StockOpnameController extends Controller
             'category_type' => 'nullable|in:hp,non_hp',
             'method' => 'nullable|in:by_unit,by_imei',
             'brand' => 'nullable',
-            'condition' => 'nullable|string',
+            'brands' => 'nullable',
+            'condition' => 'nullable',
+            'conditions' => 'nullable',
             'product_name' => 'nullable',
         ]);
 
         $branchId = (int) $request->branch_id;
         $categoryType = $request->query('category_type', 'hp');
         $method = $request->query('method', 'by_unit');
-        $selectedBrand = $request->filled('brand') ? (string) $request->brand : null;
-        $selectedCondition = $request->filled('condition') && $request->condition !== 'all' ? strtolower(trim((string) $request->condition)) : null;
         $selectedProductName = $request->filled('product_name') ? (string) $request->product_name : null;
+
+        // Multi-brand extraction (supports array brands[] or comma-separated string brand/brands)
+        $rawBrands = $request->input('brands') ?? $request->input('brand');
+        $selectedBrands = [];
+        if (!empty($rawBrands)) {
+            if (is_array($rawBrands)) {
+                $selectedBrands = array_filter(array_map('trim', $rawBrands));
+            } else {
+                $selectedBrands = array_filter(array_map('trim', explode(',', (string)$rawBrands)));
+            }
+            $selectedBrands = array_values(array_filter($selectedBrands, fn($b) => strtolower($b) !== 'all' && strtolower($b) !== 'semua'));
+        }
+
+        // Multi-condition extraction (supports array conditions[] or comma-separated string condition/conditions)
+        $rawConditions = $request->input('conditions') ?? $request->input('condition');
+        $selectedConditions = [];
+        if (!empty($rawConditions)) {
+            if (is_array($rawConditions)) {
+                $selectedConditions = array_filter(array_map(fn($c) => strtolower(trim((string)$c)), $rawConditions));
+            } else {
+                $selectedConditions = array_filter(array_map(fn($c) => strtolower(trim((string)$c)), explode(',', (string)$rawConditions)));
+            }
+            $selectedConditions = array_values(array_filter($selectedConditions, fn($c) => $c !== 'all' && $c !== 'semua'));
+        }
+
+        // Brand & Condition matcher helpers
+        $matchesBrand = function ($bName) use ($selectedBrands) {
+            if (empty($selectedBrands)) return true;
+            foreach ($selectedBrands as $sb) {
+                if (strcasecmp($sb, $bName) === 0) return true;
+            }
+            return false;
+        };
+
+        $matchesCondition = function ($itemCond) use ($selectedConditions) {
+            if (empty($selectedConditions)) return true;
+            return in_array($itemCond, $selectedConditions);
+        };
 
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -400,8 +438,8 @@ class StockOpnameController extends Controller
                     // Count towards pending brands
                     $pendingBrandsMap[$bName] = ($pendingBrandsMap[$bName] ?? 0) + 1;
 
-                    // Condition counts (respecting selectedBrand if chosen)
-                    if (!$selectedBrand || strcasecmp($bName, $selectedBrand) === 0) {
+                    // Condition counts (respecting selectedBrands if chosen)
+                    if ($matchesBrand($bName)) {
                         $conditionsCount['all']++;
                         if ($itemCond === 'new') {
                             $conditionsCount['new']++;
@@ -410,11 +448,11 @@ class StockOpnameController extends Controller
                         }
                     }
 
-                    if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
+                    if (!$matchesBrand($bName)) {
                         continue;
                     }
 
-                    if ($selectedCondition && $itemCond !== $selectedCondition) {
+                    if (!$matchesCondition($itemCond)) {
                         continue;
                     }
 
@@ -506,7 +544,7 @@ class StockOpnameController extends Controller
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
 
-                    if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
+                    if (!$matchesBrand($bName)) {
                         continue;
                     }
 
@@ -525,10 +563,10 @@ class StockOpnameController extends Controller
 
                 $imeiList = [];
                 if ($selectedProductName) {
-                    $selectedHpItems = $filteredHp->filter(function ($item) use ($selectedBrand, $selectedProductName) {
+                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $selectedProductName) {
                         $bName = trim($item->product?->brand ?? 'Unknown');
                         if (!$bName || $bName === '-') $bName = 'Other';
-                        if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) return false;
+                        if (!$matchesBrand($bName)) return false;
 
                         $pName = trim($item->product?->name ?? 'Unknown');
                         return strcasecmp($pName, $selectedProductName) === 0;
@@ -554,8 +592,8 @@ class StockOpnameController extends Controller
                     }
                 }
 
-                $totalPendingUnits = $selectedBrand
-                    ? ($brandsMap[$selectedBrand] ?? 0)
+                $totalPendingUnits = !empty($selectedBrands)
+                    ? array_sum(array_intersect_key($brandsMap, array_flip($selectedBrands)))
                     : $filteredHp->count();
 
                 return response()->json([
@@ -614,7 +652,7 @@ class StockOpnameController extends Controller
                 $bName = trim($item->product?->brand ?? 'Unknown');
                 if (!$bName || $bName === '-') $bName = 'Non-Brand';
 
-                if ($selectedBrand && strcasecmp($bName, $selectedBrand) !== 0) {
+                if (!$matchesBrand($bName)) {
                     continue;
                 }
 
@@ -639,7 +677,9 @@ class StockOpnameController extends Controller
             $resultList = array_values($grouped);
             usort($resultList, fn($a, $b) => $b['system_qty'] <=> $a['system_qty']);
 
-            $totalPendingUnits = array_sum(array_column($resultList, 'system_qty'));
+            $totalPendingUnits = !empty($selectedBrands)
+                ? array_sum(array_intersect_key($brandsMap, array_flip($selectedBrands)))
+                : array_sum(array_column($resultList, 'system_qty'));
 
             return response()->json([
                 'category_type' => 'non_hp',
