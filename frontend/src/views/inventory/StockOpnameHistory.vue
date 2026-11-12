@@ -166,6 +166,12 @@ const isSuperAdminOrOwner = computed(() => {
     return privileged.some(r => userRole.value.includes(r));
 });
 
+const isCsUser = computed(() => {
+    return (typeof authStore.hasRole === 'function' && authStore.hasRole('inventory')) || 
+           (authStore.userRole || '').toLowerCase() === 'inventory' ||
+           (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+});
+
 const isPrivilegedRole = computed(() => isLeader.value || isAudit.value || isSuperAdminOrOwner.value);
 
 // Helper for record role
@@ -355,7 +361,7 @@ const resetFilters = () => {
 
     filters.value = {
         branch_id: branches.value.length === 1 ? branches.value[0].id : '',
-        cs_user_id: '',
+        cs_user_id: isCsUser.value && authStore.user?.id ? authStore.user.id : '',
         category_type: '',
         method: activeTab.value,
         status: '',
@@ -371,6 +377,10 @@ onMounted(async () => {
         try {
             await authStore.fetchUser();
         } catch (e) {}
+    }
+
+    if (isCsUser.value && authStore.user?.id) {
+        filters.value.cs_user_id = authStore.user.id;
     }
 
     // Role-specific initial filter: Audit defaults to Audit history, Leader defaults to Leader, Store defaults to Store
@@ -567,12 +577,19 @@ watch(() => filters.value.executor_role, () => {
                 <div>
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">CS Pelaksana</label>
                     <div class="relative">
-                        <select v-model="filters.cs_user_id"
-                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua CS</option>
-                            <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ cs.name }}</option>
-                        </select>
-                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <!-- If CS user, locked to themselves -->
+                        <div v-if="isCsUser" class="w-full py-2 px-3 bg-gray-50 dark:!bg-surface-700/60 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                            <span class="truncate">{{ authStore.user?.name || authStore.user?.username || 'Akun Saya' }}</span>
+                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">Akun Saya</span>
+                        </div>
+                        <template v-else>
+                            <select v-model="filters.cs_user_id"
+                                class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                                <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua CS</option>
+                                <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ cs.name }}</option>
+                            </select>
+                            <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        </template>
                     </div>
                 </div>
 

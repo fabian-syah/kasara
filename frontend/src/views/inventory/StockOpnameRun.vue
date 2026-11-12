@@ -11,6 +11,7 @@ import {
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
 import { useAuthStore } from '../../store/auth';
+import PasswordModal from '../../components/modals/PasswordModal.vue';
 
 const router = useRouter();
 const toast = useToast();
@@ -47,7 +48,7 @@ const method = ref('by_unit'); // 'by_unit' | 'by_imei'
 
 // Step 5: Multi-select Brand and Condition
 const selectedBrands = ref([]); // Array of strings (e.g. ['Apple', 'Samsung']). Empty = Semua Brand.
-const selectedConditions = ref([]); // Array of strings (e.g. ['new', 'second']). Empty = Semua Kondisi.
+const selectedConditions = ref([]); // Array of strings (e.g. ['new', 'second', 'ex_ibox']). Empty = Belum Dipilih / Semua.
 const selectedProductName = ref(''); // For SO by IMEI
 const searchType = ref(''); // Search bar for phone model in SO by IMEI
 
@@ -58,8 +59,10 @@ const availableTypes = ref([]);
 const pendingItems = ref([]);
 const totalAvailableUnits = ref(0);
 
-// Password verification for store accounts
+// Password verification for non-CS accounts (akun toko, etc.)
 const showPasswordModal = ref(false);
+const passwordModalMode = ref('password'); // 'password' or 'alert'
+const passwordModalError = ref('');
 const csPassword = ref('');
 const passwordVerified = ref(false);
 const verifyingPassword = ref(false);
@@ -116,9 +119,16 @@ const isPrivilegedRole = computed(() => {
     return isLeaderOrAudit.value || privileged.some(r => userRole.value.includes(r));
 });
 
+const isCsLogin = computed(() => {
+    return (typeof authStore.hasRole === 'function' && authStore.hasRole('inventory')) || 
+           (authStore.userRole || '').toLowerCase() === 'inventory' ||
+           (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+});
+
 const isStoreAccount = computed(() => {
+    if (isCsLogin.value && authStore.user?.id === selectedCsUserId.value) return false;
     if (isLeaderOrAudit.value || isPrivilegedRole.value) return false;
-    return userRole.value === 'toko_offline' || (authStore.user?.id !== selectedCsUserId.value);
+    return true;
 });
 
 // Stepper Progress Definitions
@@ -283,7 +293,7 @@ const fetchPendingItems = async () => {
         if (selectedBrands.value.length > 0) {
             params.brands = selectedBrands.value.join(',');
         }
-        if (method.value === 'by_unit' && selectedConditions.value.length > 0) {
+        if (selectedConditions.value.length > 0) {
             params.conditions = selectedConditions.value.join(',');
         }
         if (method.value === 'by_imei' && selectedProductName.value) {
@@ -299,14 +309,14 @@ const fetchPendingItems = async () => {
             availableTypes.value = res.data.available_types || [];
             pendingItems.value = (res.data.items || []).map(item => ({
                 ...item,
-                is_present: item.is_present !== undefined ? item.is_present : true,
+                is_present: item.is_present !== undefined && item.is_present !== null ? item.is_present : null, // Default: Belum dipilih (null)
                 notes: item.notes || ''
             }));
         } else {
             pendingItems.value = (res.data.items || []).map(item => ({
                 ...item,
-                physical_qty: Number(item.physical_qty) || Number(item.system_qty) || 0,
-                difference: (Number(item.physical_qty) || Number(item.system_qty) || 0) - (Number(item.system_qty) || 0),
+                physical_qty: 0, // Default: NOL!
+                difference: 0 - (Number(item.system_qty) || 0),
                 notes: item.notes || ''
             }));
         }
@@ -363,7 +373,58 @@ const proceedFromStep2 = () => {
         toast.warning('Silakan pilih akun CS pelaksana.');
         return;
     }
+
+    // Jika login sebagai akun CS dan memilih akunnya sendiri: tidak perlu verifikasi password
+    if (isCsLogin.value && authStore.user?.id === selectedCsUserId.value) {
+        passwordVerified.value = true;
+        currentStep.value = 3;
+        return;
+    }
+
+    // Jika menggunakan akun non-CS (akun toko offline, admin toko, dll.): verifikasi password CS seperti di penjualan toko
+    if (!passwordVerified.value) {
+        const acc = activeCsUser.value;
+        if (acc && acc.has_password === false) {
+            passwordModalMode.value = 'alert';
+            showPasswordModal.value = true;
+            return;
+        }
+        passwordModalMode.value = 'password';
+        passwordModalError.value = '';
+        showPasswordModal.value = true;
+        return;
+    }
+
     currentStep.value = 3;
+};
+
+const handlePasswordSuccess = async (password) => {
+    passwordModalError.value = '';
+    verifyingPassword.value = true;
+    try {
+        const res = await axios.post('/verify-password', {
+            password: password,
+            inventory_user_id: selectedCsUserId.value
+        });
+
+        if (res.data?.success) {
+            passwordVerified.value = true;
+            csPassword.value = password;
+            showPasswordModal.value = false;
+            toast.success('Verifikasi CS berhasil! ✅');
+            if (currentStep.value === 2) {
+                currentStep.value = 3;
+            } else if (currentStep.value === 6) {
+                await submitOpname();
+            }
+        } else {
+            passwordModalError.value = res.data?.message || 'Password CS salah.';
+        }
+    } catch (err) {
+        passwordModalError.value = err.response?.data?.message || 'Password verifikasi CS salah.';
+    } finally {
+        verifyingPassword.value = false;
+    }
 };
 
 const selectCategory = (cat) => {
@@ -488,19 +549,27 @@ const markAllPresent = (status) => {
     pendingItems.value.forEach(item => {
         item.is_present = status;
     });
-    toast.info(status ? 'Semua unit ditandai Ada (Cocok)' : 'Semua unit ditandai Tidak Ada');
+    if (status === true) {
+        toast.info('Semua unit ditandai Ada ✅');
+    } else if (status === false) {
+        toast.info('Semua unit ditandai Tidak Ada ❌');
+    } else {
+        toast.info('Status checklist direset ke Belum Dipilih ⏳');
+    }
 };
 
 const summaryStats = computed(() => {
     let sys = 0;
     let phys = 0;
     let missing = 0;
+    let unselected = 0;
 
     if (method.value === 'by_imei') {
         sys = pendingItems.value.length;
         pendingItems.value.forEach(it => {
-            if (it.is_present) phys++;
-            else missing++;
+            if (it.is_present === true) phys++;
+            else if (it.is_present === false) missing++;
+            else unselected++;
         });
     } else {
         pendingItems.value.forEach(it => {
@@ -518,6 +587,7 @@ const summaryStats = computed(() => {
         totalSystem: sys,
         totalPhysical: phys,
         totalMissing: missing,
+        totalUnselected: unselected,
         totalExcess: excess,
         hasDifference: (missing > 0 || excess > 0 || (phys !== sys && method.value === 'by_unit'))
     };
@@ -589,40 +659,27 @@ const handleVerifyAndSubmit = async () => {
         return;
     }
 
+    if (method.value === 'by_imei' && summaryStats.value.totalUnselected > 0) {
+        const confirmMsg = `Terdapat ${summaryStats.value.totalUnselected} unit IMEI yang statusnya Belum Dipilih (belum diperiksa Ada / Tidak Ada).\n\nApakah unit yang belum dipilih dianggap Tidak Ada dan ingin melanjutkan simpan?`;
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+    }
+
     if (isStoreAccount.value && !passwordVerified.value) {
+        const acc = activeCsUser.value;
+        if (acc && acc.has_password === false) {
+            passwordModalMode.value = 'alert';
+            showPasswordModal.value = true;
+            return;
+        }
+        passwordModalMode.value = 'password';
+        passwordModalError.value = '';
         showPasswordModal.value = true;
         return;
     }
 
     await submitOpname();
-};
-
-const submitWithPassword = async () => {
-    if (!csPassword.value) {
-        toast.warning('Masukkan password CS untuk verifikasi.');
-        return;
-    }
-
-    verifyingPassword.value = true;
-    try {
-        const verifyRes = await axios.post('/verify-password', {
-            password: csPassword.value,
-            inventory_user_id: selectedCsUserId.value
-        });
-
-        if (verifyRes.data.success) {
-            passwordVerified.value = true;
-            showPasswordModal.value = false;
-            toast.success('Verifikasi CS berhasil.');
-            await submitOpname();
-        } else {
-            toast.error(verifyRes.data.message || 'Password CS salah.');
-        }
-    } catch (err) {
-        toast.error(err.response?.data?.message || 'Password verifikasi CS salah.');
-    } finally {
-        verifyingPassword.value = false;
-    }
 };
 
 const submitOpname = async () => {
@@ -953,7 +1010,7 @@ onMounted(async () => {
                             </div>
                             <button v-for="u in filteredCsUsers" :key="u.id"
                                 type="button"
-                                @click="selectedCsUserId = u.id; passwordVerified = false"
+                                @click="selectedCsUserId = u.id; passwordVerified = (isCsLogin && authStore.user?.id === u.id); csPassword = ''"
                                 @dblclick="proceedFromStep2"
                                 class="w-full p-3.5 sm:p-4 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 relative overflow-hidden group cursor-pointer text-left"
                                 :class="selectedCsUserId === u.id
@@ -1339,6 +1396,20 @@ onMounted(async () => {
                                     {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
                                 </span>
                             </button>
+
+                            <!-- Ex iBox -->
+                            <button type="button" @click="toggleCondition('ex_ibox')"
+                                class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer"
+                                :class="isConditionSelected('ex_ibox')
+                                    ? 'bg-sky-500/20 text-sky-300 border-sky-500 shadow-md ring-2 ring-sky-500/25'
+                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                <Check v-if="isConditionSelected('ex_ibox')" :size="13" class="text-sky-400" />
+                                <span>Ex iBox</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'ex_ibox')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+                                    :class="isConditionSelected('ex_ibox') ? 'bg-sky-500/30 text-sky-200' : 'bg-surface-700 text-surface-400'">
+                                    {{ availableConditions.find(c => c.condition === 'ex_ibox')?.count || 0 }}
+                                </span>
+                            </button>
                         </div>
                     </div>
 
@@ -1445,6 +1516,74 @@ onMounted(async () => {
                                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
                                     :class="isBrandSelected(b.brand) ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
                                     {{ b.count }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Opsi Pilih Per Kondisi (New, Second, Ex iBox) -->
+                    <div class="space-y-2 bg-surface-800/60 p-3.5 sm:p-4 rounded-2xl border border-surface-750">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-1.5">
+                                <Sparkles :size="13" class="text-emerald-400" />
+                                <span class="font-bold text-surface-400 uppercase text-[10px] tracking-wider">
+                                    Opsi Kondisi Unit (New / Scd / Ex iBox)
+                                </span>
+                            </div>
+                            <span class="text-[10px] text-surface-400 italic">
+                                Default: Belum Dipilih
+                            </span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <!-- Button Belum Dipilih (Default) -->
+                            <button type="button" @click="toggleCondition('all')"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1"
+                                :class="selectedConditions.length === 0
+                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-emerald-500 shadow-sm'
+                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                <Check v-if="selectedConditions.length === 0" :size="12" />
+                                <span>Belum Dipilih (Semua)</span>
+                            </button>
+
+                            <!-- Baru (New) -->
+                            <button type="button" @click="toggleCondition('new')"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="isConditionSelected('new')
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
+                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                <Check v-if="isConditionSelected('new')" :size="12" class="text-emerald-400" />
+                                <span>Baru (New)</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+                                    :class="isConditionSelected('new') ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
+                                    {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
+                                </span>
+                            </button>
+
+                            <!-- Second (Bekas) -->
+                            <button type="button" @click="toggleCondition('second')"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="isConditionSelected('second')
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
+                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                <Check v-if="isConditionSelected('second')" :size="12" class="text-amber-400" />
+                                <span>Second (Bekas)</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'second')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+                                    :class="isConditionSelected('second') ? 'bg-amber-500/30 text-amber-200' : 'bg-surface-700 text-surface-400'">
+                                    {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
+                                </span>
+                            </button>
+
+                            <!-- Ex iBox -->
+                            <button type="button" @click="toggleCondition('ex_ibox')"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
+                                :class="isConditionSelected('ex_ibox')
+                                    ? 'bg-sky-500/20 text-sky-300 border-sky-500 shadow-sm ring-1 ring-sky-500/30'
+                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                <Check v-if="isConditionSelected('ex_ibox')" :size="12" class="text-sky-400" />
+                                <span>Ex iBox</span>
+                                <span v-if="availableConditions.find(c => c.condition === 'ex_ibox')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+                                    :class="isConditionSelected('ex_ibox') ? 'bg-sky-500/30 text-sky-200' : 'bg-surface-700 text-surface-400'">
+                                    {{ availableConditions.find(c => c.condition === 'ex_ibox')?.count || 0 }}
                                 </span>
                             </button>
                         </div>
@@ -1605,6 +1744,11 @@ onMounted(async () => {
                                 <X :size="15" />
                                 <span>Semua Tidak Ada ❌</span>
                             </button>
+                            <button type="button" @click="markAllPresent(null)"
+                                class="px-3.5 py-2 rounded-xl bg-surface-800 border border-surface-700 text-surface-400 text-xs font-bold hover:bg-surface-750 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer">
+                                <RotateCcw :size="14" />
+                                <span>Reset (Belum Dipilih)</span>
+                            </button>
                         </template>
                     </div>
                 </div>
@@ -1699,11 +1843,13 @@ onMounted(async () => {
 
                 <!-- CASE B: STOK BY IMEI (CHECKLIST CARDS) -->
                 <div v-else-if="method === 'by_imei'" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <div v-for="it in pendingItems" :key="it.product_detail_id"
+                    <div v-for="it in pendingItems" :key="it.product_detail_id || it.imei"
                         class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3"
-                        :class="it.is_present
-                            ? 'bg-surface-800/80 border-surface-750'
-                            : 'bg-rose-950/20 border-rose-800/60'">
+                        :class="it.is_present === true
+                            ? 'bg-surface-800/80 border-emerald-500/50 ring-1 ring-emerald-500/20'
+                            : (it.is_present === false
+                                ? 'bg-rose-950/20 border-rose-800/60'
+                                : 'bg-surface-800/40 border-surface-750')">
 
                         <div class="flex items-start justify-between gap-2">
                             <div>
@@ -1716,8 +1862,12 @@ onMounted(async () => {
                                         {{ it.storage }}
                                     </span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-black"
-                                        :class="it.condition === 'new' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'">
-                                        {{ it.condition === 'new' ? 'Baru' : 'Second' }}
+                                        :class="it.condition === 'new' 
+                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                                            : (it.condition === 'ex_ibox' 
+                                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' 
+                                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40')">
+                                        {{ it.condition_label || (it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second')) }}
                                     </span>
                                     <span class="text-surface-500 text-[11px]">{{ it.distributor }}</span>
                                 </div>
@@ -1725,8 +1875,12 @@ onMounted(async () => {
 
                             <!-- Status Indicator Pill -->
                             <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase"
-                                :class="it.is_present ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'">
-                                {{ it.is_present ? 'Ada ✅' : 'Tidak Ada ❌' }}
+                                :class="it.is_present === true 
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                                    : (it.is_present === false 
+                                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
+                                        : 'bg-surface-700/60 text-surface-400 border border-surface-600')">
+                                {{ it.is_present === true ? 'Ada ✅' : (it.is_present === false ? 'Tidak Ada ❌' : 'Belum Dipilih ⏳') }}
                             </span>
                         </div>
 
@@ -1734,7 +1888,7 @@ onMounted(async () => {
                         <div class="grid grid-cols-2 gap-2 pt-1">
                             <button type="button" @click="it.is_present = true"
                                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
-                                :class="it.is_present
+                                :class="it.is_present === true
                                     ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/40 font-black'
                                     : 'border border-surface-700 bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-750'">
                                 <Check :size="16" />
@@ -1742,7 +1896,7 @@ onMounted(async () => {
                             </button>
                             <button type="button" @click="it.is_present = false"
                                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
-                                :class="!it.is_present
+                                :class="it.is_present === false
                                     ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/40 font-black'
                                     : 'border border-surface-700 bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-750'">
                                 <X :size="16" />
@@ -1751,7 +1905,7 @@ onMounted(async () => {
                         </div>
 
                         <!-- Input Notes if Missing -->
-                        <div v-if="!it.is_present" class="pt-1">
+                        <div v-if="it.is_present === false" class="pt-1">
                             <input type="text" v-model="it.notes" placeholder="Alasan tidak ada (misal: servis, display, dll)..."
                                 class="w-full text-xs py-2 px-3 bg-surface-900 border border-rose-800/80 rounded-xl focus:ring-1 focus:ring-rose-500 text-white placeholder:text-surface-500" />
                         </div>
@@ -1877,6 +2031,10 @@ onMounted(async () => {
                                 <span>Fisik Ada:</span>
                                 <span class="font-bold font-mono">{{ summaryStats.totalPhysical }}</span>
                             </div>
+                            <div v-if="method === 'by_imei' && summaryStats.totalUnselected > 0" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 font-semibold text-amber-300 flex items-center gap-1.5 animate-pulse">
+                                <span>Belum Dipilih:</span>
+                                <span class="font-bold font-mono">{{ summaryStats.totalUnselected }}</span>
+                            </div>
                             <div v-if="summaryStats.totalMissing > 0" class="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 font-semibold text-rose-300 flex items-center gap-1.5">
                                 <span>Selisih:</span>
                                 <span class="font-bold font-mono">-{{ summaryStats.totalMissing }}</span>
@@ -1976,36 +2134,18 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- Modal Verifikasi Password CS -->
-        <div v-if="showPasswordModal" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div class="bg-surface-850 rounded-3xl max-w-sm w-full p-6 border border-surface-750 shadow-2xl space-y-4">
-                <div class="text-center space-y-1">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-2 border border-emerald-500/30">
-                        <ShieldCheck :size="24" />
-                    </div>
-                    <h3 class="text-base font-black text-white">Verifikasi Password CS</h3>
-                    <p class="text-xs text-surface-400">
-                        Masukkan password akun CS yang dipilih untuk mengonfirmasi hasil Stok Opname toko.
-                    </p>
-                </div>
-
-                <div>
-                    <input type="password" v-model="csPassword" placeholder="Password CS..." @keydown.enter="submitWithPassword"
-                        class="w-full py-2.5 px-3.5 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-center tracking-widest font-mono" />
-                </div>
-
-                <div class="flex items-center gap-2 pt-1">
-                    <button type="button" @click="showPasswordModal = false"
-                        class="flex-1 py-2.5 rounded-xl text-xs font-bold text-surface-400 hover:bg-surface-800 hover:text-white border border-surface-700 cursor-pointer">
-                        Batal
-                    </button>
-                    <button type="button" @click="submitWithPassword" :disabled="verifyingPassword || !csPassword"
-                        class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-white text-xs font-black shadow-md disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer">
-                        <RefreshCw v-if="verifyingPassword" :size="14" class="animate-spin" />
-                        <span>Verifikasi & Simpan</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Modal Verifikasi Password CS (Standard Kasara PasswordModal) -->
+        <PasswordModal v-if="showPasswordModal && (passwordModalMode === 'password' || passwordModalMode === 'alert')"
+            :show="showPasswordModal"
+            :mode="passwordModalMode"
+            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun CS'"
+            :description="passwordModalMode === 'alert'
+                ? ('Akun CS (' + (activeCsUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.')
+                : ('Masukkan PASSWORD LOGIN Akun CS (' + (activeCsUser?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
+            :user="activeCsUser"
+            :loading="verifyingPassword"
+            :error="passwordModalError"
+            @close="showPasswordModal = false; passwordModalError = ''"
+            @success="handlePasswordSuccess" />
     </div>
 </template>

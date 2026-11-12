@@ -280,8 +280,28 @@ class StockOpnameController extends Controller
             } else {
                 $selectedConditions = array_filter(array_map(fn($c) => strtolower(trim((string)$c)), explode(',', (string)$rawConditions)));
             }
-            $selectedConditions = array_values(array_filter($selectedConditions, fn($c) => $c !== 'all' && $c !== 'semua'));
+            $selectedConditions = array_values(array_filter($selectedConditions, fn($c) => $c !== 'all' && $c !== 'semua' && $c !== 'belum_dipilih'));
         }
+
+        // Normalizer for product condition (new, second, ex_ibox)
+        $normalizeCondition = function ($raw) {
+            $c = strtolower(trim((string)$raw));
+            if ($c === 'new' || str_contains($c, 'baru')) {
+                return 'new';
+            }
+            if ($c === 'ex_ibox' || str_contains($c, 'ibox')) {
+                return 'ex_ibox';
+            }
+            return 'second';
+        };
+
+        $getConditionLabel = function ($cond) {
+            return match ($cond) {
+                'new' => 'Baru',
+                'ex_ibox' => 'Ex iBox',
+                default => 'Second',
+            };
+        };
 
         // Brand & Condition matcher helpers
         $matchesBrand = function ($bName) use ($selectedBrands) {
@@ -412,7 +432,7 @@ class StockOpnameController extends Controller
                 // Group by Brand -> Tipe + Storage (GB) + Condition (New vs Second)
                 $grouped = [];
                 $pendingBrandsMap = [];
-                $conditionsCount = ['all' => 0, 'new' => 0, 'second' => 0];
+                $conditionsCount = ['all' => 0, 'new' => 0, 'second' => 0, 'ex_ibox' => 0];
 
                 foreach ($rawHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
@@ -424,8 +444,7 @@ class StockOpnameController extends Controller
                         $storage = strtoupper($m[1]);
                     }
 
-                    $rawCond = strtolower(trim((string)($item->condition ?? 'second')));
-                    $itemCond = ($rawCond === 'new' || str_contains($rawCond, 'baru')) ? 'new' : 'second';
+                    $itemCond = $normalizeCondition($item->condition ?? 'second');
 
                     $key = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage) . '|' . $itemCond;
                     $legacyKey = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage);
@@ -441,10 +460,8 @@ class StockOpnameController extends Controller
                     // Condition counts (respecting selectedBrands if chosen)
                     if ($matchesBrand($bName)) {
                         $conditionsCount['all']++;
-                        if ($itemCond === 'new') {
-                            $conditionsCount['new']++;
-                        } else {
-                            $conditionsCount['second']++;
+                        if (isset($conditionsCount[$itemCond])) {
+                            $conditionsCount[$itemCond]++;
                         }
                     }
 
@@ -464,7 +481,7 @@ class StockOpnameController extends Controller
                             'product_name' => $pName,
                             'storage' => $storage ?: '-',
                             'condition' => $itemCond,
-                            'condition_label' => $itemCond === 'new' ? 'Baru' : 'Second',
+                            'condition_label' => $getConditionLabel($itemCond),
                             'system_qty' => 0,
                             'physical_qty' => 0,
                             'difference' => 0,
@@ -488,6 +505,7 @@ class StockOpnameController extends Controller
                     ['condition' => 'all', 'label' => 'Semua Kondisi', 'count' => $conditionsCount['all']],
                     ['condition' => 'new', 'label' => 'Baru (New)', 'count' => $conditionsCount['new']],
                     ['condition' => 'second', 'label' => 'Second (Bekas)', 'count' => $conditionsCount['second']],
+                    ['condition' => 'ex_ibox', 'label' => 'Ex iBox', 'count' => $conditionsCount['ex_ibox']],
                 ];
 
                 // Sort descending by system_qty
@@ -524,10 +542,20 @@ class StockOpnameController extends Controller
 
                 // Extract available brands from un-audited items
                 $brandsMap = [];
+                $conditionsCount = ['all' => 0, 'new' => 0, 'second' => 0, 'ex_ibox' => 0];
+
                 foreach ($filteredHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
                     $brandsMap[$bName] = ($brandsMap[$bName] ?? 0) + 1;
+
+                    if ($matchesBrand($bName)) {
+                        $itemCond = $normalizeCondition($item->condition ?? 'second');
+                        $conditionsCount['all']++;
+                        if (isset($conditionsCount[$itemCond])) {
+                            $conditionsCount[$itemCond]++;
+                        }
+                    }
                 }
                 arsort($brandsMap);
                 $availableBrands = [];
@@ -538,13 +566,25 @@ class StockOpnameController extends Controller
                     ];
                 }
 
-                // Available types under selected brand
+                $availableConditions = [
+                    ['condition' => 'all', 'label' => 'Belum Dipilih', 'count' => $conditionsCount['all']],
+                    ['condition' => 'new', 'label' => 'Baru (New)', 'count' => $conditionsCount['new']],
+                    ['condition' => 'second', 'label' => 'Second (Bekas)', 'count' => $conditionsCount['second']],
+                    ['condition' => 'ex_ibox', 'label' => 'Ex iBox', 'count' => $conditionsCount['ex_ibox']],
+                ];
+
+                // Available types under selected brand and selected condition(s)
                 $typesData = [];
                 foreach ($filteredHp as $item) {
                     $bName = trim($item->product?->brand ?? 'Unknown');
                     if (!$bName || $bName === '-') $bName = 'Other';
 
                     if (!$matchesBrand($bName)) {
+                        continue;
+                    }
+
+                    $itemCond = $normalizeCondition($item->condition ?? 'second');
+                    if (!$matchesCondition($itemCond)) {
                         continue;
                     }
 
@@ -563,18 +603,20 @@ class StockOpnameController extends Controller
 
                 $imeiList = [];
                 if ($selectedProductName) {
-                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $selectedProductName) {
+                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $matchesCondition, $normalizeCondition, $selectedProductName) {
                         $bName = trim($item->product?->brand ?? 'Unknown');
                         if (!$bName || $bName === '-') $bName = 'Other';
                         if (!$matchesBrand($bName)) return false;
+
+                        $itemCond = $normalizeCondition($item->condition ?? 'second');
+                        if (!$matchesCondition($itemCond)) return false;
 
                         $pName = trim($item->product?->name ?? 'Unknown');
                         return strcasecmp($pName, $selectedProductName) === 0;
                     });
 
                     foreach ($selectedHpItems as $item) {
-                        $rawCond = strtolower(trim((string)($item->condition ?? 'second')));
-                        $itemCond = ($rawCond === 'new' || str_contains($rawCond, 'baru')) ? 'new' : 'second';
+                        $itemCond = $normalizeCondition($item->condition ?? 'second');
 
                         $imeiList[] = [
                             'product_detail_id' => $item->id,
@@ -583,11 +625,11 @@ class StockOpnameController extends Controller
                             'product_name' => $item->product?->name ?? '-',
                             'storage' => $item->storage ?? '-',
                             'condition' => $itemCond,
-                            'condition_label' => $itemCond === 'new' ? 'Baru' : 'Second',
+                            'condition_label' => $getConditionLabel($itemCond),
                             'imei' => $item->imei,
                             'distributor' => $item->distributor?->name ?? '-',
                             'status' => $item->status,
-                            'is_present' => true,
+                            'is_present' => null, // Default: belum dipilih!
                         ];
                     }
                 }
@@ -607,6 +649,7 @@ class StockOpnameController extends Controller
                         default => 'SO CS Toko',
                     },
                     'available_brands' => $availableBrands,
+                    'available_conditions' => $availableConditions,
                     'available_types' => $availableTypes,
                     'total_available_units' => $totalPendingUnits,
                     'items' => $imeiList,
@@ -1070,8 +1113,18 @@ class StockOpnameController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('cs_user_id') && $request->cs_user_id !== 'all') {
-            $query->where('cs_user_id', $request->cs_user_id);
+        $isCsUser = method_exists($user, 'hasRole') && $user->hasRole('inventory');
+        if ($isCsUser) {
+            // Akun CS cuma bisa nampilin history SO dia sendiri aja
+            $query->where(function ($q) use ($user) {
+                $q->where('cs_user_id', $user->id)
+                  ->orWhere('user_id', $user->id);
+            });
+        } else {
+            // Akun toko, leader, dan audit bisa melihat semuanya (atau filter CS tertentu)
+            if ($request->filled('cs_user_id') && $request->cs_user_id !== 'all') {
+                $query->where('cs_user_id', $request->cs_user_id);
+            }
         }
 
         // Executor role segregation & filtering
