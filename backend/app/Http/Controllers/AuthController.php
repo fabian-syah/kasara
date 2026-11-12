@@ -228,7 +228,7 @@ class AuthController extends Controller
         if ($targetId && $targetId != $request->user()->id) {
             $found = User::find($targetId);
             if ($found) {
-                if (!$found->has_password) {
+                if (empty($found->password)) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Akun CS (' . $found->name . ') belum memasang password login.',

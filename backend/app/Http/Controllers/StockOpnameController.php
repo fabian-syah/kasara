@@ -219,7 +219,7 @@ class StockOpnameController extends Controller
                     });
             })
             ->with(['createdBy:id,name,full_name'])
-            ->select('id', 'name', 'username', 'branch_id', 'photo', 'photo_inventory', 'created_by')
+            ->select('id', 'name', 'username', 'branch_id', 'photo', 'photo_inventory', 'created_by', 'password')
             ->orderBy('name')
             ->get();
 
@@ -228,7 +228,7 @@ class StockOpnameController extends Controller
             $csUsers = User::where('branch_id', $branchId)
                 ->where('is_active', true)
                 ->with(['createdBy:id,name,full_name'])
-                ->select('id', 'name', 'username', 'branch_id', 'photo', 'photo_inventory', 'created_by')
+                ->select('id', 'name', 'username', 'branch_id', 'photo', 'photo_inventory', 'created_by', 'password')
                 ->orderBy('name')
                 ->get();
         }

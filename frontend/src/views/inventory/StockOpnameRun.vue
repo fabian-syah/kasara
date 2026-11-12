@@ -383,12 +383,6 @@ const proceedFromStep2 = () => {
 
     // Jika menggunakan akun non-CS (akun toko offline, admin toko, dll.): verifikasi password CS seperti di penjualan toko
     if (!passwordVerified.value) {
-        const acc = activeCsUser.value;
-        if (acc && acc.has_password === false) {
-            passwordModalMode.value = 'alert';
-            showPasswordModal.value = true;
-            return;
-        }
         passwordModalMode.value = 'password';
         passwordModalError.value = '';
         showPasswordModal.value = true;
@@ -667,12 +661,6 @@ const handleVerifyAndSubmit = async () => {
     }
 
     if (isStoreAccount.value && !passwordVerified.value) {
-        const acc = activeCsUser.value;
-        if (acc && acc.has_password === false) {
-            passwordModalMode.value = 'alert';
-            showPasswordModal.value = true;
-            return;
-        }
         passwordModalMode.value = 'password';
         passwordModalError.value = '';
         showPasswordModal.value = true;
@@ -2134,14 +2122,12 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- Modal Verifikasi Password CS (Standard Kasara PasswordModal) -->
-        <PasswordModal v-if="showPasswordModal && (passwordModalMode === 'password' || passwordModalMode === 'alert')"
+        <!-- Modal Verifikasi Password CS (Menggunakan Password Login CS) -->
+        <PasswordModal v-if="showPasswordModal"
             :show="showPasswordModal"
-            :mode="passwordModalMode"
-            :title="passwordModalMode === 'alert' ? 'Akses Ditolak' : 'Verifikasi Akun CS'"
-            :description="passwordModalMode === 'alert'
-                ? ('Akun CS (' + (activeCsUser?.name || '') + ') belum memasang PASSWORD LOGIN (Bukan PIN). Wajib atur password terlebih dahulu di menu Profil.')
-                : ('Masukkan PASSWORD LOGIN Akun CS (' + (activeCsUser?.name || '') + ') untuk melanjutkan. (PENTING: Gunakan Password Login, bukan PIN Transaksi!)')"
+            mode="password"
+            title="Verifikasi Akun CS"
+            :description="'Masukkan Password Login Akun CS (' + (activeCsUser?.name || '') + ') untuk melanjutkan.'"
             :user="activeCsUser"
             :loading="verifyingPassword"
             :error="passwordModalError"

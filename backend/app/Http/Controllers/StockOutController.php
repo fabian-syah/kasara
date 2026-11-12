@@ -4091,7 +4091,7 @@ class StockOutController extends Controller
         if (!$invUser) {
             return response()->json(['success' => false, 'message' => 'Akun inventory tidak ditemukan'], 422);
         }
-        if (!$invUser->has_password) {
+        if (empty($invUser->password)) {
             return response()->json([
                 'success' => false, 
                 'message' => 'Akun Inventory ' . $invUser->name . ' belum memasang password. Silakan atur password terlebih dahulu.'
