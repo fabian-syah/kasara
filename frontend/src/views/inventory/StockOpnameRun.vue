@@ -374,21 +374,6 @@ const proceedFromStep2 = () => {
         return;
     }
 
-    // Jika login sebagai akun CS dan memilih akunnya sendiri: tidak perlu verifikasi password
-    if (isCsLogin.value && authStore.user?.id === selectedCsUserId.value) {
-        passwordVerified.value = true;
-        currentStep.value = 3;
-        return;
-    }
-
-    // Jika menggunakan akun non-CS (akun toko offline, admin toko, dll.): verifikasi password CS seperti di penjualan toko
-    if (!passwordVerified.value) {
-        passwordModalMode.value = 'password';
-        passwordModalError.value = '';
-        showPasswordModal.value = true;
-        return;
-    }
-
     currentStep.value = 3;
 };
 
@@ -406,11 +391,7 @@ const handlePasswordSuccess = async (password) => {
             csPassword.value = password;
             showPasswordModal.value = false;
             toast.success('Verifikasi CS berhasil! ✅');
-            if (currentStep.value === 2) {
-                currentStep.value = 3;
-            } else if (currentStep.value === 6) {
-                await submitOpname();
-            }
+            await submitOpname();
         } else {
             passwordModalError.value = res.data?.message || 'Password CS salah.';
         }
@@ -2127,7 +2108,7 @@ onMounted(async () => {
             :show="showPasswordModal"
             mode="password"
             title="Verifikasi Akun CS"
-            :description="'Masukkan Password Login Akun CS (' + (activeCsUser?.name || '') + ') untuk melanjutkan.'"
+            :description="'Masukkan Password Login Akun CS (' + (activeCsUser?.name || '') + ') untuk menyelesaikan Stok Opname.'"
             :user="activeCsUser"
             :loading="verifyingPassword"
             :error="passwordModalError"
