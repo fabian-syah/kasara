@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Branch;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -797,63 +798,41 @@ class DashboardController extends Controller
 
     private function getRankingData($user, $categories)
     {
-        // Count units based on user_id (who made the sale) as well for sales leaderboard
         $currentReportingDate = StockOut::calculateReportingDate($categories[0] ?? 'penjualan_store', $user->branch ?: ($user->onlineShop ?: null));
+        $cacheKey = "dash_ranking_data_v2_{$user->id}_{$currentReportingDate}";
 
-        $now = Carbon::now();
-        $isBeforeCutoff = $now->format('H:i') < '05:00';
-        $startTS = ($isBeforeCutoff ? Carbon::yesterday() : Carbon::today())->format('Y-m-d') . ' 05:00:00';
-        $endTS = ($isBeforeCutoff ? Carbon::today() : Carbon::tomorrow())->format('Y-m-d') . ' 04:59:59';
+        return Cache::remember($cacheKey, 45, function () use ($user, $categories, $currentReportingDate) {
+            $todayRankingQuery = DB::table('stock_outs')
+                ->whereNull('deleted_at')
+                ->where('status', '!=', 'cancelled')
+                ->where('reporting_date', $currentReportingDate)
+                ->select('user_id', DB::raw("SUM(
+                    CASE 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
+                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
+                        THEN 1
+                        ELSE 0
+                    END
+                    -
+                    CASE 
+                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
+                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
+                             OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
+                             OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
+                             OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
+                        THEN 1
+                        ELSE 0
+                    END
+                ) as total_units"))
+                ->groupBy('user_id')
+                ->orderByDesc('total_units')
+                ->get();
 
-        $rankReceiptIds = DB::table('stock_outs')
-            ->whereNull('deleted_at')
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
-                $q->where('reporting_date', $currentReportingDate)
-                    /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
-            })
-            ->pluck('receipt_id')->filter()->toArray();
-
-        $rankTTMap = empty($rankReceiptIds) ? collect() : \App\Models\TukarTambah::whereIn('receipt_id', $rankReceiptIds)
-            ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
-            ->groupBy('receipt_id')
-            ->get()
-            ->keyBy('receipt_id');
-
-        $todayRankingQuery = DB::table('stock_outs')
-            ->whereNull('deleted_at')
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
-                $q->where('reporting_date', $currentReportingDate)
-                    /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
-            })
-            ->select('user_id', DB::raw("SUM(
-                CASE 
-                    WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
-                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
-                    THEN 1
-                    ELSE 0
-                END
-                -
-                CASE 
-                    WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
-                    WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
-                         OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
-                         OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
-                         OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
-                    THEN 1
-                    ELSE 0
-                END
-            ) as total_units"))
-            ->groupBy('user_id')
-            ->orderByDesc('total_units')
-            ->get();
-
-        $globalRanking = [];
-        $rank = 1;
-        foreach ($todayRankingQuery as $row) {
-            $globalRanking[$row->user_id] = $rank++;
-        }
+            $globalRanking = [];
+            $rank = 1;
+            foreach ($todayRankingQuery as $row) {
+                $globalRanking[$row->user_id] = $rank++;
+            }
 
         // Include both inventory and sales roles in the leaderboard
         $leaderboardQuery = User::role(['inventory', 'toko_offline'])->select('id', 'name', 'photo_inventory');
@@ -897,94 +876,103 @@ class DashboardController extends Controller
             }
         }
 
-        $leaderboard = $leaderboardQuery->get()->map(function ($u) use ($globalRanking, $categories, $user, $rankTTMap, $currentReportingDate, $startTS, $endTS) {
-            // Count units sold by this user
-            $units = StockOut::where('user_id', $u->id)
+            $leaderboardUsers = $leaderboardQuery->get();
+            $userIds = $leaderboardUsers->pluck('id')->filter()->toArray();
+
+            if (empty($userIds)) {
+                return [
+                    'my_rank' => $globalRanking[$user->id] ?? '-',
+                    'leaderboard' => []
+                ];
+            }
+
+            // Efficient batch pre-fetch of all sales for leaderboard users in one query
+            $allSales = DB::table('stock_outs')
+                ->whereIn('user_id', $userIds)
                 ->whereNull('deleted_at')
                 ->where('status', '!=', 'cancelled')
-                ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
-                    $q->where('reporting_date', $currentReportingDate)
-                        /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
-                })
-                ->select(DB::raw("SUM(
-                    CASE 
-                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
-                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp')
-                        THEN 1
-                        ELSE 0
-                    END
-                    -
-                    CASE 
-                        WHEN LOWER(REPLACE(category, ' ', '_')) = 'cancel_penjualan' THEN 0
-                        WHEN LOWER(REPLACE(category, ' ', '_')) IN ('refund', 'refund_dp', 'angkat_barang', 'downgrade') 
-                             OR LOWER(notes) LIKE '%refund%' OR LOWER(sales_account) LIKE '%refund%'
-                             OR LOWER(notes) LIKE '%barang angkat%' OR LOWER(notes) LIKE '%angkat barang%' OR LOWER(notes) LIKE '%angkat_barang%' OR LOWER(sales_account) LIKE '%barang angkat%' OR LOWER(sales_account) LIKE '%angkat barang%' OR LOWER(sales_account) LIKE '%angkat_barang%'
-                             OR LOWER(notes) LIKE '%downgrade%' OR LOWER(sales_account) LIKE '%downgrade%'
-                        THEN 1
-                        ELSE 0
-                    END
-                ) as net_units"))
-                ->first()->net_units ?? 0;
-            // Calculate omset and omset_bersih for each user
-            $sales = StockOut::where('user_id', $u->id)
-                ->whereNull('deleted_at')
-                ->where('status', '!=', 'cancelled')
-                ->where(function ($q) use ($currentReportingDate, $startTS, $endTS) {
-                    $q->where('reporting_date', $currentReportingDate)
-                        /* ->orWhereBetween('created_at', [$startTS, $endTS]) */ ;
-                })
+                ->where('reporting_date', $currentReportingDate)
+                ->select('id', 'user_id', 'receipt_id', 'category', 'notes', 'sales_account', 'selling_price', 'paid_amount', 'dp_amount')
                 ->get();
 
-            $omset = 0;
-            $omsetBersih = 0;
+            $allSalesReceiptIds = $allSales->pluck('receipt_id')->filter()->unique()->toArray();
 
-            foreach ($sales as $sale) {
-                $origCat = strtolower($sale->category ?? '');
-                if ($origCat === 'cancel_penjualan')
-                    continue;
-                $notes = strtolower($sale->notes ?? '');
-                $sa = strtolower($sale->sales_account ?? '');
-                $cat = strtolower($sale->category ?? '');
+            $ttMap = empty($allSalesReceiptIds) ? collect() : DB::table('tukar_tambahs')
+                ->whereIn('receipt_id', $allSalesReceiptIds)
+                ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+                ->groupBy('receipt_id')
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
 
-                if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
-                    if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                        $cat = 'tukar_tambah';
+            $dgMap = empty($allSalesReceiptIds) ? collect() : DB::table('downgrades')
+                ->whereIn('receipt_id', $allSalesReceiptIds)
+                ->select('receipt_id', DB::raw('SUM(outgoing_price) as outgoing_price'), DB::raw('SUM(incoming_cost_price) as incoming_cost_price'))
+                ->groupBy('receipt_id')
+                ->get()
+                ->keyBy(fn($item) => strtolower(trim($item->receipt_id)));
+
+            $salesByUser = $allSales->groupBy('user_id');
+
+            $leaderboard = $leaderboardUsers->map(function ($u) use ($globalRanking, $salesByUser, $ttMap, $dgMap) {
+                $userSales = $salesByUser->get($u->id, collect());
+                $units = 0;
+                $omset = 0;
+                $omsetBersih = 0;
+
+                foreach ($userSales as $sale) {
+                    $origCat = strtolower($sale->category ?? '');
+                    if ($origCat === 'cancel_penjualan')
+                        continue;
+
+                    $notes = strtolower($sale->notes ?? '');
+                    $sa = strtolower($sale->sales_account ?? '');
+                    $cat = $origCat;
+
+                    if (in_array($origCat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'tukar_tambah', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp'])) {
+                        if (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                            $cat = 'tukar_tambah';
+                        }
+                    } else {
+                        if ($origCat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
+                            $cat = 'downgrade';
+                        } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
+                            $cat = 'angkat_barang';
+                        } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
+                            $cat = 'refund';
+                        } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
+                            $cat = 'tukar_tambah';
+                        }
                     }
-                } else {
-                    if ($origCat === 'downgrade' || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade')) {
-                        $cat = 'downgrade';
-                    } elseif (str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')) {
-                        $cat = 'angkat_barang';
-                    } elseif (str_contains($notes, 'refund') || str_contains($sa, 'refund')) {
-                        $cat = 'refund';
-                    } elseif (str_contains($notes, 'tukar tambah') || str_contains($notes, 'tukar_tambah') || str_contains($sa, 'tukar tambah') || str_contains($sa, 'tukar_tambah')) {
-                        $cat = 'tukar_tambah';
+
+                    $isPositiveUnit = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'tukar_tambah', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'pelunasan_dp', 'dp']);
+                    $isNegativeUnit = in_array($cat, ['refund', 'refund_dp', 'angkat_barang', 'downgrade'])
+                        || str_contains($notes, 'refund') || str_contains($sa, 'refund')
+                        || str_contains($notes, 'barang angkat') || str_contains($notes, 'angkat barang') || str_contains($notes, 'angkat_barang') || str_contains($sa, 'barang angkat') || str_contains($sa, 'angkat barang') || str_contains($sa, 'angkat_barang')
+                        || str_contains($notes, 'downgrade') || str_contains($sa, 'downgrade');
+
+                    if ($isPositiveUnit) {
+                        $units += 1;
+                    } elseif ($isNegativeUnit) {
+                        $units -= 1;
                     }
-                }
 
-                $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float) ($sale->paid_amount ?? 0)) : abs((float) ($sale->selling_price ?? 0)));
+                    $price = ($cat === 'balancing') ? (float) ($sale->selling_price ?? 0) : (($cat === 'pelunasan_dp' || $cat === 'dp') ? abs((float) ($sale->paid_amount ?: ($sale->dp_amount ?: $sale->selling_price))) : abs((float) ($sale->selling_price ?? 0)));
+                    $cleanReceiptId = strtolower(trim($sale->receipt_id ?? ''));
 
-                $isBaseSale = in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp']);
-                $isBalancing = ($cat === 'balancing');
-                $isTradeIn = ($cat === 'tukar_tambah');
-                $isDeduction = in_array($cat, ['refund', 'angkat_barang', 'downgrade']);
+                    if ($cat === 'tukar_tambah') {
+                        $ttRec = $ttMap->get($cleanReceiptId);
+                        $outVal = $ttRec ? (float) $ttRec->outgoing_price : 0;
+                        if ($outVal <= 0)
+                            $outVal = $price;
+                        $inVal = $ttRec ? (float) $ttRec->incoming_cost_price : 0;
 
-                if ($isBaseSale || $isBalancing) {
-                    $omset += $price;
-                    $omsetBersih += $price;
-                } elseif ($isTradeIn) {
-                    $ttRec = $rankTTMap->get($sale->receipt_id);
-                    $outVal = $ttRec ? (float) $ttRec->outgoing_price : 0;
-                    if ($outVal <= 0) {
-                        $outVal = $price;
-                    }
-                    $inVal = $ttRec ? (float) $ttRec->incoming_cost_price : 0;
-
-                    $omset += $outVal;
-                    $omsetBersih += ($outVal - $inVal);
-                } elseif ($isDeduction) {
-                    if ($cat === 'downgrade') {
-                        $dgRec = DB::table('downgrades')->where('receipt_id', $sale->receipt_id)->first();
+                        $omset += $outVal;
+                        $omsetBersih += ($outVal - $inVal);
+                    } elseif (in_array($cat, ['shopee', 'orderan_online', 'penjualan_offline', 'penjualan_store', 'penjualan_online_toko', 'pos', 'sale', 'bundling', 'brand_ambassador', 'event_/_sponsorship', 'event_sponsorship', 'pelunasan_dp', 'dp', 'balancing'])) {
+                        $omset += $price;
+                        $omsetBersih += $price;
+                    } elseif ($cat === 'downgrade') {
+                        $dgRec = $dgMap->get($cleanReceiptId);
                         $outDg = $dgRec ? (float) $dgRec->outgoing_price : 0;
                         $inDg = $dgRec ? (float) $dgRec->incoming_cost_price : 0;
 
@@ -994,27 +982,27 @@ class DashboardController extends Controller
                         } else {
                             $omsetBersih -= $price;
                         }
-                    } else {
+                    } elseif (in_array($cat, ['refund', 'refund_dp', 'angkat_barang'])) {
                         $omsetBersih -= $price;
                     }
                 }
-            }
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'photo' => $u->photo_inventory ? asset('storage/' . $u->photo_inventory) : null,
+                    'units' => max(0, $units),
+                    'omset' => $omset,
+                    'omset_bersih' => $omsetBersih,
+                    'rank' => $globalRanking[$u->id] ?? '-'
+                ];
+            })->sortByDesc('units')->values();
 
             return [
-                'id' => $u->id,
-                'name' => $u->name,
-                'photo' => $u->photo_inventory ? asset('storage/' . $u->photo_inventory) : null,
-                'units' => $units,
-                'omset' => $omset,
-                'omset_bersih' => $omsetBersih,
-                'rank' => $globalRanking[$u->id] ?? '-'
+                'my_rank' => $globalRanking[$user->id] ?? '-',
+                'leaderboard' => $leaderboard
             ];
-        })->sortByDesc('units')->values();
-
-        return [
-            'my_rank' => $globalRanking[$user->id] ?? '-',
-            'leaderboard' => $leaderboard
-        ];
+        });
     }
 
     private function getBranchRankingData($user)
@@ -1143,11 +1131,11 @@ class DashboardController extends Controller
                 });
             };
 
-            // Calculate All Rankings
-            $todayRanking = $getRankingForRange($todayDate);
-            $yesterdayRanking = $getRankingForRange($yesterdayDate);
-            $thisMonthRanking = $getRankingForRange($thisMonthStart, $thisMonthEnd);
-            $lastMonthRanking = $getRankingForRange($lastMonthStart, $lastMonthEnd);
+            // Calculate All Rankings with multi-tier caching
+            $todayRanking = Cache::remember("br_global_today_{$todayDate}", 60, fn() => $getRankingForRange($todayDate));
+            $yesterdayRanking = Cache::remember("br_global_yesterday_{$yesterdayDate}", 43200, fn() => $getRankingForRange($yesterdayDate));
+            $thisMonthRanking = Cache::remember("br_global_this_month_{$thisMonthStart}_{$thisMonthEnd}", 180, fn() => $getRankingForRange($thisMonthStart, $thisMonthEnd));
+            $lastMonthRanking = Cache::remember("br_global_last_month_{$lastMonthStart}_{$lastMonthEnd}", 86400, fn() => $getRankingForRange($lastMonthStart, $lastMonthEnd));
 
             $accessibleBranchIds = $user->getAccessibleBranchIds();
             $accessibleOnlineShopIds = $user->getAccessibleOnlineShopIds();
@@ -1235,10 +1223,11 @@ class DashboardController extends Controller
                     ->get();
             };
 
-            $todayUserRanking = $getUserRanking($todayDate);
-            $yesterdayUserRanking = $getUserRanking($yesterdayDate);
-            $thisMonthUserRanking = $getUserRanking($thisMonthStart, $thisMonthEnd);
-            $lastMonthUserRanking = $getUserRanking($lastMonthStart, $lastMonthEnd);
+            $targetUnitKey = $primaryBranchId ? "b_{$primaryBranchId}" : ($primaryOnlineShopId ? "s_{$primaryOnlineShopId}" : "u_{$user->id}");
+            $todayUserRanking = Cache::remember("br_user_today_{$targetUnitKey}_{$todayDate}", 60, fn() => $getUserRanking($todayDate));
+            $yesterdayUserRanking = Cache::remember("br_user_yesterday_{$targetUnitKey}_{$yesterdayDate}", 43200, fn() => $getUserRanking($yesterdayDate));
+            $thisMonthUserRanking = Cache::remember("br_user_this_month_{$targetUnitKey}_{$thisMonthStart}_{$thisMonthEnd}", 180, fn() => $getUserRanking($thisMonthStart, $thisMonthEnd));
+            $lastMonthUserRanking = Cache::remember("br_user_last_month_{$targetUnitKey}_{$lastMonthStart}_{$lastMonthEnd}", 86400, fn() => $getUserRanking($lastMonthStart, $lastMonthEnd));
 
             // Helper to build podium data relative to current user
             $getPodiumData = function ($currentRanking, $previousRanking, $unitType, $unitId) {
