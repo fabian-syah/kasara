@@ -892,6 +892,7 @@ class StockOpnameController extends Controller
             $totalSystem = 0;
             $totalPhysical = 0;
             $totalMissing = 0;
+            $totalExcess = 0;
 
             $itemsData = $request->items;
             $method = $request->method;
@@ -914,14 +915,17 @@ class StockOpnameController extends Controller
                     $totalPhysical += $physQty;
                     if ($diff < 0) {
                         $totalMissing += abs($diff);
+                    } elseif ($diff > 0) {
+                        $totalExcess += $diff;
                     }
                 }
             }
 
-            $totalExcess = 0;
             $excessItems = $request->excess_items ?? [];
             foreach ($excessItems as $eItem) {
-                $totalExcess += max(1, (int)($eItem['quantity'] ?? 1));
+                $eQty = max(1, (int)($eItem['quantity'] ?? 1));
+                $totalExcess += $eQty;
+                $totalPhysical += $eQty;
             }
 
             $hasDifference = ($totalMissing > 0 || $totalExcess > 0);
@@ -1206,6 +1210,13 @@ class StockOpnameController extends Controller
         $perPage = min(max((int)$request->query('per_page', 30), 5), 100);
         $records = $query->latest('id')->paginate($perPage);
 
+        // Normalize totals across records so legacy or updated items always mathematically hold:
+        // total_physical = total_system - total_missing + total_excess
+        $records->getCollection()->transform(function ($rec) {
+            self::normalizeRecordTotals($rec);
+            return $rec;
+        });
+
         $responseData = $records->toArray();
 
         // Calculate total physical store inventory for current active branch if requested or user branch
@@ -1240,6 +1251,93 @@ class StockOpnameController extends Controller
             'excessItems'
         ])->findOrFail($id);
 
+        self::normalizeRecordTotals($stockOpname);
+
         return response()->json(['data' => $stockOpname]);
+    }
+
+    /**
+     * Recompute exact normalized math for a stock opname record.
+     * Ensures: total_physical = total_system - total_missing + total_excess
+     */
+    protected static function normalizeRecordTotals($rec)
+    {
+        if (!$rec) {
+            return;
+        }
+
+        $items = $rec->items ?? collect();
+        $excessItems = $rec->excessItems ?? collect();
+
+        if ($items->isEmpty() && $excessItems->isEmpty()) {
+            return;
+        }
+
+        $sys = 0;
+        $phys = 0;
+        $missing = 0;
+        $rowExcess = 0;
+
+        if ($rec->method === 'by_imei') {
+            $sys = $items->count();
+            foreach ($items as $it) {
+                if ($it->is_present || (int)$it->physical_qty > 0) {
+                    $phys += 1;
+                } else {
+                    $missing += 1;
+                }
+            }
+        } else {
+            // by_unit
+            foreach ($items as $it) {
+                $s = (int)($it->system_qty ?? 0);
+                $p = (int)($it->physical_qty ?? 0);
+                $sys += $s;
+                $phys += $p;
+                $diff = $p - $s;
+                if ($diff < 0) {
+                    $missing += abs($diff);
+                } elseif ($diff > 0) {
+                    $rowExcess += $diff;
+                }
+            }
+        }
+
+        $modalExcess = 0;
+        foreach ($excessItems as $eit) {
+            $modalExcess += max(1, (int)($eit->quantity ?? 1));
+        }
+
+        $calcExcess = $rowExcess + $modalExcess;
+        $calcPhysical = $phys + $modalExcess;
+        $hasDifference = ($missing > 0 || $calcExcess > 0);
+
+        $needsDbUpdate = false;
+        if ((int)$rec->total_system !== $sys ||
+            (int)$rec->total_physical !== $calcPhysical ||
+            (int)$rec->total_missing !== $missing ||
+            (int)$rec->total_excess !== $calcExcess) {
+            $needsDbUpdate = true;
+        }
+
+        $rec->total_system = $sys;
+        $rec->total_physical = $calcPhysical;
+        $rec->total_missing = $missing;
+        $rec->total_excess = $calcExcess;
+        $rec->status = $hasDifference ? 'has_difference' : 'completed';
+
+        if ($needsDbUpdate && !empty($rec->id)) {
+            try {
+                StockOpname::where('id', $rec->id)->update([
+                    'total_system' => $sys,
+                    'total_physical' => $calcPhysical,
+                    'total_missing' => $missing,
+                    'total_excess' => $calcExcess,
+                    'status' => $rec->status,
+                ]);
+            } catch (\Throwable $e) {
+                // Silently ignore if DB update fails
+            }
+        }
     }
 }

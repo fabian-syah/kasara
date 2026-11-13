@@ -574,6 +574,7 @@ const summaryStats = computed(() => {
     let phys = 0;
     let missing = 0;
     let unselected = 0;
+    let rowExcess = 0;
 
     if (method.value === 'by_imei') {
         sys = pendingItems.value.length;
@@ -588,19 +589,23 @@ const summaryStats = computed(() => {
             const p = Number(it.physical_qty) || 0;
             sys += s;
             phys += p;
-            if (p < s) missing += (s - p);
+            const diff = p - s;
+            if (diff < 0) missing += Math.abs(diff);
+            else if (diff > 0) rowExcess += diff;
         });
     }
 
-    const excess = excessItems.value.reduce((sum, e) => sum + (Number(e.quantity) || 1), 0);
+    const modalExcess = excessItems.value.reduce((sum, e) => sum + (Number(e.quantity) || 1), 0);
+    const totalExcess = rowExcess + modalExcess;
+    const totalPhysical = phys + modalExcess;
 
     return {
         totalSystem: sys,
-        totalPhysical: phys,
+        totalPhysical: totalPhysical,
         totalMissing: missing,
         totalUnselected: unselected,
-        totalExcess: excess,
-        hasDifference: (missing > 0 || excess > 0 || (phys !== sys && method.value === 'by_unit'))
+        totalExcess: totalExcess,
+        hasDifference: (missing > 0 || totalExcess > 0)
     };
 });
 

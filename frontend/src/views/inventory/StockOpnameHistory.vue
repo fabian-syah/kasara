@@ -320,25 +320,123 @@ const fetchHistory = async (page = 1) => {
     }
 };
 
-// Flattened All IMEI list from current records
+// Helper to compute normalized totals for any record
+const getRecordTotals = (rec) => {
+    if (!rec) {
+        return { total_system: 0, total_physical: 0, total_missing: 0, total_excess: 0, has_difference: false };
+    }
+
+    const items = rec.items || [];
+    const excessList = rec.excessItems || rec.excess_items || [];
+
+    if (items.length > 0 || excessList.length > 0) {
+        let sys = 0;
+        let phys = 0;
+        let missing = 0;
+        let rowExcess = 0;
+
+        if (rec.method === 'by_imei') {
+            sys = items.length;
+            items.forEach(it => {
+                if (it.is_present || Number(it.physical_qty) > 0) {
+                    phys += 1;
+                } else {
+                    missing += 1;
+                }
+            });
+        } else {
+            // by_unit
+            items.forEach(it => {
+                const s = Number(it.system_qty) || 0;
+                const p = Number(it.physical_qty) || 0;
+                sys += s;
+                phys += p;
+                const diff = p - s;
+                if (diff < 0) missing += Math.abs(diff);
+                else if (diff > 0) rowExcess += diff;
+            });
+        }
+
+        let modalExcess = 0;
+        excessList.forEach(eit => {
+            modalExcess += Math.max(1, Number(eit.quantity) || 1);
+        });
+
+        const totalExcess = rowExcess + modalExcess;
+        const totalPhysical = phys + modalExcess;
+        const hasDiff = (missing > 0 || totalExcess > 0);
+
+        return {
+            total_system: sys,
+            total_physical: totalPhysical,
+            total_missing: missing,
+            total_excess: totalExcess,
+            has_difference: hasDiff
+        };
+    }
+
+    const s = Number(rec.total_system) || 0;
+    const m = Number(rec.total_missing) || 0;
+    const e = Number(rec.total_excess) || 0;
+    const p = rec.total_physical !== undefined && rec.total_physical !== null
+        ? Number(rec.total_physical)
+        : (s - m + e);
+
+    return {
+        total_system: s,
+        total_physical: p,
+        total_missing: m,
+        total_excess: e,
+        has_difference: (m > 0 || e > 0 || rec.status === 'has_difference')
+    };
+};
+
+// Helper to get all IMEIs in a session (including excess IMEIs)
+const getSessionAllImeis = (rec) => {
+    if (!rec) return [];
+    const list = [];
+    if (rec.items && rec.items.length > 0) {
+        rec.items.forEach(it => {
+            if (it.imei) {
+                list.push({ ...it, is_excess: false });
+            }
+        });
+    }
+    const excessList = rec.excessItems || rec.excess_items || [];
+    excessList.forEach(eit => {
+        if (eit.imei) {
+            list.push({
+                ...eit,
+                system_qty: 0,
+                physical_qty: Number(eit.quantity) || 1,
+                difference: Number(eit.quantity) || 1,
+                is_present: true,
+                is_excess: true,
+                notes: eit.notes || 'Barang Lebih Fisik'
+            });
+        }
+    });
+    return list;
+};
+
+// Flattened All IMEI list from current records (including excess IMEIs)
 const allImeis = computed(() => {
     const list = [];
     records.value.forEach(rec => {
-        if (rec.method === 'by_imei' && rec.items && rec.items.length > 0) {
-            rec.items.forEach(it => {
-                if (it.imei) {
-                    list.push({
-                        ...it,
-                        so_id: rec.id,
-                        opname_number: rec.opname_number,
-                        session_date: rec.date,
-                        session_created_at: rec.created_at,
-                        branch_name: rec.branch?.name || '-',
-                        cs_name: rec.cs_user?.name || '-',
-                        photos: rec.photos || [],
-                        session_record: rec
-                    });
-                }
+        if (rec.method === 'by_imei') {
+            const sessionImeis = getSessionAllImeis(rec);
+            sessionImeis.forEach(it => {
+                list.push({
+                    ...it,
+                    so_id: rec.id,
+                    opname_number: rec.opname_number,
+                    session_date: rec.date,
+                    session_created_at: rec.created_at,
+                    branch_name: rec.branch?.name || '-',
+                    cs_name: rec.cs_user?.name || '-',
+                    photos: it.photos || rec.photos || [],
+                    session_record: rec
+                });
             });
         }
     });
@@ -350,9 +448,9 @@ const imeiStatusFilter = ref('all'); // 'all', 'ada', 'tidak_ada'
 const filteredAllImeis = computed(() => {
     let items = allImeis.value;
     if (imeiStatusFilter.value === 'ada') {
-        items = items.filter(it => it.is_present && it.difference >= 0);
+        items = items.filter(it => it.is_present && (it.difference >= 0 || it.is_excess));
     } else if (imeiStatusFilter.value === 'tidak_ada') {
-        items = items.filter(it => !it.is_present || it.difference < 0);
+        items = items.filter(it => (!it.is_present || it.difference < 0) && !it.is_excess);
     }
     return items;
 });
@@ -375,10 +473,11 @@ const groupedRecordsByDay = computed(() => {
             };
         }
         groups[dayKey].records.push(rec);
-        groups[dayKey].totalSystem += Number(rec.total_system || 0);
-        groups[dayKey].totalPhysical += Number(rec.total_physical || 0);
-        groups[dayKey].totalMissing += Number(rec.total_missing || 0);
-        groups[dayKey].totalExcess += Number(rec.total_excess || 0);
+        const t = getRecordTotals(rec);
+        groups[dayKey].totalSystem += t.total_system;
+        groups[dayKey].totalPhysical += t.total_physical;
+        groups[dayKey].totalMissing += t.total_missing;
+        groups[dayKey].totalExcess += t.total_excess;
     });
 
     return Object.values(groups)
@@ -1282,39 +1381,46 @@ watch(() => filters.value.executor_role, () => {
                             <div class="grid grid-cols-4 gap-1.5 p-2.5 bg-gray-50 dark:bg-surface-700/50 rounded-xl text-center text-xs">
                                 <div>
                                     <div class="text-[10px] text-text-secondary">Sistem</div>
-                                    <div class="font-mono font-bold text-text-primary">{{ rec.total_system }}</div>
+                                    <div class="font-mono font-bold text-text-primary">{{ getRecordTotals(rec).total_system }}</div>
                                 </div>
                                 <div>
                                     <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Fisik Ada</div>
-                                    <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ rec.total_physical }}</div>
+                                    <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ getRecordTotals(rec).total_physical }}</div>
                                 </div>
                                 <div>
                                     <div class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">Kurang</div>
-                                    <div class="font-mono font-bold text-rose-600 dark:text-rose-400">{{ rec.total_missing }}</div>
+                                    <div class="font-mono font-bold text-rose-600 dark:text-rose-400">
+                                        <span v-if="getRecordTotals(rec).total_missing > 0">-{{ getRecordTotals(rec).total_missing }}</span>
+                                        <span v-else class="text-gray-400">0</span>
+                                    </div>
                                 </div>
                                 <div>
                                     <div class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">Lebih</div>
-                                    <div class="font-mono font-bold text-amber-600 dark:text-amber-400">{{ rec.total_excess }}</div>
+                                    <div class="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                        <span v-if="getRecordTotals(rec).total_excess > 0">+{{ getRecordTotals(rec).total_excess }}</span>
+                                        <span v-else class="text-gray-400">0</span>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Inline IMEI Accordion on Mobile -->
-                            <div v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0" class="pt-1">
+                            <div v-if="rec.method === 'by_imei' && getSessionAllImeis(rec).length > 0" class="pt-1">
                                 <button type="button" @click="toggleSessionExpand(rec.id)"
                                     class="w-full py-1.5 px-3 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-between border border-purple-200/60 dark:border-purple-800/60">
-                                    <span>Lihat {{ rec.items.length }} Unit IMEI di Sesi Ini</span>
+                                    <span>Lihat {{ getSessionAllImeis(rec).length }} Unit IMEI di Sesi Ini</span>
                                     <ChevronUp v-if="expandedSessions[rec.id]" :size="14" />
                                     <ChevronDown v-else :size="14" />
                                 </button>
 
                                 <div v-if="expandedSessions[rec.id]" class="mt-2 space-y-2 p-2.5 rounded-xl bg-purple-50/30 dark:bg-surface-700/40 border border-purple-100 dark:border-purple-900/40">
-                                    <div v-for="it in rec.items" :key="it.id" class="p-2 rounded-lg bg-white dark:bg-surface-800 border border-gray-200/60 dark:border-surface-600 text-xs flex items-center justify-between">
+                                    <div v-for="it in getSessionAllImeis(rec)" :key="it.id" class="p-2 rounded-lg bg-white dark:bg-surface-800 border border-gray-200/60 dark:border-surface-600 text-xs flex items-center justify-between">
                                         <div>
                                             <div class="font-mono font-bold text-text-primary">{{ it.imei }}</div>
-                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage }}</div>
+                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }}</div>
                                         </div>
                                         <div class="flex items-center gap-1.5">
-                                            <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Ada ✅</span>
+                                            <span v-if="it.is_excess" class="text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">Lebih ⚠️</span>
+                                            <span v-else-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Ada ✅</span>
                                             <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">Tidak Ada ❌</span>
                                             <button type="button" @click="copyImei(it.imei)" class="p-1 text-gray-400 hover:text-emerald-600">
                                                 <Copy :size="12" />
@@ -1411,7 +1517,7 @@ watch(() => filters.value.executor_role, () => {
                                             <button v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0"
                                                 type="button" @click="toggleSessionExpand(rec.id)"
                                                 class="mt-1 text-[11px] text-purple-600 dark:text-purple-400 font-bold hover:underline inline-flex items-center gap-1">
-                                                <span>{{ expandedSessions[rec.id] ? 'Tutup IMEI' : 'Lihat ' + rec.items.length + ' IMEI' }}</span>
+                                                <span>{{ expandedSessions[rec.id] ? 'Tutup IMEI' : 'Lihat ' + getSessionAllImeis(rec).length + ' IMEI' }}</span>
                                                 <ChevronUp v-if="expandedSessions[rec.id]" :size="12" />
                                                 <ChevronDown v-else :size="12" />
                                             </button>
@@ -1419,33 +1525,33 @@ watch(() => filters.value.executor_role, () => {
 
                                         <!-- Total Sistem -->
                                         <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                            {{ rec.total_system }}
+                                            {{ getRecordTotals(rec).total_system }}
                                         </td>
 
                                         <!-- Total Fisik Ada -->
                                         <td class="py-3.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                            {{ rec.total_physical }}
+                                            {{ getRecordTotals(rec).total_physical }}
                                         </td>
 
                                         <!-- Total Missing (Kurang) -->
                                         <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                            <span v-if="rec.total_missing > 0" class="text-rose-600 dark:text-rose-400">
-                                                -{{ rec.total_missing }}
+                                            <span v-if="getRecordTotals(rec).total_missing > 0" class="text-rose-600 dark:text-rose-400">
+                                                -{{ getRecordTotals(rec).total_missing }}
                                             </span>
                                             <span v-else class="text-gray-400">0</span>
                                         </td>
 
                                         <!-- Total Excess (Lebih) -->
                                         <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                            <span v-if="rec.total_excess > 0" class="text-amber-600 dark:text-amber-400">
-                                                +{{ rec.total_excess }}
+                                            <span v-if="getRecordTotals(rec).total_excess > 0" class="text-amber-600 dark:text-amber-400">
+                                                +{{ getRecordTotals(rec).total_excess }}
                                             </span>
                                             <span v-else class="text-gray-400">0</span>
                                         </td>
 
                                         <!-- Status Badge -->
                                         <td class="py-3.5 px-4 text-center">
-                                            <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
+                                            <span v-if="!getRecordTotals(rec).has_difference" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
                                                 <CheckCircle2 :size="12" />
                                                 <span>Cocok</span>
                                             </span>
@@ -1475,13 +1581,13 @@ watch(() => filters.value.executor_role, () => {
                                     </tr>
 
                                     <!-- Expanded Drawer: Inline IMEIs for this session -->
-                                    <tr v-if="expandedSessions[rec.id] && rec.items && rec.items.length > 0" class="bg-purple-50/25 dark:bg-purple-950/20">
+                                    <tr v-if="expandedSessions[rec.id] && getSessionAllImeis(rec).length > 0" class="bg-purple-50/25 dark:bg-purple-950/20">
                                         <td colspan="10" class="py-3 px-6">
                                             <div class="space-y-2">
                                                 <div class="flex items-center justify-between">
                                                     <span class="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
                                                         <Smartphone :size="13" />
-                                                        <span>Daftar IMEI Sesi {{ rec.opname_number }} ({{ rec.items.length }} unit)</span>
+                                                        <span>Daftar IMEI Sesi {{ rec.opname_number }} ({{ getSessionAllImeis(rec).length }} unit)</span>
                                                     </span>
                                                     <button type="button" @click="openDetail(rec)" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline">
                                                         Buka di Modal Rincian →
@@ -1489,14 +1595,17 @@ watch(() => filters.value.executor_role, () => {
                                                 </div>
 
                                                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                                    <div v-for="it in rec.items" :key="it.id"
+                                                    <div v-for="it in getSessionAllImeis(rec)" :key="it.id"
                                                         class="p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-purple-100 dark:border-purple-900/60 shadow-xs flex items-center justify-between gap-2">
                                                         <div class="space-y-0.5">
                                                             <div class="font-mono font-bold text-xs text-text-primary">{{ it.imei }}</div>
                                                             <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }} ({{ it.condition || 'second' }})</div>
                                                         </div>
                                                         <div class="flex items-center gap-1 shrink-0">
-                                                            <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                                                            <span v-if="it.is_excess" class="text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
+                                                                Lebih ⚠️
+                                                            </span>
+                                                            <span v-else-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
                                                                 Ada ✅
                                                             </span>
                                                             <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
@@ -1592,23 +1701,23 @@ watch(() => filters.value.executor_role, () => {
                                 <div class="text-[10px] uppercase font-bold text-text-secondary">
                                     {{ selectedDetail.method === 'by_imei' ? 'Total IMEI Di-SO' : 'Stok Sistem' }}
                                 </div>
-                                <div class="text-lg font-bold font-mono text-text-primary mt-0.5">{{ selectedDetail.total_system }}</div>
+                                <div class="text-lg font-bold font-mono text-text-primary mt-0.5">{{ getRecordTotals(selectedDetail).total_system }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
                                 <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-300">
                                     {{ selectedDetail.method === 'by_imei' ? 'Fisik Ada (Cocok)' : 'Fisik Cocok' }}
                                 </div>
-                                <div class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{{ selectedDetail.total_physical }}</div>
+                                <div class="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{{ getRecordTotals(selectedDetail).total_physical }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 text-center">
                                 <div class="text-[10px] uppercase font-bold text-rose-700 dark:text-rose-300">
                                     {{ selectedDetail.method === 'by_imei' ? 'Tidak Ada (Selisih)' : 'Selisih (Kurang)' }}
                                 </div>
-                                <div class="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">{{ selectedDetail.total_missing }}</div>
+                                <div class="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-0.5">{{ getRecordTotals(selectedDetail).total_missing }}</div>
                             </div>
                             <div class="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
                                 <div class="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300">Barang Lebih</div>
-                                <div class="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">{{ selectedDetail.total_excess }}</div>
+                                <div class="text-lg font-bold font-mono text-amber-600 dark:text-amber-400 mt-0.5">{{ getRecordTotals(selectedDetail).total_excess }}</div>
                             </div>
                         </div>
 
@@ -1826,23 +1935,27 @@ watch(() => filters.value.executor_role, () => {
                         </div>
 
                         <!-- Excess Items Section -->
-                        <div v-if="selectedDetail.excess_items && selectedDetail.excess_items.length > 0" class="space-y-2">
+                        <div v-if="(selectedDetail.excess_items?.length > 0) || (selectedDetail.excessItems?.length > 0)" class="space-y-2">
                             <h4 class="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                                 <AlertTriangle :size="14" />
-                                <span>Barang Lebih ({{ selectedDetail.excess_items.length }} item)</span>
+                                <span>Barang Lebih ({{ (selectedDetail.excess_items || selectedDetail.excessItems).length }} item)</span>
                             </h4>
 
                             <div class="divide-y divide-gray-100 dark:divide-surface-700 border border-amber-200 dark:border-amber-900/60 rounded-xl overflow-hidden bg-amber-50/20">
-                                <div v-for="ex in selectedDetail.excess_items" :key="ex.id" class="p-3 text-xs flex justify-between items-center">
+                                <div v-for="ex in (selectedDetail.excess_items || selectedDetail.excessItems)" :key="ex.id" class="p-3 text-xs flex justify-between items-center">
                                     <div>
                                         <div class="font-bold text-text-primary">{{ ex.product_name }} ({{ ex.brand }})</div>
-                                        <div class="text-[11px] text-text-secondary font-mono">
-                                            {{ ex.imei ? 'IMEI: ' + ex.imei : 'Qty: ' + ex.quantity }}
-                                            <span v-if="ex.notes" class="font-sans italic text-gray-400 ml-2">"{{ ex.notes }}"</span>
+                                        <div class="text-[11px] text-text-secondary font-mono flex items-center gap-2">
+                                            <span>{{ ex.imei ? 'IMEI: ' + ex.imei : 'Qty: ' + ex.quantity }}</span>
+                                            <button v-if="ex.imei" type="button" @click="copyImei(ex.imei)" title="Salin IMEI"
+                                                class="p-0.5 rounded text-gray-400 hover:text-emerald-600">
+                                                <Copy :size="11" />
+                                            </button>
+                                            <span v-if="ex.notes" class="font-sans italic text-gray-400 ml-1">"{{ ex.notes }}"</span>
                                         </div>
                                     </div>
                                     <span class="px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 font-bold text-[10px] border border-amber-200/60 dark:border-amber-800/60">
-                                        +{{ ex.quantity }} Unit
+                                        +{{ ex.quantity || 1 }} Unit
                                     </span>
                                 </div>
                             </div>
