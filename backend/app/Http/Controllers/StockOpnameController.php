@@ -1203,10 +1203,26 @@ class StockOpnameController extends Controller
             });
         }
 
-        $perPage = min(max((int)$request->query('per_page', 15), 5), 100);
+        $perPage = min(max((int)$request->query('per_page', 30), 5), 100);
         $records = $query->latest('id')->paginate($perPage);
 
-        return response()->json($records);
+        $responseData = $records->toArray();
+
+        // Calculate total physical store inventory for current active branch if requested or user branch
+        $targetBranchId = $requestedBranchId && $requestedBranchId !== 'all' ? $requestedBranchId : null;
+        if (!$targetBranchId && !empty($user->branch_id)) {
+            $targetBranchId = $user->branch_id;
+        }
+
+        if ($targetBranchId && Schema::hasTable('product_details')) {
+            $responseData['branch_stock_total'] = ProductDetail::where('placement_type', 'branch')
+                ->where('placement_id', $targetBranchId)
+                ->whereIn('status', ['available', 'booking', 'returned', 'process'])
+                ->whereHas('product', fn($q) => $q->where('type', 'hp')->orWhere('has_imei', true))
+                ->count();
+        }
+
+        return response()->json($responseData);
     }
 
     /**

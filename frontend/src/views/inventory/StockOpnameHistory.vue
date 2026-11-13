@@ -19,11 +19,13 @@ const authStore = useAuthStore();
 // State
 const loading = ref(false);
 const records = ref([]);
+const branchStockTotal = ref(0);
+const collapsedDays = ref({});
 const pagination = ref({
     current_page: 1,
     last_page: 1,
     total: 0,
-    per_page: 15
+    per_page: 30
 });
 
 // Tab Navigation: '' (Semua), 'by_imei' (Stok by IMEI), 'by_unit' (Stok by Unit)
@@ -41,6 +43,61 @@ const getLocalDateStr = () => {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+};
+
+// Logical date helper matching the 05:00 AM daily cycle reset
+const getLogicalDate = (rec) => {
+    if (rec?.date) return String(rec.date).substring(0, 10);
+    if (rec?.created_at) {
+        const d = new Date(rec.created_at);
+        // If hour < 5, belongs to previous day's logical cycle
+        if (d.getHours() < 5) {
+            d.setDate(d.getDate() - 1);
+        }
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    return getLocalDateStr();
+};
+
+const formatDayTitle = (dateStr) => {
+    if (!dateStr || dateStr === 'Lainnya') return 'Tanggal Tidak Diketahui';
+    try {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            return dateObj.toLocaleDateString('id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+        }
+        return dateStr;
+    } catch (e) {
+        return dateStr;
+    }
+};
+
+const getDayRelativeBadge = (dateStr) => {
+    const today = getLogicalDate({ created_at: new Date() });
+    if (dateStr === today) {
+        return { label: 'Hari Ini (Siklus Aktif)', isToday: true };
+    }
+    try {
+        const d = new Date(dateStr);
+        const now = new Date(today);
+        const diffDays = Math.round((now - d) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) return { label: 'Kemarin', isToday: false };
+        if (diffDays > 1 && diffDays <= 7) return { label: `${diffDays} Hari Lalu`, isToday: false };
+    } catch (e) {}
+    return { label: '', isToday: false };
+};
+
+const toggleDayCollapse = (dateStr) => {
+    collapsedDays.value[dateStr] = !collapsedDays.value[dateStr];
 };
 
 const filters = ref({
@@ -248,11 +305,12 @@ const fetchHistory = async (page = 1) => {
 
         const res = await axios.get('/inventory/opname/history', { params });
         records.value = res.data.data || [];
+        branchStockTotal.value = res.data.branch_stock_total || 0;
         pagination.value = {
             current_page: res.data.current_page || 1,
             last_page: res.data.last_page || 1,
             total: res.data.total || 0,
-            per_page: res.data.per_page || 15
+            per_page: res.data.per_page || 30
         };
     } catch (err) {
         console.error('Error fetching SO history:', err);
@@ -297,6 +355,112 @@ const filteredAllImeis = computed(() => {
         items = items.filter(it => !it.is_present || it.difference < 0);
     }
     return items;
+});
+
+// Grouped Records By Day (per table per hari with daily progress bar & metrics)
+const groupedRecordsByDay = computed(() => {
+    const groups = {};
+    const todayStr = getLogicalDate({ created_at: new Date() });
+
+    records.value.forEach(rec => {
+        const dayKey = getLogicalDate(rec);
+        if (!groups[dayKey]) {
+            groups[dayKey] = {
+                date: dayKey,
+                records: [],
+                totalSystem: 0,
+                totalPhysical: 0,
+                totalMissing: 0,
+                totalExcess: 0,
+            };
+        }
+        groups[dayKey].records.push(rec);
+        groups[dayKey].totalSystem += Number(rec.total_system || 0);
+        groups[dayKey].totalPhysical += Number(rec.total_physical || 0);
+        groups[dayKey].totalMissing += Number(rec.total_missing || 0);
+        groups[dayKey].totalExcess += Number(rec.total_excess || 0);
+    });
+
+    return Object.values(groups)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(g => {
+            const isToday = g.date === todayStr;
+            const hasDiff = g.totalMissing > 0 || g.totalExcess > 0;
+
+            let effectiveTargetUnits = g.totalSystem;
+            if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.totalSystem) {
+                effectiveTargetUnits = branchStockTotal.value;
+            }
+
+            let percent = 0;
+            if (effectiveTargetUnits > 0) {
+                percent = Math.min(100, Math.round((g.totalPhysical / effectiveTargetUnits) * 100));
+            } else if (g.totalPhysical > 0) {
+                percent = 100;
+            }
+
+            let statusLabel = '100% Sesuai';
+            if (percent === 100 && !hasDiff) {
+                statusLabel = 'Sempurna & Lengkap';
+            } else if (hasDiff) {
+                statusLabel = `${g.totalMissing > 0 ? g.totalMissing + ' Kurang' : ''}${g.totalExcess > 0 ? ' +' + g.totalExcess + ' Lebih' : ''}`;
+            } else if (percent < 100) {
+                statusLabel = `${g.totalPhysical} / ${effectiveTargetUnits} Unit`;
+            }
+
+            const rel = getDayRelativeBadge(g.date);
+
+            return {
+                ...g,
+                percent,
+                effectiveTargetUnits,
+                isToday,
+                hasDiff,
+                relativeBadge: rel.label,
+                statusLabel,
+            };
+        });
+});
+
+// Grouped All IMEIs By Day (when viewing in all_imei mode)
+const groupedAllImeisByDay = computed(() => {
+    const groups = {};
+    const todayStr = getLogicalDate({ created_at: new Date() });
+
+    filteredAllImeis.value.forEach(it => {
+        const dayKey = getLogicalDate({ date: it.session_date, created_at: it.session_created_at });
+        if (!groups[dayKey]) {
+            groups[dayKey] = {
+                date: dayKey,
+                items: [],
+                totalAda: 0,
+                totalTidakAda: 0,
+            };
+        }
+        groups[dayKey].items.push(it);
+        if (it.is_present && it.difference >= 0) {
+            groups[dayKey].totalAda += 1;
+        } else {
+            groups[dayKey].totalTidakAda += 1;
+        }
+    });
+
+    return Object.values(groups)
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(g => {
+            const total = g.items.length;
+            const percent = total > 0 ? Math.round((g.totalAda / total) * 100) : 100;
+            const isToday = g.date === todayStr;
+            const rel = getDayRelativeBadge(g.date);
+
+            return {
+                ...g,
+                total,
+                percent,
+                isToday,
+                relativeBadge: rel.label,
+            };
+        });
 });
 
 // View Detail in Modal
@@ -681,26 +845,26 @@ watch(() => filters.value.executor_role, () => {
             <p class="text-xs text-text-secondary mt-1">Gunakan filter lain atau mulai sesi Stok Opname baru.</p>
         </div>
 
-        <!-- CONTENT SECTION 1: ALL IMEI VIEW (Ketika di Tab IMEI & Mode all_imei) -->
-        <div v-else-if="activeTab === 'by_imei' && imeiViewMode === 'all_imei'" class="space-y-4">
+        <!-- CONTENT SECTION 1: ALL IMEI VIEW (Grouped Per Hari with Progress Bar & Details) -->
+        <div v-else-if="activeTab === 'by_imei' && imeiViewMode === 'all_imei'" class="space-y-6">
             <!-- Filter Pill: Semua, Ada, Tidak Ada -->
             <div class="flex flex-wrap items-center justify-between gap-3 bg-white dark:!bg-surface-800 p-3.5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm">
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-bold text-text-secondary uppercase tracking-wider">Status Fisik:</span>
                     <div class="inline-flex rounded-lg border border-gray-200 dark:border-surface-700 p-0.5 text-xs font-bold bg-gray-50 dark:bg-surface-700">
                         <button type="button" @click="imeiStatusFilter = 'all'"
-                            class="px-3 py-1 rounded-md transition-colors"
+                            class="px-3 py-1 rounded-md transition-colors cursor-pointer"
                             :class="imeiStatusFilter === 'all' ? 'bg-white dark:bg-surface-800 text-text-primary shadow-xs' : 'text-text-secondary hover:text-text-primary'">
                             Semua ({{ allImeis.length }})
                         </button>
                         <button type="button" @click="imeiStatusFilter = 'ada'"
-                            class="px-3 py-1 rounded-md transition-colors flex items-center gap-1"
+                            class="px-3 py-1 rounded-md transition-colors flex items-center gap-1 cursor-pointer"
                             :class="imeiStatusFilter === 'ada' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-800'">
                             <Check :size="12" />
                             <span>Ada ({{ allImeis.filter(i => i.is_present && i.difference >= 0).length }})</span>
                         </button>
                         <button type="button" @click="imeiStatusFilter = 'tidak_ada'"
-                            class="px-3 py-1 rounded-md transition-colors flex items-center gap-1"
+                            class="px-3 py-1 rounded-md transition-colors flex items-center gap-1 cursor-pointer"
                             :class="imeiStatusFilter === 'tidak_ada' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 dark:text-rose-400 hover:text-rose-800'">
                             <X :size="12" />
                             <span>Tidak Ada ({{ allImeis.filter(i => !i.is_present || i.difference < 0).length }})</span>
@@ -713,296 +877,363 @@ watch(() => filters.value.executor_role, () => {
                 </span>
             </div>
 
-            <!-- DESKTOP TABLE VIEW for All IMEI (>= md) -->
-            <div class="hidden md:block bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse min-w-[850px] text-xs">
-                        <thead>
-                            <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/60 dark:bg-surface-700/40 text-[11px] font-bold text-text-secondary uppercase">
-                                <th class="py-3 px-3.5 w-10 text-center">No</th>
-                                <th class="py-3 px-4">Tipe & Brand</th>
-                                <th class="py-3 px-4">Nomor IMEI</th>
-                                <th class="py-3 px-3 text-center">GB</th>
-                                <th class="py-3 px-3 text-center">Kondisi</th>
-                                <th class="py-3 px-3 text-center">Status Fisik</th>
-                                <th class="py-3 px-4">Cabang & CS</th>
-                                <th class="py-3 px-4">No SO & Waktu</th>
-                                <th class="py-3 px-3 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
-                            <tr v-if="filteredAllImeis.length === 0">
-                                <td colspan="9" class="py-10 text-center text-text-secondary italic">
-                                    Tidak ada data unit IMEI untuk filter ini.
-                                </td>
-                            </tr>
-                            <tr v-for="(it, idx) in filteredAllImeis" :key="it.id || idx" class="hover:bg-purple-50/20 dark:hover:bg-surface-700/30 transition-colors">
-                                <td class="py-3 px-3.5 text-center font-mono text-gray-400 text-[11px]">{{ idx + 1 }}</td>
-                                <td class="py-3 px-4 font-semibold text-text-primary">
-                                    <div class="font-bold">{{ it.product_name }}</div>
-                                    <div v-if="it.brand" class="text-[10px] text-text-secondary">{{ it.brand }}</div>
-                                </td>
-                                <td class="py-3 px-4">
-                                    <div class="flex items-center gap-1.5 font-mono font-bold text-text-primary text-xs">
-                                        <span>{{ it.imei }}</span>
-                                        <button type="button" @click="copyImei(it.imei)" :title="'Salin IMEI: ' + it.imei"
-                                            class="p-1 rounded hover:bg-gray-100 dark:hover:bg-surface-700 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer">
-                                            <CheckCheck v-if="copiedImei === it.imei" :size="13" class="text-emerald-500" />
-                                            <Copy v-else :size="13" />
+            <!-- Empty State for All IMEI -->
+            <div v-if="filteredAllImeis.length === 0" class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-12 text-center text-text-secondary">
+                <History :size="32" class="mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+                <p class="text-sm font-semibold text-text-primary">Tidak ada data unit IMEI untuk filter ini</p>
+            </div>
+
+            <!-- Per Day Grouped Table for All IMEI -->
+            <div v-else v-for="day in groupedAllImeisByDay" :key="day.date"
+                class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
+                <!-- Day Header & Progress Bar -->
+                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-purple-50/40 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                                <Smartphone :size="18" />
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h3 class="text-sm sm:text-base font-black text-text-primary">
+                                        {{ formatDayTitle(day.date) }}
+                                    </h3>
+                                    <span v-if="day.isToday" class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60">
+                                        Hari Ini
+                                    </span>
+                                    <span v-else-if="day.relativeBadge" class="text-[9px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600">
+                                        {{ day.relativeBadge }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-text-secondary mt-0.5">
+                                    {{ day.total }} unit diperiksa • {{ day.totalAda }} Ada • {{ day.totalTidakAda }} Tidak Ada
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar Pill -->
+                        <div class="flex items-center gap-2.5 self-end sm:self-center">
+                            <div class="text-right">
+                                <span class="text-xs font-black font-mono" :class="day.percent === 100 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+                                    {{ day.percent }}% Ada
+                                </span>
+                                <div class="text-[10px] text-text-secondary font-medium">
+                                    {{ day.totalAda }}/{{ day.total }} Unit
+                                </div>
+                            </div>
+                            <button type="button" @click="toggleDayCollapse(day.date)"
+                                class="p-1.5 rounded-lg border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:bg-surface-700 text-text-secondary cursor-pointer">
+                                <ChevronUp v-if="!collapsedDays[day.date]" :size="16" />
+                                <ChevronDown v-else :size="16" />
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar Track -->
+                    <div class="mt-3 w-full h-2 rounded-full bg-gray-100 dark:bg-surface-700 overflow-hidden border border-gray-200/60 dark:border-surface-600">
+                        <div class="h-full rounded-full transition-all duration-500"
+                            :class="day.percent === 100 ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-rose-500'"
+                            :style="{ width: `${day.percent}%` }"></div>
+                    </div>
+                </div>
+
+                <!-- Day Content (Toggled) -->
+                <div v-show="!collapsedDays[day.date]">
+                    <!-- Desktop Table (>= md) -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[850px] text-xs">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/60 dark:bg-surface-700/40 text-[11px] font-bold text-text-secondary uppercase">
+                                    <th class="py-3 px-3.5 w-10 text-center">No</th>
+                                    <th class="py-3 px-4">Tipe & Brand</th>
+                                    <th class="py-3 px-4">Nomor IMEI</th>
+                                    <th class="py-3 px-3 text-center">GB</th>
+                                    <th class="py-3 px-3 text-center">Kondisi</th>
+                                    <th class="py-3 px-3 text-center">Status Fisik</th>
+                                    <th class="py-3 px-4">Cabang & CS</th>
+                                    <th class="py-3 px-4">No SO & Waktu</th>
+                                    <th class="py-3 px-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
+                                <tr v-for="(it, idx) in day.items" :key="it.id || idx" class="hover:bg-purple-50/20 dark:hover:bg-surface-700/30 transition-colors">
+                                    <td class="py-3 px-3.5 text-center font-mono text-gray-400 text-[11px]">{{ idx + 1 }}</td>
+                                    <td class="py-3 px-4 font-semibold text-text-primary">
+                                        <div class="font-bold">{{ it.product_name }}</div>
+                                        <div v-if="it.brand" class="text-[10px] text-text-secondary">{{ it.brand }}</div>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="flex items-center gap-1.5 font-mono font-bold text-text-primary text-xs">
+                                            <span>{{ it.imei }}</span>
+                                            <button type="button" @click="copyImei(it.imei)" :title="'Salin IMEI: ' + it.imei"
+                                                class="p-1 rounded hover:bg-gray-100 dark:hover:bg-surface-700 text-gray-400 hover:text-emerald-600 transition-colors cursor-pointer">
+                                                <CheckCheck v-if="copiedImei === it.imei" :size="13" class="text-emerald-500" />
+                                                <Copy v-else :size="13" />
+                                            </button>
+                                        </div>
+                                        <div v-if="it.notes" class="text-[10px] text-gray-400 italic">"{{ it.notes }}"</div>
+                                    </td>
+                                    <td class="py-3 px-3 text-center font-mono font-bold">{{ it.storage || '-' }}</td>
+                                    <td class="py-3 px-3 text-center">
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
+                                            :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary'">
+                                            {{ it.condition || 'second' }}
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-3 text-center">
+                                        <span v-if="it.is_present && it.difference >= 0"
+                                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
+                                            <Check :size="12" />
+                                            <span>Ada</span>
+                                        </span>
+                                        <span v-else
+                                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/60">
+                                            <X :size="12" />
+                                            <span>Tidak Ada</span>
+                                        </span>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-medium text-text-primary">{{ it.branch_name }}</div>
+                                        <div class="text-[10px] text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                            <span :class="getRoleBadgeClass(getRecordRole(it.session_record))" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border">
+                                                {{ getRoleLabel(getRecordRole(it.session_record)) }}
+                                            </span>
+                                            <span>CS: {{ it.cs_name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-mono text-[11px] font-bold text-text-primary">{{ it.opname_number }}</div>
+                                        <div class="text-[10px] text-text-secondary">{{ formatDateTime(it.session_created_at) }}</div>
+                                    </td>
+                                    <td class="py-3 px-3 text-right">
+                                        <button type="button" @click="openDetail(it.session_record)"
+                                            class="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-purple-500 hover:text-purple-600 transition-colors inline-flex items-center gap-1">
+                                            <Eye :size="13" />
+                                            <span>Sesi</span>
                                         </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards (< md) -->
+                    <div class="md:hidden divide-y divide-gray-100 dark:divide-surface-700">
+                        <div v-for="(it, idx) in day.items" :key="it.id || idx" class="p-4 space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="font-bold text-sm text-text-primary">{{ it.product_name }}</div>
+                                    <div class="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                        <span v-if="it.brand" class="bg-gray-100 dark:bg-surface-700 px-1.5 py-0.5 rounded text-[10px]">{{ it.brand }}</span>
+                                        <span class="font-mono">{{ it.storage || '-' }}</span>
+                                        <span>•</span>
+                                        <span class="capitalize">{{ it.condition || 'second' }}</span>
                                     </div>
-                                    <div v-if="it.notes" class="text-[10px] text-gray-400 italic">"{{ it.notes }}"</div>
-                                </td>
-                                <td class="py-3 px-3 text-center font-mono font-bold">{{ it.storage || '-' }}</td>
-                                <td class="py-3 px-3 text-center">
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-                                        :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary'">
-                                        {{ it.condition || 'second' }}
-                                    </span>
-                                </td>
-                                <td class="py-3 px-3 text-center">
-                                    <span v-if="it.is_present && it.difference >= 0"
-                                        class="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
-                                        <Check :size="12" />
-                                        <span>Ada</span>
-                                    </span>
-                                    <span v-else
-                                        class="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/60">
-                                        <X :size="12" />
-                                        <span>Tidak Ada</span>
-                                    </span>
-                                </td>
-                                <td class="py-3 px-4">
-                                    <div class="font-medium text-text-primary">{{ it.branch_name }}</div>
-                                    <div class="text-[10px] text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                </div>
+
+                                <span v-if="it.is_present && it.difference >= 0"
+                                    class="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800/60 shrink-0">
+                                    <Check :size="12" />
+                                    <span>Ada</span>
+                                </span>
+                                <span v-else
+                                    class="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-1 rounded-full border border-rose-200/60 dark:border-rose-800/60 shrink-0">
+                                    <X :size="12" />
+                                    <span>Tidak Ada</span>
+                                </span>
+                            </div>
+
+                            <div class="p-3 bg-gray-50 dark:bg-surface-700/60 rounded-xl border border-gray-200/60 dark:border-surface-600 flex items-center justify-between gap-2">
+                                <div>
+                                    <div class="text-[10px] uppercase font-bold text-text-secondary">Nomor IMEI Fisik</div>
+                                    <div class="font-mono font-bold text-sm text-text-primary tracking-wide select-all">{{ it.imei }}</div>
+                                </div>
+                                <button type="button" @click="copyImei(it.imei)"
+                                    class="px-2.5 py-1.5 rounded-lg bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-all flex items-center gap-1 shrink-0">
+                                    <CheckCheck v-if="copiedImei === it.imei" :size="13" class="text-emerald-500" />
+                                    <Copy v-else :size="13" />
+                                    <span>{{ copiedImei === it.imei ? 'Tersalin' : 'Salin' }}</span>
+                                </button>
+                            </div>
+
+                            <div class="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-surface-700 text-xs">
+                                <div class="space-y-0.5">
+                                    <div class="font-medium text-text-primary flex items-center gap-1">
+                                        <Building2 :size="12" class="text-emerald-500" />
+                                        <span>{{ it.branch_name }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-text-secondary flex items-center gap-1.5 flex-wrap">
                                         <span :class="getRoleBadgeClass(getRecordRole(it.session_record))" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border">
                                             {{ getRoleLabel(getRecordRole(it.session_record)) }}
                                         </span>
-                                        <span>CS: {{ it.cs_name }}</span>
+                                        <span>CS: {{ it.cs_name }} • {{ formatDateTime(it.session_created_at) }}</span>
                                     </div>
-                                </td>
-                                <td class="py-3 px-4">
-                                    <div class="font-mono text-[11px] font-bold text-text-primary">{{ it.opname_number }}</div>
-                                    <div class="text-[10px] text-text-secondary">{{ formatDateTime(it.session_created_at) }}</div>
-                                </td>
-                                <td class="py-3 px-3 text-right">
-                                    <button type="button" @click="openDetail(it.session_record)"
-                                        class="px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-purple-500 hover:text-purple-600 transition-colors inline-flex items-center gap-1">
-                                        <Eye :size="13" />
-                                        <span>Sesi</span>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+                                </div>
 
-            <!-- MOBILE RESPONSIVE CARDS for All IMEI (< md) -->
-            <div class="md:hidden space-y-3">
-                <div v-for="(it, idx) in filteredAllImeis" :key="it.id || idx"
-                    class="bg-white dark:!bg-surface-800 rounded-2xl p-4 border border-gray-100 dark:border-surface-700 shadow-sm space-y-3">
-                    <!-- Top: Product and Status Pill -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <div class="font-bold text-sm text-text-primary">{{ it.product_name }}</div>
-                            <div class="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
-                                <span v-if="it.brand" class="bg-gray-100 dark:bg-surface-700 px-1.5 py-0.5 rounded text-[10px]">{{ it.brand }}</span>
-                                <span class="font-mono">{{ it.storage || '-' }}</span>
-                                <span>•</span>
-                                <span class="capitalize">{{ it.condition || 'second' }}</span>
+                                <button type="button" @click="openDetail(it.session_record)"
+                                    class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1">
+                                    <Eye :size="13" />
+                                    <span>Rincian</span>
+                                </button>
                             </div>
                         </div>
-
-                        <span v-if="it.is_present && it.difference >= 0"
-                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800/60 shrink-0">
-                            <Check :size="12" />
-                            <span>Ada</span>
-                        </span>
-                        <span v-else
-                            class="inline-flex items-center gap-1 text-[11px] font-extrabold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/60 px-2.5 py-1 rounded-full border border-rose-200/60 dark:border-rose-800/60 shrink-0">
-                            <X :size="12" />
-                            <span>Tidak Ada</span>
-                        </span>
-                    </div>
-
-                    <!-- Middle: Copyable IMEI Card -->
-                    <div class="p-3 bg-gray-50 dark:bg-surface-700/60 rounded-xl border border-gray-200/60 dark:border-surface-600 flex items-center justify-between gap-2">
-                        <div>
-                            <div class="text-[10px] uppercase font-bold text-text-secondary">Nomor IMEI Fisik</div>
-                            <div class="font-mono font-bold text-sm text-text-primary tracking-wide select-all">{{ it.imei }}</div>
-                        </div>
-                        <button type="button" @click="copyImei(it.imei)"
-                            class="px-2.5 py-1.5 rounded-lg bg-white dark:bg-surface-800 border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-all flex items-center gap-1 shrink-0">
-                            <CheckCheck v-if="copiedImei === it.imei" :size="13" class="text-emerald-500" />
-                            <Copy v-else :size="13" />
-                            <span>{{ copiedImei === it.imei ? 'Tersalin' : 'Salin' }}</span>
-                        </button>
-                    </div>
-
-                    <!-- Bottom: Session Meta & Action -->
-                    <div class="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-surface-700 text-xs">
-                        <div class="space-y-0.5">
-                            <div class="font-medium text-text-primary flex items-center gap-1">
-                                <Building2 :size="12" class="text-emerald-500" />
-                                <span>{{ it.branch_name }}</span>
-                            </div>
-                            <div class="text-[11px] text-text-secondary flex items-center gap-1.5 flex-wrap">
-                                <span :class="getRoleBadgeClass(getRecordRole(it.session_record))" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded border">
-                                    {{ getRoleLabel(getRecordRole(it.session_record)) }}
-                                </span>
-                                <span>CS: {{ it.cs_name }} • {{ formatDateTime(it.session_created_at) }}</span>
-                            </div>
-                        </div>
-
-                        <button type="button" @click="openDetail(it.session_record)"
-                            class="px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1">
-                            <Eye :size="13" />
-                            <span>Rincian</span>
-                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- CONTENT SECTION 2: PER SESSION VIEW (Semua Sesi, Stok By Unit, atau Sesi IMEI) -->
-        <div v-else class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden">
-            <!-- Mobile Cards (< md) -->
-            <div class="md:hidden divide-y divide-gray-100 dark:divide-surface-700">
-                <div v-for="rec in records" :key="rec.id" class="p-4 space-y-3 hover:bg-gray-50/50 dark:hover:bg-surface-700/20 transition-colors">
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                                <span :class="getRoleBadgeClass(getRecordRole(rec))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border">
-                                    <ShieldCheck v-if="getRecordRole(rec) === 'audit'" :size="11" />
-                                    <UserCheck v-else-if="getRecordRole(rec) === 'leader'" :size="11" />
-                                    <Crown v-else-if="getRecordRole(rec) === 'admin'" :size="11" />
-                                    <Store v-else :size="11" />
-                                    <span>{{ getRoleLabel(getRecordRole(rec)) }}</span>
-                                </span>
+        <!-- CONTENT SECTION 2: PER SESSION VIEW (Grouped Per Hari with Progress Bar & Rincian) -->
+        <div v-else class="space-y-6">
+            <div v-for="day in groupedRecordsByDay" :key="day.date"
+                class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
+
+                <!-- DAY HEADER & PROGRESS BAR & SUMMARY -->
+                <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <!-- Left: Date Title & Badges -->
+                        <div class="flex items-start sm:items-center gap-3">
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-emerald-600/10 dark:from-emerald-500/30 dark:to-teal-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                                <Calendar :size="20" />
                             </div>
-                            <div class="font-mono font-bold text-sm text-text-primary">{{ rec.opname_number }}</div>
-                            <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h2 class="text-base sm:text-lg font-black text-text-primary tracking-tight">
+                                        {{ formatDayTitle(day.date) }}
+                                    </h2>
+                                    <!-- Badge Relative Day -->
+                                    <span v-if="day.isToday" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 shadow-xs">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <span>Hari Ini • Siklus Aktif</span>
+                                    </span>
+                                    <span v-else-if="day.relativeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600">
+                                        {{ day.relativeBadge }}
+                                    </span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                                        {{ day.records.length }} Sesi SO
+                                    </span>
+                                </div>
+                                <p class="text-[11px] sm:text-xs text-text-secondary mt-0.5 flex items-center gap-2">
+                                    <span>Siklus harian 05:00 AM</span>
+                                    <span class="text-gray-300 dark:text-surface-600">•</span>
+                                    <span>Tercatat {{ day.totalPhysical }} unit fisik diperiksa</span>
+                                </p>
+                            </div>
                         </div>
-                        <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 shrink-0">
-                            <CheckCircle2 :size="12" />
-                            <span>Cocok</span>
-                        </span>
-                        <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 shrink-0">
-                            <AlertTriangle :size="12" />
-                            <span>Selisih</span>
-                        </span>
+
+                        <!-- Right: Daily Percentage Pill & Collapse Button -->
+                        <div class="flex items-center gap-3 self-end lg:self-center">
+                            <!-- Percentage Badge -->
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border shadow-xs"
+                                :class="day.percent === 100 && !day.hasDiff ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300' : day.hasDiff ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300'">
+                                <Sparkles v-if="day.percent === 100 && !day.hasDiff" :size="15" class="text-emerald-500 shrink-0" />
+                                <AlertTriangle v-else-if="day.hasDiff" :size="15" class="text-amber-500 shrink-0" />
+                                <RefreshCw v-else :size="15" class="text-blue-500 shrink-0" />
+                                <div class="text-right">
+                                    <div class="text-xs sm:text-sm font-black font-mono leading-none">
+                                        {{ day.percent }}% SO Selesai
+                                    </div>
+                                    <div class="text-[10px] font-semibold opacity-85 leading-tight">
+                                        {{ day.statusLabel }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Toggle Collapse Button -->
+                            <button type="button" @click="toggleDayCollapse(day.date)"
+                                class="p-2 rounded-xl border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                                :title="collapsedDays[day.date] ? 'Tampilkan Tabel' : 'Sembunyikan Tabel'">
+                                <ChevronUp v-if="!collapsedDays[day.date]" :size="18" />
+                                <ChevronDown v-else :size="18" />
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="space-y-1 text-xs">
-                        <div class="flex items-center justify-between">
-                            <span class="text-text-secondary">Cabang & Pelaksana:</span>
-                            <span class="font-semibold text-text-primary">
-                                {{ rec.branch?.name || '-' }}
-                                <span v-if="getRecordRole(rec) === 'audit' || getRecordRole(rec) === 'leader'">
-                                    ({{ rec.user?.name || '-' }})
-                                </span>
-                                <span v-else>
-                                    ({{ rec.cs_user?.name || '-' }})
-                                </span>
+                    <!-- PROGRESS BAR (AI / Sleek Style) -->
+                    <div class="mt-4 space-y-1.5">
+                        <div class="flex items-center justify-between text-xs font-bold">
+                            <span class="text-text-secondary flex items-center gap-1.5">
+                                <span>Progress SO Tanggal Ini</span>
+                                <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">({{ day.totalPhysical }} / {{ day.effectiveTargetUnits }} Unit)</span>
+                            </span>
+                            <span class="font-mono font-black" :class="day.percent === 100 && !day.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
+                                {{ day.percent }}%
                             </span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-text-secondary">Metode:</span>
-                            <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full"
-                                :class="rec.method === 'by_imei' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'">
-                                {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
-                                <span v-if="rec.brand || rec.product_type">• {{ rec.brand }} {{ rec.product_type }}</span>
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Metrics Grid -->
-                    <div class="grid grid-cols-4 gap-1.5 p-2.5 bg-gray-50 dark:bg-surface-700/50 rounded-xl text-center text-xs">
-                        <div>
-                            <div class="text-[10px] text-text-secondary">Sistem</div>
-                            <div class="font-mono font-bold text-text-primary">{{ rec.total_system }}</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Fisik Ada</div>
-                            <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ rec.total_physical }}</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">Kurang</div>
-                            <div class="font-mono font-bold text-rose-600 dark:text-rose-400">{{ rec.total_missing }}</div>
-                        </div>
-                        <div>
-                            <div class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">Lebih</div>
-                            <div class="font-mono font-bold text-amber-600 dark:text-amber-400">{{ rec.total_excess }}</div>
-                        </div>
-                    </div>
-
-                    <!-- Inline IMEI Accordion on Mobile -->
-                    <div v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0" class="pt-1">
-                        <button type="button" @click="toggleSessionExpand(rec.id)"
-                            class="w-full py-1.5 px-3 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-between border border-purple-200/60 dark:border-purple-800/60">
-                            <span>Lihat {{ rec.items.length }} Unit IMEI di Sesi Ini</span>
-                            <ChevronUp v-if="expandedSessions[rec.id]" :size="14" />
-                            <ChevronDown v-else :size="14" />
-                        </button>
-
-                        <div v-if="expandedSessions[rec.id]" class="mt-2 space-y-2 p-2.5 rounded-xl bg-purple-50/30 dark:bg-surface-700/40 border border-purple-100 dark:border-purple-900/40">
-                            <div v-for="it in rec.items" :key="it.id" class="p-2 rounded-lg bg-white dark:bg-surface-800 border border-gray-200/60 dark:border-surface-600 text-xs flex items-center justify-between">
-                                <div>
-                                    <div class="font-mono font-bold text-text-primary">{{ it.imei }}</div>
-                                    <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage }}</div>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Ada ✅</span>
-                                    <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">Tidak Ada ❌</span>
-                                    <button type="button" @click="copyImei(it.imei)" class="p-1 text-gray-400 hover:text-emerald-600">
-                                        <Copy :size="12" />
-                                    </button>
-                                </div>
+                        <!-- Bar Track -->
+                        <div class="w-full h-3 rounded-full bg-gray-200/70 dark:bg-surface-700 p-0.5 overflow-hidden border border-gray-200 dark:border-surface-600 shadow-inner">
+                            <div class="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
+                                :class="day.percent === 100 && !day.hasDiff ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-sm shadow-emerald-500/50' : day.hasDiff ? 'bg-gradient-to-r from-amber-500 via-orange-400 to-rose-500 shadow-sm shadow-rose-500/40' : 'bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 shadow-sm shadow-blue-500/40'"
+                                :style="{ width: `${day.percent}%` }">
+                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Footer Action -->
-                    <div class="flex items-center justify-between pt-1">
-                        <span v-if="rec.photos && rec.photos.length > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                            <Camera :size="13" />
-                            <span>{{ rec.photos.length }} Foto Bukti</span>
-                        </span>
-                        <span v-else class="text-xs text-gray-400">Tanpa foto</span>
+                    <!-- RINCIAN RINGKASAN HARI INI (SUMMARY METRICS CHIPS) -->
+                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+                        <!-- Metric 1: Sistem -->
+                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-gray-200/80 dark:border-surface-700 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Total Sistem</div>
+                            <div class="text-sm font-black font-mono text-text-primary mt-0.5">{{ day.totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span></div>
+                        </div>
 
-                        <button type="button" @click="openDetail(rec)"
-                            class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1.5">
-                            <Eye :size="14" />
-                            <span>Rincian Lengkap</span>
-                        </button>
+                        <!-- Metric 2: Fisik Ditemukan (Ada) -->
+                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-emerald-200/60 dark:border-emerald-900/50 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
+                            <div class="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{{ day.totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span></div>
+                        </div>
+
+                        <!-- Metric 3: Selisih Kurang -->
+                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border shadow-2xs"
+                            :class="day.totalMissing > 0 ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20' : 'border-gray-200/80 dark:border-surface-700'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="day.totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-secondary'">
+                                Selisih Kurang
+                            </div>
+                            <div class="text-sm font-black font-mono mt-0.5" :class="day.totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-primary'">
+                                {{ day.totalMissing > 0 ? '-' + day.totalMissing : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            </div>
+                        </div>
+
+                        <!-- Metric 4: Selisih Lebih -->
+                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border shadow-2xs"
+                            :class="day.totalExcess > 0 ? 'border-amber-300 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-gray-200/80 dark:border-surface-700'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="day.totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'">
+                                Unit Lebih
+                            </div>
+                            <div class="text-sm font-black font-mono mt-0.5" :class="day.totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-primary'">
+                                {{ day.totalExcess > 0 ? '+' + day.totalExcess : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            </div>
+                        </div>
+
+                        <!-- Metric 5: Hasil Akhir / Status -->
+                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-gray-200/80 dark:border-surface-700 shadow-2xs flex flex-col justify-center">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Hasil Audit</div>
+                            <div class="mt-0.5">
+                                <span v-if="!day.hasDiff && day.percent === 100" class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
+                                    <CheckCircle2 :size="13" class="text-emerald-500" />
+                                    <span>100% Cocok</span>
+                                </span>
+                                <span v-else-if="day.hasDiff" class="inline-flex items-center gap-1 text-[11px] font-black text-rose-600 dark:text-rose-400">
+                                    <AlertTriangle :size="13" class="text-rose-500" />
+                                    <span>Ada Selisih</span>
+                                </span>
+                                <span v-else class="inline-flex items-center gap-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
+                                    <RefreshCw :size="13" class="text-blue-500" />
+                                    <span>Sebagian Selesai</span>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Desktop Table View (>= md) -->
-            <div class="hidden md:block overflow-x-auto">
-                <table class="w-full text-left border-collapse min-w-[800px]">
-                    <thead>
-                        <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/50 dark:bg-surface-700/30 text-[11px] font-bold text-text-secondary uppercase">
-                            <th class="py-3 px-4">No SO & Waktu</th>
-                            <th class="py-3 px-4">Cabang & Pelaksana</th>
-                            <th class="py-3 px-4">Kategori & Metode</th>
-                            <th class="py-3 px-4 text-center">Sistem</th>
-                            <th class="py-3 px-4 text-center">Fisik Ada</th>
-                            <th class="py-3 px-4 text-center">Selisih</th>
-                            <th class="py-3 px-4 text-center">Lebih</th>
-                            <th class="py-3 px-4 text-center">Status</th>
-                            <th class="py-3 px-4 text-center">Foto</th>
-                            <th class="py-3 px-4 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-xs sm:text-sm">
-                        <template v-for="rec in records" :key="rec.id">
-                            <tr class="hover:bg-gray-50/60 dark:hover:bg-surface-700/30 transition-colors">
-                                <!-- No SO & Waktu -->
-                                <td class="py-3.5 px-4">
-                                    <div class="flex items-center gap-1.5 mb-1">
+                <!-- Day Content (Toggled by !collapsedDays[day.date]) -->
+                <div v-show="!collapsedDays[day.date]">
+                    <!-- Mobile Cards (< md) for this Day -->
+                    <div class="md:hidden divide-y divide-gray-100 dark:divide-surface-700">
+                        <div v-for="rec in day.records" :key="rec.id" class="p-4 space-y-3 hover:bg-gray-50/50 dark:hover:bg-surface-700/20 transition-colors">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                                         <span :class="getRoleBadgeClass(getRecordRole(rec))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border">
                                             <ShieldCheck v-if="getRecordRole(rec) === 'audit'" :size="11" />
                                             <UserCheck v-else-if="getRecordRole(rec) === 'leader'" :size="11" />
@@ -1011,153 +1242,285 @@ watch(() => filters.value.executor_role, () => {
                                             <span>{{ getRoleLabel(getRecordRole(rec)) }}</span>
                                         </span>
                                     </div>
-                                    <div class="font-mono font-bold text-xs text-text-primary">{{ rec.opname_number }}</div>
+                                    <div class="font-mono font-bold text-sm text-text-primary">{{ rec.opname_number }}</div>
                                     <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
-                                </td>
+                                </div>
+                                <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 shrink-0">
+                                    <CheckCircle2 :size="12" />
+                                    <span>Cocok</span>
+                                </span>
+                                <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 shrink-0">
+                                    <AlertTriangle :size="12" />
+                                    <span>Selisih</span>
+                                </span>
+                            </div>
 
-                                <!-- Cabang & Pelaksana -->
-                                <td class="py-3.5 px-4">
-                                    <div class="font-semibold text-text-primary flex items-center gap-1.5">
-                                        <Building2 :size="13" class="text-emerald-500 shrink-0" />
-                                        <span>{{ rec.branch?.name || '-' }}</span>
-                                    </div>
-                                    <div class="text-[11px] text-text-secondary flex items-center gap-1.5 mt-0.5">
-                                        <User :size="12" class="text-gray-400 shrink-0" />
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-text-secondary">Cabang & Pelaksana:</span>
+                                    <span class="font-semibold text-text-primary">
+                                        {{ rec.branch?.name || '-' }}
                                         <span v-if="getRecordRole(rec) === 'audit' || getRecordRole(rec) === 'leader'">
-                                            Oleh: <strong>{{ rec.user?.name || '-' }}</strong>
+                                            ({{ rec.user?.name || '-' }})
                                         </span>
                                         <span v-else>
-                                            CS: {{ rec.cs_user?.name || '-' }}
+                                            ({{ rec.cs_user?.name || '-' }})
                                         </span>
-                                    </div>
-                                </td>
-
-                                <!-- Kategori & Metode -->
-                                <td class="py-3.5 px-4">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                                            :class="rec.category_type === 'hp' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
-                                            {{ rec.category_type === 'hp' ? 'HP' : 'Non-HP' }}
-                                        </span>
-                                        <span class="text-xs font-semibold text-text-primary">
-                                            {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
-                                        </span>
-                                    </div>
-                                    <div v-if="rec.brand || rec.product_type" class="text-[11px] text-text-secondary mt-0.5">
-                                        {{ rec.brand ? rec.brand + ' - ' : '' }}{{ rec.product_type || 'Semua Tipe' }}
-                                    </div>
-                                    <!-- Button to expand IMEIs directly if by_imei -->
-                                    <button v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0"
-                                        type="button" @click="toggleSessionExpand(rec.id)"
-                                        class="mt-1 text-[11px] text-purple-600 dark:text-purple-400 font-bold hover:underline inline-flex items-center gap-1">
-                                        <span>{{ expandedSessions[rec.id] ? 'Tutup IMEI' : 'Lihat ' + rec.items.length + ' IMEI' }}</span>
-                                        <ChevronUp v-if="expandedSessions[rec.id]" :size="12" />
-                                        <ChevronDown v-else :size="12" />
-                                    </button>
-                                </td>
-
-                                <!-- Total Sistem -->
-                                <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                    {{ rec.total_system }}
-                                </td>
-
-                                <!-- Total Fisik Ada -->
-                                <td class="py-3.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                                    {{ rec.total_physical }}
-                                </td>
-
-                                <!-- Total Missing (Kurang) -->
-                                <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                    <span v-if="rec.total_missing > 0" class="text-rose-600 dark:text-rose-400">
-                                        -{{ rec.total_missing }}
                                     </span>
-                                    <span v-else class="text-gray-400">0</span>
-                                </td>
-
-                                <!-- Total Excess (Lebih) -->
-                                <td class="py-3.5 px-4 text-center font-mono font-bold">
-                                    <span v-if="rec.total_excess > 0" class="text-amber-600 dark:text-amber-400">
-                                        +{{ rec.total_excess }}
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-text-secondary">Metode:</span>
+                                    <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full"
+                                        :class="rec.method === 'by_imei' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'">
+                                        {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
+                                        <span v-if="rec.brand || rec.product_type">• {{ rec.brand }} {{ rec.product_type }}</span>
                                     </span>
-                                    <span v-else class="text-gray-400">0</span>
-                                </td>
+                                </div>
+                            </div>
 
-                                <!-- Status Badge -->
-                                <td class="py-3.5 px-4 text-center">
-                                    <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
-                                        <CheckCircle2 :size="12" />
-                                        <span>Cocok</span>
-                                    </span>
-                                    <span v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
-                                        <AlertTriangle :size="12" />
-                                        <span>Selisih</span>
-                                    </span>
-                                </td>
+                            <!-- Metrics Grid -->
+                            <div class="grid grid-cols-4 gap-1.5 p-2.5 bg-gray-50 dark:bg-surface-700/50 rounded-xl text-center text-xs">
+                                <div>
+                                    <div class="text-[10px] text-text-secondary">Sistem</div>
+                                    <div class="font-mono font-bold text-text-primary">{{ rec.total_system }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Fisik Ada</div>
+                                    <div class="font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ rec.total_physical }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-rose-600 dark:text-rose-400 font-semibold">Kurang</div>
+                                    <div class="font-mono font-bold text-rose-600 dark:text-rose-400">{{ rec.total_missing }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold">Lebih</div>
+                                    <div class="font-mono font-bold text-amber-600 dark:text-amber-400">{{ rec.total_excess }}</div>
+                                </div>
+                            </div>
 
-                                <!-- Foto SO -->
-                                <td class="py-3.5 px-4 text-center">
-                                    <span v-if="rec.photos && rec.photos.length > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded">
-                                        <Camera :size="12" />
-                                        <span>{{ rec.photos.length }}</span>
-                                    </span>
-                                    <span v-else class="text-gray-400 text-xs">-</span>
-                                </td>
+                            <!-- Inline IMEI Accordion on Mobile -->
+                            <div v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0" class="pt-1">
+                                <button type="button" @click="toggleSessionExpand(rec.id)"
+                                    class="w-full py-1.5 px-3 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 text-xs font-bold flex items-center justify-between border border-purple-200/60 dark:border-purple-800/60">
+                                    <span>Lihat {{ rec.items.length }} Unit IMEI di Sesi Ini</span>
+                                    <ChevronUp v-if="expandedSessions[rec.id]" :size="14" />
+                                    <ChevronDown v-else :size="14" />
+                                </button>
 
-                                <!-- Action Detail -->
-                                <td class="py-3.5 px-4 text-right">
-                                    <button type="button" @click="openDetail(rec)"
-                                        class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
-                                        <Eye :size="14" />
-                                        <span>Rincian</span>
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <!-- Expanded Drawer: Inline IMEIs for this session -->
-                            <tr v-if="expandedSessions[rec.id] && rec.items && rec.items.length > 0" class="bg-purple-50/25 dark:bg-purple-950/20">
-                                <td colspan="10" class="py-3 px-6">
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
-                                                <Smartphone :size="13" />
-                                                <span>Daftar IMEI Sesi {{ rec.opname_number }} ({{ rec.items.length }} unit)</span>
-                                            </span>
-                                            <button type="button" @click="openDetail(rec)" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline">
-                                                Buka di Modal Rincian →
+                                <div v-if="expandedSessions[rec.id]" class="mt-2 space-y-2 p-2.5 rounded-xl bg-purple-50/30 dark:bg-surface-700/40 border border-purple-100 dark:border-purple-900/40">
+                                    <div v-for="it in rec.items" :key="it.id" class="p-2 rounded-lg bg-white dark:bg-surface-800 border border-gray-200/60 dark:border-surface-600 text-xs flex items-center justify-between">
+                                        <div>
+                                            <div class="font-mono font-bold text-text-primary">{{ it.imei }}</div>
+                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage }}</div>
+                                        </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">Ada ✅</span>
+                                            <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">Tidak Ada ❌</span>
+                                            <button type="button" @click="copyImei(it.imei)" class="p-1 text-gray-400 hover:text-emerald-600">
+                                                <Copy :size="12" />
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                            <div v-for="it in rec.items" :key="it.id"
-                                                class="p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-purple-100 dark:border-purple-900/60 shadow-xs flex items-center justify-between gap-2">
-                                                <div class="space-y-0.5">
-                                                    <div class="font-mono font-bold text-xs text-text-primary">{{ it.imei }}</div>
-                                                    <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }} ({{ it.condition || 'second' }})</div>
-                                                </div>
-                                                <div class="flex items-center gap-1 shrink-0">
-                                                    <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
-                                                        Ada ✅
+                            <!-- Footer Action -->
+                            <div class="flex items-center justify-between pt-1">
+                                <span v-if="rec.photos && rec.photos.length > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                    <Camera :size="13" />
+                                    <span>{{ rec.photos.length }} Foto Bukti</span>
+                                </span>
+                                <span v-else class="text-xs text-gray-400">Tanpa foto</span>
+
+                                <button type="button" @click="openDetail(rec)"
+                                    class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1.5">
+                                    <Eye :size="14" />
+                                    <span>Rincian Lengkap</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View (>= md) for this Day -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr class="border-b border-gray-100 dark:border-surface-700 bg-gray-50/50 dark:bg-surface-700/30 text-[11px] font-bold text-text-secondary uppercase">
+                                    <th class="py-3 px-4">No SO & Waktu</th>
+                                    <th class="py-3 px-4">Cabang & Pelaksana</th>
+                                    <th class="py-3 px-4">Kategori & Metode</th>
+                                    <th class="py-3 px-4 text-center">Sistem</th>
+                                    <th class="py-3 px-4 text-center">Fisik Ada</th>
+                                    <th class="py-3 px-4 text-center">Selisih</th>
+                                    <th class="py-3 px-4 text-center">Lebih</th>
+                                    <th class="py-3 px-4 text-center">Status</th>
+                                    <th class="py-3 px-4 text-center">Foto</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100 dark:divide-surface-700 text-xs sm:text-sm">
+                                <template v-for="rec in day.records" :key="rec.id">
+                                    <tr class="hover:bg-gray-50/60 dark:hover:bg-surface-700/30 transition-colors">
+                                        <!-- No SO & Waktu -->
+                                        <td class="py-3.5 px-4">
+                                            <div class="flex items-center gap-1.5 mb-1">
+                                                <span :class="getRoleBadgeClass(getRecordRole(rec))" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border">
+                                                    <ShieldCheck v-if="getRecordRole(rec) === 'audit'" :size="11" />
+                                                    <UserCheck v-else-if="getRecordRole(rec) === 'leader'" :size="11" />
+                                                    <Crown v-else-if="getRecordRole(rec) === 'admin'" :size="11" />
+                                                    <Store v-else :size="11" />
+                                                    <span>{{ getRoleLabel(getRecordRole(rec)) }}</span>
+                                                </span>
+                                            </div>
+                                            <div class="font-mono font-bold text-xs text-text-primary">{{ rec.opname_number }}</div>
+                                            <div class="text-[11px] text-text-secondary mt-0.5">{{ formatDateTime(rec.created_at) }}</div>
+                                        </td>
+
+                                        <!-- Cabang & Pelaksana -->
+                                        <td class="py-3.5 px-4">
+                                            <div class="font-semibold text-text-primary flex items-center gap-1.5">
+                                                <Building2 :size="13" class="text-emerald-500 shrink-0" />
+                                                <span>{{ rec.branch?.name || '-' }}</span>
+                                            </div>
+                                            <div class="text-[11px] text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                                <User :size="12" class="text-gray-400 shrink-0" />
+                                                <span v-if="getRecordRole(rec) === 'audit' || getRecordRole(rec) === 'leader'">
+                                                    Oleh: <strong>{{ rec.user?.name || '-' }}</strong>
+                                                </span>
+                                                <span v-else>
+                                                    CS: {{ rec.cs_user?.name || '-' }}
+                                                </span>
+                                            </div>
+                                        </td>
+
+                                        <!-- Kategori & Metode -->
+                                        <td class="py-3.5 px-4">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                                    :class="rec.category_type === 'hp' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
+                                                    {{ rec.category_type === 'hp' ? 'HP' : 'Non-HP' }}
+                                                </span>
+                                                <span class="text-xs font-semibold text-text-primary">
+                                                    {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
+                                                </span>
+                                            </div>
+                                            <div v-if="rec.brand || rec.product_type" class="text-[11px] text-text-secondary mt-0.5">
+                                                {{ rec.brand ? rec.brand + ' - ' : '' }}{{ rec.product_type || 'Semua Tipe' }}
+                                            </div>
+                                            <!-- Button to expand IMEIs directly if by_imei -->
+                                            <button v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0"
+                                                type="button" @click="toggleSessionExpand(rec.id)"
+                                                class="mt-1 text-[11px] text-purple-600 dark:text-purple-400 font-bold hover:underline inline-flex items-center gap-1">
+                                                <span>{{ expandedSessions[rec.id] ? 'Tutup IMEI' : 'Lihat ' + rec.items.length + ' IMEI' }}</span>
+                                                <ChevronUp v-if="expandedSessions[rec.id]" :size="12" />
+                                                <ChevronDown v-else :size="12" />
+                                            </button>
+                                        </td>
+
+                                        <!-- Total Sistem -->
+                                        <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                            {{ rec.total_system }}
+                                        </td>
+
+                                        <!-- Total Fisik Ada -->
+                                        <td class="py-3.5 px-4 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                                            {{ rec.total_physical }}
+                                        </td>
+
+                                        <!-- Total Missing (Kurang) -->
+                                        <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                            <span v-if="rec.total_missing > 0" class="text-rose-600 dark:text-rose-400">
+                                                -{{ rec.total_missing }}
+                                            </span>
+                                            <span v-else class="text-gray-400">0</span>
+                                        </td>
+
+                                        <!-- Total Excess (Lebih) -->
+                                        <td class="py-3.5 px-4 text-center font-mono font-bold">
+                                            <span v-if="rec.total_excess > 0" class="text-amber-600 dark:text-amber-400">
+                                                +{{ rec.total_excess }}
+                                            </span>
+                                            <span v-else class="text-gray-400">0</span>
+                                        </td>
+
+                                        <!-- Status Badge -->
+                                        <td class="py-3.5 px-4 text-center">
+                                            <span v-if="rec.status === 'completed'" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
+                                                <CheckCircle2 :size="12" />
+                                                <span>Cocok</span>
+                                            </span>
+                                            <span v-else class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300">
+                                                <AlertTriangle :size="12" />
+                                                <span>Selisih</span>
+                                            </span>
+                                        </td>
+
+                                        <!-- Foto SO -->
+                                        <td class="py-3.5 px-4 text-center">
+                                            <span v-if="rec.photos && rec.photos.length > 0" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded">
+                                                <Camera :size="12" />
+                                                <span>{{ rec.photos.length }}</span>
+                                            </span>
+                                            <span v-else class="text-gray-400 text-xs">-</span>
+                                        </td>
+
+                                        <!-- Action Detail -->
+                                        <td class="py-3.5 px-4 text-right">
+                                            <button type="button" @click="openDetail(rec)"
+                                                class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
+                                                <Eye :size="14" />
+                                                <span>Rincian</span>
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Expanded Drawer: Inline IMEIs for this session -->
+                                    <tr v-if="expandedSessions[rec.id] && rec.items && rec.items.length > 0" class="bg-purple-50/25 dark:bg-purple-950/20">
+                                        <td colspan="10" class="py-3 px-6">
+                                            <div class="space-y-2">
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
+                                                        <Smartphone :size="13" />
+                                                        <span>Daftar IMEI Sesi {{ rec.opname_number }} ({{ rec.items.length }} unit)</span>
                                                     </span>
-                                                    <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
-                                                        Tidak Ada ❌
-                                                    </span>
-                                                    <button type="button" @click="copyImei(it.imei)" title="Salin IMEI"
-                                                        class="p-1 rounded text-gray-400 hover:text-emerald-600 hover:bg-gray-100 dark:hover:bg-surface-700">
-                                                        <Copy :size="12" />
+                                                    <button type="button" @click="openDetail(rec)" class="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline">
+                                                        Buka di Modal Rincian →
                                                     </button>
                                                 </div>
+
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                    <div v-for="it in rec.items" :key="it.id"
+                                                        class="p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-purple-100 dark:border-purple-900/60 shadow-xs flex items-center justify-between gap-2">
+                                                        <div class="space-y-0.5">
+                                                            <div class="font-mono font-bold text-xs text-text-primary">{{ it.imei }}</div>
+                                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }} ({{ it.condition || 'second' }})</div>
+                                                        </div>
+                                                        <div class="flex items-center gap-1 shrink-0">
+                                                            <span v-if="it.is_present && it.difference >= 0" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                                                                Ada ✅
+                                                            </span>
+                                                            <span v-else class="text-[10px] font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">
+                                                                Tidak Ada ❌
+                                                            </span>
+                                                            <button type="button" @click="copyImei(it.imei)" title="Salin IMEI"
+                                                                class="p-1 rounded text-gray-400 hover:text-emerald-600 hover:bg-gray-100 dark:hover:bg-surface-700">
+                                                                <Copy :size="12" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
 
-            <!-- Pagination Bar -->
-            <div v-if="pagination.total > pagination.per_page" class="p-4 border-t border-gray-100 dark:border-surface-700 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <!-- Global Pagination Bar -->
+            <div v-if="pagination.total > pagination.per_page" class="bg-white dark:!bg-surface-800 rounded-2xl border border-gray-100 dark:border-surface-700 p-4 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-3">
                 <span class="text-xs text-text-secondary">
                     Menampilkan halaman {{ pagination.current_page }} dari {{ pagination.last_page }} (Total {{ pagination.total }} sesi SO)
                 </span>
