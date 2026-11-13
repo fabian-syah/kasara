@@ -131,25 +131,39 @@ const isStoreAccount = computed(() => {
     return true;
 });
 
+// Akun leader, audit, atau super admin tidak ada pilihan akun CS (otomatis pakai akun pribadi sendiri)
+const hasCsStep = computed(() => !isLeaderOrAudit.value && !isPrivilegedRole.value);
+
 // Stepper Progress Definitions
 const activeSteps = computed(() => {
     if (categoryType.value === 'non_hp') {
-        return [
-            { step: 1, label: 'Toko', short: 'Toko' },
-            { step: 2, label: 'CS Pelaksana', short: 'CS' },
+        const steps = [
+            { step: 1, label: 'Toko', short: 'Toko' }
+        ];
+        if (hasCsStep.value) {
+            steps.push({ step: 2, label: 'CS Pelaksana', short: 'CS' });
+        }
+        steps.push(
             { step: 3, label: 'Kategori', short: 'Kat' },
             { step: 5, label: 'Pilih Brand', short: 'Brand' },
-            { step: 6, label: 'Pemeriksaan Fisik', short: 'Fisik' },
-        ];
+            { step: 6, label: 'Pemeriksaan Fisik', short: 'Fisik' }
+        );
+        return steps;
     }
-    return [
-        { step: 1, label: 'Toko', short: 'Toko' },
-        { step: 2, label: 'CS Pelaksana', short: 'CS' },
+
+    const steps = [
+        { step: 1, label: 'Toko', short: 'Toko' }
+    ];
+    if (hasCsStep.value) {
+        steps.push({ step: 2, label: 'CS Pelaksana', short: 'CS' });
+    }
+    steps.push(
         { step: 3, label: 'HP / Non-HP', short: 'Kat' },
         { step: 4, label: 'Unit / IMEI', short: 'Metode' },
         { step: 5, label: method.value === 'by_imei' ? 'Tipe HP' : 'Brand & Kondisi', short: 'Filter' },
-        { step: 6, label: 'Pemeriksaan Fisik', short: 'Fisik' },
-    ];
+        { step: 6, label: 'Pemeriksaan Fisik', short: 'Fisik' }
+    );
+    return steps;
 });
 
 const currentStepIndex = computed(() => {
@@ -206,8 +220,8 @@ const activeBranch = computed(() => {
 });
 
 const activeCsUser = computed(() => {
-    if (isLeaderOrAudit.value && selectedCsUserId.value === authStore.user?.id) {
-        return authStore.user;
+    if (isLeaderOrAudit.value || isPrivilegedRole.value) {
+        return authStore.user || { name: authStore.userName || 'Leader / Audit' };
     }
     return csUsers.value.find(u => Number(u.id) === Number(selectedCsUserId.value)) || authStore.user || null;
 });
@@ -333,14 +347,22 @@ const goToStep = (step) => {
     if (step === 1) {
         currentStep.value = 1;
     } else if (step === 2) {
+        if (!hasCsStep.value) return;
         if (!selectedBranchId.value) {
             toast.warning('Silakan pilih toko terlebih dahulu.');
             return;
         }
         currentStep.value = 2;
     } else if (step === 3) {
-        if (!selectedBranchId.value || !selectedCsUserId.value) {
-            toast.warning('Silakan pilih toko & CS terlebih dahulu.');
+        if (!selectedBranchId.value) {
+            toast.warning('Silakan pilih toko terlebih dahulu.');
+            return;
+        }
+        if (!hasCsStep.value) {
+            selectedCsUserId.value = authStore.user?.id;
+            passwordVerified.value = true;
+        } else if (!selectedCsUserId.value) {
+            toast.warning('Silakan pilih CS terlebih dahulu.');
             return;
         }
         currentStep.value = 3;
@@ -364,6 +386,15 @@ const proceedFromStep1 = async () => {
         toast.warning('Silakan pilih toko / cabang terlebih dahulu.');
         return;
     }
+
+    // Akun leader, audit, dan super admin otomatis menggunakan akun pribadi sendiri (lewati langkah pilih CS)
+    if (!hasCsStep.value) {
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+        currentStep.value = 3;
+        return;
+    }
+
     await fetchCsUsers();
     currentStep.value = 2;
 };
@@ -496,11 +527,16 @@ const changeSelectedType = () => {
 
 // Watchers
 watch(selectedBranchId, () => {
-    selectedCsUserId.value = null;
+    if (!hasCsStep.value) {
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+    } else {
+        selectedCsUserId.value = null;
+        fetchCsUsers();
+    }
     selectedBrands.value = [];
     selectedConditions.value = [];
     selectedProductName.value = '';
-    fetchCsUsers();
 });
 
 // Physical Calculation
@@ -703,7 +739,10 @@ onMounted(async () => {
         } catch (e) {}
     }
     await fetchBranches();
-    if (selectedBranchId.value) {
+    if (!hasCsStep.value) {
+        selectedCsUserId.value = authStore.user?.id;
+        passwordVerified.value = true;
+    } else if (selectedBranchId.value) {
         await fetchCsUsers();
     }
 });
@@ -877,11 +916,11 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <!-- Continue to Step 2 Button -->
+                    <!-- Continue Button -->
                     <button type="button" @click="proceedFromStep1"
                         :disabled="!selectedBranchId"
                         class="w-full mt-7 h-12 sm:h-14 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-50 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
-                        <span>Lanjutkan ke Pilih CS</span>
+                        <span>{{ hasCsStep ? 'Lanjutkan ke Pilih CS' : 'Lanjut Pilih Kategori' }}</span>
                         <ArrowRight :size="20" stroke-width="2.5" />
                     </button>
                 </div>
@@ -891,7 +930,7 @@ onMounted(async () => {
         <!-- ========================================== -->
         <!-- STEP 2: PILIH CS                           -->
         <!-- ========================================== -->
-        <div v-else-if="currentStep === 2" class="flex items-center justify-center py-2 sm:py-6">
+        <div v-else-if="currentStep === 2 && hasCsStep" class="flex items-center justify-center py-2 sm:py-6">
             <div class="w-full max-w-2xl bg-gradient-to-b from-surface-850 to-surface-900 rounded-3xl border border-surface-750 p-5 sm:p-10 shadow-2xl relative overflow-hidden">
                 <div class="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -1041,10 +1080,10 @@ onMounted(async () => {
                             <span class="text-surface-400">Toko:</span>
                             <strong class="text-white ml-1 font-bold">{{ activeBranch?.name }}</strong>
                             <span class="mx-2 text-surface-600">•</span>
-                            <span class="text-surface-400">CS:</span>
+                            <span class="text-surface-400">{{ hasCsStep ? 'CS:' : 'Pelaksana:' }}</span>
                             <strong class="text-white ml-1 font-bold">{{ activeCsUser?.name }}</strong>
                         </div>
-                        <button type="button" @click="currentStep = 2" class="text-emerald-400 font-bold hover:underline cursor-pointer">
+                        <button v-if="hasCsStep" type="button" @click="currentStep = 2" class="text-emerald-400 font-bold hover:underline cursor-pointer">
                             Ganti CS
                         </button>
                     </div>
@@ -1054,7 +1093,7 @@ onMounted(async () => {
                     </div>
 
                     <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
-                        3. Pilih Kategori Barang
+                        {{ currentStepIndex + 1 }}. Pilih Kategori Barang
                     </h2>
                     <p class="text-surface-400 text-center mb-7 font-medium text-xs sm:text-sm max-w-md mx-auto">
                         Pilih jenis barang yang akan diperiksa stok fisiknya di toko hari ini.
@@ -1116,10 +1155,10 @@ onMounted(async () => {
 
                     <!-- Back Button -->
                     <div class="flex items-center justify-start mt-7">
-                        <button type="button" @click="currentStep = 2"
+                        <button type="button" @click="currentStep = hasCsStep ? 2 : 1"
                             class="px-5 h-12 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-all flex items-center gap-2 cursor-pointer">
                             <ArrowLeft :size="16" />
-                            <span>Kembali ke Pilih CS</span>
+                            <span>{{ hasCsStep ? 'Kembali ke Pilih CS' : 'Kembali ke Pilih Toko' }}</span>
                         </button>
                     </div>
                 </div>
@@ -1153,7 +1192,7 @@ onMounted(async () => {
                     </div>
 
                     <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
-                        4. Pilih Metode Stok Opname
+                        {{ currentStepIndex + 1 }}. Pilih Metode Stok Opname
                     </h2>
                     <p class="text-surface-400 text-center mb-7 font-medium text-xs sm:text-sm max-w-md mx-auto">
                         Pilih cara pemeriksaan unit smartphone yang tersedia di toko.
@@ -1251,7 +1290,7 @@ onMounted(async () => {
 
                     <div class="text-center max-w-lg mx-auto">
                         <h2 class="text-xl sm:text-3xl font-black text-white mb-2">
-                            5. Pilih Brand & Kondisi
+                            {{ currentStepIndex + 1 }}. Pilih Brand & Kondisi
                         </h2>
                         <p class="text-surface-400 font-medium text-xs sm:text-sm">
                             Anda dapat memilih <strong class="text-emerald-400 font-bold">lebih dari 1 brand</strong> dan <strong class="text-emerald-400 font-bold">lebih dari 1 kondisi</strong>.
@@ -1449,7 +1488,7 @@ onMounted(async () => {
 
                     <div class="text-center max-w-lg mx-auto">
                         <h2 class="text-xl sm:text-3xl font-black text-white mb-2">
-                            5. Pilih Tipe HP
+                            {{ currentStepIndex + 1 }}. Pilih Tipe HP
                         </h2>
                         <p class="text-surface-400 font-medium text-xs sm:text-sm">
                             Pilih model/tipe HP di bawah untuk memeriksa nomor seri IMEI satu per satu.
@@ -1670,7 +1709,7 @@ onMounted(async () => {
                         <Filter :size="14" />
                         <span>Filter Brand / Kondisi</span>
                     </button>
-                    <button type="button" @click="currentStep = 2"
+                    <button v-if="hasCsStep" type="button" @click="currentStep = 2"
                         class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-surface-300 hover:text-white hover:border-surface-600 transition-all cursor-pointer">
                         <User :size="14" />
                         <span>Ganti CS</span>
