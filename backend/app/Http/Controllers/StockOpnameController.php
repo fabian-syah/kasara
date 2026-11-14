@@ -60,15 +60,20 @@ class StockOpnameController extends Controller
                 }
             }
 
-            // Normalize 'date' column so past records align with the 05:00 AM daily cycle
+            // Normalize 'date' column so past records align with the 05:00 AM daily cycle (Asia/Jakarta UTC+7)
             try {
                 if (DB::getDriverName() === 'pgsql') {
-                    DB::statement("UPDATE stock_opnames SET date = (created_at - INTERVAL '5 hour')::date WHERE created_at IS NOT NULL");
+                    DB::statement("UPDATE stock_opnames SET date = (timezone('Asia/Jakarta', created_at) - INTERVAL '5 hour')::date WHERE created_at IS NOT NULL");
                 } else {
-                    DB::statement("UPDATE stock_opnames SET date = DATE(SUBDATE(created_at, INTERVAL 5 HOUR)) WHERE created_at IS NOT NULL");
+                    DB::statement("UPDATE stock_opnames SET date = DATE(SUBDATE(CONVERT_TZ(created_at, '+00:00', '+07:00'), INTERVAL 5 HOUR)) WHERE created_at IS NOT NULL");
                 }
             } catch (\Throwable $e) {
-                Log::warning('StockOpnameController date normalization note: ' . $e->getMessage());
+                try {
+                    // Fallback using direct interval +2 hours (UTC + 7h WIB - 5h cycle = +2h)
+                    DB::statement("UPDATE stock_opnames SET date = (created_at + INTERVAL '2 hour')::date WHERE created_at IS NOT NULL");
+                } catch (\Throwable $e2) {
+                    Log::warning('StockOpnameController date normalization note: ' . $e2->getMessage());
+                }
             }
         }
     }
@@ -1313,11 +1318,30 @@ class StockOpnameController extends Controller
         $hasDifference = ($missing > 0 || $calcExcess > 0);
 
         $needsDbUpdate = false;
+        $dbUpdates = [];
+
+        // Check if mathematical totals need synchronization
         if ((int)$rec->total_system !== $sys ||
             (int)$rec->total_physical !== $calcPhysical ||
             (int)$rec->total_missing !== $missing ||
             (int)$rec->total_excess !== $calcExcess) {
             $needsDbUpdate = true;
+            $dbUpdates['total_system'] = $sys;
+            $dbUpdates['total_physical'] = $calcPhysical;
+            $dbUpdates['total_missing'] = $missing;
+            $dbUpdates['total_excess'] = $calcExcess;
+            $dbUpdates['status'] = $hasDifference ? 'has_difference' : 'completed';
+        }
+
+        // Check if logical date needs synchronization matching 05:00 AM cycle in Asia/Jakarta
+        if (!empty($rec->created_at)) {
+            $wib = \Carbon\Carbon::parse($rec->created_at)->setTimezone('Asia/Jakarta');
+            $logicalDate = ($wib->hour < 5 ? $wib->copy()->subDay() : $wib)->toDateString();
+            if ($rec->date !== $logicalDate) {
+                $rec->date = $logicalDate;
+                $needsDbUpdate = true;
+                $dbUpdates['date'] = $logicalDate;
+            }
         }
 
         $rec->total_system = $sys;
@@ -1326,15 +1350,9 @@ class StockOpnameController extends Controller
         $rec->total_excess = $calcExcess;
         $rec->status = $hasDifference ? 'has_difference' : 'completed';
 
-        if ($needsDbUpdate && !empty($rec->id)) {
+        if ($needsDbUpdate && !empty($rec->id) && !empty($dbUpdates)) {
             try {
-                StockOpname::where('id', $rec->id)->update([
-                    'total_system' => $sys,
-                    'total_physical' => $calcPhysical,
-                    'total_missing' => $missing,
-                    'total_excess' => $calcExcess,
-                    'status' => $rec->status,
-                ]);
+                StockOpname::where('id', $rec->id)->update($dbUpdates);
             } catch (\Throwable $e) {
                 // Silently ignore if DB update fails
             }

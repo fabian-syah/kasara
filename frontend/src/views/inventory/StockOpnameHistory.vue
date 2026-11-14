@@ -47,10 +47,9 @@ const getLocalDateStr = () => {
 
 // Logical date helper matching the 05:00 AM daily cycle reset
 const getLogicalDate = (rec) => {
-    if (rec?.date) return String(rec.date).substring(0, 10);
     if (rec?.created_at) {
         const d = new Date(rec.created_at);
-        // If hour < 5, belongs to previous day's logical cycle
+        // If hour < 5, belongs to previous day's logical cycle (resets at 05:00 AM)
         if (d.getHours() < 5) {
             d.setDate(d.getDate() - 1);
         }
@@ -59,6 +58,7 @@ const getLogicalDate = (rec) => {
         const day = String(d.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     }
+    if (rec?.date) return String(rec.date).substring(0, 10);
     return getLocalDateStr();
 };
 
@@ -1186,17 +1186,17 @@ watch(() => filters.value.executor_role, () => {
             <div v-for="day in groupedRecordsByDay" :key="day.date"
                 class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
 
-                <!-- DAY HEADER & PROGRESS BAR & SUMMARY -->
-                <div class="p-4 sm:p-6 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <!-- DAY HEADER WITH INLINE PROGRESS BAR & METRICS -->
+                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
                         <!-- Left: Date Title & Badges -->
                         <div class="flex items-start sm:items-center gap-3">
-                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-emerald-600/10 dark:from-emerald-500/30 dark:to-teal-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
-                                <Calendar :size="20" />
+                            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-emerald-600/10 dark:from-emerald-500/30 dark:to-teal-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
+                                <Calendar :size="18" />
                             </div>
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h2 class="text-base sm:text-lg font-black text-text-primary tracking-tight">
+                                    <h2 class="text-sm sm:text-base font-black text-text-primary tracking-tight">
                                         {{ formatDayTitle(day.date) }}
                                     </h2>
                                     <!-- Badge Relative Day -->
@@ -1211,7 +1211,7 @@ watch(() => filters.value.executor_role, () => {
                                         {{ day.records.length }} Sesi SO
                                     </span>
                                 </div>
-                                <p class="text-[11px] sm:text-xs text-text-secondary mt-0.5 flex items-center gap-2">
+                                <p class="text-[11px] text-text-secondary mt-0.5 flex items-center gap-2">
                                     <span>Siklus harian 05:00 AM</span>
                                     <span class="text-gray-300 dark:text-surface-600">•</span>
                                     <span>Tercatat {{ day.totalPhysical }} unit fisik diperiksa</span>
@@ -1219,57 +1219,58 @@ watch(() => filters.value.executor_role, () => {
                             </div>
                         </div>
 
-                        <!-- Right: Daily Percentage Pill & Collapse Button -->
-                        <div class="flex items-center gap-3 self-end lg:self-center">
-                            <!-- Percentage Badge -->
-                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border shadow-xs"
-                                :class="day.percent === 100 && !day.hasDiff ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300' : day.hasDiff ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60 text-amber-700 dark:text-amber-300' : 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300'">
-                                <Sparkles v-if="day.percent === 100 && !day.hasDiff" :size="15" class="text-emerald-500 shrink-0" />
-                                <AlertTriangle v-else-if="day.hasDiff" :size="15" class="text-amber-500 shrink-0" />
-                                <RefreshCw v-else :size="15" class="text-blue-500 shrink-0" />
-                                <div class="text-right">
-                                    <div class="text-xs sm:text-sm font-black font-mono leading-none">
-                                        {{ day.percent }}% SO Selesai
+                        <!-- Right: Progress Bar langsung di baris tanggal & tombol collapse -->
+                        <div class="flex items-center gap-3 self-stretch lg:self-auto justify-between lg:justify-end">
+                            <!-- Progress Bar Compact Widget (Di Baris Tanggal) -->
+                            <div class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:bg-surface-700/70 border border-gray-200/80 dark:border-surface-600 shadow-2xs min-w-[210px] sm:min-w-[260px] flex-1 lg:flex-initial">
+                                <div class="flex-1 space-y-1">
+                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
+                                        <span class="text-text-secondary flex items-center gap-1">
+                                            <span>Progress SO</span>
+                                            <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">({{ day.totalPhysical }}/{{ day.effectiveTargetUnits }})</span>
+                                        </span>
+                                        <span class="font-mono font-black" :class="day.percent === 100 && !day.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
+                                            {{ day.percent }}%
+                                        </span>
                                     </div>
-                                    <div class="text-[10px] font-semibold opacity-85 leading-tight">
-                                        {{ day.statusLabel }}
+                                    <!-- Mini Bar Track -->
+                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-surface-800 overflow-hidden border border-gray-200/50 dark:border-surface-600">
+                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
+                                            :class="day.percent === 100 && !day.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-500 to-emerald-400'"
+                                            :style="{ width: `${day.percent}%` }">
+                                        </div>
                                     </div>
+                                </div>
+
+                                <!-- Status Badge Pill -->
+                                <div class="shrink-0">
+                                    <span v-if="day.percent === 100 && !day.hasDiff" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80">
+                                        <Sparkles :size="11" />
+                                        <span>100% Selesai</span>
+                                    </span>
+                                    <span v-else-if="day.hasDiff" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80">
+                                        <AlertTriangle :size="11" />
+                                        <span>Selisih</span>
+                                    </span>
+                                    <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80">
+                                        <RefreshCw :size="11" />
+                                        <span>{{ day.percent }}%</span>
+                                    </span>
                                 </div>
                             </div>
 
                             <!-- Toggle Collapse Button -->
                             <button type="button" @click="toggleDayCollapse(day.date)"
-                                class="p-2 rounded-xl border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+                                class="p-2 rounded-xl border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors cursor-pointer shrink-0"
                                 :title="collapsedDays[day.date] ? 'Tampilkan Tabel' : 'Sembunyikan Tabel'">
-                                <ChevronUp v-if="!collapsedDays[day.date]" :size="18" />
-                                <ChevronDown v-else :size="18" />
+                                <ChevronUp v-if="!collapsedDays[day.date]" :size="17" />
+                                <ChevronDown v-else :size="17" />
                             </button>
                         </div>
                     </div>
 
-                    <!-- PROGRESS BAR (AI / Sleek Style) -->
-                    <div class="mt-4 space-y-1.5">
-                        <div class="flex items-center justify-between text-xs font-bold">
-                            <span class="text-text-secondary flex items-center gap-1.5">
-                                <span>Progress SO Tanggal Ini</span>
-                                <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">({{ day.totalPhysical }} / {{ day.effectiveTargetUnits }} Unit)</span>
-                            </span>
-                            <span class="font-mono font-black" :class="day.percent === 100 && !day.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
-                                {{ day.percent }}%
-                            </span>
-                        </div>
-                        <!-- Bar Track -->
-                        <div class="w-full h-3 rounded-full bg-gray-200/70 dark:bg-surface-700 p-0.5 overflow-hidden border border-gray-200 dark:border-surface-600 shadow-inner">
-                            <div class="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden"
-                                :class="day.percent === 100 && !day.hasDiff ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-sm shadow-emerald-500/50' : day.hasDiff ? 'bg-gradient-to-r from-amber-500 via-orange-400 to-rose-500 shadow-sm shadow-rose-500/40' : 'bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 shadow-sm shadow-blue-500/40'"
-                                :style="{ width: `${day.percent}%` }">
-                                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- RINCIAN RINGKASAN HARI INI (SUMMARY METRICS CHIPS) -->
-                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
+                    <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
                         <!-- Metric 1: Sistem -->
                         <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-gray-200/80 dark:border-surface-700 shadow-2xs">
                             <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Total Sistem</div>
