@@ -71,6 +71,9 @@ const getTrackProofLabel = (result, idx) => {
 };
 
 const getTrackProofClass = (result, idx) => {
+    if (result.category === 'cancel_penjualan') {
+        return 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30';
+    }
     if (result.category === 'penjualan_online_toko' || (result.proof_images && result.proof_images.length === 3)) {
         if (idx === 0) {
             return 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 border-blue-500/30';
@@ -236,6 +239,7 @@ function formatCurrency(value) {
 
 function getCategoryColor(category) {
     if (category === 'pindah_cabang') return 'blue';
+    if (category === 'cancel_penjualan') return 'red';
     if (['kesalahan_input', 'hilang'].includes(category)) return 'amber';
     if (['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(category)) return 'purple';
     if (category === 'brand_ambassador') return 'pink';
@@ -246,6 +250,73 @@ function getCategoryColor(category) {
     if (['dp', 'pelunasan_dp', 'balancing'].includes(category)) return 'emerald';
     return 'emerald';
 }
+
+const isSaleItem = (r) => {
+    if (!r || r.type !== 'stock_out') return false;
+    return [
+        'penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko',
+        'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'shopee',
+        'orderan_online', 'pos', 'dp', 'pelunasan_dp'
+    ].includes(r.category);
+};
+
+const isCancelItem = (r) => {
+    if (!r || r.type !== 'stock_out') return false;
+    return r.category === 'cancel_penjualan';
+};
+
+// Groups results so that a sale and its cancel_penjualan are paired side-by-side in a 2-column row
+const displayRows = computed(() => {
+    if (!results.value || results.value.length === 0) return [];
+    const rows = [];
+    const usedIndices = new Set();
+
+    for (let i = 0; i < results.value.length; i++) {
+        if (usedIndices.has(i)) continue;
+        const current = results.value[i];
+
+        // If current is a sale, check if there is an unconsumed cancel item to pair with
+        if (isSaleItem(current)) {
+            let cancelIdx = -1;
+            for (let j = 0; j < results.value.length; j++) {
+                if (!usedIndices.has(j) && isCancelItem(results.value[j])) {
+                    cancelIdx = j;
+                    break;
+                }
+            }
+            if (cancelIdx !== -1) {
+                usedIndices.add(i);
+                usedIndices.add(cancelIdx);
+                // Pair: Sale on left, Cancel on right
+                rows.push([current, results.value[cancelIdx]]);
+                continue;
+            }
+        }
+
+        // If current is a cancel item, check if there is an unconsumed sale item to pair with
+        if (isCancelItem(current)) {
+            let saleIdx = -1;
+            for (let j = 0; j < results.value.length; j++) {
+                if (!usedIndices.has(j) && isSaleItem(results.value[j])) {
+                    saleIdx = j;
+                    break;
+                }
+            }
+            if (saleIdx !== -1) {
+                usedIndices.add(i);
+                usedIndices.add(saleIdx);
+                // Pair: Sale on left, Cancel on right
+                rows.push([results.value[saleIdx], current]);
+                continue;
+            }
+        }
+
+        usedIndices.add(i);
+        rows.push([current]);
+    }
+
+    return rows;
+});
 
 function handleInitialQuery() {
     const qParam = route.query.q || route.query.imei;
@@ -332,11 +403,26 @@ watch(
                     </router-link>
                 </div>
 
-                <div class="space-y-2.5 sm:space-y-3">
-                    <template v-for="(result, rIdx) in results" :key="result.type + '-' + result.id + '-' + rIdx">
+                <div class="space-y-3 sm:space-y-4">
+                    <div v-for="(row, rowIdx) in displayRows" :key="'row-' + rowIdx"
+                        :class="row.length === 2 ? 'grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-stretch' : 'w-full'">
+                        <div v-for="(result, rIdx) in row" :key="result.type + '-' + result.id + '-' + rIdx"
+                            :class="row.length === 2 ? 'h-full flex flex-col' : ''">
 
-                        <!-- ══ STOCK IN ══ -->
-                        <div v-if="result.type === 'stock_in'" class="card-track overflow-hidden">
+                            <!-- Paired Sub-header when side-by-side -->
+                            <div v-if="row.length === 2" class="mb-1.5 flex items-center gap-1.5 px-1">
+                                <span v-if="result.category === 'cancel_penjualan'" class="text-[11px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider flex items-center gap-1">
+                                    <RotateCcw :size="12" />
+                                    <span>History Cancel Penjualan</span>
+                                </span>
+                                <span v-else class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                                    <ShoppingBag :size="12" />
+                                    <span>History Penjualan</span>
+                                </span>
+                            </div>
+
+                            <!-- ══ STOCK IN ══ -->
+                            <div v-if="result.type === 'stock_in'" class="card-track overflow-hidden" :class="row.length === 2 ? 'h-full flex flex-col justify-between' : ''">
                             <!-- Top bar color -->
                             <div class="h-0.5"
                                 :class="result.is_retur_rejection ? 'bg-red-500' : (result.is_return_transfer ? 'bg-amber-500' : (result.is_arrival ? 'bg-indigo-500' : 'bg-green-500'))"></div>
@@ -452,7 +538,7 @@ watch(
                         </div>
 
                         <!-- ══ IMEI SPECIFICATION CORRECTION (SUPER ADMIN) ══ -->
-                        <div v-else-if="result.type === 'imei_correction'" class="card-track overflow-hidden border-purple-500/30 shadow-sm">
+                        <div v-else-if="result.type === 'imei_correction'" class="card-track overflow-hidden border-purple-500/30 shadow-sm" :class="row.length === 2 ? 'h-full flex flex-col justify-between' : ''">
                             <!-- Top bar gradient -->
                             <div class="h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-amber-500"></div>
 
@@ -521,11 +607,16 @@ watch(
                         </div>
 
                         <!-- ══ STOCK OUT ══ -->
-                        <div v-else-if="result.type === 'stock_out'" class="card-track overflow-hidden">
+                        <div v-else-if="result.type === 'stock_out'" class="card-track overflow-hidden"
+                            :class="[
+                                row.length === 2 ? 'h-full flex flex-col justify-between' : '',
+                                result.category === 'cancel_penjualan' ? 'card-cancel-red shadow-sm' : ''
+                            ]">
                             <!-- Top bar color -->
-                            <div class="h-0.5" :class="{
+                            <div class="h-1" :class="{
+                                'bg-red-500': result.category === 'cancel_penjualan',
                                 'bg-blue-500': result.category === 'pindah_cabang',
-                                'bg-amber-500': ['kesalahan_input', 'hilang', 'cancel_penjualan'].includes(result.category),
+                                'bg-amber-500': ['kesalahan_input', 'hilang'].includes(result.category),
                                 'bg-purple-500': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
                                 'bg-pink-500': result.category === 'brand_ambassador',
                                 'bg-cyan-500': result.category === 'event_sponsorship',
@@ -534,260 +625,274 @@ watch(
                                 'bg-emerald-500': ['penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
                             }"></div>
 
-                            <!-- Header -->
-                            <div class="p-3.5 sm:p-4">
-                                <div class="flex items-center gap-2.5 sm:gap-3">
-                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0" :class="{
-                                        'bg-blue-500/10 text-blue-400': result.category === 'pindah_cabang',
-                                        'bg-amber-500/10 text-amber-400': ['kesalahan_input', 'hilang', 'cancel_penjualan'].includes(result.category),
-                                        'bg-purple-500/10 text-purple-400': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
-                                        'bg-pink-500/10 text-pink-400': result.category === 'brand_ambassador',
-                                        'bg-cyan-500/10 text-cyan-400': result.category === 'event_sponsorship',
-                                        'bg-[#EE4D2D]/10 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
-                                        'bg-indigo-500/10 text-indigo-400': ['angkat_barang', 'refund'].includes(result.category),
-                                        'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
-                                    }">
-                                        <component :is="categoryIcons[result.category]" :size="18" />
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span v-if="['angkat_barang', 'refund'].includes(result.category)"
-                                                class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-bold">MASUK</span>
-                                            <span v-else-if="result.category === 'cancel_penjualan'"
-                                                class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20 font-bold">BATAL (MASUK)</span>
-                                            <span v-else class="badge-xs bg-red-500/10 text-red-400 border-red-500/20 font-bold">KELUAR</span>
-                                            <span class="badge-xs bg-primary-500/10 text-primary-400 border-primary-500/20 font-bold uppercase">
-                                                {{ categoryLabels[result.category] || result.category?.replace(/_/g, ' ') }}
-                                            </span>
-                                            <span v-if="result.category === 'pindah_cabang'" class="badge-xs" :class="{
-                                                'bg-yellow-500/10 text-yellow-400 border-yellow-500/20': result.status === 'pending',
-                                                'bg-green-500/10 text-green-400 border-green-500/20': result.status === 'received',
-                                                'bg-red-500/10 text-red-400 border-red-500/20': result.status === 'rejected'
-                                            }">{{ result.status === 'pending' ? 'Menunggu' : (result.status === 'rejected' ? 'Ditolak' : 'Selesai') }}</span>
-                                            <span v-if="result.source_label" class="badge-xs" :class="getSourceBadgeClass(result.source_type)">
-                                                {{ result.source_label }}
-                                            </span>
+                            <!-- Header & Body -->
+                            <div class="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-2.5 sm:gap-3">
+                                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0" :class="{
+                                            'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30': result.category === 'cancel_penjualan',
+                                            'bg-blue-500/10 text-blue-400': result.category === 'pindah_cabang',
+                                            'bg-amber-500/10 text-amber-400': ['kesalahan_input', 'hilang'].includes(result.category),
+                                            'bg-purple-500/10 text-purple-400': ['retur', 'keluar', 'giveaway_customer', 'inventaris'].includes(result.category),
+                                            'bg-pink-500/10 text-pink-400': result.category === 'brand_ambassador',
+                                            'bg-cyan-500/10 text-cyan-400': result.category === 'event_sponsorship',
+                                            'bg-[#EE4D2D]/10 text-[#EE4D2D]': ['shopee', 'orderan_online'].includes(result.category),
+                                            'bg-indigo-500/10 text-indigo-400': ['angkat_barang', 'refund'].includes(result.category),
+                                            'bg-emerald-500/10 text-emerald-400': ['penjualan', 'penjualan_store', 'penjualan_offline', 'penjualan_online_toko', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category),
+                                        }">
+                                            <component :is="categoryIcons[result.category]" :size="18" />
                                         </div>
-                                        <p class="text-sm font-semibold text-text-primary mt-0.5 truncate font-mono">{{ result.id }}</p>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span v-if="['angkat_barang', 'refund'].includes(result.category)"
+                                                    class="badge-xs bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-bold">MASUK</span>
+                                                <span v-else-if="result.category === 'cancel_penjualan'"
+                                                    class="badge-xs bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30 font-bold">BATAL (MASUK)</span>
+                                                <span v-else class="badge-xs bg-red-500/10 text-red-400 border-red-500/20 font-bold">KELUAR</span>
+                                                <span class="badge-xs font-bold uppercase"
+                                                    :class="result.category === 'cancel_penjualan' ? 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30' : 'bg-primary-500/10 text-primary-400 border-primary-500/20'">
+                                                    {{ categoryLabels[result.category] || result.category?.replace(/_/g, ' ') }}
+                                                </span>
+                                                <span v-if="result.category === 'pindah_cabang'" class="badge-xs" :class="{
+                                                    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20': result.status === 'pending',
+                                                    'bg-green-500/10 text-green-400 border-green-500/20': result.status === 'received',
+                                                    'bg-red-500/10 text-red-400 border-red-500/20': result.status === 'rejected'
+                                                }">{{ result.status === 'pending' ? 'Menunggu' : (result.status === 'rejected' ? 'Ditolak' : 'Selesai') }}</span>
+                                                <span v-if="result.source_label" class="badge-xs" :class="getSourceBadgeClass(result.source_type)">
+                                                    {{ result.source_label }}
+                                                </span>
+                                            </div>
+                                            <p class="text-sm font-semibold text-text-primary mt-0.5 truncate font-mono">{{ result.id }}</p>
+                                        </div>
+                                        <div class="text-[10px] sm:text-xs text-text-secondary text-right shrink-0 whitespace-nowrap">
+                                            {{ formatDate(result.created_at) }}
+                                        </div>
                                     </div>
-                                    <div class="text-[10px] sm:text-xs text-text-secondary text-right shrink-0 whitespace-nowrap">
-                                        {{ formatDate(result.created_at) }}
-                                    </div>
-                                </div>
 
-                                <!-- Items -->
-                                <div v-if="result.items && result.items.length > 0" class="mt-3 pt-3 border-t border-surface-700/50">
-                                    <p class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider mb-2">Barang ({{ result.items.length }})</p>
-                                    <div class="space-y-1.5">
-                                        <div v-for="(item, idx) in result.items" :key="idx"
-                                            class="flex items-center gap-2.5 px-2.5 py-2 bg-surface-800/50 rounded-lg">
-                                            <component :is="item.type === 'bundle' ? Package : (item.type === 'non-hp' ? Box : Smartphone)" :size="14" class="text-surface-500 shrink-0" />
-                                            <div class="flex-1 min-w-0">
-                                                <p class="text-xs text-text-primary truncate" :class="{'text-primary-400 font-bold': item.type === 'bundle'}">{{ item.product_name }}</p>
-                                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                                    <span v-if="item.imei && item.imei !== '-'" class="text-[10px] text-text-secondary font-mono">{{ item.imei }}</span>
-                                                    <span v-else class="text-[10px] text-text-secondary">Qty: {{ item.quantity }}</span>
-                                                    <span v-if="item.distributor_name || item.supplier_name" class="text-[9px] px-1.5 py-0.5 rounded bg-surface-700 text-primary-400 font-medium">{{ item.distributor_name || item.supplier_name }}</span>
-                                                    <span v-if="item.source_label" class="text-[9px] px-1.5 py-0.5 rounded font-bold border" :class="getSourceBadgeClass(item.source_type)">
-                                                        {{ item.source_label }}
-                                                    </span>
+                                    <!-- Items -->
+                                    <div v-if="result.items && result.items.length > 0" class="mt-3 pt-3"
+                                        :class="result.category === 'cancel_penjualan' ? 'border-t border-red-200/80 dark:border-red-900/40' : 'border-t border-surface-700/50'">
+                                        <p class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider mb-2">Barang ({{ result.items.length }})</p>
+                                        <div class="space-y-1.5">
+                                            <div v-for="(item, idx) in result.items" :key="idx"
+                                                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+                                                :class="result.category === 'cancel_penjualan' ? 'bg-white/85 dark:bg-surface-800/80 border border-red-200/70 dark:border-red-900/40' : 'bg-surface-800/50'">
+                                                <component :is="item.type === 'bundle' ? Package : (item.type === 'non-hp' ? Box : Smartphone)" :size="14" class="text-surface-500 shrink-0" />
+                                                <div class="flex-1 min-w-0">
+                                                    <p class="text-xs text-text-primary truncate" :class="{'text-primary-400 font-bold': item.type === 'bundle'}">{{ item.product_name }}</p>
+                                                    <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                                                        <span v-if="item.imei && item.imei !== '-'" class="text-[10px] text-text-secondary font-mono">{{ item.imei }}</span>
+                                                        <span v-else class="text-[10px] text-text-secondary">Qty: {{ item.quantity }}</span>
+                                                        <span v-if="item.distributor_name || item.supplier_name" class="text-[9px] px-1.5 py-0.5 rounded bg-surface-700 text-primary-400 font-medium">{{ item.distributor_name || item.supplier_name }}</span>
+                                                        <span v-if="item.source_label" class="text-[9px] px-1.5 py-0.5 rounded font-bold border" :class="getSourceBadgeClass(item.source_type)">
+                                                            {{ item.source_label }}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <!-- Category-specific details -->
-                                <div class="mt-3 pt-3 border-t border-surface-700/50 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
-                                    <!-- Pindah Cabang -->
-                                    <template v-if="result.category === 'pindah_cabang'">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Cabang Tujuan</p>
-                                            <p class="text-xs text-text-primary">{{ result.destination?.name || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Penerima</p>
-                                            <p class="text-xs text-text-primary">{{ result.receiver_name || '-' }}</p>
-                                        </div>
-                                    </template>
-
-                                    <!-- Sales / Retur / Cancel -->
-                                    <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'cancel_penjualan', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category)">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Customer</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
-                                        </div>
-                                        <div v-if="result.customer_wa">
-                                            <p class="text-[10px] text-text-secondary">WhatsApp</p>
-                                            <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
-                                        </div>
-
-                                        <div v-if="result.notes || result.cancel_reason" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Keterangan</p>
-                                            <p v-if="result.cancelled_by_name" class="text-[11px] text-red-500 mb-0.5 font-medium">Dibatalkan oleh: {{ result.cancelled_by_name }}</p>
-                                            <p class="text-xs text-text-primary italic">{{ result.cancel_reason || result.notes }}</p>
-                                        </div>
-                                    </template>
-
-                                    <!-- Shopee -->
-                                    <template v-if="['shopee', 'orderan_online'].includes(result.category)">
-                                        <template v-if="result.shopee_items_data?.length > 0">
-                                            <div class="col-span-full space-y-1.5">
-                                                <p class="text-[10px] text-text-secondary uppercase font-semibold">Detail Penerima</p>
-                                                <div v-for="(si, idx) in result.shopee_items_data" :key="idx"
-                                                    class="bg-surface-800/50 rounded-lg px-3 py-2 text-xs flex flex-wrap gap-x-4 gap-y-1">
-                                                    <span><span class="text-text-secondary">Penerima:</span> <span class="text-text-primary">{{ si.receiver || '-' }}</span></span>
-                                                    <span><span class="text-text-secondary">Resi:</span> <span class="text-text-primary font-mono">{{ si.tracking_no || result.shopee_tracking_no || '-' }}</span></span>
-                                                    <span v-if="si.phone"><span class="text-text-secondary">WA:</span> <span class="text-text-primary">{{ si.phone }}</span></span>
-                                                </div>
+                                    <!-- Category-specific details -->
+                                    <div class="mt-3 pt-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5"
+                                        :class="result.category === 'cancel_penjualan' ? 'border-t border-red-200/80 dark:border-red-900/40' : 'border-t border-surface-700/50'">
+                                        <!-- Pindah Cabang -->
+                                        <template v-if="result.category === 'pindah_cabang'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Cabang Tujuan</p>
+                                                <p class="text-xs text-text-primary">{{ result.destination?.name || '-' }}</p>
                                             </div>
-                                        </template>
-                                        <template v-else>
                                             <div>
                                                 <p class="text-[10px] text-text-secondary">Penerima</p>
-                                                <p class="text-xs text-text-primary">{{ result.shopee_receiver || '-' }}</p>
+                                                <p class="text-xs text-text-primary">{{ result.receiver_name || '-' }}</p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Sales / Retur / Cancel -->
+                                        <template v-if="['retur', 'penjualan', 'penjualan_store', 'penjualan_offline', 'bundling', 'tukar_unit', 'tukar_tambah', 'downgrade', 'refund', 'cancel_penjualan', 'dp', 'pelunasan_dp', 'balancing'].includes(result.category)">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Customer</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.customer_name || '-' }}</p>
+                                            </div>
+                                            <div v-if="result.customer_wa">
+                                                <p class="text-[10px] text-text-secondary">WhatsApp</p>
+                                                <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
+                                            </div>
+
+                                            <div v-if="result.notes || result.cancel_reason" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Keterangan</p>
+                                                <p v-if="result.cancelled_by_name" class="text-[11px] text-red-600 dark:text-red-400 mb-0.5 font-bold flex items-center gap-1">
+                                                    <AlertTriangle :size="12" />
+                                                    <span>Dibatalkan oleh: {{ result.cancelled_by_name }}</span>
+                                                </p>
+                                                <p class="text-xs text-text-primary italic"
+                                                    :class="result.category === 'cancel_penjualan' ? 'p-2 rounded-lg bg-red-100/70 dark:bg-red-950/50 border border-red-200 dark:border-red-900/50 font-medium' : ''">
+                                                    {{ result.cancel_reason || result.notes }}
+                                                </p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Shopee -->
+                                        <template v-if="['shopee', 'orderan_online'].includes(result.category)">
+                                            <template v-if="result.shopee_items_data?.length > 0">
+                                                <div class="col-span-full space-y-1.5">
+                                                    <p class="text-[10px] text-text-secondary uppercase font-semibold">Detail Penerima</p>
+                                                    <div v-for="(si, idx) in result.shopee_items_data" :key="idx"
+                                                        class="bg-surface-800/50 rounded-lg px-3 py-2 text-xs flex flex-wrap gap-x-4 gap-y-1">
+                                                        <span><span class="text-text-secondary">Penerima:</span> <span class="text-text-primary">{{ si.receiver || '-' }}</span></span>
+                                                        <span><span class="text-text-secondary">Resi:</span> <span class="text-text-primary font-mono">{{ si.tracking_no || result.shopee_tracking_no || '-' }}</span></span>
+                                                        <span v-if="si.phone"><span class="text-text-secondary">WA:</span> <span class="text-text-primary">{{ si.phone }}</span></span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <div>
+                                                    <p class="text-[10px] text-text-secondary">Penerima</p>
+                                                    <p class="text-xs text-text-primary">{{ result.shopee_receiver || '-' }}</p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-[10px] text-text-secondary">No. Resi</p>
+                                                    <p class="text-xs text-text-primary font-mono">{{ result.shopee_tracking_no || '-' }}</p>
+                                                </div>
+                                            </template>
+                                        </template>
+
+                                        <!-- Penjualan Online Toko -->
+                                        <template v-if="result.category === 'penjualan_online_toko'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Penerima / Customer</p>
+                                                <p class="text-xs text-text-primary font-medium uppercase">{{ result.customer_name || result.shopee_receiver || result.receiver_name || '-' }}</p>
                                             </div>
                                             <div>
                                                 <p class="text-[10px] text-text-secondary">No. Resi</p>
-                                                <p class="text-xs text-text-primary font-mono">{{ result.shopee_tracking_no || '-' }}</p>
+                                                <p class="text-xs text-text-primary font-mono font-medium">{{ result.expedition_tracking_no || result.shopee_tracking_no || '-' }}</p>
+                                            </div>
+                                            <div v-if="result.customer_wa">
+                                                <p class="text-[10px] text-text-secondary">No. WhatsApp</p>
+                                                <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
+                                            </div>
+                                            <div v-if="result.shopee_city || result.shopee_province || result.shopee_address" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Tujuan / Alamat</p>
+                                                <p class="text-xs text-text-primary">
+                                                    {{ [result.shopee_address, result.shopee_district, result.shopee_city, result.shopee_province].filter(Boolean).join(', ') || '-' }}
+                                                </p>
+                                            </div>
+                                            <div v-if="result.notes" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Catatan</p>
+                                                <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
                                             </div>
                                         </template>
-                                    </template>
 
-                                    <!-- Penjualan Online Toko -->
-                                    <template v-if="result.category === 'penjualan_online_toko'">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Penerima / Customer</p>
-                                            <p class="text-xs text-text-primary font-medium uppercase">{{ result.customer_name || result.shopee_receiver || result.receiver_name || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">No. Resi</p>
-                                            <p class="text-xs text-text-primary font-mono font-medium">{{ result.expedition_tracking_no || result.shopee_tracking_no || '-' }}</p>
-                                        </div>
-                                        <div v-if="result.customer_wa">
-                                            <p class="text-[10px] text-text-secondary">No. WhatsApp</p>
-                                            <p class="text-xs text-text-primary">{{ result.customer_wa }}</p>
-                                        </div>
-                                        <div v-if="result.shopee_city || result.shopee_province || result.shopee_address" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Tujuan / Alamat</p>
-                                            <p class="text-xs text-text-primary">
-                                                {{ [result.shopee_address, result.shopee_district, result.shopee_city, result.shopee_province].filter(Boolean).join(', ') || '-' }}
-                                            </p>
-                                        </div>
-                                        <div v-if="result.notes" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Catatan</p>
-                                            <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
-                                        </div>
-                                    </template>
+                                        <!-- Brand Ambassador -->
+                                        <template v-if="result.category === 'brand_ambassador'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Nama BA</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.ba_name || '-' }}</p>
+                                            </div>
+                                            <div v-if="result.ba_phone">
+                                                <p class="text-[10px] text-text-secondary">No. WA</p>
+                                                <p class="text-xs text-text-primary">{{ result.ba_phone }}</p>
+                                            </div>
+                                            <div v-if="result.ba_notes" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Catatan</p>
+                                                <p class="text-xs text-text-primary italic">{{ result.ba_notes }}</p>
+                                            </div>
+                                        </template>
 
-                                    <!-- Brand Ambassador -->
-                                    <template v-if="result.category === 'brand_ambassador'">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Nama BA</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.ba_name || '-' }}</p>
-                                        </div>
-                                        <div v-if="result.ba_phone">
-                                            <p class="text-[10px] text-text-secondary">No. WA</p>
-                                            <p class="text-xs text-text-primary">{{ result.ba_phone }}</p>
-                                        </div>
-                                        <div v-if="result.ba_notes" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Catatan</p>
-                                            <p class="text-xs text-text-primary italic">{{ result.ba_notes }}</p>
-                                        </div>
-                                    </template>
+                                        <!-- Event / Sponsorship -->
+                                        <template v-if="result.category === 'event_sponsorship'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Nama Event</p>
+                                                <p class="text-xs text-text-primary">{{ result.event_name || '-' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Penanggung Jawab</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.event_receiver || '-' }}</p>
+                                            </div>
+                                            <div v-if="result.event_doc" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Dokumen</p>
+                                                <a :href="result.event_doc" target="_blank" class="text-xs text-primary-400 hover:underline break-all">{{ result.event_doc }}</a>
+                                            </div>
+                                        </template>
 
-                                    <!-- Event / Sponsorship -->
-                                    <template v-if="result.category === 'event_sponsorship'">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Nama Event</p>
-                                            <p class="text-xs text-text-primary">{{ result.event_name || '-' }}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Penanggung Jawab</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.event_receiver || '-' }}</p>
-                                        </div>
-                                        <div v-if="result.event_doc" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Dokumen</p>
-                                            <a :href="result.event_doc" target="_blank" class="text-xs text-primary-400 hover:underline break-all">{{ result.event_doc }}</a>
-                                        </div>
-                                    </template>
+                                        <!-- Keluar -->
+                                        <template v-if="result.category === 'keluar'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Sub Kategori</p>
+                                                <p class="text-xs text-text-primary uppercase font-semibold">{{ result.sub_category || '-' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Penerima</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.receiver_name || result.notes || '-' }}</p>
+                                            </div>
+                                        </template>
 
-                                    <!-- Keluar -->
-                                    <template v-if="result.category === 'keluar'">
+                                        <!-- Kesalahan Input -->
+                                        <template v-if="result.category === 'kesalahan_input'">
+                                            <div class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Alasan</p>
+                                                <p v-if="result.cancelled_by_name" class="text-[11px] text-red-500 mb-0.5 font-medium">Dihapus oleh: {{ result.cancelled_by_name }}</p>
+                                                <p class="text-xs text-text-primary">{{ result.deletion_reason }}</p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Giveaway -->
+                                        <template v-if="result.category === 'giveaway_customer'">
+                                            <div>
+                                                <p class="text-[10px] text-text-secondary">Penerima</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.giveaway_receiver || '-' }}</p>
+                                            </div>
+                                            <div v-if="result.giveaway_phone">
+                                                <p class="text-[10px] text-text-secondary">No. WA</p>
+                                                <p class="text-xs text-text-primary">{{ result.giveaway_phone }}</p>
+                                            </div>
+                                            <div v-if="result.giveaway_address" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Alamat</p>
+                                                <p class="text-xs text-text-primary">{{ result.giveaway_address }}</p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Hilang / Inventaris -->
+                                        <template v-if="['hilang', 'inventaris'].includes(result.category)">
+                                            <div v-if="result.person_in_charge">
+                                                <p class="text-[10px] text-text-secondary">Penanggung Jawab</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.person_in_charge }}</p>
+                                            </div>
+                                            <div v-if="result.sub_category">
+                                                <p class="text-[10px] text-text-secondary">Sub Kategori</p>
+                                                <p class="text-xs text-text-primary uppercase">{{ result.sub_category }}</p>
+                                            </div>
+                                            <div v-if="result.loss_chronology" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Kronologi</p>
+                                                <p class="text-xs text-text-primary">{{ result.loss_chronology }}</p>
+                                            </div>
+                                            <div v-if="result.notes" class="col-span-full">
+                                                <p class="text-[10px] text-text-secondary">Keterangan</p>
+                                                <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
+                                            </div>
+                                        </template>
+
+                                        <!-- Lokasi & Admin (always shown) -->
                                         <div>
-                                            <p class="text-[10px] text-text-secondary">Sub Kategori</p>
-                                            <p class="text-xs text-text-primary uppercase font-semibold">{{ result.sub_category || '-' }}</p>
+                                            <p class="text-[10px] text-text-secondary">Lokasi Asal</p>
+                                            <p class="text-xs text-text-primary">{{ result.source_name || result.branch?.name || result.online_shop?.name || result.warehouse?.name || '-' }}</p>
+                                        </div>
+                                        <div v-if="result.source_label">
+                                            <p class="text-[10px] text-text-secondary">Sumber Barang</p>
+                                            <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border" :class="getSourceBadgeClass(result.source_type)">
+                                                {{ result.source_label }}
+                                            </span>
                                         </div>
                                         <div>
-                                            <p class="text-[10px] text-text-secondary">Penerima</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.receiver_name || result.notes || '-' }}</p>
+                                            <p class="text-[10px] text-text-secondary">Diproses oleh</p>
+                                            <p class="text-xs text-text-primary">{{ result.processed_by || '-' }}</p>
                                         </div>
-                                    </template>
-
-                                    <!-- Kesalahan Input -->
-                                    <template v-if="result.category === 'kesalahan_input'">
-                                        <div class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Alasan</p>
-                                            <p v-if="result.cancelled_by_name" class="text-[11px] text-red-500 mb-0.5 font-medium">Dihapus oleh: {{ result.cancelled_by_name }}</p>
-                                            <p class="text-xs text-text-primary">{{ result.deletion_reason }}</p>
-                                        </div>
-                                    </template>
-
-                                    <!-- Giveaway -->
-                                    <template v-if="result.category === 'giveaway_customer'">
-                                        <div>
-                                            <p class="text-[10px] text-text-secondary">Penerima</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.giveaway_receiver || '-' }}</p>
-                                        </div>
-                                        <div v-if="result.giveaway_phone">
-                                            <p class="text-[10px] text-text-secondary">No. WA</p>
-                                            <p class="text-xs text-text-primary">{{ result.giveaway_phone }}</p>
-                                        </div>
-                                        <div v-if="result.giveaway_address" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Alamat</p>
-                                            <p class="text-xs text-text-primary">{{ result.giveaway_address }}</p>
-                                        </div>
-                                    </template>
-
-                                    <!-- Hilang / Inventaris -->
-                                    <template v-if="['hilang', 'inventaris'].includes(result.category)">
-                                        <div v-if="result.person_in_charge">
-                                            <p class="text-[10px] text-text-secondary">Penanggung Jawab</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.person_in_charge }}</p>
-                                        </div>
-                                        <div v-if="result.sub_category">
-                                            <p class="text-[10px] text-text-secondary">Sub Kategori</p>
-                                            <p class="text-xs text-text-primary uppercase">{{ result.sub_category }}</p>
-                                        </div>
-                                        <div v-if="result.loss_chronology" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Kronologi</p>
-                                            <p class="text-xs text-text-primary">{{ result.loss_chronology }}</p>
-                                        </div>
-                                        <div v-if="result.notes" class="col-span-full">
-                                            <p class="text-[10px] text-text-secondary">Keterangan</p>
-                                            <p class="text-xs text-text-primary italic">{{ result.notes }}</p>
-                                        </div>
-                                    </template>
-
-                                    <!-- Lokasi & Admin (always shown) -->
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Lokasi Asal</p>
-                                        <p class="text-xs text-text-primary">{{ result.source_name || result.branch?.name || result.online_shop?.name || result.warehouse?.name || '-' }}</p>
                                     </div>
-                                    <div v-if="result.source_label">
-                                        <p class="text-[10px] text-text-secondary">Sumber Barang</p>
-                                        <span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold border" :class="getSourceBadgeClass(result.source_type)">
-                                            {{ result.source_label }}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p class="text-[10px] text-text-secondary">Diproses oleh</p>
-                                        <p class="text-xs text-text-primary">{{ result.processed_by || '-' }}</p>
-                                    </div>
-                                </div>
+                                </div><!-- close space-y-3 -->
 
                                 <!-- Aksi & Bukti -->
-                                <div v-if="showAksiBukti(result)" class="mt-3 pt-3 border-t border-surface-700/50 flex flex-wrap items-center gap-2">
+                                <div v-if="showAksiBukti(result)" class="mt-3 pt-3 flex flex-wrap items-center gap-2"
+                                    :class="result.category === 'cancel_penjualan' ? 'border-t border-red-200/80 dark:border-red-900/40' : 'border-t border-surface-700/50'">
                                     <span class="text-[10px] text-text-secondary font-semibold uppercase tracking-wider">Aksi & Bukti:</span>
                                     <template v-if="getTrackProofImages(result).length > 0">
                                         <button v-for="(img, idx) in getTrackProofImages(result)" :key="idx"
@@ -795,7 +900,7 @@ watch(
                                             class="flex items-center gap-1.5 border px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all active:scale-95"
                                             :class="getTrackProofClass(result, idx)"
                                             :title="getTrackProofLabel(result, idx)">
-                                            <Eye :size="12" class="text-primary-400" />
+                                            <Eye :size="12" :class="result.category === 'cancel_penjualan' ? 'text-red-500' : 'text-primary-400'" />
                                             {{ getTrackProofLabel(result, idx) }}
                                         </button>
                                     </template>
@@ -808,11 +913,12 @@ watch(
                             </div>
                         </div>
 
-                    </template>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- Receipt Modal -->
     <ReceiptModal :is-open="showReceiptModal" :transaction="currentReceiptData" :auto-send="false" @close="showReceiptModal = false" />
@@ -843,11 +949,21 @@ watch(
 @reference "../../style.css";
 
 .track-page {
-    @apply max-w-3xl mx-auto px-4 sm:px-0 pb-12;
+    @apply max-w-5xl mx-auto px-4 sm:px-6 pb-12;
 }
 
 .card-track {
     @apply bg-surface-800 border border-surface-700 rounded-xl transition-all;
+}
+
+.card-cancel-red {
+    background-color: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+}
+
+:global(.dark) .card-cancel-red {
+    background-color: rgba(69, 10, 10, 0.45) !important;
+    border-color: rgba(185, 28, 28, 0.55) !important;
 }
 
 .badge-xs {
