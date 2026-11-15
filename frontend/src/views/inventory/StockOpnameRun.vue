@@ -49,7 +49,8 @@ const method = ref('by_unit'); // 'by_unit' | 'by_imei'
 // Step 5: Multi-select Brand and Condition
 const selectedBrands = ref([]); // Array of strings (e.g. ['Apple', 'Samsung']). Empty = Semua Brand.
 const selectedConditions = ref([]); // Array of strings (e.g. ['new', 'second', 'ex_ibox']). Empty = Belum Dipilih / Semua.
-const selectedProductName = ref(''); // For SO by IMEI
+const selectedProductName = ref(''); // For SO by IMEI (backward-compatibility / summary)
+const selectedProductNames = ref([]); // Multi-select array of HP types for SO by IMEI
 const searchType = ref(''); // Search bar for phone model in SO by IMEI
 
 // Server Data
@@ -310,8 +311,13 @@ const fetchPendingItems = async () => {
         if (selectedConditions.value.length > 0) {
             params.conditions = selectedConditions.value.join(',');
         }
-        if (method.value === 'by_imei' && selectedProductName.value) {
-            params.product_name = selectedProductName.value;
+        if (method.value === 'by_imei') {
+            if (selectedProductNames.value.length > 0) {
+                params.product_names = selectedProductNames.value.join(',');
+                params.product_name = selectedProductNames.value.join(',');
+            } else if (selectedProductName.value) {
+                params.product_name = selectedProductName.value;
+            }
         }
 
         const res = await axios.get('/inventory/opname/pending-items', { params });
@@ -372,7 +378,7 @@ const goToStep = (step) => {
     } else if (step === 5) {
         currentStep.value = 5;
     } else if (step === 6) {
-        if (method.value === 'by_imei' && !selectedProductName.value) {
+        if (method.value === 'by_imei' && selectedProductNames.value.length === 0 && !selectedProductName.value) {
             toast.warning('Silakan pilih tipe HP terlebih dahulu.');
             return;
         }
@@ -438,6 +444,7 @@ const selectCategory = (cat) => {
     selectedBrands.value = [];
     selectedConditions.value = [];
     selectedProductName.value = '';
+    selectedProductNames.value = [];
     searchType.value = '';
 
     if (cat === 'hp') {
@@ -452,6 +459,7 @@ const selectCategory = (cat) => {
 const selectMethod = (m) => {
     method.value = m;
     selectedProductName.value = '';
+    selectedProductNames.value = [];
     selectedBrands.value = [];
     selectedConditions.value = [];
     searchType.value = '';
@@ -514,14 +522,55 @@ const proceedFromStep5Unit = async () => {
     currentStep.value = 6;
 };
 
+const isTypeSelected = (typeName) => {
+    return selectedProductNames.value.includes(typeName);
+};
+
+const toggleType = (typeName) => {
+    const idx = selectedProductNames.value.indexOf(typeName);
+    if (idx > -1) {
+        selectedProductNames.value.splice(idx, 1);
+    } else {
+        selectedProductNames.value.push(typeName);
+    }
+    selectedProductName.value = selectedProductNames.value.join(', ');
+};
+
+const selectAllTypes = () => {
+    selectedProductNames.value = (filteredAvailableTypes.value || []).map(t => t.product_name);
+    selectedProductName.value = selectedProductNames.value.join(', ');
+};
+
+const resetTypes = () => {
+    selectedProductNames.value = [];
+    selectedProductName.value = '';
+};
+
+const selectedTotalUnits = computed(() => {
+    if (selectedProductNames.value.length === 0) return 0;
+    return (filteredAvailableTypes.value || [])
+        .filter(t => selectedProductNames.value.includes(t.product_name))
+        .reduce((sum, t) => sum + (t.count || 0), 0);
+});
+
+const proceedFromStep5Imei = async () => {
+    if (selectedProductNames.value.length === 0) {
+        toast.warning('Silakan pilih minimal 1 tipe HP atau klik Pilih Semua Tipe.');
+        return;
+    }
+    selectedProductName.value = selectedProductNames.value.join(', ');
+    await fetchPendingItems();
+    currentStep.value = 6;
+};
+
 const selectTypeAndProceed = async (typeName) => {
+    selectedProductNames.value = [typeName];
     selectedProductName.value = typeName;
     await fetchPendingItems();
     currentStep.value = 6;
 };
 
 const changeSelectedType = () => {
-    selectedProductName.value = '';
     currentStep.value = 5;
 };
 
@@ -537,6 +586,7 @@ watch(selectedBranchId, () => {
     selectedBrands.value = [];
     selectedConditions.value = [];
     selectedProductName.value = '';
+    selectedProductNames.value = [];
 });
 
 // Physical Calculation
@@ -701,7 +751,7 @@ const submitOpname = async () => {
             category_type: categoryType.value,
             method: method.value,
             brand: selectedBrands.value.length > 0 ? selectedBrands.value.join(', ') : null,
-            product_type: selectedProductName.value ? String(selectedProductName.value) : null,
+            product_type: selectedProductNames.value.length > 0 ? (selectedProductNames.value.length === (filteredAvailableTypes.value || []).length ? 'Semua Tipe' : selectedProductNames.value.join(', ')) : (selectedProductName.value ? String(selectedProductName.value) : null),
             items: pendingItems.value.map(it => ({
                 ...it,
                 product_id: it.product_id ? Number(it.product_id) : null,
@@ -1602,48 +1652,83 @@ onMounted(async () => {
                         </div>
                     </div>
 
-                    <!-- Search Type Input -->
-                    <div class="relative">
-                        <input v-model="searchType" type="text" placeholder="Cari nama tipe HP (contoh: iPhone 11, Samsung S24)..."
-                            class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-white placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
-                        <Search :size="18" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
+                    <!-- Search & Multi-select Actions Bar -->
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="font-bold text-surface-400 uppercase text-[10px] tracking-wider">
+                                Pilih Tipe HP (Bisa Pilih Banyak):
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span v-if="selectedProductNames.length > 0" class="text-xs font-bold text-emerald-400">
+                                    {{ selectedProductNames.length }} tipe dipilih ({{ selectedTotalUnits }} unit)
+                                </span>
+                                <button type="button" @click="selectAllTypes" class="text-emerald-400 text-xs font-bold hover:underline cursor-pointer">
+                                    Pilih Semua ({{ filteredAvailableTypes.length }})
+                                </button>
+                                <span class="text-surface-600">•</span>
+                                <button v-if="selectedProductNames.length > 0" type="button" @click="resetTypes" class="text-rose-400 text-xs font-bold hover:underline cursor-pointer">
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Search Type Input -->
+                        <div class="relative">
+                            <input v-model="searchType" type="text" placeholder="Cari nama tipe HP (contoh: iPhone 11, Samsung S24)..."
+                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-white placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
+                            <Search :size="18" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
+                        </div>
                     </div>
 
-                    <!-- Types Cards Grid -->
+                    <!-- Types Cards Grid (Multi-Select) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
                         <div v-if="filteredAvailableTypes.length === 0" class="col-span-full py-12 text-center text-surface-400 text-xs">
                             Tidak ada tipe HP yang perlu di-SO untuk filter ini.
                         </div>
                         <button v-for="t in filteredAvailableTypes" :key="t.product_name"
                             type="button"
-                            @click="selectTypeAndProceed(t.product_name)"
-                            class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between gap-3 group cursor-pointer"
-                            :class="selectedProductName === t.product_name
-                                ? 'border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/30'
+                            @click="toggleType(t.product_name)"
+                            class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between gap-3 group cursor-pointer relative"
+                            :class="isTypeSelected(t.product_name)
+                                ? 'border-emerald-500 bg-emerald-500/20 ring-2 ring-emerald-500/40 shadow-md'
                                 : 'border-surface-750 bg-surface-800/80 hover:border-emerald-500/50 hover:bg-surface-800'">
-                            <div class="min-w-0 flex-1">
-                                <span class="text-[10px] font-black uppercase text-emerald-400">
-                                    {{ t.brand || 'HP' }}
-                                </span>
-                                <div class="font-black text-xs sm:text-sm text-white truncate group-hover:text-emerald-400 transition-colors mt-0.5">
-                                    {{ t.product_name }}
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <!-- Checkbox Indicator -->
+                                <div class="w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all"
+                                    :class="isTypeSelected(t.product_name)
+                                        ? 'bg-emerald-500 border-emerald-400 text-white'
+                                        : 'border-surface-600 bg-surface-900 group-hover:border-emerald-500/60'">
+                                    <Check v-if="isTypeSelected(t.product_name)" :size="13" class="stroke-[3]" />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-[10px] font-black uppercase text-emerald-400">
+                                        {{ t.brand || 'HP' }}
+                                    </span>
+                                    <div class="font-black text-xs sm:text-sm text-white truncate group-hover:text-emerald-400 transition-colors mt-0.5">
+                                        {{ t.product_name }}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="shrink-0 flex flex-col items-end gap-1">
+                            <div class="shrink-0 flex items-center gap-2">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
                                     {{ t.count }} unit
                                 </span>
-                                <ArrowRight :size="14" class="text-surface-400 group-hover:text-emerald-400 group-hover:translate-x-1 transition-all" />
                             </div>
                         </button>
                     </div>
 
-                    <!-- Back Button -->
-                    <div class="flex items-center justify-start pt-2">
+                    <!-- Bottom Navigation: Back on Left, Proceed on Right -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-surface-750">
                         <button type="button" @click="currentStep = 4"
-                            class="px-5 h-12 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-all flex items-center gap-2 cursor-pointer">
+                            class="w-full sm:w-auto px-5 h-12 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <ArrowLeft :size="16" />
                             <span>Kembali ke Pilih Metode</span>
+                        </button>
+
+                        <button type="button" @click="proceedFromStep5Imei" :disabled="selectedProductNames.length === 0"
+                            class="w-full sm:w-auto btn btn-primary px-8 h-12 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span>Lanjutkan Audit ({{ selectedProductNames.length }} Tipe, {{ selectedTotalUnits }} Unit)</span>
+                            <ArrowRight :size="16" />
                         </button>
                     </div>
                 </div>
@@ -1687,7 +1772,7 @@ onMounted(async () => {
                             <span class="text-surface-600">•</span>
                             <span class="font-bold text-emerald-400">
                                 <template v-if="categoryType === 'hp' && method === 'by_imei'">
-                                    Tipe: {{ selectedProductName }} ({{ pendingItems.length }} unit)
+                                    Tipe: {{ selectedProductNames.length === 1 ? selectedProductNames[0] : (selectedProductNames.length === (filteredAvailableTypes || []).length ? 'Semua Tipe (' + selectedProductNames.length + ' Tipe)' : (selectedProductNames.length > 0 ? selectedProductNames.join(', ') : (selectedProductName || 'Semua Tipe'))) }} ({{ pendingItems.length }} unit)
                                 </template>
                                 <template v-else-if="categoryType === 'hp'">
                                     SO by Unit •

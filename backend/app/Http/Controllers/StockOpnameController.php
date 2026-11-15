@@ -257,12 +257,25 @@ class StockOpnameController extends Controller
             'condition' => 'nullable',
             'conditions' => 'nullable',
             'product_name' => 'nullable',
+            'product_names' => 'nullable',
         ]);
 
         $branchId = (int) $request->branch_id;
         $categoryType = $request->query('category_type', 'hp');
         $method = $request->query('method', 'by_unit');
-        $selectedProductName = $request->filled('product_name') ? (string) $request->product_name : null;
+        
+        // Multi-product / Multi-type extraction for SO by IMEI
+        $rawProductNames = $request->input('product_names') ?? $request->input('product_name');
+        $selectedProductNames = [];
+        if (!empty($rawProductNames)) {
+            if (is_array($rawProductNames)) {
+                $selectedProductNames = array_filter(array_map('trim', $rawProductNames));
+            } else {
+                $selectedProductNames = array_filter(array_map('trim', explode(',', (string)$rawProductNames)));
+            }
+            $selectedProductNames = array_values(array_filter($selectedProductNames, fn($p) => strtolower($p) !== 'all' && strtolower($p) !== 'semua'));
+        }
+        $selectedProductName = !empty($selectedProductNames) ? $selectedProductNames[0] : null;
 
         // Multi-brand extraction (supports array brands[] or comma-separated string brand/brands)
         $rawBrands = $request->input('brands') ?? $request->input('brand');
@@ -607,8 +620,8 @@ class StockOpnameController extends Controller
                 $availableTypes = array_values($typesData);
 
                 $imeiList = [];
-                if ($selectedProductName) {
-                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $matchesCondition, $normalizeCondition, $selectedProductName) {
+                if (!empty($selectedProductNames)) {
+                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $matchesCondition, $normalizeCondition, $selectedProductNames) {
                         $bName = trim($item->product?->brand ?? 'Unknown');
                         if (!$bName || $bName === '-') $bName = 'Other';
                         if (!$matchesBrand($bName)) return false;
@@ -617,7 +630,10 @@ class StockOpnameController extends Controller
                         if (!$matchesCondition($itemCond)) return false;
 
                         $pName = trim($item->product?->name ?? 'Unknown');
-                        return strcasecmp($pName, $selectedProductName) === 0;
+                        foreach ($selectedProductNames as $targetType) {
+                            if (strcasecmp($targetType, $pName) === 0) return true;
+                        }
+                        return false;
                     });
 
                     foreach ($selectedHpItems as $item) {
@@ -1102,6 +1118,12 @@ class StockOpnameController extends Controller
 
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
+        } elseif ($request->filled('month') && $request->month !== 'all') {
+            $mVal = $request->month; // e.g. "2026-11"
+            $query->where(function ($q) use ($mVal) {
+                $q->where('date', 'like', "{$mVal}%")
+                  ->orWhere('created_at', 'like', "{$mVal}%");
+            });
         } elseif ($request->filled('date') && $request->date !== 'all') {
             $dateVal = $request->date;
             $query->where(function ($q) use ($dateVal) {
@@ -1122,7 +1144,13 @@ class StockOpnameController extends Controller
             $query->where('status', $request->status);
         }
 
-        $isCsUser = method_exists($user, 'hasRole') && $user->hasRole('inventory');
+        $isPrivilegedUser = (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'leader', 'audit', 'toko_offline']))
+            || in_array(strtolower($user->role ?? ''), ['super_admin', 'owner', 'admin_produk', 'analist', 'analis', 'leader', 'audit', 'toko_offline']);
+
+        $isCsUser = (method_exists($user, 'hasRole') && ($user->hasRole('inventory') || $user->hasRole('cs') || $user->hasRole('sales')))
+            || in_array(strtolower($user->role ?? ''), ['inventory', 'cs', 'sales'])
+            || !$isPrivilegedUser;
+
         if ($isCsUser) {
             // Akun CS cuma bisa nampilin history SO dia sendiri aja
             $query->where(function ($q) use ($user) {

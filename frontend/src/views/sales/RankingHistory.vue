@@ -318,24 +318,24 @@
                         <!-- PENJUALAN ALL -->
                         <div class="space-y-4 mb-2">
                             <div v-for="[method, amount] in sortedPayments" :key="method"
-                                class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                                class="flex justify-between items-center text-sm font-bold text-neutral-900 dark:text-neutral-100 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">{{ method }}</span>
                                 <span>{{ formatCurrency(amount) }}</span>
                             </div>
                             <div v-if="totalInTt > 0"
-                                class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                                class="flex justify-between items-center text-sm font-bold text-neutral-900 dark:text-neutral-100 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">IN TT</span>
                                 <span>{{ formatCurrency(totalInTt) }}</span>
                             </div>
                             <div v-if="totalOutDg > 0"
-                                class="flex justify-between items-center text-sm font-bold text-emerald-950 dark:text-gray-200 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
+                                class="flex justify-between items-center text-sm font-bold text-neutral-900 dark:text-neutral-100 py-1 border-b border-emerald-100/50 dark:border-surface-700/30">
                                 <span class="uppercase tracking-wide">OUT DOWNGRADE</span>
                                 <span>{{ formatCurrency(totalOutDg) }}</span>
                             </div>
                         </div>
 
                         <div
-                            class="flex justify-between items-center text-xl font-black text-emerald-950 dark:text-white mt-8 mb-1">
+                            class="flex justify-between items-center text-xl font-black text-neutral-900 dark:text-white mt-8 mb-1">
                             <span class="uppercase tracking-wider italic">TOTAL OMSET</span>
                             <span class="text-2xl">{{ formatCurrency(salesData?.report_summary?.payment_total || 0)
                                 }}</span>
@@ -351,7 +351,7 @@
 
                         <!-- RINCIAN PENJUALAN DISTRIBUTOR -->
                         <h3
-                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            class="text-sm font-black tracking-[0.1EM] text-neutral-900 dark:text-white text-center mb-8 uppercase">
                             Rincian Penjualan Distributor</h3>
 
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
@@ -390,69 +390,69 @@
 
                         <!-- unit HP keluar -->
                         <h3
-                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            class="text-sm font-black tracking-[0.1EM] text-neutral-900 dark:text-white text-center mb-8 uppercase">
                             unit HP keluar</h3>
 
                         <div class="space-y-0 text-sm font-bold text-gray-800 dark:text-gray-300">
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Iphone</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.iphone
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.iphone
                                     || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Apple Luxury</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.apple_lux || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Android</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.android || 0 }}</span>
                             </div>
 
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.laptop || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">TV</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.tv || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">4G / LTE</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.jaringan || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Sim Card</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.sim_card || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Pspatu</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.pspatu || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Psshion</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.psshion || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">iCloud</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.dist_map?.icloud || 0 }}</span>
                             </div>
 
@@ -467,49 +467,49 @@
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Unit</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.tukar_unit || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tukar Tambah</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.tukar_tambah || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Downgrade</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.downgrade || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Refund</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.refund || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Angkat Barang</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.angkat_barang || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Masuk TT</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.in_tt || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Masuk DG</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.in_dg || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Balancing</span>
-                                <span class="text-emerald-950 font-black">{{
+                                <span class="text-neutral-900 dark:text-white font-black">{{
                                     salesData?.report_summary?.activities?.balancing || 0 }}</span>
                             </div>
 
@@ -640,31 +640,31 @@
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Laptop</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.laptop
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.laptop
                                     || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Tv</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.tv ||
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.tv ||
                                     0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Pspatu</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.pspatu
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.pspatu
                                     || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">Psshion</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.psshion
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.psshion
                                     || 0 }}</span>
                             </div>
                             <div
                                 class="flex justify-between items-center py-4 border-b border-emerald-100 dark:border-surface-700/50">
                                 <span class="capitalize">iCloud</span>
-                                <span class="text-emerald-950 font-black">{{ salesData?.report_summary?.dist_map?.icloud
+                                <span class="text-neutral-900 dark:text-white font-black">{{ salesData?.report_summary?.dist_map?.icloud
                                     || 0 }}</span>
                             </div>
                         </div>
@@ -673,7 +673,7 @@
 
                         <!-- RINCIAN UNIT & STOK Title for Stock Section -->
                         <h3
-                            class="text-sm font-black tracking-[0.1EM] text-emerald-950/50 dark:text-white/50 text-center mb-8 uppercase">
+                            class="text-sm font-black tracking-[0.1EM] text-neutral-900 dark:text-white text-center mb-8 uppercase">
                             RINCIAN UNIT & STOK</h3>
 
                         <!-- STOCK SECTIONS (IMAGE STYLE) -->

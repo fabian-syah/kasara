@@ -1467,43 +1467,41 @@ onMounted(() => {
         <div v-if="showDuplicateModal"
             class="fixed inset-0 z-[100] w-screen h-screen flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
             <div
-                class="bg-surface-900 border border-surface-700 p-8 rounded-3xl w-full max-w-lg shadow-2xl relative animate-in zoom-in-95">
-                <div class="flex items-center gap-3 text-red-500 mb-6 font-bold text-xl uppercase tracking-wider">
-                    <AlertTriangle :size="32" /> IMEI Duplikat Terdeteksi
+                class="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-800 p-6 sm:p-8 rounded-3xl w-full max-w-lg shadow-2xl relative animate-in zoom-in-95">
+                <div class="flex items-center gap-3 text-red-600 dark:text-red-400 mb-6 font-black text-xl uppercase tracking-wider">
+                    <AlertTriangle :size="30" class="shrink-0" />
+                    <span>IMEI Duplikat Terdeteksi</span>
                 </div>
 
-                <div class="space-y-4 mb-8">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl">
-                            <span class="block text-xs uppercase text-emerald-500 mb-1">Berhasil</span>
-                            <span class="text-3xl font-black text-white">{{ duplicateDetails.success }}</span>
+                <div class="space-y-4 mb-6">
+                    <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                        <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-4 rounded-2xl">
+                            <span class="block text-xs uppercase font-bold text-emerald-800 dark:text-emerald-400 mb-1">Berhasil</span>
+                            <span class="text-3xl font-black text-emerald-900 dark:text-emerald-300 font-mono">{{ duplicateDetails.success }}</span>
                         </div>
-                        <div class="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl">
-                            <span class="block text-xs uppercase text-rose-500 mb-1">Duplikat</span>
-                            <span class="text-3xl font-black text-white">{{ duplicateDetails.fail }}</span>
+                        <div class="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 p-4 rounded-2xl">
+                            <span class="block text-xs uppercase font-bold text-rose-800 dark:text-rose-400 mb-1">Duplikat</span>
+                            <span class="text-3xl font-black text-rose-900 dark:text-rose-300 font-mono">{{ duplicateDetails.fail }}</span>
                         </div>
                     </div>
 
-                    <div class="bg-surface-800 rounded-2xl p-4 max-h-[200px] overflow-y-auto border border-surface-700">
-                        <p class="text-sm text-text-secondary mb-3">IMEI berikut sudah ada di sistem:</p>
+                    <div class="bg-gray-50 dark:bg-neutral-800/70 rounded-2xl p-4 max-h-[220px] overflow-y-auto border border-gray-200 dark:border-neutral-700">
+                        <p class="text-xs sm:text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-3">IMEI berikut sudah ada di sistem:</p>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <div v-for="item in duplicateDetails.items" :key="item.imei || item"
-                                class="text-sm font-mono text-white/80 bg-surface-900 border border-surface-700 p-2 rounded-xl text-center">
+                                class="text-sm font-mono font-bold text-neutral-900 dark:text-white bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 p-2.5 rounded-xl text-center shadow-xs">
                                 <div>{{ item.imei || item }}</div>
-                                <div v-if="item.location" class="text-xs text-amber-400 mt-1 font-sans">
+                                <div v-if="item.location" class="text-xs font-semibold text-amber-700 dark:text-amber-400 mt-1 font-sans">
                                     Sudah ada di {{ item.location }}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <p class="text-xs text-text-secondary italic">Sistem hanya mengabaikan IMEI yang duplikat.
-                        Barang
-                        lainnya sudah berhasil disimpan.</p>
+                    <p class="text-xs text-neutral-500 dark:text-neutral-400 italic">Sistem hanya mengabaikan IMEI yang duplikat. Barang lainnya sudah berhasil disimpan.</p>
                 </div>
 
-                <div class="flex justify-end pt-4 border-t border-surface-700">
-                    <button @click="closeDuplicateModal" class="btn btn-primary px-8 rounded-xl font-bold">Saya
-                        Mengerti</button>
+                <div class="flex justify-end pt-4 border-t border-gray-100 dark:border-neutral-800">
+                    <button @click="closeDuplicateModal" class="btn btn-primary px-8 rounded-xl font-bold">Saya Mengerti</button>
                 </div>
             </div>
         </div>

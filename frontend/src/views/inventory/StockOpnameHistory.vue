@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import {
     History, Search, Calendar, Building2, User, Filter,
     CheckCircle2, AlertTriangle, Eye, ChevronDown, ChevronRight, ChevronUp,
-    RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Check, Download,
+    RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Boxes, Check, Download,
     Copy, CheckCheck, ListFilter, Layers, Sparkles, ImageOff,
     ShieldCheck, UserCheck, Store, Crown
 } from 'lucide-vue-next';
@@ -108,8 +108,55 @@ const filters = ref({
     status: '',
     executor_role: '', // 'audit', 'leader', 'store', 'admin', '' (Semua)
     date: '', // Default: Semua Tanggal
+    month: '', // Format: 'YYYY-MM'
     search: ''
 });
+
+// Month Filter Helpers
+const getCurrentMonthStr = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+};
+
+const isThisMonthActive = computed(() => {
+    return filters.value.month === getCurrentMonthStr() && !filters.value.date;
+});
+
+const isTodayActive = computed(() => {
+    return filters.value.date === getLocalDateStr() && !filters.value.month;
+});
+
+const setThisMonthFilter = () => {
+    filters.value.date = '';
+    filters.value.month = getCurrentMonthStr();
+    fetchHistory(1);
+};
+
+const setTodayFilter = () => {
+    filters.value.month = '';
+    filters.value.date = getLocalDateStr();
+    fetchHistory(1);
+};
+
+const clearDateFilters = () => {
+    filters.value.date = '';
+    filters.value.month = '';
+    fetchHistory(1);
+};
+
+const getDayBranchName = (day) => {
+    if (filters.value.branch_id) {
+        const found = branches.value.find(b => String(b.id) === String(filters.value.branch_id));
+        if (found) return found.name;
+    }
+    if (day?.records && day.records.length > 0) {
+        const firstBranch = day.records[0].branch?.name;
+        if (firstBranch) return firstBranch;
+    }
+    return 'Semua Cabang';
+};
 
 // Detail Modal
 const selectedDetail = ref(null);
@@ -224,9 +271,16 @@ const isSuperAdminOrOwner = computed(() => {
 });
 
 const isCsUser = computed(() => {
-    return (typeof authStore.hasRole === 'function' && authStore.hasRole('inventory')) || 
-           (authStore.userRole || '').toLowerCase() === 'inventory' ||
-           (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+    const role = userRole.value;
+    if (role.includes('inventory') || role.includes('cs') || role.includes('sales')) return true;
+    if (typeof authStore.hasRole === 'function' && (authStore.hasRole('inventory') || authStore.hasRole('cs') || authStore.hasRole('sales'))) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        if (authStore.user.roles.some(r => {
+            const rn = (typeof r === 'string' ? r : r?.name || '').toLowerCase();
+            return rn.includes('inventory') || rn.includes('cs') || rn.includes('sales');
+        })) return true;
+    }
+    return !isPrivilegedRole.value && !role.includes('toko_offline');
 });
 
 const isPrivilegedRole = computed(() => isLeader.value || isAudit.value || isSuperAdminOrOwner.value);
@@ -295,6 +349,11 @@ const fetchHistory = async (page = 1) => {
             per_page: pagination.value.per_page,
             ...filters.value
         };
+
+        // If CS user, force filter to their own ID
+        if (isCsUser.value && authStore.user?.id) {
+            params.cs_user_id = authStore.user.id;
+        }
 
         // Clean empty parameters
         Object.keys(params).forEach(k => {
@@ -488,7 +547,23 @@ const groupedRecordsByDay = computed(() => {
                     totalMissing: 0,
                     totalExcess: 0,
                 },
-                // Stok by Unit specific
+                // HP by Unit specific
+                hpUnit: {
+                    count: 0,
+                    totalSystem: 0,
+                    totalPhysical: 0,
+                    totalMissing: 0,
+                    totalExcess: 0,
+                },
+                // Non-HP by Unit specific
+                nonHpUnit: {
+                    count: 0,
+                    totalSystem: 0,
+                    totalPhysical: 0,
+                    totalMissing: 0,
+                    totalExcess: 0,
+                },
+                // All Stok by Unit specific
                 unit: {
                     count: 0,
                     totalSystem: 0,
@@ -517,6 +592,20 @@ const groupedRecordsByDay = computed(() => {
             groups[dayKey].unit.totalPhysical += t.total_physical;
             groups[dayKey].unit.totalMissing += t.total_missing;
             groups[dayKey].unit.totalExcess += t.total_excess;
+
+            if (rec.category_type === 'hp') {
+                groups[dayKey].hpUnit.count++;
+                groups[dayKey].hpUnit.totalSystem += t.total_system;
+                groups[dayKey].hpUnit.totalPhysical += t.total_physical;
+                groups[dayKey].hpUnit.totalMissing += t.total_missing;
+                groups[dayKey].hpUnit.totalExcess += t.total_excess;
+            } else {
+                groups[dayKey].nonHpUnit.count++;
+                groups[dayKey].nonHpUnit.totalSystem += t.total_system;
+                groups[dayKey].nonHpUnit.totalPhysical += t.total_physical;
+                groups[dayKey].nonHpUnit.totalMissing += t.total_missing;
+                groups[dayKey].nonHpUnit.totalExcess += t.total_excess;
+            }
         }
     });
 
@@ -546,7 +635,27 @@ const groupedRecordsByDay = computed(() => {
                 statusLabelImei = `${g.imei.totalPhysical} / ${targetImei} Unit`;
             }
 
-            // 2. By Unit calculations
+            // 2. HP by Unit calculations
+            let targetHpUnit = g.hpUnit.totalSystem;
+            let percentHpUnit = 0;
+            if (targetHpUnit > 0) {
+                percentHpUnit = Math.min(100, Math.round((g.hpUnit.totalPhysical / targetHpUnit) * 100));
+            } else if (g.hpUnit.totalPhysical > 0) {
+                percentHpUnit = 100;
+            }
+            const hasDiffHpUnit = g.hpUnit.totalMissing > 0 || g.hpUnit.totalExcess > 0;
+
+            // 3. Non-HP by Unit calculations
+            let targetNonHpUnit = g.nonHpUnit.totalSystem;
+            let percentNonHpUnit = 0;
+            if (targetNonHpUnit > 0) {
+                percentNonHpUnit = Math.min(100, Math.round((g.nonHpUnit.totalPhysical / targetNonHpUnit) * 100));
+            } else if (g.nonHpUnit.totalPhysical > 0) {
+                percentNonHpUnit = 100;
+            }
+            const hasDiffNonHpUnit = g.nonHpUnit.totalMissing > 0 || g.nonHpUnit.totalExcess > 0;
+
+            // 4. All By Unit calculations
             let targetUnit = g.unit.totalSystem;
             let percentUnit = 0;
             if (targetUnit > 0) {
@@ -564,7 +673,7 @@ const groupedRecordsByDay = computed(() => {
                 statusLabelUnit = `${g.unit.totalPhysical} / ${targetUnit} Unit`;
             }
 
-            // 3. Combined calculations
+            // 5. Combined calculations
             const hasDiffCombined = g.totalMissing > 0 || g.totalExcess > 0;
             let effectiveTargetUnits = g.totalSystem;
             if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.totalSystem) {
@@ -597,6 +706,18 @@ const groupedRecordsByDay = computed(() => {
                     percent: percentImei,
                     hasDiff: hasDiffImei,
                     statusLabel: statusLabelImei
+                },
+                hpUnitStats: {
+                    ...g.hpUnit,
+                    target: targetHpUnit,
+                    percent: percentHpUnit,
+                    hasDiff: hasDiffHpUnit,
+                },
+                nonHpUnitStats: {
+                    ...g.nonHpUnit,
+                    target: targetNonHpUnit,
+                    percent: percentNonHpUnit,
+                    hasDiff: hasDiffNonHpUnit,
                 },
                 unitStats: {
                     ...g.unit,
@@ -743,6 +864,7 @@ const resetFilters = () => {
         status: '',
         executor_role: defaultRole,
         date: '',
+        month: '',
         search: ''
     };
     fetchHistory(1);
@@ -871,8 +993,11 @@ watch(() => filters.value.executor_role, () => {
                 <!-- Filter: Semua Tipe -->
                 <button type="button" @click="filters.executor_role = ''"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === '' ? 'bg-gray-900 dark:!bg-[#2e2e2e] !text-white dark:!text-white dark:border dark:border-[#444444] shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:!bg-[#2e2e2e]'"><Layers :size="14" :class="filters.executor_role === '' ? '!text-white' : ''" />
-                    <span :class="filters.executor_role === '' ? '!text-white' : ''">Semua Tipe</span>
+                    :class="filters.executor_role === ''
+                        ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm border border-transparent dark:border-neutral-200'
+                        : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800 border border-transparent'">
+                    <Layers :size="14" />
+                    <span>Semua Tipe</span>
                 </button>
 
                 <!-- Filter: SO Audit (Audit, Leader, Super Admin) -->
@@ -919,19 +1044,25 @@ watch(() => filters.value.executor_role, () => {
                 <!-- Tanggal -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
-                        <label class="block text-[11px] font-bold text-text-secondary uppercase">Tanggal</label>
-                        <button v-if="filters.date" @click="filters.date = ''" type="button" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                        <label class="block text-[11px] font-bold text-text-secondary uppercase">Tanggal / Periode</label>
+                        <button v-if="filters.date || filters.month" @click="clearDateFilters" type="button" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
                             Semua Tanggal
                         </button>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <input type="date" v-model="filters.date"
-                            class="flex-1 min-w-0 py-2 px-3 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500" />
-                        <button type="button" @click="filters.date = getLocalDateStr()"
-                            :class="filters.date === getLocalDateStr() ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
-                            class="px-2.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                            class="flex-1 min-w-0 py-2 px-2.5 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500" />
+                        <button type="button" @click="setTodayFilter"
+                            :class="isTodayActive ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
+                            class="px-2 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                             title="Filter hanya hari ini">
                             Hari Ini
+                        </button>
+                        <button type="button" @click="setThisMonthFilter"
+                            :class="isThisMonthActive ? 'bg-emerald-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
+                            class="px-2 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                            title="Filter seluruh bulan ini">
+                            Bulan Ini
                         </button>
                     </div>
                 </div>
@@ -1300,160 +1431,143 @@ watch(() => filters.value.executor_role, () => {
                 class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
 
                 <!-- DAY HEADER WITH INLINE PROGRESS BAR & METRICS (Separate By IMEI vs By Unit) -->
-                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:!from-surface-800 dark:!via-surface-800 dark:!to-surface-850">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-                        <!-- Left: Date Title & Badges -->
+                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-neutral-800 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:!from-neutral-900 dark:!via-neutral-900 dark:!to-neutral-900">
+                    <!-- TOP HEADER: Cabang, Tanggal, dll + Tombol Collapse Detail -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-gray-100 dark:border-neutral-800">
+                        <!-- Left: Date Title & Badges & Cabang -->
                         <div class="flex items-start sm:items-center gap-3">
                             <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 via-teal-500/15 to-emerald-600/10 dark:from-emerald-500/30 dark:to-teal-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-xs">
                                 <Calendar :size="18" />
                             </div>
                             <div>
                                 <div class="flex items-center gap-2 flex-wrap">
-                                    <h2 class="text-sm sm:text-base font-black text-text-primary tracking-tight">
+                                    <h2 class="text-sm sm:text-base font-black text-neutral-900 dark:text-white tracking-tight">
                                         {{ formatDayTitle(day.date) }}
                                     </h2>
+                                    <!-- Badge Cabang -->
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-gray-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 border border-gray-200 dark:border-neutral-700">
+                                        <Building2 :size="11" class="text-emerald-500" />
+                                        <span>{{ getDayBranchName(day) }}</span>
+                                    </span>
                                     <!-- Badge Relative Day -->
                                     <span v-if="day.isToday" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 shadow-xs">
                                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                         <span>Hari Ini • Siklus Aktif</span>
                                     </span>
-                                    <span v-else-if="day.relativeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:!bg-surface-700 text-text-secondary dark:text-gray-300 border border-gray-200 dark:border-surface-600">
+                                    <span v-else-if="day.relativeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border border-gray-200 dark:border-neutral-700">
                                         {{ day.relativeBadge }}
                                     </span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:!bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
                                         {{ day.records.length }} Sesi SO
                                     </span>
                                 </div>
-                                <p class="text-[11px] text-text-secondary mt-0.5 flex items-center gap-2">
+                                <p class="text-[11px] text-neutral-500 dark:text-neutral-400 mt-0.5 flex items-center gap-2 flex-wrap">
                                     <span>Siklus harian 05:00 AM</span>
-                                    <span class="text-gray-300 dark:text-surface-600">•</span>
-                                    <span>Tercatat {{ day.totalPhysical }} unit fisik diperiksa</span>
+                                    <span class="text-gray-300 dark:text-neutral-700">•</span>
+                                    <span>Tercatat <strong class="text-neutral-900 dark:text-white font-mono">{{ day.totalPhysical }}</strong> unit fisik diperiksa</span>
                                 </p>
                             </div>
                         </div>
 
-                        <!-- Right: Progress Bar langsung di baris tanggal (Differentiated By IMEI vs By Unit) & Tombol Collapse -->
-                        <div class="flex items-center gap-2.5 self-stretch lg:self-auto justify-between lg:justify-end flex-wrap sm:flex-nowrap">
-                            <!-- 1. JIKA DI TAB 'by_imei': Tampilkan Progress Khusus By IMEI -->
-                            <div v-if="activeTab === 'by_imei'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-purple-200/80 dark:!border-purple-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
-                                <div class="flex-1 space-y-1">
-                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
-                                        <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                            <Smartphone :size="12" />
-                                            <span>Progress By IMEI</span>
-                                            <span class="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-extrabold">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
-                                        </span>
-                                        <span class="font-mono font-black" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.imeiStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'">
-                                            {{ day.imeiStats.percent }}%
-                                        </span>
+                        <!-- Right: Toggle Collapse Button -->
+                        <button type="button" @click="toggleDayCollapse(day.date)"
+                            class="self-end sm:self-center flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-neutral-700 hover:bg-gray-100 dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-300 font-bold text-xs transition-colors cursor-pointer"
+                            :title="collapsedDays[day.date] ? 'Tampilkan Detail' : 'Sembunyikan Detail'">
+                            <span>{{ collapsedDays[day.date] ? 'Buka Detail SO' : 'Tutup Detail SO' }}</span>
+                            <ChevronUp v-if="!collapsedDays[day.date]" :size="15" />
+                            <ChevronDown v-else :size="15" />
+                        </button>
+                    </div>
+
+                    <!-- LAPORAN PROGRESS SO HARIAN (3 KARTU: IMEI, HP UNIT, NON-HP UNIT) -->
+                    <div class="mt-3.5 grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                        <!-- 1. By IMEI Card -->
+                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-purple-200/80 dark:border-purple-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-800/60">
+                                        <Smartphone :size="14" />
                                     </div>
-                                    <!-- Mini Bar Track -->
-                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-[#2a2a2a] overflow-hidden border border-gray-200/50 dark:!border-[#3a3a3a]">
-                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
-                                            :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.imeiStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-purple-500 to-emerald-400'"
-                                            :style="{ width: `${day.imeiStats.percent}%` }">
-                                        </div>
-                                    </div>
+                                    <span class="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-300 tracking-wider">Stok by IMEI</span>
                                 </div>
-                                <span v-if="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
-                                    100% Selesai
-                                </span>
-                                <span v-else-if="day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
-                                    Selisih
+                                <span class="font-mono font-black text-sm" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'">
+                                    {{ day.imeiStats.percent }}%
                                 </span>
                             </div>
-
-                            <!-- 2. JIKA DI TAB 'by_unit': Tampilkan Progress Khusus By Unit -->
-                            <div v-else-if="activeTab === 'by_unit'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-blue-200/80 dark:!border-blue-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
-                                <div class="flex-1 space-y-1">
-                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
-                                        <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                            <Package :size="12" />
-                                            <span>Progress By Unit</span>
-                                            <span class="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-extrabold">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
-                                        </span>
-                                        <span class="font-mono font-black" :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.unitStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
-                                            {{ day.unitStats.percent }}%
-                                        </span>
-                                    </div>
-                                    <!-- Mini Bar Track -->
-                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-[#2a2a2a] overflow-hidden border border-gray-200/50 dark:!border-[#3a3a3a]">
-                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
-                                            :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.unitStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-500 to-teal-400'"
-                                            :style="{ width: `${day.unitStats.percent}%` }">
-                                        </div>
-                                    </div>
-                                </div>
-                                <span v-if="day.unitStats.percent === 100 && !day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
-                                    100% Selesai
-                                </span>
-                                <span v-else-if="day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
-                                    Selisih
-                                </span>
-                            </div>
-
-                            <!-- 3. JIKA DI TAB 'Semua Sesi': Tampilkan DUA Progress Bar (By IMEI & By Unit) Berdampingan -->
-                            <div v-else class="flex items-center gap-2 flex-1 lg:flex-initial">
-                                <!-- IMEI Progress Widget -->
-                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-purple-200/70 dark:!border-purple-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
-                                    <div class="flex-1 space-y-1">
-                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
-                                            <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                                <Smartphone :size="11" />
-                                                <span>IMEI</span>
-                                                <span class="font-mono text-[9px] opacity-80">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
-                                            </span>
-                                            <span class="font-mono font-black text-purple-600 dark:text-purple-400">{{ day.imeiStats.percent }}%</span>
-                                        </div>
-                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-[#2a2a2a] overflow-hidden border border-gray-200/50 dark:!border-[#3a3a3a]">
-                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-emerald-400"
-                                                :style="{ width: `${day.imeiStats.percent}%` }">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Unit Progress Widget -->
-                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-blue-200/70 dark:!border-blue-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
-                                    <div class="flex-1 space-y-1">
-                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
-                                            <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                                <Package :size="11" />
-                                                <span>Unit</span>
-                                                <span class="font-mono text-[9px] opacity-80">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
-                                            </span>
-                                            <span class="font-mono font-black text-blue-600 dark:text-blue-400">{{ day.unitStats.percent }}%</span>
-                                        </div>
-                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-[#2a2a2a] overflow-hidden border border-gray-200/50 dark:!border-[#3a3a3a]">
-                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-500 to-teal-400"
-                                                :style="{ width: `${day.unitStats.percent}%` }">
-                                            </div>
-                                        </div>
-                                    </div>
+                            <!-- Mini Bar Track -->
+                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-emerald-400"
+                                    :style="{ width: `${day.imeiStats.percent}%` }">
                                 </div>
                             </div>
+                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                                {{ day.imeiStats.percent }}% barang telah di stok opname by IMEI
+                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }} unit)</span>
+                            </div>
+                        </div>
 
-                            <!-- Toggle Collapse Button -->
-                            <button type="button" @click="toggleDayCollapse(day.date)"
-                                class="p-2 rounded-xl border border-gray-200 dark:!border-surface-600 hover:bg-gray-100 dark:hover:!bg-[#2a2a2a] text-text-secondary hover:text-text-primary transition-colors cursor-pointer shrink-0"
-                                :title="collapsedDays[day.date] ? 'Tampilkan Tabel' : 'Sembunyikan Tabel'">
-                                <ChevronUp v-if="!collapsedDays[day.date]" :size="17" />
-                                <ChevronDown v-else :size="17" />
-                            </button>
+                        <!-- 2. HP by Unit Card -->
+                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-blue-200/80 dark:border-blue-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-800/60">
+                                        <Package :size="14" />
+                                    </div>
+                                    <span class="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300 tracking-wider">Barang HP by Unit</span>
+                                </div>
+                                <span class="font-mono font-black text-sm" :class="day.hpUnitStats.percent === 100 && !day.hpUnitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'">
+                                    {{ day.hpUnitStats.percent }}%
+                                </span>
+                            </div>
+                            <!-- Mini Bar Track -->
+                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-500 to-teal-400"
+                                    :style="{ width: `${day.hpUnitStats.percent}%` }">
+                                </div>
+                            </div>
+                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                                {{ day.hpUnitStats.percent }}% barang HP telah di stok opname by UNIT
+                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.hpUnitStats.totalPhysical }}/{{ day.hpUnitStats.target }} unit)</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. Non-HP by Unit Card -->
+                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-amber-200/80 dark:border-amber-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-800/60">
+                                        <Boxes :size="14" />
+                                    </div>
+                                    <span class="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300 tracking-wider">Barang Non-HP by Unit</span>
+                                </div>
+                                <span class="font-mono font-black text-sm" :class="day.nonHpUnitStats.percent === 100 && !day.nonHpUnitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+                                    {{ day.nonHpUnitStats.percent }}%
+                                </span>
+                            </div>
+                            <!-- Mini Bar Track -->
+                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-500 to-emerald-400"
+                                    :style="{ width: `${day.nonHpUnitStats.percent}%` }">
+                                </div>
+                            </div>
+                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                                {{ day.nonHpUnitStats.percent }}% barang non HP telah di stok opname by UNIT
+                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.nonHpUnitStats.totalPhysical }}/{{ day.nonHpUnitStats.target }} unit)</span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- RINCIAN RINGKASAN HARI INI (SUMMARY METRICS CHIPS - Clean Dark & Light Theme) -->
+                    <!-- DETAIL TAMPILAN SO HARIAN: RINCIAN METRIK HARI INI (Total Sistem, Fisik Ada, Selisih, dll) -->
                     <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
                         <!-- Metric 1: Sistem -->
-                        <div class="p-2.5 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-gray-200/80 dark:!border-[#333333] shadow-2xs">
-                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                        <div class="p-2.5 rounded-xl bg-white dark:bg-neutral-800/90 border border-gray-200 dark:border-neutral-700 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
                                 {{ activeTab === 'by_imei' ? 'Sistem IMEI' : activeTab === 'by_unit' ? 'Sistem Unit' : 'Total Sistem' }}
                             </div>
-                            <div class="text-sm font-black font-mono text-text-primary mt-0.5">
-                                {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span>
+                            <div class="text-sm font-black font-mono text-neutral-900 dark:text-white mt-0.5">
+                                {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-neutral-500 dark:text-neutral-400">unit</span>
                             </div>
-                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalSystem }}</span>
                                 <span>•</span>
                                 <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalSystem }}</span>
@@ -1461,12 +1575,12 @@ watch(() => filters.value.executor_role, () => {
                         </div>
 
                         <!-- Metric 2: Fisik Ditemukan (Ada) -->
-                        <div class="p-2.5 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-emerald-200/80 dark:border-emerald-900/60 shadow-2xs">
-                            <div class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
-                            <div class="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
+                            <div class="text-sm font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5">
                                 {{ getActiveDayStats(day).totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
-                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalPhysical }}</span>
                                 <span>•</span>
                                 <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalPhysical }}</span>
@@ -1475,11 +1589,11 @@ watch(() => filters.value.executor_role, () => {
 
                         <!-- Metric 3: Selisih Kurang -->
                         <div class="p-2.5 rounded-xl border shadow-2xs"
-                            :class="getActiveDayStats(day).totalMissing > 0 ? 'bg-rose-50/70 dark:!bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-600 dark:text-rose-400' : 'bg-white dark:!bg-[#1e1e1e] border-gray-200/80 dark:!border-[#333333]'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-secondary'">
+                            :class="getActiveDayStats(day).totalMissing > 0 ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-700 dark:text-rose-400' : 'bg-white dark:bg-neutral-800/90 border-gray-200 dark:border-neutral-700 text-neutral-900 dark:text-white'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-neutral-500 dark:text-neutral-400'">
                                 Selisih Kurang
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-primary'">
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-neutral-900 dark:text-white'">
                                 {{ getActiveDayStats(day).totalMissing > 0 ? '-' + getActiveDayStats(day).totalMissing : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.totalMissing > 0 || day.unitStats.totalMissing > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1491,11 +1605,11 @@ watch(() => filters.value.executor_role, () => {
 
                         <!-- Metric 4: Selisih Lebih -->
                         <div class="p-2.5 rounded-xl border shadow-2xs"
-                            :class="getActiveDayStats(day).totalExcess > 0 ? 'bg-amber-50/70 dark:!bg-amber-950/40 border-amber-300 dark:border-amber-900/60 text-amber-600 dark:text-amber-400' : 'bg-white dark:!bg-[#1e1e1e] border-gray-200/80 dark:!border-[#333333]'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'">
+                            :class="getActiveDayStats(day).totalExcess > 0 ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-900/60 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-neutral-800/90 border-gray-200 dark:border-neutral-700 text-neutral-900 dark:text-white'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-neutral-500 dark:text-neutral-400'">
                                 Unit Lebih
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-primary'">
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-neutral-900 dark:text-white'">
                                 {{ getActiveDayStats(day).totalExcess > 0 ? '+' + getActiveDayStats(day).totalExcess : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.totalExcess > 0 || day.unitStats.totalExcess > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1506,8 +1620,8 @@ watch(() => filters.value.executor_role, () => {
                         </div>
 
                         <!-- Metric 5: Hasil Akhir / Status -->
-                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:!bg-[#1e1e1e] border border-gray-200/80 dark:!border-[#333333] shadow-2xs flex flex-col justify-center">
-                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Hasil Audit</div>
+                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:bg-neutral-800/90 border border-gray-200 dark:border-neutral-700 shadow-2xs flex flex-col justify-center">
+                            <div class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">Hasil Audit</div>
                             <div class="mt-0.5">
                                 <span v-if="!getActiveDayStats(day).hasDiff && getActiveDayStats(day).percent === 100" class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
                                     <CheckCircle2 :size="13" class="text-emerald-500" />
