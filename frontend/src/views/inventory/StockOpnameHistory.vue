@@ -455,7 +455,7 @@ const filteredAllImeis = computed(() => {
     return items;
 });
 
-// Grouped Records By Day (per table per hari with daily progress bar & metrics)
+// Grouped Records By Day (per table per hari with separate progress for By IMEI and By Unit)
 const groupedRecordsByDay = computed(() => {
     const groups = {};
     const todayStr = getLogicalDate({ created_at: new Date() });
@@ -466,10 +466,27 @@ const groupedRecordsByDay = computed(() => {
             groups[dayKey] = {
                 date: dayKey,
                 records: [],
+                // Combined totals
                 totalSystem: 0,
                 totalPhysical: 0,
                 totalMissing: 0,
                 totalExcess: 0,
+                // Stok by IMEI specific
+                imei: {
+                    count: 0,
+                    totalSystem: 0,
+                    totalPhysical: 0,
+                    totalMissing: 0,
+                    totalExcess: 0,
+                },
+                // Stok by Unit specific
+                unit: {
+                    count: 0,
+                    totalSystem: 0,
+                    totalPhysical: 0,
+                    totalMissing: 0,
+                    totalExcess: 0,
+                }
             };
         }
         groups[dayKey].records.push(rec);
@@ -478,48 +495,135 @@ const groupedRecordsByDay = computed(() => {
         groups[dayKey].totalPhysical += t.total_physical;
         groups[dayKey].totalMissing += t.total_missing;
         groups[dayKey].totalExcess += t.total_excess;
+
+        if (rec.method === 'by_imei') {
+            groups[dayKey].imei.count++;
+            groups[dayKey].imei.totalSystem += t.total_system;
+            groups[dayKey].imei.totalPhysical += t.total_physical;
+            groups[dayKey].imei.totalMissing += t.total_missing;
+            groups[dayKey].imei.totalExcess += t.total_excess;
+        } else {
+            groups[dayKey].unit.count++;
+            groups[dayKey].unit.totalSystem += t.total_system;
+            groups[dayKey].unit.totalPhysical += t.total_physical;
+            groups[dayKey].unit.totalMissing += t.total_missing;
+            groups[dayKey].unit.totalExcess += t.total_excess;
+        }
     });
 
     return Object.values(groups)
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(g => {
             const isToday = g.date === todayStr;
-            const hasDiff = g.totalMissing > 0 || g.totalExcess > 0;
 
+            // 1. By IMEI calculations
+            let targetImei = g.imei.totalSystem;
+            if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.imei.totalSystem) {
+                targetImei = branchStockTotal.value;
+            }
+            let percentImei = 0;
+            if (targetImei > 0) {
+                percentImei = Math.min(100, Math.round((g.imei.totalPhysical / targetImei) * 100));
+            } else if (g.imei.totalPhysical > 0) {
+                percentImei = 100;
+            }
+            const hasDiffImei = g.imei.totalMissing > 0 || g.imei.totalExcess > 0;
+            let statusLabelImei = '100% Sesuai';
+            if (percentImei === 100 && !hasDiffImei) {
+                statusLabelImei = 'Sempurna & Lengkap';
+            } else if (hasDiffImei) {
+                statusLabelImei = `${g.imei.totalMissing > 0 ? g.imei.totalMissing + ' Kurang' : ''}${g.imei.totalExcess > 0 ? ' +' + g.imei.totalExcess + ' Lebih' : ''}`;
+            } else if (percentImei < 100) {
+                statusLabelImei = `${g.imei.totalPhysical} / ${targetImei} Unit`;
+            }
+
+            // 2. By Unit calculations
+            let targetUnit = g.unit.totalSystem;
+            let percentUnit = 0;
+            if (targetUnit > 0) {
+                percentUnit = Math.min(100, Math.round((g.unit.totalPhysical / targetUnit) * 100));
+            } else if (g.unit.totalPhysical > 0) {
+                percentUnit = 100;
+            }
+            const hasDiffUnit = g.unit.totalMissing > 0 || g.unit.totalExcess > 0;
+            let statusLabelUnit = '100% Sesuai';
+            if (percentUnit === 100 && !hasDiffUnit) {
+                statusLabelUnit = 'Sempurna & Lengkap';
+            } else if (hasDiffUnit) {
+                statusLabelUnit = `${g.unit.totalMissing > 0 ? g.unit.totalMissing + ' Kurang' : ''}${g.unit.totalExcess > 0 ? ' +' + g.unit.totalExcess + ' Lebih' : ''}`;
+            } else if (percentUnit < 100) {
+                statusLabelUnit = `${g.unit.totalPhysical} / ${targetUnit} Unit`;
+            }
+
+            // 3. Combined calculations
+            const hasDiffCombined = g.totalMissing > 0 || g.totalExcess > 0;
             let effectiveTargetUnits = g.totalSystem;
             if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.totalSystem) {
                 effectiveTargetUnits = branchStockTotal.value;
             }
-
-            let percent = 0;
+            let percentCombined = 0;
             if (effectiveTargetUnits > 0) {
-                percent = Math.min(100, Math.round((g.totalPhysical / effectiveTargetUnits) * 100));
+                percentCombined = Math.min(100, Math.round((g.totalPhysical / effectiveTargetUnits) * 100));
             } else if (g.totalPhysical > 0) {
-                percent = 100;
+                percentCombined = 100;
             }
-
-            let statusLabel = '100% Sesuai';
-            if (percent === 100 && !hasDiff) {
-                statusLabel = 'Sempurna & Lengkap';
-            } else if (hasDiff) {
-                statusLabel = `${g.totalMissing > 0 ? g.totalMissing + ' Kurang' : ''}${g.totalExcess > 0 ? ' +' + g.totalExcess + ' Lebih' : ''}`;
-            } else if (percent < 100) {
-                statusLabel = `${g.totalPhysical} / ${effectiveTargetUnits} Unit`;
+            let statusLabelCombined = '100% Sesuai';
+            if (percentCombined === 100 && !hasDiffCombined) {
+                statusLabelCombined = 'Sempurna & Lengkap';
+            } else if (hasDiffCombined) {
+                statusLabelCombined = `${g.totalMissing > 0 ? g.totalMissing + ' Kurang' : ''}${g.totalExcess > 0 ? ' +' + g.totalExcess + ' Lebih' : ''}`;
+            } else if (percentCombined < 100) {
+                statusLabelCombined = `${g.totalPhysical} / ${effectiveTargetUnits} Unit`;
             }
 
             const rel = getDayRelativeBadge(g.date);
 
             return {
                 ...g,
-                percent,
-                effectiveTargetUnits,
                 isToday,
-                hasDiff,
                 relativeBadge: rel.label,
-                statusLabel,
+                imeiStats: {
+                    ...g.imei,
+                    target: targetImei,
+                    percent: percentImei,
+                    hasDiff: hasDiffImei,
+                    statusLabel: statusLabelImei
+                },
+                unitStats: {
+                    ...g.unit,
+                    target: targetUnit,
+                    percent: percentUnit,
+                    hasDiff: hasDiffUnit,
+                    statusLabel: statusLabelUnit
+                },
+                percent: percentCombined,
+                effectiveTargetUnits,
+                hasDiff: hasDiffCombined,
+                statusLabel: statusLabelCombined,
             };
         });
 });
+
+// Helper to get stats matching current activeTab
+const getActiveDayStats = (day) => {
+    if (!day) return { totalSystem: 0, totalPhysical: 0, totalMissing: 0, totalExcess: 0, target: 0, percent: 0, hasDiff: false, statusLabel: '' };
+    if (activeTab.value === 'by_imei') {
+        return day.imeiStats || day;
+    }
+    if (activeTab.value === 'by_unit') {
+        return day.unitStats || day;
+    }
+    return {
+        totalSystem: day.totalSystem,
+        totalPhysical: day.totalPhysical,
+        totalMissing: day.totalMissing,
+        totalExcess: day.totalExcess,
+        target: day.effectiveTargetUnits,
+        percent: day.percent,
+        hasDiff: day.hasDiff,
+        statusLabel: day.statusLabel
+    };
+};
 
 // Grouped All IMEIs By Day (when viewing in all_imei mode)
 const groupedAllImeisByDay = computed(() => {
@@ -758,7 +862,7 @@ watch(() => filters.value.executor_role, () => {
                 <!-- Filter: Semua Tipe -->
                 <button type="button" @click="filters.executor_role = ''"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === '' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                    :class="filters.executor_role === '' ? 'bg-gray-900 text-white dark:!bg-surface-700 dark:text-white dark:border dark:border-surface-600 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:!bg-surface-700'">
                     <span>Semua Tipe</span>
                 </button>
 
@@ -1186,8 +1290,8 @@ watch(() => filters.value.executor_role, () => {
             <div v-for="day in groupedRecordsByDay" :key="day.date"
                 class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
 
-                <!-- DAY HEADER WITH INLINE PROGRESS BAR & METRICS -->
-                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
+                <!-- DAY HEADER WITH INLINE PROGRESS BAR & METRICS (Separate By IMEI vs By Unit) -->
+                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-gray-50/80 via-white to-gray-50/60 dark:!from-surface-800 dark:!via-surface-800 dark:!to-surface-850">
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
                         <!-- Left: Date Title & Badges -->
                         <div class="flex items-start sm:items-center gap-3">
@@ -1204,10 +1308,10 @@ watch(() => filters.value.executor_role, () => {
                                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                         <span>Hari Ini • Siklus Aktif</span>
                                     </span>
-                                    <span v-else-if="day.relativeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600">
+                                    <span v-else-if="day.relativeBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:!bg-surface-700 text-text-secondary dark:text-gray-300 border border-gray-200 dark:border-surface-600">
                                         {{ day.relativeBadge }}
                                     </span>
-                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 dark:!bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60">
                                         {{ day.records.length }} Sesi SO
                                     </span>
                                 </div>
@@ -1219,49 +1323,110 @@ watch(() => filters.value.executor_role, () => {
                             </div>
                         </div>
 
-                        <!-- Right: Progress Bar langsung di baris tanggal & tombol collapse -->
-                        <div class="flex items-center gap-3 self-stretch lg:self-auto justify-between lg:justify-end">
-                            <!-- Progress Bar Compact Widget (Di Baris Tanggal) -->
-                            <div class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:bg-surface-700/70 border border-gray-200/80 dark:border-surface-600 shadow-2xs min-w-[210px] sm:min-w-[260px] flex-1 lg:flex-initial">
+                        <!-- Right: Progress Bar langsung di baris tanggal (Differentiated By IMEI vs By Unit) & Tombol Collapse -->
+                        <div class="flex items-center gap-2.5 self-stretch lg:self-auto justify-between lg:justify-end flex-wrap sm:flex-nowrap">
+                            <!-- 1. JIKA DI TAB 'by_imei': Tampilkan Progress Khusus By IMEI -->
+                            <div v-if="activeTab === 'by_imei'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-surface-800 border border-purple-200/80 dark:border-purple-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
                                 <div class="flex-1 space-y-1">
                                     <div class="flex items-center justify-between text-[11px] font-bold leading-none">
-                                        <span class="text-text-secondary flex items-center gap-1">
-                                            <span>Progress SO</span>
-                                            <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-extrabold">({{ day.totalPhysical }}/{{ day.effectiveTargetUnits }})</span>
+                                        <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                            <Smartphone :size="12" />
+                                            <span>Progress By IMEI</span>
+                                            <span class="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-extrabold">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
                                         </span>
-                                        <span class="font-mono font-black" :class="day.percent === 100 && !day.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
-                                            {{ day.percent }}%
+                                        <span class="font-mono font-black" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.imeiStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'">
+                                            {{ day.imeiStats.percent }}%
                                         </span>
                                     </div>
                                     <!-- Mini Bar Track -->
-                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-surface-800 overflow-hidden border border-gray-200/50 dark:border-surface-600">
+                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
                                         <div class="h-full rounded-full transition-all duration-700 ease-out"
-                                            :class="day.percent === 100 && !day.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-500 to-emerald-400'"
-                                            :style="{ width: `${day.percent}%` }">
+                                            :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.imeiStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-purple-500 to-emerald-400'"
+                                            :style="{ width: `${day.imeiStats.percent}%` }">
+                                        </div>
+                                    </div>
+                                </div>
+                                <span v-if="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
+                                    100% Selesai
+                                </span>
+                                <span v-else-if="day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
+                                    Selisih
+                                </span>
+                            </div>
+
+                            <!-- 2. JIKA DI TAB 'by_unit': Tampilkan Progress Khusus By Unit -->
+                            <div v-else-if="activeTab === 'by_unit'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-surface-800 border border-blue-200/80 dark:border-blue-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
+                                <div class="flex-1 space-y-1">
+                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
+                                        <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                            <Package :size="12" />
+                                            <span>Progress By Unit</span>
+                                            <span class="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-extrabold">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
+                                        </span>
+                                        <span class="font-mono font-black" :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.unitStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
+                                            {{ day.unitStats.percent }}%
+                                        </span>
+                                    </div>
+                                    <!-- Mini Bar Track -->
+                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
+                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
+                                            :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.unitStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-500 to-teal-400'"
+                                            :style="{ width: `${day.unitStats.percent}%` }">
+                                        </div>
+                                    </div>
+                                </div>
+                                <span v-if="day.unitStats.percent === 100 && !day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
+                                    100% Selesai
+                                </span>
+                                <span v-else-if="day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
+                                    Selisih
+                                </span>
+                            </div>
+
+                            <!-- 3. JIKA DI TAB 'Semua Sesi': Tampilkan DUA Progress Bar (By IMEI & By Unit) Berdampingan -->
+                            <div v-else class="flex items-center gap-2 flex-1 lg:flex-initial">
+                                <!-- IMEI Progress Widget -->
+                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-purple-200/70 dark:border-purple-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
+                                    <div class="flex-1 space-y-1">
+                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
+                                            <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
+                                                <Smartphone :size="11" />
+                                                <span>IMEI</span>
+                                                <span class="font-mono text-[9px] opacity-80">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
+                                            </span>
+                                            <span class="font-mono font-black text-purple-600 dark:text-purple-400">{{ day.imeiStats.percent }}%</span>
+                                        </div>
+                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
+                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-emerald-400"
+                                                :style="{ width: `${day.imeiStats.percent}%` }">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Status Badge Pill -->
-                                <div class="shrink-0">
-                                    <span v-if="day.percent === 100 && !day.hasDiff" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80">
-                                        <Sparkles :size="11" />
-                                        <span>100% Selesai</span>
-                                    </span>
-                                    <span v-else-if="day.hasDiff" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80">
-                                        <AlertTriangle :size="11" />
-                                        <span>Selisih</span>
-                                    </span>
-                                    <span v-else class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/80">
-                                        <RefreshCw :size="11" />
-                                        <span>{{ day.percent }}%</span>
-                                    </span>
+                                <!-- Unit Progress Widget -->
+                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-blue-200/70 dark:border-blue-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
+                                    <div class="flex-1 space-y-1">
+                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
+                                            <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                                                <Package :size="11" />
+                                                <span>Unit</span>
+                                                <span class="font-mono text-[9px] opacity-80">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
+                                            </span>
+                                            <span class="font-mono font-black text-blue-600 dark:text-blue-400">{{ day.unitStats.percent }}%</span>
+                                        </div>
+                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
+                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-500 to-teal-400"
+                                                :style="{ width: `${day.unitStats.percent}%` }">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <!-- Toggle Collapse Button -->
                             <button type="button" @click="toggleDayCollapse(day.date)"
-                                class="p-2 rounded-xl border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:bg-surface-700 text-text-secondary hover:text-text-primary transition-colors cursor-pointer shrink-0"
+                                class="p-2 rounded-xl border border-gray-200 dark:border-surface-600 hover:bg-gray-100 dark:hover:!bg-surface-700 text-text-secondary hover:text-text-primary transition-colors cursor-pointer shrink-0"
                                 :title="collapsedDays[day.date] ? 'Tampilkan Tabel' : 'Sembunyikan Tabel'">
                                 <ChevronUp v-if="!collapsedDays[day.date]" :size="17" />
                                 <ChevronDown v-else :size="17" />
@@ -1269,51 +1434,77 @@ watch(() => filters.value.executor_role, () => {
                         </div>
                     </div>
 
-                    <!-- RINCIAN RINGKASAN HARI INI (SUMMARY METRICS CHIPS) -->
+                    <!-- RINCIAN RINGKASAN HARI INI (SUMMARY METRICS CHIPS - Clean Dark & Light Theme) -->
                     <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
                         <!-- Metric 1: Sistem -->
-                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-gray-200/80 dark:border-surface-700 shadow-2xs">
-                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Total Sistem</div>
-                            <div class="text-sm font-black font-mono text-text-primary mt-0.5">{{ day.totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span></div>
+                        <div class="p-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-gray-200/80 dark:border-surface-700 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                                {{ activeTab === 'by_imei' ? 'Sistem IMEI' : activeTab === 'by_unit' ? 'Sistem Unit' : 'Total Sistem' }}
+                            </div>
+                            <div class="text-sm font-black font-mono text-text-primary mt-0.5">
+                                {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span>
+                            </div>
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalSystem }}</span>
+                                <span>•</span>
+                                <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalSystem }}</span>
+                            </div>
                         </div>
 
                         <!-- Metric 2: Fisik Ditemukan (Ada) -->
-                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-emerald-200/60 dark:border-emerald-900/50 shadow-2xs">
+                        <div class="p-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-emerald-200/80 dark:border-emerald-900/60 shadow-2xs">
                             <div class="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
-                            <div class="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">{{ day.totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span></div>
+                            <div class="text-sm font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                                {{ getActiveDayStats(day).totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            </div>
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalPhysical }}</span>
+                                <span>•</span>
+                                <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalPhysical }}</span>
+                            </div>
                         </div>
 
                         <!-- Metric 3: Selisih Kurang -->
-                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border shadow-2xs"
-                            :class="day.totalMissing > 0 ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20' : 'border-gray-200/80 dark:border-surface-700'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="day.totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-secondary'">
+                        <div class="p-2.5 rounded-xl border shadow-2xs"
+                            :class="getActiveDayStats(day).totalMissing > 0 ? 'bg-rose-50/70 dark:!bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-600 dark:text-rose-400' : 'bg-white dark:!bg-surface-800 border-gray-200/80 dark:border-surface-700'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-secondary'">
                                 Selisih Kurang
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="day.totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-primary'">
-                                {{ day.totalMissing > 0 ? '-' + day.totalMissing : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-text-primary'">
+                                {{ getActiveDayStats(day).totalMissing > 0 ? '-' + getActiveDayStats(day).totalMissing : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            </div>
+                            <div v-if="activeTab === '' && (day.imeiStats.totalMissing > 0 || day.unitStats.totalMissing > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span class="text-rose-500 font-bold">📱 {{ day.imeiStats.totalMissing }}</span>
+                                <span>•</span>
+                                <span class="text-rose-500 font-bold">📦 {{ day.unitStats.totalMissing }}</span>
                             </div>
                         </div>
 
                         <!-- Metric 4: Selisih Lebih -->
-                        <div class="p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border shadow-2xs"
-                            :class="day.totalExcess > 0 ? 'border-amber-300 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/20' : 'border-gray-200/80 dark:border-surface-700'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="day.totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'">
+                        <div class="p-2.5 rounded-xl border shadow-2xs"
+                            :class="getActiveDayStats(day).totalExcess > 0 ? 'bg-amber-50/70 dark:!bg-amber-950/40 border-amber-300 dark:border-amber-900/60 text-amber-600 dark:text-amber-400' : 'bg-white dark:!bg-surface-800 border-gray-200/80 dark:border-surface-700'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-secondary'">
                                 Unit Lebih
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="day.totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-primary'">
-                                {{ day.totalExcess > 0 ? '+' + day.totalExcess : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-text-primary'">
+                                {{ getActiveDayStats(day).totalExcess > 0 ? '+' + getActiveDayStats(day).totalExcess : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
+                            </div>
+                            <div v-if="activeTab === '' && (day.imeiStats.totalExcess > 0 || day.unitStats.totalExcess > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                <span class="text-amber-500 font-bold">📱 +{{ day.imeiStats.totalExcess }}</span>
+                                <span>•</span>
+                                <span class="text-amber-500 font-bold">📦 +{{ day.unitStats.totalExcess }}</span>
                             </div>
                         </div>
 
                         <!-- Metric 5: Hasil Akhir / Status -->
-                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:bg-surface-750/70 border border-gray-200/80 dark:border-surface-700 shadow-2xs flex flex-col justify-center">
+                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-gray-200/80 dark:border-surface-700 shadow-2xs flex flex-col justify-center">
                             <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Hasil Audit</div>
                             <div class="mt-0.5">
-                                <span v-if="!day.hasDiff && day.percent === 100" class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
+                                <span v-if="!getActiveDayStats(day).hasDiff && getActiveDayStats(day).percent === 100" class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
                                     <CheckCircle2 :size="13" class="text-emerald-500" />
                                     <span>100% Cocok</span>
                                 </span>
-                                <span v-else-if="day.hasDiff" class="inline-flex items-center gap-1 text-[11px] font-black text-rose-600 dark:text-rose-400">
+                                <span v-else-if="getActiveDayStats(day).hasDiff" class="inline-flex items-center gap-1 text-[11px] font-black text-rose-600 dark:text-rose-400">
                                     <AlertTriangle :size="13" class="text-rose-500" />
                                     <span>Ada Selisih</span>
                                 </span>
