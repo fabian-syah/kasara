@@ -957,13 +957,13 @@ watch(
 }
 
 .card-cancel-red {
-    background-color: #fef2f2 !important;
+    background-color: #fff5f5 !important;
     border-color: #fca5a5 !important;
 }
 
-:global(.dark) .card-cancel-red {
-    background-color: rgba(69, 10, 10, 0.45) !important;
-    border-color: rgba(185, 28, 28, 0.55) !important;
+:global(.dark .card-cancel-red) {
+    background-color: #1c0e10 !important;
+    border-color: #7f1d1d !important;
 }
 
 .badge-xs {
