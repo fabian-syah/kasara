@@ -391,6 +391,15 @@ const getRecordTotals = (rec) => {
     };
 };
 
+// Helper to compute progress percentage for an individual record
+const getRecordProgress = (rec) => {
+    const t = getRecordTotals(rec);
+    if (t.total_system <= 0) {
+        return t.total_physical > 0 ? 100 : 0;
+    }
+    return Math.min(100, Math.round((t.total_physical / t.total_system) * 100));
+};
+
 // Helper to get all IMEIs in a session (including excess IMEIs)
 const getSessionAllImeis = (rec) => {
     if (!rec) return [];
@@ -1324,106 +1333,16 @@ watch(() => filters.value.executor_role, () => {
                             </div>
                         </div>
 
-                        <!-- Right: Progress Bar langsung di baris tanggal (Differentiated By IMEI vs By Unit) & Tombol Collapse -->
-                        <div class="flex items-center gap-2.5 self-stretch lg:self-auto justify-between lg:justify-end flex-wrap sm:flex-nowrap">
-                            <!-- 1. JIKA DI TAB 'by_imei': Tampilkan Progress Khusus By IMEI -->
-                            <div v-if="activeTab === 'by_imei'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-surface-800 border border-purple-200/80 dark:border-purple-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
-                                <div class="flex-1 space-y-1">
-                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
-                                        <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                            <Smartphone :size="12" />
-                                            <span>Progress By IMEI</span>
-                                            <span class="text-[10px] font-mono text-purple-600 dark:text-purple-400 font-extrabold">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
-                                        </span>
-                                        <span class="font-mono font-black" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.imeiStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-purple-600 dark:text-purple-400'">
-                                            {{ day.imeiStats.percent }}%
-                                        </span>
-                                    </div>
-                                    <!-- Mini Bar Track -->
-                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
-                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
-                                            :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.imeiStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-purple-500 to-emerald-400'"
-                                            :style="{ width: `${day.imeiStats.percent}%` }">
-                                        </div>
-                                    </div>
-                                </div>
-                                <span v-if="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
-                                    100% Selesai
-                                </span>
-                                <span v-else-if="day.imeiStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
-                                    Selisih
-                                </span>
-                            </div>
-
-                            <!-- 2. JIKA DI TAB 'by_unit': Tampilkan Progress Khusus By Unit -->
-                            <div v-else-if="activeTab === 'by_unit'" class="flex items-center gap-2.5 p-1.5 px-3 rounded-xl bg-white dark:!bg-surface-800 border border-blue-200/80 dark:border-blue-900/60 shadow-2xs min-w-[210px] sm:min-w-[250px] flex-1 lg:flex-initial">
-                                <div class="flex-1 space-y-1">
-                                    <div class="flex items-center justify-between text-[11px] font-bold leading-none">
-                                        <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                            <Package :size="12" />
-                                            <span>Progress By Unit</span>
-                                            <span class="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-extrabold">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
-                                        </span>
-                                        <span class="font-mono font-black" :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : day.unitStats.hasDiff ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'">
-                                            {{ day.unitStats.percent }}%
-                                        </span>
-                                    </div>
-                                    <!-- Mini Bar Track -->
-                                    <div class="w-full h-2 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
-                                        <div class="h-full rounded-full transition-all duration-700 ease-out"
-                                            :class="day.unitStats.percent === 100 && !day.unitStats.hasDiff ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : day.unitStats.hasDiff ? 'bg-gradient-to-r from-amber-500 to-rose-500' : 'bg-gradient-to-r from-blue-500 to-teal-400'"
-                                            :style="{ width: `${day.unitStats.percent}%` }">
-                                        </div>
-                                    </div>
-                                </div>
-                                <span v-if="day.unitStats.percent === 100 && !day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shrink-0">
-                                    100% Selesai
-                                </span>
-                                <span v-else-if="day.unitStats.hasDiff" class="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shrink-0">
-                                    Selisih
-                                </span>
-                            </div>
-
-                            <!-- 3. JIKA DI TAB 'Semua Sesi': Tampilkan DUA Progress Bar (By IMEI & By Unit) Berdampingan -->
-                            <div v-else class="flex items-center gap-2 flex-1 lg:flex-initial">
-                                <!-- IMEI Progress Widget -->
-                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-purple-200/70 dark:border-purple-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
-                                    <div class="flex-1 space-y-1">
-                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
-                                            <span class="text-purple-700 dark:text-purple-300 flex items-center gap-1">
-                                                <Smartphone :size="11" />
-                                                <span>IMEI</span>
-                                                <span class="font-mono text-[9px] opacity-80">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }})</span>
-                                            </span>
-                                            <span class="font-mono font-black text-purple-600 dark:text-purple-400">{{ day.imeiStats.percent }}%</span>
-                                        </div>
-                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
-                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-emerald-400"
-                                                :style="{ width: `${day.imeiStats.percent}%` }">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Unit Progress Widget -->
-                                <div class="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-white dark:!bg-surface-800 border border-blue-200/70 dark:border-blue-900/50 shadow-2xs min-w-[150px] sm:min-w-[180px]">
-                                    <div class="flex-1 space-y-1">
-                                        <div class="flex items-center justify-between text-[10px] font-bold leading-none">
-                                            <span class="text-blue-700 dark:text-blue-300 flex items-center gap-1">
-                                                <Package :size="11" />
-                                                <span>Unit</span>
-                                                <span class="font-mono text-[9px] opacity-80">({{ day.unitStats.totalPhysical }}/{{ day.unitStats.target }})</span>
-                                            </span>
-                                            <span class="font-mono font-black text-blue-600 dark:text-blue-400">{{ day.unitStats.percent }}%</span>
-                                        </div>
-                                        <div class="w-full h-1.5 rounded-full bg-gray-100 dark:!bg-surface-900 overflow-hidden border border-gray-200/50 dark:border-surface-700">
-                                            <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-500 to-teal-400"
-                                                :style="{ width: `${day.unitStats.percent}%` }">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Right: Status Ringkasan & Tombol Collapse Hari -->
+                        <div class="flex items-center gap-2 self-stretch lg:self-auto justify-between lg:justify-end shrink-0">
+                            <span v-if="!getActiveDayStats(day).hasDiff && getActiveDayStats(day).percent === 100" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 dark:!bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 shadow-2xs">
+                                <CheckCircle2 :size="14" class="text-emerald-500" />
+                                <span>100% Selesai (Cocok)</span>
+                            </span>
+                            <span v-else-if="getActiveDayStats(day).hasDiff" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:!bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/80 shadow-2xs">
+                                <AlertTriangle :size="14" class="text-amber-500" />
+                                <span>Ada Selisih</span>
+                            </span>
 
                             <!-- Toggle Collapse Button -->
                             <button type="button" @click="toggleDayCollapse(day.date)"
@@ -1570,6 +1489,33 @@ watch(() => filters.value.executor_role, () => {
                                 </div>
                             </div>
 
+                            <!-- Mobile Progress Bar Sesi -->
+                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-surface-700/40 border border-gray-100 dark:border-surface-700 space-y-1.5">
+                                <div class="flex items-center justify-between text-[11px] font-bold leading-none">
+                                    <span class="text-text-secondary flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full" :class="rec.method === 'by_imei' ? 'bg-purple-500' : 'bg-blue-500'"></span>
+                                        <span>Progress Fisik / Sistem</span>
+                                        <span class="font-mono text-[10px] text-text-primary">({{ getRecordTotals(rec).total_physical }}/{{ getRecordTotals(rec).total_system }})</span>
+                                    </span>
+                                    <span class="font-mono font-black text-xs"
+                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference ? 'text-emerald-600 dark:text-emerald-400' : getRecordTotals(rec).has_difference ? 'text-amber-600 dark:text-amber-400' : rec.method === 'by_imei' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'">
+                                        {{ getRecordProgress(rec) }}%
+                                    </span>
+                                </div>
+                                <div class="w-full h-2 rounded-full bg-gray-200 dark:bg-surface-800 overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-500 ease-out"
+                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference
+                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                            : getRecordTotals(rec).has_difference
+                                                ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                                                : rec.method === 'by_imei'
+                                                    ? 'bg-gradient-to-r from-purple-500 to-emerald-400'
+                                                    : 'bg-gradient-to-r from-blue-500 to-teal-400'"
+                                        :style="{ width: `${getRecordProgress(rec)}%` }">
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Metrics Grid -->
                             <div class="grid grid-cols-4 gap-1.5 p-2.5 bg-gray-50 dark:bg-surface-700/50 rounded-xl text-center text-xs">
                                 <div>
@@ -1652,6 +1598,7 @@ watch(() => filters.value.executor_role, () => {
                                     <th class="py-3 px-4 text-center">Fisik Ada</th>
                                     <th class="py-3 px-4 text-center">Selisih</th>
                                     <th class="py-3 px-4 text-center">Lebih</th>
+                                    <th class="py-3 px-4 text-center min-w-[130px]">Persentase</th>
                                     <th class="py-3 px-4 text-center">Status</th>
                                     <th class="py-3 px-4 text-center">Foto</th>
                                     <th class="py-3 px-4 text-right">Aksi</th>
@@ -1742,6 +1689,34 @@ watch(() => filters.value.executor_role, () => {
                                             <span v-else class="text-gray-400">0</span>
                                         </td>
 
+                                        <!-- Persentase & Progress Bar Sesi -->
+                                        <td class="py-3.5 px-4 text-center">
+                                            <div class="flex flex-col items-center justify-center gap-1 min-w-[110px] max-w-[150px] mx-auto">
+                                                <div class="flex items-center justify-between w-full text-[11px] font-bold leading-none">
+                                                    <span class="font-mono text-[10px] text-text-secondary">
+                                                        {{ getRecordTotals(rec).total_physical }}/{{ getRecordTotals(rec).total_system }}
+                                                    </span>
+                                                    <span class="font-mono font-black"
+                                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference ? 'text-emerald-600 dark:text-emerald-400' : getRecordTotals(rec).has_difference ? 'text-amber-600 dark:text-amber-400' : rec.method === 'by_imei' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'">
+                                                        {{ getRecordProgress(rec) }}%
+                                                    </span>
+                                                </div>
+                                                <!-- Mini Bar Track -->
+                                                <div class="w-full h-1.5 rounded-full bg-gray-100 dark:bg-surface-700 overflow-hidden border border-gray-200/50 dark:border-surface-600">
+                                                    <div class="h-full rounded-full transition-all duration-500 ease-out"
+                                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference
+                                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                                            : getRecordTotals(rec).has_difference
+                                                                ? 'bg-gradient-to-r from-amber-500 to-rose-500'
+                                                                : rec.method === 'by_imei'
+                                                                    ? 'bg-gradient-to-r from-purple-500 to-emerald-400'
+                                                                    : 'bg-gradient-to-r from-blue-500 to-teal-400'"
+                                                        :style="{ width: `${getRecordProgress(rec)}%` }">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+
                                         <!-- Status Badge -->
                                         <td class="py-3.5 px-4 text-center">
                                             <span v-if="!getRecordTotals(rec).has_difference" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300">
@@ -1775,7 +1750,7 @@ watch(() => filters.value.executor_role, () => {
 
                                     <!-- Expanded Drawer: Inline IMEIs for this session -->
                                     <tr v-if="expandedSessions[rec.id] && getSessionAllImeis(rec).length > 0" class="bg-purple-50/25 dark:bg-purple-950/20">
-                                        <td colspan="10" class="py-3 px-6">
+                                        <td colspan="11" class="py-3 px-6">
                                             <div class="space-y-2">
                                                 <div class="flex items-center justify-between">
                                                     <span class="text-xs font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
