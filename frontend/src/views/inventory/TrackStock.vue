@@ -278,10 +278,20 @@ const displayRows = computed(() => {
         // If current is a sale, check if there is an unconsumed cancel item to pair with
         if (isSaleItem(current)) {
             let cancelIdx = -1;
+            // 1st priority: matching receipt ID
             for (let j = 0; j < results.value.length; j++) {
-                if (!usedIndices.has(j) && isCancelItem(results.value[j])) {
+                if (!usedIndices.has(j) && isCancelItem(results.value[j]) && (results.value[j].id === current.id || results.value[j].order_no === current.order_no)) {
                     cancelIdx = j;
                     break;
+                }
+            }
+            // 2nd priority fallback
+            if (cancelIdx === -1) {
+                for (let j = 0; j < results.value.length; j++) {
+                    if (!usedIndices.has(j) && isCancelItem(results.value[j])) {
+                        cancelIdx = j;
+                        break;
+                    }
                 }
             }
             if (cancelIdx !== -1) {
@@ -296,10 +306,20 @@ const displayRows = computed(() => {
         // If current is a cancel item, check if there is an unconsumed sale item to pair with
         if (isCancelItem(current)) {
             let saleIdx = -1;
+            // 1st priority: matching receipt ID
             for (let j = 0; j < results.value.length; j++) {
-                if (!usedIndices.has(j) && isSaleItem(results.value[j])) {
+                if (!usedIndices.has(j) && isSaleItem(results.value[j]) && (results.value[j].id === current.id || results.value[j].order_no === current.order_no)) {
                     saleIdx = j;
                     break;
+                }
+            }
+            // 2nd priority fallback
+            if (saleIdx === -1) {
+                for (let j = 0; j < results.value.length; j++) {
+                    if (!usedIndices.has(j) && isSaleItem(results.value[j])) {
+                        saleIdx = j;
+                        break;
+                    }
                 }
             }
             if (saleIdx !== -1) {
@@ -652,6 +672,10 @@ watch(
                                                 <span class="badge-xs font-bold uppercase"
                                                     :class="result.category === 'cancel_penjualan' ? 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30' : 'bg-primary-500/10 text-primary-400 border-primary-500/20'">
                                                     {{ categoryLabels[result.category] || result.category?.replace(/_/g, ' ') }}
+                                                </span>
+                                                <span v-if="result.is_cancelled_sale || (result.status === 'cancelled' && result.category !== 'cancel_penjualan')"
+                                                    class="badge-xs bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30 font-bold">
+                                                    DIBATALKAN
                                                 </span>
                                                 <span v-if="result.category === 'pindah_cabang'" class="badge-xs" :class="{
                                                     'bg-yellow-500/10 text-yellow-400 border-yellow-500/20': result.status === 'pending',

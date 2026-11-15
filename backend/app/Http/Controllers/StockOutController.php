@@ -2698,75 +2698,233 @@ class StockOutController extends Controller
                     continue;
                 }
 
-                $allEvents[] = [
-                    'type' => 'stock_out',
-                    'sub_type' => 'departure',
-                    'id' => $out->receipt_id,
-                    'category' => $out->category,
-                    'sub_category' => $out->sub_category,
-                    'ba_name' => $out->ba_name,
-                    'ba_phone' => $out->ba_phone,
-                    'ba_social_media' => $out->ba_social_media,
-                    'ba_notes' => $out->ba_notes,
-                    'event_name' => $out->event_name,
-                    'event_receiver' => $out->event_receiver,
-                    'event_phone' => $out->event_phone,
-                    'event_doc' => $out->event_doc,
-                    'giveaway_receiver' => $out->giveaway_receiver,
-                    'giveaway_phone' => $out->giveaway_phone,
-                    'giveaway_address' => $out->giveaway_address,
-                    'giveaway_notes' => $out->giveaway_notes,
-                    'person_in_charge' => $out->person_in_charge,
-                    'loss_chronology' => $out->loss_chronology,
-                    'items' => $mergedItems,
-                    'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
-                    'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
-                    'expedition_name' => $out->expedition_name,
-                    'expedition_tracking_no' => $out->expedition_tracking_no,
-                    'shopee_province' => $out->shopee_province,
-                    'shopee_city' => $out->shopee_city,
-                    'shopee_district' => $out->shopee_district,
-                    'shopee_address' => $out->shopee_address,
-                    'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : ($out->destination_type ? ['name' => match($out->destination_type) { 'warehouse', \App\Models\Warehouse::class => 'Gudang', 'branch', \App\Models\Branch::class => 'Cabang', 'online_shop', \App\Models\OnlineShop::class => 'Toko Online', default => 'Lokasi' } . ' (Terhapus)', 'type' => $out->destination_type] : null)),
-                    'receiver_name' => $out->receiver_name,
-                    'customer_name' => $out->customer_name,
-                    'customer_wa' => $out->customer_wa,
-                    'notes' => $out->notes,
-                    'cancel_reason' => $out->cancel_reason,
-                    'deletion_reason' => $out->deletion_reason,
-                    'cancelled_by_name' => $out->category === 'kesalahan_input' ? ($out->user?->name ?? '') : ($out->cancelledByUser?->name ?? ''),
-                    'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                    'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
-                    'created_at' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->toDateTimeString() : $out->created_at->toDateTimeString(),
-                    'timestamp' => ($out->category === 'cancel_penjualan' && $out->cancelled_at) ? $out->cancelled_at->timestamp : $out->created_at->timestamp,
+                $isCancelSale = ($out->category === 'cancel_penjualan' || !empty($out->cancelled_at));
 
-                    // Extra properties for multiple proof images and receipt display
-                    'proof_images' => $proofImages,
-                    'proof_image' => $out->proof_image ? (str_starts_with($out->proof_image, 'http') ? $out->proof_image : asset('storage/' . $out->proof_image)) : ($exchangeInfo && $exchangeInfo->photo_unit ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit)) : null),
-                    'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
-                    'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
-                    'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
-                    'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
-                    'order_no' => $out->receipt_id,
-                    'branch' => $out->branch,
-                    'online_shop' => $out->onlineShop,
-                    'warehouse' => $out->warehouse,
-                    'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
-                        (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
-                        (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
-                        (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
-                    'original_price' => (float)$out->selling_price,
-                    'selling_price' => $out->category === 'dp' ? (float)$out->dp_amount : ($out->category === 'pelunasan_dp' ? (float)$out->paid_amount : (float)$out->selling_price),
-                    'total_discount' => (float)$out->total_discount,
-                    'grand_total' => $out->category === 'dp' ? ((float)$out->dp_amount - (float)$out->total_discount) : ($out->category === 'pelunasan_dp' ? ((float)$out->paid_amount - (float)$out->total_discount) : (float)($out->selling_price - $out->total_discount)),
-                    'payment_method_name' => $out->paymentMethod?->name ?? '-',
-                    'split_payments_data' => $out->split_payments_data ?? [],
-                    'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
-                    'sales_account' => $out->sales_account,
-                    'raw_items' => $rawItems,
-                    'source_type' => $mergedItems[0]['source_type'] ?? 'store',
-                    'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
-                ];
+                if ($isCancelSale) {
+                    // Determine original category prior to cancellation
+                    $origCat = 'penjualan_store';
+                    if ($out->online_shop_id) {
+                        $origCat = 'orderan_online';
+                    } elseif ($out->sub_category && in_array($out->sub_category, ['bundling', 'tukar_unit', 'tukar_tambah', 'downgrade'])) {
+                        $origCat = $out->sub_category;
+                    } elseif ($out->dp_amount > 0) {
+                        $origCat = 'dp';
+                    }
+
+                    // 1. ORIGINAL SALE EVENT (Tanggal saat unit dijual / KELUAR)
+                    $allEvents[] = [
+                        'type' => 'stock_out',
+                        'sub_type' => 'departure',
+                        'id' => $out->receipt_id,
+                        'category' => $origCat,
+                        'sub_category' => $out->sub_category,
+                        'ba_name' => $out->ba_name,
+                        'ba_phone' => $out->ba_phone,
+                        'ba_social_media' => $out->ba_social_media,
+                        'ba_notes' => $out->ba_notes,
+                        'event_name' => $out->event_name,
+                        'event_receiver' => $out->event_receiver,
+                        'event_phone' => $out->event_phone,
+                        'event_doc' => $out->event_doc,
+                        'giveaway_receiver' => $out->giveaway_receiver,
+                        'giveaway_phone' => $out->giveaway_phone,
+                        'giveaway_address' => $out->giveaway_address,
+                        'giveaway_notes' => $out->giveaway_notes,
+                        'person_in_charge' => $out->person_in_charge,
+                        'loss_chronology' => $out->loss_chronology,
+                        'items' => $mergedItems,
+                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                        'expedition_name' => $out->expedition_name,
+                        'expedition_tracking_no' => $out->expedition_tracking_no,
+                        'shopee_province' => $out->shopee_province,
+                        'shopee_city' => $out->shopee_city,
+                        'shopee_district' => $out->shopee_district,
+                        'shopee_address' => $out->shopee_address,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : ($out->destination_type ? ['name' => match($out->destination_type) { 'warehouse', \App\Models\Warehouse::class => 'Gudang', 'branch', \App\Models\Branch::class => 'Cabang', 'online_shop', \App\Models\OnlineShop::class => 'Toko Online', default => 'Lokasi' } . ' (Terhapus)', 'type' => $out->destination_type] : null)),
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        'customer_wa' => $out->customer_wa,
+                        'notes' => $out->notes,
+                        'cancel_reason' => $out->cancel_reason,
+                        'deletion_reason' => $out->deletion_reason,
+                        'cancelled_by_name' => $out->cancelledByUser?->name ?? '',
+                        'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                        'status' => 'cancelled',
+                        'is_cancelled_sale' => true,
+                        'created_at' => $out->created_at->toDateTimeString(),
+                        'timestamp' => $out->created_at->timestamp,
+
+                        // Extra properties for multiple proof images and receipt display
+                        'proof_images' => $proofImages,
+                        'proof_image' => $out->proof_image ? (str_starts_with($out->proof_image, 'http') ? $out->proof_image : asset('storage/' . $out->proof_image)) : ($exchangeInfo && $exchangeInfo->photo_unit ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit)) : null),
+                        'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
+                        'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
+                        'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
+                        'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
+                        'order_no' => $out->receipt_id,
+                        'branch' => $out->branch,
+                        'online_shop' => $out->onlineShop,
+                        'warehouse' => $out->warehouse,
+                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
+                        'original_price' => (float)$out->selling_price,
+                        'selling_price' => $out->category === 'dp' ? (float)$out->dp_amount : ($out->category === 'pelunasan_dp' ? (float)$out->paid_amount : (float)$out->selling_price),
+                        'total_discount' => (float)$out->total_discount,
+                        'grand_total' => $out->category === 'dp' ? ((float)$out->dp_amount - (float)$out->total_discount) : ($out->category === 'pelunasan_dp' ? ((float)$out->paid_amount - (float)$out->total_discount) : (float)($out->selling_price - $out->total_discount)),
+                        'payment_method_name' => $out->paymentMethod?->name ?? '-',
+                        'split_payments_data' => $out->split_payments_data ?? [],
+                        'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                        'sales_account' => $out->sales_account,
+                        'raw_items' => $rawItems,
+                        'source_type' => $mergedItems[0]['source_type'] ?? 'store',
+                        'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
+                    ];
+
+                    // 2. CANCELLATION EVENT (Tanggal saat penjualan DIBATALKAN / BATAL (MASUK))
+                    $cancelDate = $out->cancelled_at ?? $out->updated_at ?? $out->created_at;
+                    $allEvents[] = [
+                        'type' => 'stock_out',
+                        'sub_type' => 'cancellation',
+                        'id' => $out->receipt_id,
+                        'category' => 'cancel_penjualan',
+                        'sub_category' => $out->sub_category,
+                        'ba_name' => $out->ba_name,
+                        'ba_phone' => $out->ba_phone,
+                        'ba_social_media' => $out->ba_social_media,
+                        'ba_notes' => $out->ba_notes,
+                        'event_name' => $out->event_name,
+                        'event_receiver' => $out->event_receiver,
+                        'event_phone' => $out->event_phone,
+                        'event_doc' => $out->event_doc,
+                        'giveaway_receiver' => $out->giveaway_receiver,
+                        'giveaway_phone' => $out->giveaway_phone,
+                        'giveaway_address' => $out->giveaway_address,
+                        'giveaway_notes' => $out->giveaway_notes,
+                        'person_in_charge' => $out->person_in_charge,
+                        'loss_chronology' => $out->loss_chronology,
+                        'items' => $mergedItems,
+                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                        'expedition_name' => $out->expedition_name,
+                        'expedition_tracking_no' => $out->expedition_tracking_no,
+                        'shopee_province' => $out->shopee_province,
+                        'shopee_city' => $out->shopee_city,
+                        'shopee_district' => $out->shopee_district,
+                        'shopee_address' => $out->shopee_address,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : ($out->destination_type ? ['name' => match($out->destination_type) { 'warehouse', \App\Models\Warehouse::class => 'Gudang', 'branch', \App\Models\Branch::class => 'Cabang', 'online_shop', \App\Models\OnlineShop::class => 'Toko Online', default => 'Lokasi' } . ' (Terhapus)', 'type' => $out->destination_type] : null)),
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        'customer_wa' => $out->customer_wa,
+                        'notes' => $out->cancel_reason ?: $out->notes,
+                        'cancel_reason' => $out->cancel_reason,
+                        'deletion_reason' => $out->deletion_reason,
+                        'cancelled_by_name' => $out->cancelledByUser?->name ?? '',
+                        'processed_by' => $out->cancelledByUser ? ($out->cancelledByUser->name ?? $out->cancelledByUser->username) : ($out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username)),
+                        'status' => 'cancelled',
+                        'created_at' => $cancelDate->toDateTimeString(),
+                        'timestamp' => $cancelDate->timestamp,
+
+                        // Extra properties for multiple proof images and receipt display
+                        'proof_images' => $proofImages,
+                        'proof_image' => $out->proof_image ? (str_starts_with($out->proof_image, 'http') ? $out->proof_image : asset('storage/' . $out->proof_image)) : ($exchangeInfo && $exchangeInfo->photo_unit ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit)) : null),
+                        'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
+                        'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
+                        'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
+                        'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
+                        'order_no' => $out->receipt_id,
+                        'branch' => $out->branch,
+                        'online_shop' => $out->onlineShop,
+                        'warehouse' => $out->warehouse,
+                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
+                        'original_price' => (float)$out->selling_price,
+                        'selling_price' => (float)$out->selling_price,
+                        'total_discount' => (float)$out->total_discount,
+                        'grand_total' => (float)($out->selling_price - $out->total_discount),
+                        'payment_method_name' => $out->paymentMethod?->name ?? '-',
+                        'split_payments_data' => $out->split_payments_data ?? [],
+                        'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                        'sales_account' => $out->sales_account,
+                        'raw_items' => $rawItems,
+                        'source_type' => $mergedItems[0]['source_type'] ?? 'store',
+                        'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
+                    ];
+                } else {
+                    $allEvents[] = [
+                        'type' => 'stock_out',
+                        'sub_type' => 'departure',
+                        'id' => $out->receipt_id,
+                        'category' => $out->category,
+                        'sub_category' => $out->sub_category,
+                        'ba_name' => $out->ba_name,
+                        'ba_phone' => $out->ba_phone,
+                        'ba_social_media' => $out->ba_social_media,
+                        'ba_notes' => $out->ba_notes,
+                        'event_name' => $out->event_name,
+                        'event_receiver' => $out->event_receiver,
+                        'event_phone' => $out->event_phone,
+                        'event_doc' => $out->event_doc,
+                        'giveaway_receiver' => $out->giveaway_receiver,
+                        'giveaway_phone' => $out->giveaway_phone,
+                        'giveaway_address' => $out->giveaway_address,
+                        'giveaway_notes' => $out->giveaway_notes,
+                        'person_in_charge' => $out->person_in_charge,
+                        'loss_chronology' => $out->loss_chronology,
+                        'items' => $mergedItems,
+                        'shopee_receiver' => implode(', ', array_unique($shopeeReceivers)) ?: null,
+                        'shopee_tracking_no' => implode(', ', array_unique($shopeeTrackingNos)) ?: null,
+                        'expedition_name' => $out->expedition_name,
+                        'expedition_tracking_no' => $out->expedition_tracking_no,
+                        'shopee_province' => $out->shopee_province,
+                        'shopee_city' => $out->shopee_city,
+                        'shopee_district' => $out->shopee_district,
+                        'shopee_address' => $out->shopee_address,
+                        'destination' => $out->destination ? ['name' => $out->destination->name, 'type' => $out->destination_type] : ($out->destinationBranch ? ['name' => $out->destinationBranch->name, 'type' => 'branch'] : ($out->destination_type ? ['name' => match($out->destination_type) { 'warehouse', \App\Models\Warehouse::class => 'Gudang', 'branch', \App\Models\Branch::class => 'Cabang', 'online_shop', \App\Models\OnlineShop::class => 'Toko Online', default => 'Lokasi' } . ' (Terhapus)', 'type' => $out->destination_type] : null)),
+                        'receiver_name' => $out->receiver_name,
+                        'customer_name' => $out->customer_name,
+                        'customer_wa' => $out->customer_wa,
+                        'notes' => $out->notes,
+                        'cancel_reason' => $out->cancel_reason,
+                        'deletion_reason' => $out->deletion_reason,
+                        'cancelled_by_name' => $out->category === 'kesalahan_input' ? ($out->user?->name ?? '') : ($out->cancelledByUser?->name ?? ''),
+                        'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                        'status' => ($out->category === 'pindah_cabang' && $out->status === 'rejected') ? 'pending' : $out->status,
+                        'created_at' => $out->created_at->toDateTimeString(),
+                        'timestamp' => $out->created_at->timestamp,
+
+                        // Extra properties for multiple proof images and receipt display
+                        'proof_images' => $proofImages,
+                        'proof_image' => $out->proof_image ? (str_starts_with($out->proof_image, 'http') ? $out->proof_image : asset('storage/' . $out->proof_image)) : ($exchangeInfo && $exchangeInfo->photo_unit ? (str_starts_with($exchangeInfo->photo_unit, 'http') ? $exchangeInfo->photo_unit : asset('storage/' . $exchangeInfo->photo_unit)) : null),
+                        'photo_resi' => $out->photo_resi ? (str_starts_with($out->photo_resi, 'http') ? $out->photo_resi : asset('storage/' . $out->photo_resi)) : null,
+                        'photo_unit' => $out->photo_unit ? (str_starts_with($out->photo_unit, 'http') ? $out->photo_unit : asset('storage/' . $out->photo_unit)) : null,
+                        'payment_proof_image' => $out->payment_proof_image ? (str_starts_with($out->payment_proof_image, 'http') ? $out->payment_proof_image : asset('storage/' . $out->payment_proof_image)) : null,
+                        'payment_proof_images' => $out->payment_proof_images ? collect($out->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
+                        'order_no' => $out->receipt_id,
+                        'branch' => $out->branch,
+                        'online_shop' => $out->onlineShop,
+                        'warehouse' => $out->warehouse,
+                        'source_name' => $out->branch?->name ?: ($out->warehouse?->name ?: ($out->onlineShop?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->branch?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->warehouse?->name ?: 
+                            (($out->inventoryUser ?? $out->user)?->onlineShop?->name ?: '-'))))),
+                        'original_price' => (float)$out->selling_price,
+                        'selling_price' => $out->category === 'dp' ? (float)$out->dp_amount : ($out->category === 'pelunasan_dp' ? (float)$out->paid_amount : (float)$out->selling_price),
+                        'total_discount' => (float)$out->total_discount,
+                        'grand_total' => $out->category === 'dp' ? ((float)$out->dp_amount - (float)$out->total_discount) : ($out->category === 'pelunasan_dp' ? ((float)$out->paid_amount - (float)$out->total_discount) : (float)($out->selling_price - $out->total_discount)),
+                        'payment_method_name' => $out->paymentMethod?->name ?? '-',
+                        'split_payments_data' => $out->split_payments_data ?? [],
+                        'inventory_user_name' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
+                        'sales_account' => $out->sales_account,
+                        'raw_items' => $rawItems,
+                        'source_type' => $mergedItems[0]['source_type'] ?? 'store',
+                        'source_label' => $mergedItems[0]['source_label'] ?? 'In Store',
+                    ];
+                }
 
                 // Event 2: The ARRIVAL (if confirmed transfer)
                 if ($out->category === 'pindah_cabang' && $out->status === 'received' && $out->confirmed_at) {
@@ -3010,7 +3168,7 @@ class StockOutController extends Controller
                 // Deduplicate events with same id + type + sub_type, but ONLY if they occurred in the same hour
                 // This prevents hiding same-day valid restocks/restores
                 $dateHour = substr($evt['created_at'], 0, 13); // e.g. "2026-08-06 17"
-                $key = $evt['id'] . '|' . $evt['type'] . '|' . ($evt['sub_type'] ?? '') . '|' . $dateHour;
+                $key = $evt['id'] . '|' . $evt['type'] . '|' . ($evt['sub_type'] ?? '') . '|' . ($evt['category'] ?? '') . '|' . $dateHour;
                 if (isset($seen[$key])) return false;
                 $seen[$key] = true;
                 return true;
