@@ -241,9 +241,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Force text colors globally */
-* {
-  color: inherit;
+@layer base {
+  /* Force text colors globally */
+  * {
+    color: inherit;
+  }
 }
 
 input[type="text"],

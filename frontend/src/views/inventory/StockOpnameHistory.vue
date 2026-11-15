@@ -822,19 +822,19 @@ watch(() => filters.value.executor_role, () => {
             <!-- Tab: Semua -->
             <button type="button" @click="setTab('')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === '' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
-                <History :size="16" />
-                <span>Semua Sesi</span>
+                :class="activeTab === '' ? 'bg-emerald-600 !text-white shadow-sm shadow-emerald-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
+                <History :size="16" :class="activeTab === '' ? '!text-white' : ''" />
+                <span :class="activeTab === '' ? '!text-white' : ''">Semua Sesi</span>
             </button>
 
             <!-- Tab: Stok by IMEI -->
             <button type="button" @click="setTab('by_imei')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === 'by_imei' ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-purple-50 dark:hover:bg-surface-700'">
-                <Smartphone :size="16" />
-                <span>Stok by IMEI (Checklist)</span>
+                :class="activeTab === 'by_imei' ? 'bg-purple-600 !text-white shadow-sm shadow-purple-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-purple-50 dark:hover:bg-surface-700'">
+                <Smartphone :size="16" :class="activeTab === 'by_imei' ? '!text-white' : ''" />
+                <span :class="activeTab === 'by_imei' ? '!text-white' : ''">Stok by IMEI (Checklist)</span>
                 <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded"
-                    :class="activeTab === 'by_imei' ? 'bg-purple-700/80 text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
+                    :class="activeTab === 'by_imei' ? 'bg-purple-700/80 !text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
                     IMEI
                 </span>
             </button>
@@ -842,11 +842,11 @@ watch(() => filters.value.executor_role, () => {
             <!-- Tab: Stok by Unit -->
             <button type="button" @click="setTab('by_unit')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === 'by_unit' ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-blue-50 dark:hover:bg-surface-700'">
-                <Package :size="16" />
-                <span>Stok by Unit</span>
+                :class="activeTab === 'by_unit' ? 'bg-blue-600 !text-white shadow-sm shadow-blue-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-blue-50 dark:hover:bg-surface-700'">
+                <Package :size="16" :class="activeTab === 'by_unit' ? '!text-white' : ''" />
+                <span :class="activeTab === 'by_unit' ? '!text-white' : ''">Stok by Unit</span>
                 <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded"
-                    :class="activeTab === 'by_unit' ? 'bg-blue-700/80 text-white' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'">
+                    :class="activeTab === 'by_unit' ? 'bg-blue-700/80 !text-white' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'">
                     Unit
                 </span>
             </button>
@@ -862,34 +862,35 @@ watch(() => filters.value.executor_role, () => {
                 <!-- Filter: Semua Tipe -->
                 <button type="button" @click="filters.executor_role = ''"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === '' ? 'bg-gray-900 text-white dark:!bg-surface-700 dark:text-white dark:border dark:border-surface-600 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:!bg-surface-700'">
-                    <span>Semua Tipe</span>
+                    :class="filters.executor_role === '' ? 'bg-gray-900 dark:!bg-surface-700 !text-white dark:!text-white dark:border dark:border-surface-600 shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:!bg-surface-700'">
+                    <Layers :size="14" :class="filters.executor_role === '' ? '!text-white' : ''" />
+                    <span :class="filters.executor_role === '' ? '!text-white' : ''">Semua Tipe</span>
                 </button>
 
                 <!-- Filter: SO Audit (Audit, Leader, Super Admin) -->
                 <button v-if="isAudit || isSuperAdminOrOwner || isLeader" type="button" @click="filters.executor_role = 'audit'"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === 'audit' ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30' : 'text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40'">
-                    <ShieldCheck :size="14" />
-                    <span>SO Audit</span>
-                    <span v-if="isAudit" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-purple-700/80 text-white uppercase">Saya</span>
+                    :class="filters.executor_role === 'audit' ? 'bg-purple-600 !text-white shadow-sm shadow-purple-600/30' : 'text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40'">
+                    <ShieldCheck :size="14" :class="filters.executor_role === 'audit' ? '!text-white' : ''" />
+                    <span :class="filters.executor_role === 'audit' ? '!text-white' : ''">SO Audit</span>
+                    <span v-if="isAudit" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-purple-700/80 !text-white uppercase">Saya</span>
                 </button>
 
                 <!-- Filter: SO Leader -->
                 <button v-if="isLeader || isSuperAdminOrOwner || isAudit" type="button" @click="filters.executor_role = 'leader'"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === 'leader' ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/30' : 'text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40'">
-                    <UserCheck :size="14" />
-                    <span>SO Leader</span>
-                    <span v-if="isLeader" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-sky-700/80 text-white uppercase">Saya</span>
+                    :class="filters.executor_role === 'leader' ? 'bg-sky-600 !text-white shadow-sm shadow-sky-600/30' : 'text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/40'">
+                    <UserCheck :size="14" :class="filters.executor_role === 'leader' ? '!text-white' : ''" />
+                    <span :class="filters.executor_role === 'leader' ? '!text-white' : ''">SO Leader</span>
+                    <span v-if="isLeader" class="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-sky-700/80 !text-white uppercase">Saya</span>
                 </button>
 
                 <!-- Filter: SO CS Toko -->
                 <button type="button" @click="filters.executor_role = 'store'"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                    :class="filters.executor_role === 'store' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30' : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'">
-                    <Store :size="14" />
-                    <span>SO CS Toko</span>
+                    :class="filters.executor_role === 'store' ? 'bg-emerald-600 !text-white shadow-sm shadow-emerald-600/30' : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'">
+                    <Store :size="14" :class="filters.executor_role === 'store' ? '!text-white' : ''" />
+                    <span :class="filters.executor_role === 'store' ? '!text-white' : ''">SO CS Toko</span>
                 </button>
             </div>
 
