@@ -879,7 +879,7 @@ const stats = computed(() => [
     label: "Total Produk",
     value: pagination.value.total,
     icon: Box,
-    color: "blue",
+    color: "emerald",
   },
   {
     label: "Nilai Inventori",
@@ -1249,7 +1249,7 @@ async function exportInventory() {
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
                         @click.stop="toggleFilter(filterBrand, option)">
                         <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                          :class="filterBrand.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          :class="filterBrand.includes(option) ? 'bg-primary-600 border-primary-600' : 'border-surface-500'">
                           <Check v-if="filterBrand.includes(option)" :size="10" class="text-white" />
                         </div>
                         <span class="text-sm text-text-primary truncate">{{ option }}</span>
@@ -1281,7 +1281,7 @@ async function exportInventory() {
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
                         @click.stop="toggleFilter(filterProduct, option)">
                         <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                          :class="filterProduct.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          :class="filterProduct.includes(option) ? 'bg-primary-600 border-primary-600' : 'border-surface-500'">
                           <Check v-if="filterProduct.includes(option)" :size="10" class="text-white" />
                         </div>
                         <span class="text-sm text-text-primary truncate">{{ option }}</span>
@@ -1313,7 +1313,7 @@ async function exportInventory() {
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
                         @click.stop="toggleFilter(filterCapacity, option)">
                         <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                          :class="filterCapacity.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          :class="filterCapacity.includes(option) ? 'bg-primary-600 border-primary-600' : 'border-surface-500'">
                           <Check v-if="filterCapacity.includes(option)" :size="10" class="text-white" />
                         </div>
                         <span class="text-sm text-text-primary">{{ option }}</span>
@@ -1348,7 +1348,7 @@ async function exportInventory() {
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
                         @click.stop="toggleFilter(filterDistributor, option)">
                         <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                          :class="filterDistributor.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          :class="filterDistributor.includes(option) ? 'bg-primary-600 border-primary-600' : 'border-surface-500'">
                           <Check v-if="filterDistributor.includes(option)" :size="10" class="text-white" />
                         </div>
                         <span class="text-sm text-text-primary truncate">{{ option }}</span>
@@ -1390,7 +1390,7 @@ async function exportInventory() {
                         class="flex items-center gap-2 p-1.5 hover:bg-surface-700 rounded cursor-pointer"
                         @click.stop="toggleFilter(filterDistributor, option)">
                         <div class="w-4 h-4 border rounded flex items-center justify-center transition-colors"
-                          :class="filterDistributor.includes(option) ? 'bg-blue-600 border-blue-600' : 'border-surface-500'">
+                          :class="filterDistributor.includes(option) ? 'bg-primary-600 border-primary-600' : 'border-surface-500'">
                           <Check v-if="filterDistributor.includes(option)" :size="10" class="text-white" />
                         </div>
                         <span class="text-sm text-text-primary truncate">{{ option }}</span>

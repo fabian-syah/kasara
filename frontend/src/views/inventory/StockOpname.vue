@@ -1135,23 +1135,23 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                         <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">{{ isHpMode ?
                             'HP Tersedia' : 'Non-HP Tersedia' }}</div>
-                        <div class="text-2xl font-black" :class="isHpMode ? 'text-blue-400' : 'text-purple-400'">{{
+                        <div class="text-2xl font-black text-primary-700 dark:text-emerald-400">{{
                             isHpMode ? summaryStats.totalHp : summaryStats.totalNonHp }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                         <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Brand
                         </div>
-                        <div class="text-2xl font-black text-purple-400">{{ summaryStats.totalBrands }}</div>
+                        <div class="text-2xl font-black text-primary-700 dark:text-emerald-400">{{ summaryStats.totalBrands }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                         <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Jumlah Tipe
                         </div>
-                        <div class="text-2xl font-black text-emerald-400">{{ summaryStats.totalTypes }}</div>
+                        <div class="text-2xl font-black text-primary-700 dark:text-emerald-400">{{ summaryStats.totalTypes }}</div>
                     </div>
                     <div class="bg-surface-800 rounded-2xl border border-surface-700 p-4">
                         <div class="text-xs text-text-secondary uppercase tracking-wider font-bold mb-1">Distributor
                         </div>
-                        <div class="text-2xl font-black text-amber-400">{{ summaryStats.totalDistributors }}</div>
+                        <div class="text-2xl font-black text-primary-700 dark:text-emerald-400">{{ summaryStats.totalDistributors }}</div>
                     </div>
                 </div>
 
@@ -1160,13 +1160,13 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 
                     <!-- Brand -->
                     <button @click="navigateTo('brand')"
-                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-blue-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5 hover:translate-y-[-2px]">
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
-                                <Layers :size="24" class="text-blue-400" />
+                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Layers :size="24" class="text-primary-600 dark:text-emerald-400" />
                             </div>
                             <ChevronRight :size="20"
-                                class="text-text-secondary group-hover:text-blue-400 transition-colors" />
+                                class="text-text-secondary group-hover:text-primary-600 dark:group-hover:text-emerald-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Brand</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok tersedia berdasarkan merek</p>
@@ -1184,18 +1184,18 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 
                     <!-- Type -->
                     <button @click="navigateTo('type')"
-                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-emerald-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/5 hover:translate-y-[-2px]">
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
                             <div
-                                class="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
-                                <Smartphone :size="24" class="text-emerald-400" />
+                                class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Smartphone :size="24" class="text-primary-600 dark:text-emerald-400" />
                             </div>
                             <ChevronRight :size="20"
-                                class="text-text-secondary group-hover:text-emerald-400 transition-colors" />
+                                class="text-text-secondary group-hover:text-primary-600 dark:group-hover:text-emerald-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Tipe</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per model + breakdown GB</p>
-                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-emerald-400">
+                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-primary-600 dark:text-emerald-400">
                             <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan
                                 per GB</span>
                         </div>
@@ -1203,17 +1203,17 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 
                     <!-- Condition -->
                     <button v-if="isHpMode" @click="navigateTo('condition')"
-                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-amber-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/5 hover:translate-y-[-2px]">
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors">
-                                <Tag :size="24" class="text-amber-400" />
+                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Tag :size="24" class="text-primary-600 dark:text-emerald-400" />
                             </div>
                             <ChevronRight :size="20"
-                                class="text-text-secondary group-hover:text-amber-400 transition-colors" />
+                                class="text-text-secondary group-hover:text-primary-600 dark:group-hover:text-emerald-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Kondisi</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per kondisi barang + breakdown GB</p>
-                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-amber-400">
+                        <div v-if="isHpMode" class="mt-4 flex items-center gap-2 text-[10px] text-primary-600 dark:text-emerald-400">
                             <HardDrive :size="12" /> <span class="font-bold uppercase tracking-wider">Fitur: Tampilkan
                                 per GB</span>
                         </div>
@@ -1221,13 +1221,13 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 
                     <!-- Distributor -->
                     <button @click="navigateTo('distributor')"
-                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-purple-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/5 hover:translate-y-[-2px]">
+                        class="group bg-surface-800 rounded-2xl border border-surface-700 hover:border-primary-500/50 p-6 text-left transition-all duration-300 hover:shadow-lg hover:shadow-primary-500/5 hover:translate-y-[-2px]">
                         <div class="flex items-center justify-between mb-4">
-                            <div class="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
-                                <Truck :size="24" class="text-purple-400" />
+                            <div class="p-3 bg-primary-500/10 rounded-xl group-hover:bg-primary-500/20 transition-colors">
+                                <Truck :size="24" class="text-primary-600 dark:text-emerald-400" />
                             </div>
                             <ChevronRight :size="20"
-                                class="text-text-secondary group-hover:text-purple-400 transition-colors" />
+                                class="text-text-secondary group-hover:text-primary-600 dark:group-hover:text-emerald-400 transition-colors" />
                         </div>
                         <h3 class="text-lg font-bold text-text-primary mb-1">Laporan per Distributor</h3>
                         <p class="text-sm text-text-secondary">Ringkasan stok per supplier/distributor</p>

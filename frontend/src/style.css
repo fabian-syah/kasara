@@ -8,17 +8,17 @@
 /* Custom CSS Variables */
 /* Base Variables (Light Mode Default) */
 :root {
-  /* Primary Brand Colors (Changed from Blue to Emerald to match Login UI) */
+  /* Primary Brand Colors (Deeper, mature forest emerald - "hijau tuaan", eye-friendly, no neon glare) */
   --color-primary-50: #ecfdf5;
   --color-primary-100: #d1fae5;
   --color-primary-200: #a7f3d0;
   --color-primary-300: #6ee7b7;
-  --color-primary-400: #34d399;
-  --color-primary-500: #10b981;
-  --color-primary-600: #059669;
-  --color-primary-700: #047857;
-  --color-primary-800: #065f46;
-  --color-primary-900: #064e3b;
+  --color-primary-400: #10b981;
+  --color-primary-500: #047857; /* Deep emerald / Hijau tuaan - elegan, tegas, tidak silau */
+  --color-primary-600: #065f46; /* Darker green for hover/active */
+  --color-primary-700: #064e3b;
+  --color-primary-800: #022c22;
+  --color-primary-900: #011913;
 
   /* Surface Colors (White/Light - Cards tinted with Kasara Green Theme) */
   --color-surface-950: #ffffff;
@@ -39,6 +39,18 @@
 
 /* Dark Mode Overrides */
 .dark {
+  /* Primary Brand Colors for Dark Mode (Luminous emerald readable on dark surfaces) */
+  --color-primary-50: #022c22;
+  --color-primary-100: #064e3b;
+  --color-primary-200: #065f46;
+  --color-primary-300: #047857;
+  --color-primary-400: #059669;
+  --color-primary-500: #10b981;
+  --color-primary-600: #34d399;
+  --color-primary-700: #6ee7b7;
+  --color-primary-800: #a7f3d0;
+  --color-primary-900: #d1fae5;
+
   /* Surface Colors (Neutral Dark) */
   --color-surface-950: #0a0a0a;
   --color-surface-900: #171717;
@@ -87,11 +99,28 @@
   --color-text-secondary: var(--color-text-secondary);
   --color-text-inverse: var(--color-text-inverse);
 
+  /* Map emerald and green so they also use the deeper "hijau tuaan" */
+  --color-emerald-500: var(--color-primary-500);
+  --color-emerald-600: var(--color-primary-600);
+  --color-emerald-700: var(--color-primary-700);
+  --color-green-500: var(--color-primary-500);
+  --color-green-600: var(--color-primary-600);
+  --color-green-700: var(--color-primary-700);
+
   /* Accent Colors (Constant) */
-  --color-success: #10b981;
+  --color-success: var(--color-primary-500);
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
-  --color-info: #3b82f6;
+  --color-info: var(--color-primary-600);
+
+  /* Alias Blue, Cyan so that random blue fonts disappear and unify into black text or green theme */
+  --color-blue-400: var(--color-text-secondary);
+  --color-blue-500: var(--color-primary-500);
+  --color-blue-600: var(--color-primary-600);
+  --color-blue-700: var(--color-primary-700);
+  --color-cyan-400: var(--color-text-secondary);
+  --color-cyan-500: var(--color-primary-500);
+  --color-cyan-600: var(--color-primary-600);
 
   /* Alias Slate and Gray to Neutral to eliminate any blue tints globally */
   --color-slate-50: #fafafa;

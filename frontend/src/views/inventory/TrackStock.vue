@@ -417,7 +417,7 @@ watch(
                         Ditemukan <span class="text-text-primary font-semibold">{{ results.length }}</span> riwayat
                     </p>
                     <router-link v-if="isSuperAdmin && query.length >= 5" :to="`/inventory/change-type?imei=${query}`"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 text-purple-500 dark:text-purple-400 border border-purple-500/30 rounded-lg text-xs font-semibold transition-all">
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-500/10 hover:bg-primary-500/20 text-primary-700 dark:text-emerald-400 border border-primary-500/30 rounded-lg text-xs font-semibold transition-all">
                         <Edit3 :size="13" />
                         <span>Koreksi / Rubah Tipe IMEI Ini</span>
                     </router-link>
@@ -558,19 +558,19 @@ watch(
                         </div>
 
                         <!-- ══ IMEI SPECIFICATION CORRECTION (SUPER ADMIN) ══ -->
-                        <div v-else-if="result.type === 'imei_correction'" class="card-track overflow-hidden border-purple-500/30 shadow-sm" :class="row.length === 2 ? 'h-full flex flex-col justify-between' : ''">
+                        <div v-else-if="result.type === 'imei_correction'" class="card-track overflow-hidden border-primary-500/30 shadow-sm" :class="row.length === 2 ? 'h-full flex flex-col justify-between' : ''">
                             <!-- Top bar gradient -->
-                            <div class="h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-amber-500"></div>
+                            <div class="h-1 bg-gradient-to-r from-primary-700 via-primary-500 to-emerald-400"></div>
 
                             <div class="p-3.5 sm:p-4">
                                 <!-- Header row -->
                                 <div class="flex items-center gap-2.5 sm:gap-3">
-                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 bg-purple-500/10 text-purple-500 dark:text-purple-400 border border-purple-500/20">
+                                    <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center shrink-0 bg-primary-500/10 text-primary-600 dark:text-emerald-400 border border-primary-500/20">
                                         <Edit3 :size="18" />
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="badge-xs bg-purple-500/10 text-purple-600 dark:text-purple-300 border-purple-500/20 font-bold">KOREKSI SPESIFIKASI HP</span>
+                                            <span class="badge-xs bg-primary-500/10 text-primary-700 dark:text-emerald-300 border-primary-500/20 font-bold">KOREKSI SPESIFIKASI HP</span>
                                         </div>
                                         <p class="text-sm font-bold text-text-primary mt-0.5 truncate">Perubahan Tipe / Kapasitas Unit</p>
                                         <p class="text-[11px] text-text-secondary font-mono">{{ result.imei }}</p>

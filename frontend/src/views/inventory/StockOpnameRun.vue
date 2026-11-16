@@ -1022,16 +1022,16 @@ onMounted(async () => {
 
                     <!-- Self-Audit Option for Leader / Audit / Admin -->
                     <div v-if="isLeaderOrAudit || isPrivilegedRole" class="mb-4 p-3.5 rounded-2xl border-2 transition-all flex items-center justify-between gap-3 cursor-pointer"
-                        :class="selectedCsUserId === authStore.user?.id ? 'border-purple-500 bg-purple-500/15 ring-2 ring-purple-500/30' : 'border-surface-750 bg-surface-800/70'"
+                        :class="selectedCsUserId === authStore.user?.id ? 'border-primary-600 bg-primary-500/15 ring-2 ring-primary-500/30' : 'border-surface-750 bg-surface-800/70'"
                         @click="selectedCsUserId = authStore.user?.id; passwordVerified = true">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-purple-900/60 text-purple-300 flex items-center justify-center font-black text-xs border border-purple-500/40">
+                            <div class="w-10 h-10 rounded-full bg-primary-900/60 text-primary-300 flex items-center justify-center font-black text-xs border border-primary-500/40">
                                 <ShieldCheck :size="20" />
                             </div>
                             <div>
                                 <div class="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
                                     <span>{{ authStore.user?.name || authStore.userName }} (Saya Sendiri)</span>
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-900 text-purple-300 font-bold uppercase border border-purple-500/40">
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-primary-800 text-primary-200 font-bold uppercase border border-primary-600/40">
                                         {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'Admin' }}
                                     </span>
                                 </div>
@@ -1039,7 +1039,7 @@ onMounted(async () => {
                             </div>
                         </div>
                         <div class="w-5 h-5 shrink-0 rounded-full border-2 flex items-center justify-center"
-                            :class="selectedCsUserId === authStore.user?.id ? 'border-purple-500 bg-purple-500' : 'border-surface-600 bg-surface-800'">
+                            :class="selectedCsUserId === authStore.user?.id ? 'border-primary-600 bg-primary-600' : 'border-surface-600 bg-surface-800'">
                             <div v-if="selectedCsUserId === authStore.user?.id" class="w-2 h-2 rounded-full bg-white"></div>
                         </div>
                     </div>

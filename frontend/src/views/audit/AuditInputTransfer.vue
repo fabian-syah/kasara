@@ -1127,7 +1127,7 @@ onMounted(() => {
 <template>
     <div class="space-y-6 animate-in fade-in max-w-4xl mx-auto pb-20">
         <h1 class="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <Box :size="28" class="text-blue-500" /> Input Barang Masuk
+            <Box :size="28" class="text-primary-600 dark:text-emerald-400" /> Input Barang Masuk
         </h1>
 
         <div class="flex items-center justify-between mb-8 px-4">
@@ -1263,7 +1263,7 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="col-span-full md:col-span-1">
-                                    <label class="label text-[10px] uppercase text-blue-500">Harga Jual (Satuan) <span
+                                    <label class="label text-[10px] uppercase text-primary-700 dark:text-emerald-400 font-bold">Harga Jual (Satuan) <span
                                             class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <div
                                         class="w-full bg-surface-900 border border-surface-700 rounded-xl flex items-center px-4 focus-within:border-primary-500 h-10">
@@ -1341,7 +1341,7 @@ onMounted(() => {
                                     </select>
                                     <div v-if="getNonHpCategory(item)" class="mt-1 flex items-center">
                                         <span
-                                            class="px-1 py-0.5 rounded bg-blue-500/10 text-blue-400 text-[8px] font-black uppercase tracking-tighter border border-blue-500/20">
+                                            class="px-1 py-0.5 rounded bg-primary-500/10 text-primary-700 dark:text-emerald-400 text-[8px] font-black uppercase tracking-tighter border border-primary-500/20">
                                             {{ getNonHpCategory(item) }}
                                         </span>
                                     </div>
@@ -1363,7 +1363,7 @@ onMounted(() => {
                                 </div>
                                 <div class="md:col-span-3">
                                     <label
-                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-blue-500">Harga Jual <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
+                                        class="label text-[8px] uppercase mb-1 opacity-50 font-black text-primary-700 dark:text-emerald-400">Harga Jual <span class="text-red-500 font-bold ml-1" style="color: #ff3b30 !important; font-size: 1.2em;">*</span></label>
                                     <div
                                         class="bg-surface-900 border border-surface-700 rounded-xl flex items-center px-2 h-10 focus-within:border-primary-500">
                                         <span class="text-[9px] text-text-secondary mr-1 font-black">Rp</span>
@@ -1389,7 +1389,7 @@ onMounted(() => {
             <!-- STEP 3: Transfer Destination -->
             <div v-if="currentStep === 3" class="space-y-6 animate-in slide-in-from-right">
                 <div class="flex items-center gap-3 mb-4">
-                    <ArrowRightLeft :size="24" class="text-blue-500" />
+                    <ArrowRightLeft :size="24" class="text-primary-600 dark:text-emerald-400" />
                     <h3 class="text-lg font-bold text-text-primary">Tujuan Pengiriman</h3>
                 </div>
 
@@ -1399,7 +1399,7 @@ onMounted(() => {
                         <div class="flex flex-wrap gap-3">
                             <button v-if="transferBranches.length > 0" @click="transferDestinationType = 'branch'; transferDestinationId = null"
                                 class="flex-1 p-3 rounded-xl border-2 text-center text-xs font-bold transition-all min-w-[100px]"
-                                :class="transferDestinationType === 'branch' ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-surface-700 text-text-secondary'">
+                                :class="transferDestinationType === 'branch' ? 'border-primary-600 bg-primary-500/10 text-primary-700 dark:text-emerald-400' : 'border-surface-700 text-text-secondary'">
                                 <Building :size="20" class="mx-auto mb-1" /> Cabang
                             </button>
                             <button v-if="transferWarehouses.length > 0" @click="transferDestinationType = 'warehouse'; transferDestinationId = null"

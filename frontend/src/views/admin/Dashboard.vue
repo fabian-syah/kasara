@@ -524,7 +524,7 @@ const currentLocalRank = computed(() => {
             Tipe Produk Terbaru
           </h2>
           <router-link to="/types"
-            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
             Lihat Semua
           </router-link>
         </div>
@@ -559,7 +559,7 @@ const currentLocalRank = computed(() => {
             Update Harga Terakhir
           </h2>
           <router-link to="/prices"
-            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
             Lihat Semua
           </router-link>
         </div>
@@ -960,7 +960,7 @@ const currentLocalRank = computed(() => {
             Transaksi Terakhir (Today)
           </h2>
           <router-link to="/online-shop/history"
-            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors flex items-center gap-1">
             Lihat Semua
             <ArrowUpRight :size="14" />
           </router-link>
@@ -1222,8 +1222,8 @@ const currentLocalRank = computed(() => {
                 <span class="text-[11px] text-text-secondary">Hari Ini</span>
               </div>
               <div class="mt-2 flex items-center gap-1.5 text-[10px] font-mono">
-                <span class="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600 dark:text-violet-400 font-bold">HP: {{ leaderHpSold }}</span>
-                <span class="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold">Acc: {{ leaderNonHpSold }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-emerald-500/10 text-primary-700 dark:text-emerald-400 font-bold">HP: {{ leaderHpSold }}</span>
+                <span class="px-1.5 py-0.5 rounded bg-surface-700 text-text-primary font-bold">Acc: {{ leaderNonHpSold }}</span>
               </div>
             </div>
 
@@ -1418,7 +1418,7 @@ const currentLocalRank = computed(() => {
           <div>
             <div class="flex items-center justify-between pb-3 border-b border-surface-700/60">
               <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                <div class="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-600 dark:text-emerald-400 flex items-center justify-center">
                   <Box :size="16" />
                 </div>
                 <div>
@@ -1426,7 +1426,7 @@ const currentLocalRank = computed(() => {
                   <p class="text-[11px] text-text-secondary">Komposisi Inventori Real</p>
                 </div>
               </div>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-primary-500/10 text-primary-700 dark:text-emerald-400 border border-primary-500/20">
                 {{ leaderTotalStockCount }} Total Unit
               </span>
             </div>
@@ -1755,7 +1755,7 @@ const currentLocalRank = computed(() => {
             <span class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block">Today Local</span>
             <div class="flex items-baseline gap-1 mt-1">
               <span class="text-xs text-text-secondary">#</span>
-              <span class="text-2xl font-mono font-black text-blue-500 dark:text-blue-400">{{ branchRanking.summary.today_local || '-' }}</span>
+              <span class="text-2xl font-mono font-black text-text-primary">{{ branchRanking.summary.today_local || '-' }}</span>
             </div>
           </div>
           <div class="p-3.5 rounded-xl bg-surface-700/25 border border-surface-700/40">
@@ -1786,7 +1786,7 @@ const currentLocalRank = computed(() => {
             Produk Terlaris
           </h2>
           <button
-            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors">
             Lihat Semua
           </button>
         </div>
@@ -1829,7 +1829,7 @@ const currentLocalRank = computed(() => {
                 Stok: {{ item.stock }} / {{ item.minStock }}
               </span>
               <button
-                class="text-xs text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300">
+                class="text-xs text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300">
                 Restock
               </button>
             </div>
@@ -1851,7 +1851,7 @@ const currentLocalRank = computed(() => {
             Transaksi Terakhir
           </h2>
           <button
-            class="text-sm text-primary-500 hover:text-primary-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors flex items-center gap-1">
+            class="text-sm text-primary-500 hover:text-primary-600 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors flex items-center gap-1">
             Lihat Semua
             <ArrowUpRight :size="14" />
           </button>

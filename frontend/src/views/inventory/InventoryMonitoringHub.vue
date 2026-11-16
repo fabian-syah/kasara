@@ -43,8 +43,8 @@ const activeTab = ref("incoming_otw"); // Default to incoming_otw
 const lastOtwTab = ref("incoming_otw");
 
 const topCards = [
-    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/15 dark:bg-emerald-950/50", border: "border-emerald-500/40", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-md" },
-    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10 dark:bg-purple-950/40", border: "border-purple-500/30", activeBorder: "border-purple-500 ring-2 ring-purple-500/30 shadow-purple-500/10" },
+    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-primary-700 dark:text-emerald-400", bg: "bg-emerald-500/15 dark:bg-emerald-950/50", border: "border-emerald-500/40", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-md" },
+    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-primary-700 dark:text-emerald-400", bg: "bg-emerald-500/10 dark:bg-emerald-950/40", border: "border-emerald-500/30", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-emerald-500/10" },
     { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10 dark:bg-red-950/40", border: "border-red-500/30", activeBorder: "border-red-500 ring-2 ring-red-500/30 shadow-red-500/10" },
 ];
 
@@ -772,7 +772,7 @@ onMounted(() => {
                                 : 'bg-surface-800 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600 shadow-sm'">
                             <div class="p-3.5 rounded-2xl flex items-center justify-center shrink-0"
                                 :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                                    ? (card.id === 'incoming_otw' ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20' : card.id === 'outgoing_otw' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'bg-red-500 text-white shadow-md shadow-red-500/20')
+                                    ? (card.id === 'failed_otw' ? 'bg-red-500 text-white shadow-md shadow-red-500/20' : 'bg-primary-500 text-white shadow-md shadow-primary-500/20')
                                     : 'bg-surface-700 text-text-secondary group-hover:text-primary-500 transition-all'">
                                 <component :is="card.icon" :size="20" />
                             </div>
@@ -939,7 +939,7 @@ onMounted(() => {
                                 <!-- Resi Ekspedisi -->
                                 <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div v-if="transfer.expedition_tracking_no" class="flex flex-col gap-1">
-                                        <span class="text-xs font-black uppercase tracking-widest text-purple-500 dark:text-purple-400">
+                                        <span class="text-xs font-black uppercase tracking-widest text-primary-700 dark:text-emerald-400">
                                             {{ transfer.expedition_name }}
                                         </span>
                                         <button @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
