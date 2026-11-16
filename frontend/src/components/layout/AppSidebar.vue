@@ -141,12 +141,12 @@ const menuItems = [
         icon: Box,
         items: [
             { id: "inventory_main", path: "/inventory", label: "Data Inventory" },
-            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Stok Data" },
+            { id: "inventory_opname", path: "/inventory/stock-opname", label: "Data Stok" },
             {
                 id: "inventory_data_stok_group",
-                label: "Data Stok",
+                label: "Stok Opname",
                 items: [
-                    { id: "opname_run", path: "/inventory/opname", label: "Stok Opname" },
+                    { id: "opname_run", path: "/inventory/opname", label: "SO" },
                     { id: "opname_history", path: "/inventory/opname/history", label: "History Stok Opname" },
                 ]
             },
