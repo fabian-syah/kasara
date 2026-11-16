@@ -43,7 +43,7 @@ const activeTab = ref("incoming_otw"); // Default to incoming_otw
 const lastOtwTab = ref("incoming_otw");
 
 const topCards = [
-    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/30", activeBorder: "border-blue-500/80 shadow-blue-500/10" },
+    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-text-primary", bg: "bg-surface-750", border: "border-surface-700", activeBorder: "border-primary-500 shadow-sm" },
     { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/30", activeBorder: "border-purple-500/80 shadow-purple-500/10" },
     { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/30", activeBorder: "border-red-500/80 shadow-red-500/10" },
 ];
@@ -259,12 +259,12 @@ function getStatusBadgeClass(status, tab) {
         return 'bg-red-500/10 text-red-500 border-red-500/20';
     }
     if (status === 'confirmed' || status === 'received') {
-        return 'bg-green-500/10 text-green-500 border-green-500/20';
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
     }
     if (tab === 'incoming_otw') {
-        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
     }
-    return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+    return 'bg-surface-700/60 text-text-primary border-surface-600/50';
 }
 
 function getStatusLabel(status, tab) {
@@ -750,12 +750,12 @@ onMounted(() => {
                         <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
                             <div class="space-y-2">
                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
-                                <p class="text-xl lg:text-[15px] xl:text-lg 2xl:text-2xl font-black text-blue-500 tracking-tighter transition-all duration-300 break-words" :title="formatCurrency(assetOutValue)">
+                                <p class="text-xl lg:text-[15px] xl:text-lg 2xl:text-2xl font-black text-neutral-900 dark:text-white tracking-tighter transition-all duration-300 break-words" :title="formatCurrency(assetOutValue)">
                                     {{ formatCurrency(assetOutValue) }}
                                 </p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-500 font-bold">
+                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-surface-700/60 text-neutral-900 dark:text-white font-bold">
                                     Realtime
                                 </span>
                                 <span class="text-[10px] text-text-secondary">dalam pengiriman</span>
@@ -918,7 +918,7 @@ onMounted(() => {
                                 <!-- Cabang Pengirim / Tujuan Penerima -->
                                 <td v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
-                                        <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                                        <div class="w-8 h-8 rounded-lg bg-surface-750 text-text-primary flex items-center justify-center shrink-0">
                                             <Building2 :size="14" />
                                         </div>
                                         <div class="flex flex-col">
@@ -945,7 +945,7 @@ onMounted(() => {
                                             {{ transfer.expedition_name }}
                                         </span>
                                         <button @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
-                                            class="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500 text-purple-600 dark:text-purple-400 hover:text-white border border-purple-500/20 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 w-fit">
+                                            class="px-2.5 py-1 bg-surface-700/60 hover:bg-surface-700 text-text-primary border border-surface-600/50 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 w-fit">
                                             <Truck :size="10" />
                                             <span>Lacak: {{ transfer.expedition_tracking_no }}</span>
                                         </button>
@@ -956,7 +956,7 @@ onMounted(() => {
                                     <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border"
                                         :class="getStatusBadgeClass(transfer.status, activeTab)">
                                         <span class="w-1.5 h-1.5 rounded-full" 
-                                            :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
+                                            :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-emerald') ? 'bg-emerald-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-red') ? 'bg-red-500' : 'bg-neutral-500'"></span>
                                         {{ getStatusLabel(transfer.status, activeTab) }}
                                     </span>
                                 </td>
@@ -1003,7 +1003,7 @@ onMounted(() => {
 
                                         <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                             @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
-                                            class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
+                                            class="px-3 py-1.5 bg-surface-700/60 hover:bg-surface-700 text-text-primary border border-surface-600 rounded-xl transition-all flex items-center gap-1.5 text-xs font-black uppercase">
                                             <Search :size="12" />
                                             <span>Lacak</span>
                                         </button>
@@ -1032,7 +1032,7 @@ onMounted(() => {
                                 <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border shrink-0"
                                     :class="getStatusBadgeClass(transfer.status, activeTab)">
                                     <span class="w-1.5 h-1.5 rounded-full" 
-                                        :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
+                                        :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-emerald') ? 'bg-emerald-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-red') ? 'bg-red-500' : 'bg-neutral-500'"></span>
                                         {{ getStatusLabel(transfer.status, activeTab) }}
                                 </span>
                             </div>
@@ -1111,7 +1111,7 @@ onMounted(() => {
                             </div>
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Resi {{ transfer.expedition_name }}</span>
-                                <span class="font-bold text-purple-600 dark:text-purple-400 text-sm">
+                                <span class="font-bold text-text-primary text-sm">
                                     {{ transfer.expedition_tracking_no }}
                                 </span>
                             </div>
@@ -1152,7 +1152,7 @@ onMounted(() => {
                                         
                                 <button v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab) && transfer.expedition_tracking_no" 
                                     @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
-                                    class="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500 text-blue-500 hover:text-white border border-blue-500/20 rounded-xl transition-all text-[10px] font-black uppercase">
+                                    class="px-3 py-1.5 bg-surface-700/60 hover:bg-surface-700 text-text-primary border border-surface-600 rounded-xl transition-all text-[10px] font-black uppercase">
                                     Lacak
                                 </button>
                                 <span class="text-xs font-black uppercase tracking-widest text-primary-500 flex items-center gap-1">
@@ -1193,8 +1193,8 @@ onMounted(() => {
             <div class="modal-content max-w-4xl max-h-[90vh]">
                 <div class="modal-header">
                     <div>
-                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
-                            <ArrowDownRight class="text-blue-500" /> Konfirmasi Terima Barang
+                        <h2 class="text-2xl font-black text-neutral-900 dark:text-white flex items-center gap-3">
+                            <ArrowDownRight class="text-primary-600 dark:text-primary-400" /> Konfirmasi Terima Barang
                         </h2>
                         <p class="text-sm text-text-secondary font-medium mt-1">Nota: {{ selectedTransfer.receipt_id }}
                         </p>
@@ -1206,9 +1206,9 @@ onMounted(() => {
 
                 <div class="modal-body space-y-12 pb-12 custom-scrollbar">
                     <!-- Verifikator Selection -->
-                    <div class="p-8 bg-blue-500/5 border border-blue-500/20 rounded-[2rem] space-y-4">
+                    <div class="p-8 bg-surface-750 border border-surface-700 rounded-[2rem] space-y-4">
                         <div class="flex items-center gap-3">
-                            <User :size="20" class="text-blue-500" />
+                            <User :size="20" class="text-text-primary" />
                             <h3 class="text-sm font-black uppercase tracking-widest text-neutral-900 dark:text-white">Akun Verifikator</h3>
                         </div>
                         <select v-model="selectedInventoryAccount" class="modern-select">
@@ -1246,12 +1246,12 @@ onMounted(() => {
                         <div v-if="selectedTransfer.items?.length">
                             <h4
                                 class="text-xs font-black text-text-secondary uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <Smartphone :size="16" class="text-blue-500" /> Unit HP (Tap untuk Tolak)
+                                <Smartphone :size="16" class="text-text-primary" /> Unit HP (Tap untuk Tolak)
                             </h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.items" :key="item.id"
                                     class="p-5 rounded-2xl border-2 cursor-pointer transition-all flex justify-between items-start"
-                                    :class="receiveForm.accepted_items.includes(item.id) ? 'bg-blue-500/10 border-blue-500/30' : 'bg-red-500/10 border-red-500/30 grayscale'"
+                                    :class="receiveForm.accepted_items.includes(item.id) ? 'bg-surface-750 border-primary-500/40' : 'bg-red-500/10 border-red-500/30 grayscale'"
                                     @click="(() => {
                                         const idx = receiveForm.accepted_items.indexOf(item.id);
                                         if (idx === -1) receiveForm.accepted_items.push(item.id);
@@ -1556,7 +1556,7 @@ onMounted(() => {
                 <div class="bg-surface-950 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
                     <div class="flex items-center gap-4">
                         <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                            <Truck class="w-6 h-6 text-blue-400" />
+                            <Truck class="w-6 h-6 text-text-primary" />
                         </div>
                         <div>
                             <h2 class="text-xl md:text-2xl font-black tracking-tighter">Status Pengiriman</h2>
@@ -1574,7 +1574,7 @@ onMounted(() => {
                     <div v-if="isTracking" key="tracking-loading" class="flex-1 flex flex-col items-center justify-center py-20 px-10 text-center bg-white dark:bg-surface-900">
                         <div class="relative w-16 h-16 mb-6">
                             <div class="absolute inset-0 border-4 border-surface-200 dark:border-surface-800 rounded-full"></div>
-                            <div class="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                            <div class="absolute inset-0 border-4 border-primary-500 rounded-full border-t-transparent animate-spin"></div>
                         </div>
                         <h3 class="text-lg font-black text-surface-900 dark:text-white tracking-tighter uppercase">Menghubungkan...</h3>
                         <p class="text-xs font-bold text-surface-400 uppercase tracking-widest mt-1">Mengambil data dari kurir pusat</p>
@@ -1586,7 +1586,7 @@ onMounted(() => {
                         <div class="bg-white dark:bg-surface-900 p-6 md:p-8 border-b border-surface-100 dark:border-surface-800 shrink-0">
                             <div class="flex flex-col sm:flex-row justify-between items-start gap-6 mb-8">
                                 <div class="space-y-1">
-                                    <span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black rounded-full border border-blue-100 dark:border-blue-800 uppercase tracking-widest">
+                                    <span class="px-3 py-1 bg-surface-750 text-text-primary text-[10px] font-black rounded-full border border-surface-700 uppercase tracking-widest">
                                         {{ trackingResult.summary.courier }}
                                     </span>
                                     <h1 class="text-3xl font-black text-surface-900 dark:text-white tracking-tighter">{{ trackingResult.summary.awb }}</h1>
@@ -1594,7 +1594,7 @@ onMounted(() => {
                                 <div :class="[
                                     'px-6 py-3 rounded-2xl font-black text-sm uppercase tracking-tighter border-b-4 w-full sm:w-auto text-center shadow-lg',
                                     trackingResult.summary.status.toLowerCase().includes('diterima') || trackingResult.summary.status.toLowerCase().includes('delivered')
-                                    ? 'bg-green-500 text-white border-green-700 shadow-green-500/20' : 'bg-blue-600 text-white border-blue-800 shadow-blue-600/20'
+                                    ? 'bg-emerald-600 text-white border-emerald-800 shadow-emerald-600/20' : 'bg-surface-700 text-text-primary border-surface-600 shadow-sm'
                                 ]">
                                     {{ trackingResult.summary.status }}
                                 </div>
@@ -1603,14 +1603,14 @@ onMounted(() => {
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-3xl border border-surface-100 dark:border-surface-700 shadow-sm">
                                     <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-blue-500"></span> PENGIRIM
+                                        <span class="w-2 h-2 rounded-full bg-primary-500"></span> PENGIRIM
                                     </p>
                                     <p class="text-base font-black text-surface-900 dark:text-white leading-tight truncate">{{ trackingResult.detail.shipper }}</p>
                                     <p class="text-xs font-bold text-surface-500 dark:text-surface-400 truncate mt-1">{{ trackingResult.detail.origin }}</p>
                                 </div>
                                 <div class="bg-surface-50 dark:bg-surface-800 p-5 rounded-3xl border border-surface-100 dark:border-surface-700 shadow-sm">
                                     <p class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full bg-green-500"></span> PENERIMA
+                                        <span class="w-2 h-2 rounded-full bg-primary-500"></span> PENERIMA
                                     </p>
                                     <p class="text-base font-black text-surface-900 dark:text-white leading-tight truncate">{{ trackingResult.detail.receiver }}</p>
                                     <p class="text-xs font-bold text-surface-500 dark:text-surface-400 truncate mt-1">{{ trackingResult.detail.destination }}</p>
@@ -1621,20 +1621,20 @@ onMounted(() => {
                         <!-- Timeline Content -->
                         <div class="p-6 md:p-8">
                             <div class="flex items-center gap-3 mb-8">
-                                <div class="w-1.5 h-6 bg-surface-900 dark:bg-blue-500 rounded-full"></div>
+                                <div class="w-1.5 h-6 bg-primary-500 rounded-full"></div>
                                 <h3 class="text-xs font-black text-surface-900 dark:text-white uppercase tracking-widest">Riwayat Perjalanan</h3>
                             </div>
 
                             <div class="relative pl-6 space-y-0">
                                 <!-- Modern Vertical Line -->
-                                <div class="absolute left-6 top-4 bottom-4 w-1 bg-gradient-to-b from-blue-600 via-surface-200 dark:via-surface-800 to-transparent rounded-full -translate-x-1/2"></div>
+                                <div class="absolute left-6 top-4 bottom-4 w-1 bg-gradient-to-b from-primary-500 via-surface-200 dark:via-surface-800 to-transparent rounded-full -translate-x-1/2"></div>
 
                                 <div v-for="(step, index) in trackingResult.history" :key="'step-'+index" 
                                     class="relative pl-10 pb-10 last:pb-4">
                                     <!-- Dynamic Dot -->
                                     <div :class="[
                                         'absolute left-0 w-8 h-8 rounded-full flex items-center justify-center z-10 border-4 border-surface-50 dark:border-surface-950 transition-all -translate-x-1/2',
-                                        index === 0 ? 'bg-blue-600 shadow-xl shadow-blue-500/50 scale-110' : 'bg-surface-200 dark:bg-surface-800'
+                                        index === 0 ? 'bg-primary-500 shadow-sm scale-110' : 'bg-surface-200 dark:bg-surface-800'
                                     ]">
                                         <div v-if="index === 0" class="w-2.5 h-2.5 bg-white rounded-full animate-pulse"></div>
                                         <div v-else class="w-2 h-2 bg-surface-400 dark:bg-surface-600 rounded-full"></div>
@@ -1642,13 +1642,13 @@ onMounted(() => {
 
                                     <div :class="[
                                         'p-5 rounded-[2.5rem] border transition-all',
-                                        index === 0 ? 'bg-white dark:bg-surface-900 border-blue-100 dark:border-blue-900 shadow-xl shadow-surface-900/5 -translate-y-1' : 'bg-transparent border-transparent opacity-60'
+                                        index === 0 ? 'bg-white dark:bg-surface-900 border-surface-700 shadow-sm -translate-y-1' : 'bg-transparent border-transparent opacity-60'
                                     ]">
                                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
                                             <p :class="['text-[11px] font-black uppercase tracking-widest text-surface-400 dark:text-surface-500']">
                                                 {{ step.date }}
                                             </p>
-                                            <span v-if="step.location" class="inline-block px-3 py-1 bg-surface-900 dark:bg-surface-800 text-white dark:text-blue-400 text-[10px] font-black rounded-xl w-fit whitespace-nowrap border dark:border-surface-700">
+                                            <span v-if="step.location" class="inline-block px-3 py-1 bg-surface-700 text-text-primary text-[10px] font-black rounded-xl w-fit whitespace-nowrap border border-surface-600">
                                                 {{ step.location }}
                                             </span>
                                         </div>
@@ -1676,15 +1676,15 @@ onMounted(() => {
                     <div class="flex flex-col sm:flex-row justify-between items-center gap-6">
                         <div v-if="trackingResult" class="flex items-center gap-3">
                             <div class="flex -space-x-2">
-                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-blue-600"></div>
-                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-surface-900 dark:bg-surface-700"></div>
+                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-primary-500"></div>
+                                <div class="w-6 h-6 rounded-full border-2 border-white dark:border-surface-800 bg-surface-700"></div>
                             </div>
                             <span class="text-[10px] font-black text-surface-400 dark:text-surface-500 uppercase tracking-widest">
-                                API SOURCE: <span class="text-blue-600 dark:text-blue-400 font-black">{{ trackingProvider || 'PRIMARY' }}</span>
+                                API SOURCE: <span class="text-text-primary font-black">{{ trackingProvider || 'PRIMARY' }}</span>
                             </span>
                         </div>
                         <button @click="closeTrackingModal" 
-                            class="w-full sm:w-auto px-12 py-4 bg-surface-950 dark:bg-blue-600 hover:bg-surface-900 dark:hover:bg-blue-500 text-white font-black rounded-[2rem] uppercase tracking-tighter text-sm transition-all duration-300 active:scale-95 shadow-xl shadow-surface-900/20">
+                            class="w-full sm:w-auto px-12 py-4 bg-surface-950 dark:bg-surface-700 hover:bg-surface-900 dark:hover:bg-surface-650 text-white font-black rounded-[2rem] uppercase tracking-tighter text-sm transition-all duration-300 active:scale-95 shadow-lg">
                             KEMBALI KE MONITORING
                         </button>
                     </div>

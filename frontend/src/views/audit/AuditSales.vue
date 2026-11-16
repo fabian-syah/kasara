@@ -165,11 +165,11 @@
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Total All Omset</p>
-                    <p class="text-lg font-bold text-blue-500">{{ formatCurrency(summaryStats.totalOmset) }}</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white">{{ formatCurrency(summaryStats.totalOmset) }}</p>
                 </div>
                 <div class="bg-white dark:!bg-surface-800 rounded-xl border border-gray-100 dark:border-surface-700 p-4">
                     <p class="text-xs font-semibold text-text-secondary uppercase mb-1">Omset Bersih</p>
-                    <p class="text-lg font-bold text-purple-500">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
+                    <p class="text-lg font-bold text-neutral-900 dark:text-white">{{ formatCurrency(summaryStats.omsetBersih) }}</p>
                 </div>
             </div>
 
@@ -306,7 +306,7 @@
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
                                                                     detail.storage }}</div>
                                                             <div v-if="detail.imei && detail.imei !== '-'"
-                                                                class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
+                                                                class="mt-0.5 text-xs text-neutral-800 dark:text-neutral-200 font-mono">IMEI: {{
                                                                     detail.imei }}</div>
                                                             <span v-if="detail.condition"
                                                                 class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
@@ -344,7 +344,7 @@
                                                                 class="mt-0.5 text-[10px] text-gray-500">{{
                                                                     item.storages }}</div>
                                                             <div v-if="item.imeis && item.imeis !== '-'"
-                                                                class="mt-0.5 text-xs text-blue-500 font-mono">IMEI: {{
+                                                                class="mt-0.5 text-xs text-neutral-800 dark:text-neutral-200 font-mono">IMEI: {{
                                                                     item.imeis }}</div>
                                                             <span v-if="item.conditions"
                                                                 class="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded"
@@ -609,7 +609,7 @@
                                     <span class="text-[10px] font-black uppercase tracking-[0.2em] text-primary-600 mb-1">
                                         FOTO #{{ index + 1 }}
                                         <template v-if="currentProofItem?.category === 'penjualan_online_toko' || (currentProofImages.length === 3 && currentProofType !== 'payment')">
-                                            <span v-if="index === 0" class="ml-2 text-blue-500 font-bold">— RESI PESANAN</span>
+                                            <span v-if="index === 0" class="ml-2 text-text-primary font-bold">— RESI PESANAN</span>
                                             <span v-else-if="index === 1" class="ml-2 text-amber-500 font-bold">— BUKTI PEMBAYARAN</span>
                                             <span v-else-if="index === 2" class="ml-2 text-emerald-500 font-bold">— FOTO UNIT</span>
                                         </template>
@@ -636,7 +636,7 @@
                                         <div v-if="(currentProofItem?.category === 'penjualan_online_toko' && index === 0) && currentProofItem && (currentProofItem.shopee_tracking_no || currentProofItem.expedition_tracking_no)" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
                                             <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                 <span class="text-text-secondary uppercase text-[10px] tracking-wider">No Resi:</span>
-                                                <span class="text-blue-600 dark:text-blue-400 font-mono font-black">{{ currentProofItem.shopee_tracking_no || currentProofItem.expedition_tracking_no }}</span>
+                                                <span class="text-neutral-900 dark:text-white font-mono font-black">{{ currentProofItem.shopee_tracking_no || currentProofItem.expedition_tracking_no }}</span>
                                             </div>
                                         </div>
 
@@ -663,7 +663,7 @@
                                         <div v-else-if="(currentProofType === 'unit' || currentProofType === 'customer' || (currentProofItem?.category === 'penjualan_online_toko' && index === 2)) && currentProofItem && ((currentProofItem.imeis && currentProofItem.imeis !== '-') || (currentProofItem.items && currentProofItem.items.some(i => i.imei && i.imei !== '-')))" class="flex flex-wrap items-center gap-2 sm:border-l sm:border-gray-300 sm:dark:border-surface-600 sm:pl-4">
                                             <div class="text-xs font-bold bg-white dark:bg-surface-900 px-2.5 py-1 rounded-md border border-gray-200 dark:border-surface-600 shadow-sm flex items-center gap-1.5">
                                                 <span class="text-text-secondary uppercase text-[10px] tracking-wider">IMEI:</span>
-                                                <span class="text-blue-600 dark:text-blue-400 font-mono font-black truncate max-w-[200px] sm:max-w-[300px]" :title="currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '')">
+                                                <span class="text-neutral-900 dark:text-white font-mono font-black truncate max-w-[200px] sm:max-w-[300px]" :title="currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '')">
                                                     {{ currentProofItem.imeis && currentProofItem.imeis !== '-' ? currentProofItem.imeis : (currentProofItem.items ? currentProofItem.items.map(i => i.imei).filter(i => i && i !== '-').join(', ') : '') }}
                                                 </span>
                                             </div>

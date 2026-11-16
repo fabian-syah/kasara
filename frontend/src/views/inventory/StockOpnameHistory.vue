@@ -949,23 +949,23 @@ watch(() => filters.value.executor_role, () => {
         </div>
 
         <!-- TAB NAVIGATION: Semua Sesi vs Stok By IMEI vs Stok By Unit -->
-        <div class="bg-white dark:!bg-surface-800 p-2 sm:p-2.5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
+        <div class="bg-surface-800 p-2 sm:p-2.5 rounded-2xl border border-surface-700 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
             <!-- Tab: Semua -->
             <button type="button" @click="setTab('')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === '' ? 'bg-emerald-600 !text-white shadow-sm shadow-emerald-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-surface-700'">
-                <History :size="16" :class="activeTab === '' ? '!text-white' : ''" />
-                <span :class="activeTab === '' ? '!text-white' : ''">Semua Sesi</span>
+                :class="activeTab === '' ? 'bg-neutral-900 text-white dark:bg-surface-600 dark:text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'">
+                <History :size="16" />
+                <span>Semua Sesi</span>
             </button>
 
             <!-- Tab: Stok by IMEI -->
             <button type="button" @click="setTab('by_imei')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === 'by_imei' ? 'bg-purple-600 !text-white shadow-sm shadow-purple-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-purple-50 dark:hover:bg-surface-700'">
-                <Smartphone :size="16" :class="activeTab === 'by_imei' ? '!text-white' : ''" />
-                <span :class="activeTab === 'by_imei' ? '!text-white' : ''">Stok by IMEI (Checklist)</span>
+                :class="activeTab === 'by_imei' ? 'bg-neutral-900 text-white dark:bg-surface-600 dark:text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'">
+                <Smartphone :size="16" />
+                <span>Stok by IMEI (Checklist)</span>
                 <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded"
-                    :class="activeTab === 'by_imei' ? 'bg-purple-700/80 !text-white' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
+                    :class="activeTab === 'by_imei' ? 'bg-white/20 text-white' : 'bg-surface-700 text-text-primary'">
                     IMEI
                 </span>
             </button>
@@ -973,11 +973,11 @@ watch(() => filters.value.executor_role, () => {
             <!-- Tab: Stok by Unit -->
             <button type="button" @click="setTab('by_unit')"
                 class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer"
-                :class="activeTab === 'by_unit' ? 'bg-blue-600 !text-white shadow-sm shadow-blue-600/30' : 'text-text-secondary hover:text-text-primary hover:bg-blue-50 dark:hover:bg-surface-700'">
-                <Package :size="16" :class="activeTab === 'by_unit' ? '!text-white' : ''" />
-                <span :class="activeTab === 'by_unit' ? '!text-white' : ''">Stok by Unit</span>
+                :class="activeTab === 'by_unit' ? 'bg-neutral-900 text-white dark:bg-surface-600 dark:text-white shadow-sm' : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50'">
+                <Package :size="16" />
+                <span>Stok by Unit</span>
                 <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded"
-                    :class="activeTab === 'by_unit' ? 'bg-blue-700/80 !text-white' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300'">
+                    :class="activeTab === 'by_unit' ? 'bg-white/20 text-white' : 'bg-surface-700 text-text-primary'">
                     Unit
                 </span>
             </button>
@@ -1039,27 +1039,27 @@ watch(() => filters.value.executor_role, () => {
         </div>
 
         <!-- Filter Controls -->
-        <div class="bg-white dark:!bg-surface-800 p-4 sm:p-5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm space-y-3">
+        <div class="bg-surface-800 p-4 sm:p-5 rounded-2xl border border-surface-700 shadow-sm space-y-3">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 <!-- Tanggal -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-[11px] font-bold text-text-secondary uppercase">Tanggal / Periode</label>
-                        <button v-if="filters.date || filters.month" @click="clearDateFilters" type="button" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
+                        <button v-if="filters.date || filters.month" @click="clearDateFilters" type="button" class="text-[10px] text-primary-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
                             Semua Tanggal
                         </button>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <input type="date" v-model="filters.date"
-                            class="flex-1 min-w-0 py-2 px-2.5 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500" />
+                            class="flex-1 min-w-0 py-2 px-2.5 bg-surface-800 border border-surface-700 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-primary-500" />
                         <button type="button" @click="setTodayFilter"
-                            :class="isTodayActive ? 'bg-emerald-600 text-white' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
+                            :class="isTodayActive ? 'bg-primary-600 text-white shadow-xs' : 'bg-surface-700/60 text-text-secondary hover:text-text-primary hover:bg-surface-700'"
                             class="px-2 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                             title="Filter hanya hari ini">
                             Hari Ini
                         </button>
                         <button type="button" @click="setThisMonthFilter"
-                            :class="isThisMonthActive ? 'bg-emerald-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary hover:text-text-primary'"
+                            :class="isThisMonthActive ? 'bg-primary-600 text-white shadow-xs' : 'bg-surface-700/60 text-text-secondary hover:text-text-primary hover:bg-surface-700'"
                             class="px-2 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                             title="Filter seluruh bulan ini">
                             Bulan Ini
@@ -1072,11 +1072,11 @@ watch(() => filters.value.executor_role, () => {
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Cabang</label>
                     <div class="relative">
                         <select v-model="filters.branch_id" :disabled="!isPrivilegedRole && branches.length <= 1"
-                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Cabang</option>
-                            <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ b.name }}</option>
+                            class="w-full appearance-none py-2 px-3 pr-8 bg-surface-800 border border-surface-700 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                            <option value="" class="bg-surface-800 text-text-primary">Semua Cabang</option>
+                            <option v-for="b in branches" :key="b.id" :value="b.id" class="bg-surface-800 text-text-primary">{{ b.name }}</option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                     </div>
                 </div>
 
@@ -1085,17 +1085,17 @@ watch(() => filters.value.executor_role, () => {
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">CS Pelaksana</label>
                     <div class="relative">
                         <!-- If CS user, locked to themselves -->
-                        <div v-if="isCsUser" class="w-full py-2 px-3 bg-gray-50 dark:!bg-surface-700/60 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-semibold text-emerald-600 dark:text-emerald-400 flex items-center justify-between">
+                        <div v-if="isCsUser" class="w-full py-2 px-3 bg-surface-750 border border-surface-700 rounded-xl text-xs sm:text-sm font-semibold text-primary-700 dark:text-emerald-400 flex items-center justify-between">
                             <span class="truncate">{{ authStore.user?.name || authStore.user?.username || 'Akun Saya' }}</span>
-                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">Akun Saya</span>
+                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-500/15 text-primary-800 dark:text-emerald-400 font-bold">Akun Saya</span>
                         </div>
                         <template v-else>
                             <select v-model="filters.cs_user_id"
-                                class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                                <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua CS</option>
-                                <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">{{ cs.name }}</option>
+                                class="w-full appearance-none py-2 px-3 pr-8 bg-surface-800 border border-surface-700 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                                <option value="" class="bg-surface-800 text-text-primary">Semua CS</option>
+                                <option v-for="cs in csUsers" :key="cs.id" :value="cs.id" class="bg-surface-800 text-text-primary">{{ cs.name }}</option>
                             </select>
-                            <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                         </template>
                     </div>
                 </div>
@@ -1105,13 +1105,13 @@ watch(() => filters.value.executor_role, () => {
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Tipe Pelaksana</label>
                     <div class="relative">
                         <select v-model="filters.executor_role"
-                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Tipe Pelaksana</option>
-                            <option value="audit" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO Audit 🛡️</option>
-                            <option value="leader" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO Leader 👤</option>
-                            <option value="store" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">SO CS Toko 🏪</option>
+                            class="w-full appearance-none py-2 px-3 pr-8 bg-surface-800 border border-surface-700 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                            <option value="" class="bg-surface-800 text-text-primary">Semua Tipe Pelaksana</option>
+                            <option value="audit" class="bg-surface-800 text-text-primary">SO Audit 🛡️</option>
+                            <option value="leader" class="bg-surface-800 text-text-primary">SO Leader 👤</option>
+                            <option value="store" class="bg-surface-800 text-text-primary">SO CS Toko 🏪</option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                     </div>
                 </div>
 
@@ -1120,12 +1120,12 @@ watch(() => filters.value.executor_role, () => {
                     <label class="block text-[11px] font-bold text-text-secondary uppercase mb-1">Status Hasil</label>
                     <div class="relative">
                         <select v-model="filters.status"
-                            class="w-full appearance-none py-2 px-3 pr-8 bg-white dark:!bg-surface-700 border border-gray-200 dark:border-surface-600 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                            <option value="" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Semua Status</option>
-                            <option value="completed" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Cocok (Lengkap) ✅</option>
-                            <option value="has_difference" class="bg-white text-gray-900 dark:bg-surface-800 dark:text-white">Ada Selisih ⚠️</option>
+                            class="w-full appearance-none py-2 px-3 pr-8 bg-surface-800 border border-surface-700 rounded-xl text-xs sm:text-sm font-medium text-text-primary focus:ring-1 focus:ring-primary-500 cursor-pointer">
+                            <option value="" class="bg-surface-800 text-text-primary">Semua Status</option>
+                            <option value="completed" class="bg-surface-800 text-text-primary">Cocok (Lengkap) ✅</option>
+                            <option value="has_difference" class="bg-surface-800 text-text-primary">Ada Selisih ⚠️</option>
                         </select>
-                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <ChevronDown :size="14" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                     </div>
                 </div>
             </div>
@@ -1482,77 +1482,77 @@ watch(() => filters.value.executor_role, () => {
                     <!-- LAPORAN PROGRESS SO HARIAN (3 KARTU: IMEI, HP UNIT, NON-HP UNIT) -->
                     <div class="mt-3.5 grid grid-cols-1 md:grid-cols-3 gap-2.5">
                         <!-- 1. By IMEI Card -->
-                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-purple-200/80 dark:border-purple-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                        <div class="p-3 rounded-2xl bg-surface-800 border border-surface-700 shadow-2xs flex flex-col justify-between gap-2">
                             <div class="flex items-center justify-between text-xs">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200/60 dark:border-purple-800/60">
+                                    <div class="w-7 h-7 rounded-lg bg-surface-700 text-text-primary flex items-center justify-center shrink-0 border border-surface-600/40">
                                         <Smartphone :size="14" />
                                     </div>
-                                    <span class="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-300 tracking-wider">Stok by IMEI</span>
+                                    <span class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Stok by IMEI</span>
                                 </div>
-                                <span class="font-mono font-black text-sm" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'">
+                                <span class="font-mono font-black text-sm" :class="day.imeiStats.percent === 100 && !day.imeiStats.hasDiff ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'">
                                     {{ day.imeiStats.percent }}%
                                 </span>
                             </div>
                             <!-- Mini Bar Track -->
-                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
-                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-purple-500 to-emerald-400"
+                            <div class="w-full h-2 rounded-full bg-surface-700 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-primary-600"
                                     :style="{ width: `${day.imeiStats.percent}%` }">
                                 </div>
                             </div>
-                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                            <div class="text-[11px] font-bold text-neutral-900 dark:text-white leading-tight">
                                 {{ day.imeiStats.percent }}% barang telah di stok opname by IMEI
-                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }} unit)</span>
+                                <span class="block text-[10px] font-normal text-text-secondary font-mono mt-0.5">({{ day.imeiStats.totalPhysical }}/{{ day.imeiStats.target }} unit)</span>
                             </div>
                         </div>
 
                         <!-- 2. HP by Unit Card -->
-                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-blue-200/80 dark:border-blue-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                        <div class="p-3 rounded-2xl bg-surface-800 border border-surface-700 shadow-2xs flex flex-col justify-between gap-2">
                             <div class="flex items-center justify-between text-xs">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-200/60 dark:border-blue-800/60">
+                                    <div class="w-7 h-7 rounded-lg bg-surface-700 text-text-primary flex items-center justify-center shrink-0 border border-surface-600/40">
                                         <Package :size="14" />
                                     </div>
-                                    <span class="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300 tracking-wider">Barang HP by Unit</span>
+                                    <span class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Barang HP by Unit</span>
                                 </div>
-                                <span class="font-mono font-black text-sm" :class="day.hpUnitStats.percent === 100 && !day.hpUnitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'">
+                                <span class="font-mono font-black text-sm" :class="day.hpUnitStats.percent === 100 && !day.hpUnitStats.hasDiff ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'">
                                     {{ day.hpUnitStats.percent }}%
                                 </span>
                             </div>
                             <!-- Mini Bar Track -->
-                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
-                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-500 to-teal-400"
+                            <div class="w-full h-2 rounded-full bg-surface-700 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-primary-600"
                                     :style="{ width: `${day.hpUnitStats.percent}%` }">
                                 </div>
                             </div>
-                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                            <div class="text-[11px] font-bold text-neutral-900 dark:text-white leading-tight">
                                 {{ day.hpUnitStats.percent }}% barang HP telah di stok opname by UNIT
-                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.hpUnitStats.totalPhysical }}/{{ day.hpUnitStats.target }} unit)</span>
+                                <span class="block text-[10px] font-normal text-text-secondary font-mono mt-0.5">({{ day.hpUnitStats.totalPhysical }}/{{ day.hpUnitStats.target }} unit)</span>
                             </div>
                         </div>
 
                         <!-- 3. Non-HP by Unit Card -->
-                        <div class="p-3 rounded-2xl bg-white dark:bg-neutral-800/90 border border-amber-200/80 dark:border-amber-900/50 shadow-2xs flex flex-col justify-between gap-2">
+                        <div class="p-3 rounded-2xl bg-surface-800 border border-surface-700 shadow-2xs flex flex-col justify-between gap-2">
                             <div class="flex items-center justify-between text-xs">
                                 <div class="flex items-center gap-2">
-                                    <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/60 dark:border-amber-800/60">
+                                    <div class="w-7 h-7 rounded-lg bg-surface-700 text-text-primary flex items-center justify-center shrink-0 border border-surface-600/40">
                                         <Boxes :size="14" />
                                     </div>
-                                    <span class="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-300 tracking-wider">Barang Non-HP by Unit</span>
+                                    <span class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Barang Non-HP by Unit</span>
                                 </div>
-                                <span class="font-mono font-black text-sm" :class="day.nonHpUnitStats.percent === 100 && !day.nonHpUnitStats.hasDiff ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+                                <span class="font-mono font-black text-sm" :class="day.nonHpUnitStats.percent === 100 && !day.nonHpUnitStats.hasDiff ? 'text-emerald-700 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'">
                                     {{ day.nonHpUnitStats.percent }}%
                                 </span>
                             </div>
                             <!-- Mini Bar Track -->
-                            <div class="w-full h-2 rounded-full bg-gray-100 dark:bg-neutral-700 overflow-hidden border border-gray-200/50 dark:border-neutral-600">
-                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-amber-500 to-emerald-400"
+                            <div class="w-full h-2 rounded-full bg-surface-700 overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700 ease-out bg-primary-600"
                                     :style="{ width: `${day.nonHpUnitStats.percent}%` }">
                                 </div>
                             </div>
-                            <div class="text-[11px] font-bold text-neutral-800 dark:text-neutral-200 leading-tight">
+                            <div class="text-[11px] font-bold text-neutral-900 dark:text-white leading-tight">
                                 {{ day.nonHpUnitStats.percent }}% barang non HP telah di stok opname by UNIT
-                                <span class="block text-[10px] font-normal text-neutral-500 dark:text-neutral-400 font-mono mt-0.5">({{ day.nonHpUnitStats.totalPhysical }}/{{ day.nonHpUnitStats.target }} unit)</span>
+                                <span class="block text-[10px] font-normal text-text-secondary font-mono mt-0.5">({{ day.nonHpUnitStats.totalPhysical }}/{{ day.nonHpUnitStats.target }} unit)</span>
                             </div>
                         </div>
                     </div>
@@ -1568,22 +1568,22 @@ watch(() => filters.value.executor_role, () => {
                                 {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalSystem }}</span>
+                                <span class="text-neutral-900 dark:text-white font-bold">📱 {{ day.imeiStats.totalSystem }}</span>
                                 <span>•</span>
-                                <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalSystem }}</span>
+                                <span class="text-neutral-900 dark:text-white font-bold">📦 {{ day.unitStats.totalSystem }}</span>
                             </div>
                         </div>
 
                         <!-- Metric 2: Fisik Ditemukan (Ada) -->
-                        <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
-                            <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
-                            <div class="text-sm font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5">
+                        <div class="p-2.5 rounded-xl bg-surface-800 border border-surface-700 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Fisik Ada (Sesuai)</div>
+                            <div class="text-sm font-black font-mono text-emerald-700 dark:text-emerald-400 mt-0.5">
                                 {{ getActiveDayStats(day).totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalPhysical }}</span>
+                                <span class="text-neutral-900 dark:text-white font-bold">📱 {{ day.imeiStats.totalPhysical }}</span>
                                 <span>•</span>
-                                <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalPhysical }}</span>
+                                <span class="text-neutral-900 dark:text-white font-bold">📦 {{ day.unitStats.totalPhysical }}</span>
                             </div>
                         </div>
 
@@ -1631,8 +1631,8 @@ watch(() => filters.value.executor_role, () => {
                                     <AlertTriangle :size="13" class="text-rose-500" />
                                     <span>Ada Selisih</span>
                                 </span>
-                                <span v-else class="inline-flex items-center gap-1 text-[11px] font-black text-blue-600 dark:text-blue-400">
-                                    <RefreshCw :size="13" class="text-blue-500" />
+                                <span v-else class="inline-flex items-center gap-1 text-[11px] font-black text-neutral-900 dark:text-white">
+                                    <RefreshCw :size="13" class="text-text-secondary" />
                                     <span>Sebagian Selesai</span>
                                 </span>
                             </div>
@@ -1684,8 +1684,7 @@ watch(() => filters.value.executor_role, () => {
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-text-secondary">Metode:</span>
-                                    <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full"
-                                        :class="rec.method === 'by_imei' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'">
+                                    <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40">
                                         {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
                                         <span v-if="rec.brand || rec.product_type">• {{ rec.brand }} {{ rec.product_type }}</span>
                                     </span>
@@ -1693,27 +1692,25 @@ watch(() => filters.value.executor_role, () => {
                             </div>
 
                             <!-- Mobile Progress Bar Sesi -->
-                            <div class="p-2.5 rounded-xl bg-gray-50 dark:bg-surface-700/40 border border-gray-100 dark:border-surface-700 space-y-1.5">
+                            <div class="p-2.5 rounded-xl bg-surface-750 border border-surface-700 space-y-1.5">
                                 <div class="flex items-center justify-between text-[11px] font-bold leading-none">
                                     <span class="text-text-secondary flex items-center gap-1.5">
-                                        <span class="w-2 h-2 rounded-full" :class="rec.method === 'by_imei' ? 'bg-purple-500' : 'bg-blue-500'"></span>
+                                        <span class="w-2 h-2 rounded-full bg-primary-600"></span>
                                         <span>Progress Fisik / Sistem</span>
                                         <span class="font-mono text-[10px] text-text-primary">({{ getRecordTotals(rec).total_physical }}/{{ getRecordTotals(rec).total_system }})</span>
                                     </span>
                                     <span class="font-mono font-black text-xs"
-                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference ? 'text-emerald-600 dark:text-emerald-400' : getRecordTotals(rec).has_difference ? 'text-amber-600 dark:text-amber-400' : rec.method === 'by_imei' ? 'text-purple-600 dark:text-purple-400' : 'text-blue-600 dark:text-blue-400'">
+                                        :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference ? 'text-emerald-700 dark:text-emerald-400' : getRecordTotals(rec).has_difference ? 'text-amber-600 dark:text-amber-400' : 'text-neutral-900 dark:text-white'">
                                         {{ getRecordProgress(rec) }}%
                                     </span>
                                 </div>
-                                <div class="w-full h-2 rounded-full bg-gray-200 dark:bg-surface-800 overflow-hidden">
+                                <div class="w-full h-2 rounded-full bg-surface-700 overflow-hidden">
                                     <div class="h-full rounded-full transition-all duration-500 ease-out"
                                         :class="getRecordProgress(rec) === 100 && !getRecordTotals(rec).has_difference
-                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                            ? 'bg-emerald-600'
                                             : getRecordTotals(rec).has_difference
-                                                ? 'bg-gradient-to-r from-amber-500 to-rose-500'
-                                                : rec.method === 'by_imei'
-                                                    ? 'bg-gradient-to-r from-purple-500 to-emerald-400'
-                                                    : 'bg-gradient-to-r from-blue-500 to-teal-400'"
+                                                ? 'bg-amber-500'
+                                                : 'bg-primary-600'"
                                         :style="{ width: `${getRecordProgress(rec)}%` }">
                                     </div>
                                 </div>
@@ -1844,8 +1841,7 @@ watch(() => filters.value.executor_role, () => {
                                         <!-- Kategori & Metode -->
                                         <td class="py-3.5 px-4">
                                             <div class="flex items-center gap-1.5">
-                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                                                    :class="rec.category_type === 'hp' ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'">
+                                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-surface-700/60 text-text-primary border border-surface-600/40">
                                                     {{ rec.category_type === 'hp' ? 'HP' : 'Non-HP' }}
                                                 </span>
                                                 <span class="text-xs font-semibold text-text-primary">
@@ -1858,7 +1854,7 @@ watch(() => filters.value.executor_role, () => {
                                             <!-- Button to expand IMEIs directly if by_imei -->
                                             <button v-if="rec.method === 'by_imei' && rec.items && rec.items.length > 0"
                                                 type="button" @click="toggleSessionExpand(rec.id)"
-                                                class="mt-1 text-[11px] text-purple-600 dark:text-purple-400 font-bold hover:underline inline-flex items-center gap-1">
+                                                class="mt-1 text-[11px] text-text-secondary hover:text-text-primary font-bold hover:underline inline-flex items-center gap-1">
                                                 <span>{{ expandedSessions[rec.id] ? 'Tutup IMEI' : 'Lihat ' + getSessionAllImeis(rec).length + ' IMEI' }}</span>
                                                 <ChevronUp v-if="expandedSessions[rec.id]" :size="12" />
                                                 <ChevronDown v-else :size="12" />
@@ -2002,9 +1998,8 @@ watch(() => filters.value.executor_role, () => {
                                 <Store v-else :size="11" />
                                 <span>{{ getRoleLabel(getRecordRole(selectedDetail)) }}</span>
                             </span>
-                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">{{ selectedDetail?.opname_number }}</span>
-                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full"
-                                :class="selectedDetail?.method === 'by_imei' ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800' : 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'">
+                            <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono">{{ selectedDetail?.opname_number }}</span>
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40">
                                 {{ selectedDetail?.method === 'by_imei' ? 'Stok By IMEI (Checklist)' : 'Stok By Unit' }}
                             </span>
                             <span v-if="selectedDetail?.brand || selectedDetail?.product_type" class="text-xs font-semibold text-text-secondary">
@@ -2214,7 +2209,7 @@ watch(() => filters.value.executor_role, () => {
                         <div v-else class="space-y-3">
                             <div class="flex items-center justify-between gap-2.5">
                                 <h4 class="text-xs font-bold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
-                                    <Package :size="14" class="text-blue-500" />
+                                    <Package :size="14" class="text-text-secondary" />
                                     <span>Daftar Unit Yang Diperiksa ({{ selectedDetail.items?.length || 0 }} item)</span>
                                 </h4>
                                 <div class="relative w-44 sm:w-56">

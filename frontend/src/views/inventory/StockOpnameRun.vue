@@ -823,10 +823,10 @@ onMounted(async () => {
                     </div>
 
                     <div class="flex items-center gap-2.5">
-                        <button @click="router.back()" class="p-2 rounded-xl text-surface-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+                        <button @click="router.back()" class="p-2 rounded-xl text-surface-400 hover:text-text-primary hover:bg-surface-800 transition-colors cursor-pointer">
                             <ArrowLeft :size="20" />
                         </button>
-                        <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                        <h1 class="text-xl sm:text-2xl font-black text-neutral-900 dark:text-white tracking-tight">
                             Pemeriksaan Fisik Stok Toko
                         </h1>
                     </div>
@@ -837,7 +837,7 @@ onMounted(async () => {
 
                 <div class="flex items-center gap-2 w-full md:w-auto">
                     <router-link to="/inventory/opname/history"
-                        class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-surface-700 bg-surface-800/80 hover:bg-surface-700 text-xs sm:text-sm font-bold text-white hover:border-emerald-500 transition-all shadow-sm w-full md:w-auto">
+                        class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-surface-700 bg-surface-800/80 hover:bg-surface-700 text-xs sm:text-sm font-bold text-neutral-900 dark:text-white hover:border-emerald-500 transition-all shadow-sm w-full md:w-auto">
                         <History :size="16" class="text-emerald-400" />
                         <span>Riwayat / History SO</span>
                     </router-link>
@@ -907,7 +907,7 @@ onMounted(async () => {
                         <Building2 class="text-emerald-400" :size="36" stroke-width="2.5" />
                     </div>
 
-                    <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
+                    <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white text-center mb-2">
                         1. Pilih Toko / Cabang
                     </h2>
                     <p class="text-surface-400 text-center mb-6 font-medium text-xs sm:text-sm max-w-md mx-auto">
@@ -928,7 +928,7 @@ onMounted(async () => {
                         <!-- Search Input -->
                         <div class="relative">
                             <input v-model="searchBranch" type="text" placeholder="Cari nama toko atau kode cabang..."
-                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-white placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
+                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-text-primary placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
                             <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
                         </div>
 
@@ -950,12 +950,12 @@ onMounted(async () => {
                                     ? 'border-emerald-500 bg-emerald-500/10 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/30'
                                     : 'border-surface-750 bg-surface-800/70 hover:border-surface-600 hover:bg-surface-800'">
                                 <div class="flex items-center gap-3 min-w-0 pr-6">
-                                    <div class="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-surface-700/80 flex items-center justify-center font-black text-xs text-white border border-surface-600">
+                                    <div class="w-10 h-10 sm:w-11 sm:h-11 shrink-0 rounded-xl bg-surface-700/80 flex items-center justify-center font-black text-xs text-text-primary border border-surface-600">
                                         {{ b.code ? b.code.substring(0, 3).toUpperCase() : getInitials(b.name) }}
                                     </div>
                                     <div class="flex flex-col items-start truncate min-w-0">
                                         <span class="font-black text-xs sm:text-sm truncate w-full"
-                                            :class="selectedBranchId === b.id ? 'text-emerald-400' : 'text-white'">
+                                            :class="selectedBranchId === b.id ? 'text-primary-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'">
                                             {{ b.name }}
                                         </span>
                                         <span class="text-[10px] sm:text-xs font-semibold text-surface-400 truncate w-full mt-0.5 font-mono">
@@ -1013,7 +1013,7 @@ onMounted(async () => {
                         <Shield class="text-emerald-400" :size="36" stroke-width="2.5" />
                     </div>
 
-                    <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
+                    <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white text-center mb-2">
                         2. Pilih Akun CS Pelaksana
                     </h2>
                     <p class="text-surface-400 text-center mb-6 font-medium text-xs sm:text-sm max-w-md mx-auto">
@@ -1029,7 +1029,7 @@ onMounted(async () => {
                                 <ShieldCheck :size="20" />
                             </div>
                             <div>
-                                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                <div class="text-xs font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
                                     <span>{{ authStore.user?.name || authStore.userName }} (Saya Sendiri)</span>
                                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-900 text-purple-300 font-bold uppercase border border-purple-500/40">
                                         {{ isAudit ? 'Audit' : isLeader ? 'Leader' : 'Admin' }}
@@ -1058,7 +1058,7 @@ onMounted(async () => {
                         <!-- Search Input -->
                         <div class="relative">
                             <input v-model="searchCs" type="text" placeholder="Cari nama CS..."
-                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-white placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
+                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-text-primary placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
                             <Search :size="16" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
                         </div>
 
@@ -1087,7 +1087,7 @@ onMounted(async () => {
                                     </div>
                                     <div class="flex flex-col items-start truncate min-w-0 flex-1">
                                         <span class="font-black text-xs sm:text-sm truncate w-full"
-                                            :class="selectedCsUserId === u.id ? 'text-emerald-400' : 'text-white'">
+                                            :class="selectedCsUserId === u.id ? 'text-primary-600 dark:text-emerald-400' : 'text-neutral-900 dark:text-white'">
                                             {{ u.name }}
                                         </span>
                                         <span class="text-[10px] sm:text-xs font-semibold text-surface-400 truncate w-full mt-0.5">
@@ -1147,7 +1147,7 @@ onMounted(async () => {
                         <Smartphone class="text-emerald-400" :size="36" stroke-width="2.5" />
                     </div>
 
-                    <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
+                    <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white text-center mb-2">
                         {{ currentStepIndex + 1 }}. Pilih Kategori Barang
                     </h2>
                     <p class="text-surface-400 text-center mb-7 font-medium text-xs sm:text-sm max-w-md mx-auto">
@@ -1168,7 +1168,7 @@ onMounted(async () => {
                                 <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                     Ber-Nomor IMEI
                                 </span>
-                                <h3 class="text-base sm:text-lg font-black text-white mt-2 group-hover:text-emerald-400 transition-colors">
+                                <h3 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white mt-2 group-hover:text-emerald-400 transition-colors">
                                     HP (Smartphone)
                                 </h3>
                                 <p class="text-xs text-surface-400 mt-1">
@@ -1194,7 +1194,7 @@ onMounted(async () => {
                                 <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
                                     Tanpa IMEI
                                 </span>
-                                <h3 class="text-base sm:text-lg font-black text-white mt-2 group-hover:text-teal-400 transition-colors">
+                                <h3 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white mt-2 group-hover:text-teal-400 transition-colors">
                                     Non-HP / Aksesoris
                                 </h3>
                                 <p class="text-xs text-surface-400 mt-1">
@@ -1246,7 +1246,7 @@ onMounted(async () => {
                         <Layers class="text-emerald-400" :size="36" stroke-width="2.5" />
                     </div>
 
-                    <h2 class="text-xl sm:text-3xl font-black text-white text-center mb-2">
+                    <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white text-center mb-2">
                         {{ currentStepIndex + 1 }}. Pilih Metode Stok Opname
                     </h2>
                     <p class="text-surface-400 text-center mb-7 font-medium text-xs sm:text-sm max-w-md mx-auto">
@@ -1267,7 +1267,7 @@ onMounted(async () => {
                                 <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                     Hitung Kuantitas
                                 </span>
-                                <h3 class="text-base sm:text-lg font-black text-white mt-2 group-hover:text-emerald-400 transition-colors">
+                                <h3 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white mt-2 group-hover:text-emerald-400 transition-colors">
                                     SO by Unit
                                 </h3>
                                 <p class="text-xs text-surface-400 mt-1">
@@ -1293,7 +1293,7 @@ onMounted(async () => {
                                 <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
                                     Checklist Seri
                                 </span>
-                                <h3 class="text-base sm:text-lg font-black text-white mt-2 group-hover:text-teal-400 transition-colors">
+                                <h3 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white mt-2 group-hover:text-teal-400 transition-colors">
                                     SO by IMEI
                                 </h3>
                                 <p class="text-xs text-surface-400 mt-1">
@@ -1344,32 +1344,32 @@ onMounted(async () => {
                     </div>
 
                     <div class="text-center max-w-lg mx-auto">
-                        <h2 class="text-xl sm:text-3xl font-black text-white mb-2">
+                        <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white mb-2">
                             {{ currentStepIndex + 1 }}. Pilih Brand & Kondisi
                         </h2>
-                        <p class="text-surface-400 font-medium text-xs sm:text-sm">
-                            Anda dapat memilih <strong class="text-emerald-400 font-bold">lebih dari 1 brand</strong> dan <strong class="text-emerald-400 font-bold">lebih dari 1 kondisi</strong>.
+                        <p class="text-text-secondary font-medium text-xs sm:text-sm">
+                            Anda dapat memilih <strong class="text-primary-700 dark:text-emerald-400 font-bold">lebih dari 1 brand</strong> dan <strong class="text-primary-700 dark:text-emerald-400 font-bold">lebih dari 1 kondisi</strong>.
                         </p>
                     </div>
 
                     <!-- 1. MULTI-SELECT BRAND -->
-                    <div class="space-y-3 bg-surface-800/60 p-4 sm:p-5 rounded-2xl border border-surface-750">
+                    <div class="space-y-3 bg-surface-800 p-4 sm:p-5 rounded-2xl border border-surface-700 shadow-xs">
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <div class="flex items-center gap-2">
-                                <Filter :size="14" class="text-emerald-400" />
-                                <label class="text-xs font-black text-white uppercase tracking-wider">
+                                <Filter :size="14" class="text-primary-600 dark:text-emerald-400" />
+                                <label class="text-xs font-black text-neutral-900 dark:text-white uppercase tracking-wider">
                                     Pilih Brand (Merek)
                                 </label>
-                                <span v-if="selectedBrands.length > 0" class="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                                <span v-if="selectedBrands.length > 0" class="text-[10px] px-2 py-0.2 rounded-full bg-primary-500/15 text-primary-700 dark:text-emerald-300 font-mono font-bold">
                                     {{ selectedBrands.length }} terpilih
                                 </span>
                             </div>
                             <div class="flex items-center gap-2 text-xs">
-                                <button type="button" @click="selectAllBrands" class="text-[11px] font-bold text-emerald-400 hover:underline cursor-pointer">
+                                <button type="button" @click="selectAllBrands" class="text-[11px] font-bold text-primary-600 dark:text-emerald-400 hover:underline cursor-pointer">
                                     Pilih Semua
                                 </button>
                                 <span class="text-surface-600">•</span>
-                                <button type="button" @click="resetBrands" class="text-[11px] font-bold text-surface-400 hover:text-white cursor-pointer">
+                                <button type="button" @click="resetBrands" class="text-[11px] font-bold text-text-secondary hover:text-text-primary cursor-pointer">
                                     Semua Brand (Default)
                                 </button>
                             </div>
@@ -1381,8 +1381,8 @@ onMounted(async () => {
                             <button type="button" @click="toggleBrand('')"
                                 class="px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5"
                                 :class="isBrandSelected('')
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
-                                    : 'bg-surface-800 text-surface-300 border-surface-700 hover:border-surface-600'">
+                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="isBrandSelected('')" :size="13" />
                                 <span>Semua Brand</span>
                             </button>
@@ -1391,12 +1391,12 @@ onMounted(async () => {
                             <button v-for="b in availableBrands" :key="b.brand" type="button" @click="toggleBrand(b.brand)"
                                 class="px-3.5 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer"
                                 :class="isBrandSelected(b.brand)
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-md ring-2 ring-emerald-500/25'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isBrandSelected(b.brand)" :size="13" class="text-emerald-400" />
+                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isBrandSelected(b.brand)" :size="13" class="text-primary-600 dark:text-emerald-400" />
                                 <span>{{ b.brand }}</span>
                                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isBrandSelected(b.brand) ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isBrandSelected(b.brand) ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ b.count }}
                                 </span>
                             </button>
@@ -1404,18 +1404,18 @@ onMounted(async () => {
                     </div>
 
                     <!-- 2. MULTI-SELECT KONDISI (Khusus HP) -->
-                    <div v-if="categoryType === 'hp'" class="space-y-3 bg-surface-800/60 p-4 sm:p-5 rounded-2xl border border-surface-750">
+                    <div v-if="categoryType === 'hp'" class="space-y-3 bg-surface-800 p-4 sm:p-5 rounded-2xl border border-surface-700 shadow-xs">
                         <div class="flex items-center justify-between flex-wrap gap-2">
                             <div class="flex items-center gap-2">
-                                <Sparkles :size="14" class="text-emerald-400" />
-                                <label class="text-xs font-black text-white uppercase tracking-wider">
+                                <Sparkles :size="14" class="text-primary-600 dark:text-emerald-400" />
+                                <label class="text-xs font-black text-neutral-900 dark:text-white uppercase tracking-wider">
                                     Pilih Kondisi Unit
                                 </label>
-                                <span v-if="selectedConditions.length > 0" class="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold">
+                                <span v-if="selectedConditions.length > 0" class="text-[10px] px-2 py-0.2 rounded-full bg-primary-500/15 text-primary-700 dark:text-emerald-300 font-mono font-bold">
                                     {{ selectedConditions.length }} kondisi terpilih
                                 </span>
                             </div>
-                            <button type="button" @click="toggleCondition('all')" class="text-[11px] font-bold text-surface-400 hover:text-white cursor-pointer">
+                            <button type="button" @click="toggleCondition('all')" class="text-[11px] font-bold text-text-secondary hover:text-text-primary cursor-pointer">
                                 Semua Kondisi (Default)
                             </button>
                         </div>
@@ -1426,8 +1426,8 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('all')"
                                 class="px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1.5"
                                 :class="isConditionSelected('all')
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
-                                    : 'bg-surface-800 text-surface-300 border-surface-700 hover:border-surface-600'">
+                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="isConditionSelected('all')" :size="13" />
                                 <span>Semua Kondisi</span>
                             </button>
@@ -1436,12 +1436,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('new')"
                                 class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer"
                                 :class="isConditionSelected('new')
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-md ring-2 ring-emerald-500/25'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('new')" :size="13" class="text-emerald-400" />
+                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('new')" :size="13" class="text-primary-600 dark:text-emerald-400" />
                                 <span>Baru (New)</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('new') ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('new') ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
                                 </span>
                             </button>
@@ -1450,12 +1450,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('second')"
                                 class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer"
                                 :class="isConditionSelected('second')
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-md ring-2 ring-amber-500/25'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('second')" :size="13" class="text-amber-400" />
+                                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('second')" :size="13" class="text-amber-600 dark:text-amber-400" />
                                 <span>Second (Bekas)</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'second')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('second') ? 'bg-amber-500/30 text-amber-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('second') ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
                                 </span>
                             </button>
@@ -1464,12 +1464,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('ex_ibox')"
                                 class="px-4 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer"
                                 :class="isConditionSelected('ex_ibox')
-                                    ? 'bg-sky-500/20 text-sky-300 border-sky-500 shadow-md ring-2 ring-sky-500/25'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('ex_ibox')" :size="13" class="text-sky-400" />
+                                    ? 'bg-surface-700 text-text-primary border-surface-600 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('ex_ibox')" :size="13" class="text-text-primary" />
                                 <span>Ex iBox</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'ex_ibox')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('ex_ibox') ? 'bg-sky-500/30 text-sky-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('ex_ibox') ? 'bg-surface-600 text-text-primary' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'ex_ibox')?.count || 0 }}
                                 </span>
                             </button>
@@ -1477,26 +1477,26 @@ onMounted(async () => {
                     </div>
 
                     <!-- Live AI Ready Status Card -->
-                    <div class="p-4 sm:p-5 rounded-2xl bg-surface-800 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+                    <div class="p-4 sm:p-5 rounded-2xl bg-surface-800 border border-surface-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black">
+                            <div class="w-10 h-10 rounded-xl bg-primary-500/15 text-primary-700 dark:text-emerald-400 flex items-center justify-center font-black">
                                 <ClipboardCheck :size="20" />
                             </div>
                             <div>
-                                <div class="text-[11px] uppercase font-bold text-surface-400 tracking-wider">
+                                <div class="text-[11px] uppercase font-bold text-text-secondary tracking-wider">
                                     Stok Sistem Siap Diperiksa
                                 </div>
-                                <div class="text-base sm:text-lg font-black text-white">
-                                    {{ pendingItems.length }} varian <span class="text-emerald-400 text-xs sm:text-sm font-bold">({{ totalAvailableUnits }} total unit)</span>
+                                <div class="text-base sm:text-lg font-black text-neutral-900 dark:text-white">
+                                    {{ pendingItems.length }} varian <span class="text-primary-700 dark:text-emerald-400 text-xs sm:text-sm font-bold">({{ totalAvailableUnits }} total unit)</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-1.5 text-xs font-bold text-surface-400 self-stretch sm:self-auto justify-end">
-                            <span v-if="selectedBrands.length > 0" class="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-white font-mono">
+                        <div class="flex items-center gap-1.5 text-xs font-bold text-text-secondary self-stretch sm:self-auto justify-end">
+                            <span v-if="selectedBrands.length > 0" class="text-[10px] px-2 py-0.5 rounded bg-surface-700/60 text-text-primary font-mono border border-surface-600/40">
                                 {{ selectedBrands.join(', ') }}
                             </span>
-                            <span v-else class="text-[10px] px-2 py-0.5 rounded bg-surface-700 text-white">
+                            <span v-else class="text-[10px] px-2 py-0.5 rounded bg-surface-700/60 text-text-primary border border-surface-600/40">
                                 Semua Brand
                             </span>
                         </div>
@@ -1505,12 +1505,12 @@ onMounted(async () => {
                     <!-- Action Buttons -->
                     <div class="flex items-center gap-3 pt-2">
                         <button type="button" @click="currentStep = (categoryType === 'hp' ? 4 : 3)"
-                            class="px-5 h-12 sm:h-14 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-all flex items-center gap-2 cursor-pointer">
+                            class="px-5 h-12 sm:h-14 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-surface-800 transition-all flex items-center gap-2 cursor-pointer">
                             <ArrowLeft :size="16" />
                             <span>Kembali</span>
                         </button>
                         <button type="button" @click="proceedFromStep5Unit"
-                            class="flex-1 h-12 sm:h-14 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-2xl font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-3 cursor-pointer">
+                            class="flex-1 h-12 sm:h-14 bg-primary-600 hover:bg-primary-500 text-white rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-3 cursor-pointer">
                             <span>Mulai Perhitungan Fisik (Tabel)</span>
                             <ArrowRight :size="20" stroke-width="2.5" />
                         </button>
@@ -1528,35 +1528,35 @@ onMounted(async () => {
 
                 <div class="relative z-10 space-y-6">
                     <!-- Context Pill -->
-                    <div class="p-3.5 rounded-2xl bg-surface-800/80 border border-surface-700 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div class="p-3.5 rounded-2xl bg-surface-800 border border-surface-700 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div class="truncate">
-                            <span class="text-surface-400">Toko:</span>
-                            <strong class="text-white ml-1 font-bold">{{ activeBranch?.name }}</strong>
+                            <span class="text-text-secondary">Toko:</span>
+                            <strong class="text-neutral-900 dark:text-white ml-1 font-bold">{{ activeBranch?.name }}</strong>
                             <span class="mx-2 text-surface-600">•</span>
-                            <span class="text-surface-400">Metode:</span>
-                            <strong class="text-emerald-400 ml-1 font-bold">SO by IMEI (Checklist)</strong>
+                            <span class="text-text-secondary">Metode:</span>
+                            <strong class="text-primary-600 dark:text-emerald-400 ml-1 font-bold">SO by IMEI (Checklist)</strong>
                         </div>
-                        <button type="button" @click="currentStep = 4" class="text-emerald-400 font-bold hover:underline cursor-pointer">
+                        <button type="button" @click="currentStep = 4" class="text-primary-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
                             Ganti Metode
                         </button>
                     </div>
 
                     <div class="text-center max-w-lg mx-auto">
-                        <h2 class="text-xl sm:text-3xl font-black text-white mb-2">
+                        <h2 class="text-xl sm:text-3xl font-black text-neutral-900 dark:text-white mb-2">
                             {{ currentStepIndex + 1 }}. Pilih Tipe HP
                         </h2>
-                        <p class="text-surface-400 font-medium text-xs sm:text-sm">
+                        <p class="text-text-secondary font-medium text-xs sm:text-sm">
                             Pilih model/tipe HP di bawah untuk memeriksa nomor seri IMEI satu per satu.
                         </p>
                     </div>
 
                     <!-- Multi-Brand Filter Chips for Types -->
-                    <div class="space-y-2 bg-surface-800/60 p-3.5 sm:p-4 rounded-2xl border border-surface-750">
+                    <div class="space-y-2 bg-surface-800 p-3.5 sm:p-4 rounded-2xl border border-surface-700 shadow-xs">
                         <div class="flex items-center justify-between text-xs">
-                            <span class="font-bold text-surface-400 uppercase text-[10px] tracking-wider">
+                            <span class="font-bold text-text-secondary uppercase text-[10px] tracking-wider">
                                 Filter Merek HP (Multi-select)
                             </span>
-                            <button v-if="selectedBrands.length > 0" @click="resetBrands" class="text-emerald-400 text-[11px] font-bold hover:underline cursor-pointer">
+                            <button v-if="selectedBrands.length > 0" @click="resetBrands" class="text-primary-600 dark:text-emerald-400 text-[11px] font-bold hover:underline cursor-pointer">
                                 Reset ke Semua Brand
                             </button>
                         </div>
@@ -1564,20 +1564,20 @@ onMounted(async () => {
                             <button type="button" @click="toggleBrand('')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1"
                                 :class="isBrandSelected('')
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-emerald-500 shadow-sm'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600'">
+                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="isBrandSelected('')" :size="12" />
                                 <span>Semua Brand</span>
                             </button>
                             <button v-for="b in availableBrands" :key="b.brand" type="button" @click="toggleBrand(b.brand)"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isBrandSelected(b.brand)
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isBrandSelected(b.brand)" :size="12" class="text-emerald-400" />
+                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isBrandSelected(b.brand)" :size="12" class="text-primary-600 dark:text-emerald-400" />
                                 <span>{{ b.brand }}</span>
                                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isBrandSelected(b.brand) ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isBrandSelected(b.brand) ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ b.count }}
                                 </span>
                             </button>
@@ -1585,15 +1585,15 @@ onMounted(async () => {
                     </div>
 
                     <!-- Opsi Pilih Per Kondisi (New, Second, Ex iBox) -->
-                    <div class="space-y-2 bg-surface-800/60 p-3.5 sm:p-4 rounded-2xl border border-surface-750">
+                    <div class="space-y-2 bg-surface-800 p-3.5 sm:p-4 rounded-2xl border border-surface-700 shadow-xs">
                         <div class="flex items-center justify-between text-xs">
                             <div class="flex items-center gap-1.5">
-                                <Sparkles :size="13" class="text-emerald-400" />
-                                <span class="font-bold text-surface-400 uppercase text-[10px] tracking-wider">
+                                <Sparkles :size="13" class="text-primary-600 dark:text-emerald-400" />
+                                <span class="font-bold text-text-secondary uppercase text-[10px] tracking-wider">
                                     Opsi Kondisi Unit (New / Scd / Ex iBox)
                                 </span>
                             </div>
-                            <span class="text-[10px] text-surface-400 italic">
+                            <span class="text-[10px] text-text-secondary italic">
                                 Default: Belum Dipilih
                             </span>
                         </div>
@@ -1602,8 +1602,8 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('all')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1"
                                 :class="selectedConditions.length === 0
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-emerald-500 shadow-sm'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
+                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="selectedConditions.length === 0" :size="12" />
                                 <span>Belum Dipilih (Semua)</span>
                             </button>
@@ -1612,12 +1612,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('new')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isConditionSelected('new')
-                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-sm ring-1 ring-emerald-500/30'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('new')" :size="12" class="text-emerald-400" />
+                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('new')" :size="12" class="text-primary-600 dark:text-emerald-400" />
                                 <span>Baru (New)</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('new') ? 'bg-emerald-500/30 text-emerald-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('new') ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
                                 </span>
                             </button>
@@ -1626,12 +1626,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('second')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isConditionSelected('second')
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500 shadow-sm ring-1 ring-amber-500/30'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('second')" :size="12" class="text-amber-400" />
+                                    ? 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('second')" :size="12" class="text-amber-600 dark:text-amber-400" />
                                 <span>Second (Bekas)</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'second')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('second') ? 'bg-amber-500/30 text-amber-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('second') ? 'bg-amber-500/25 text-amber-900 dark:text-amber-200' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'second')?.count || 0 }}
                                 </span>
                             </button>
@@ -1640,12 +1640,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('ex_ibox')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isConditionSelected('ex_ibox')
-                                    ? 'bg-sky-500/20 text-sky-300 border-sky-500 shadow-sm ring-1 ring-sky-500/30'
-                                    : 'bg-surface-800 text-surface-400 border-surface-700 hover:border-surface-600 hover:text-white'">
-                                <Check v-if="isConditionSelected('ex_ibox')" :size="12" class="text-sky-400" />
+                                    ? 'bg-surface-700 text-text-primary border-surface-600 shadow-xs'
+                                    : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
+                                <Check v-if="isConditionSelected('ex_ibox')" :size="12" class="text-text-primary" />
                                 <span>Ex iBox</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'ex_ibox')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('ex_ibox') ? 'bg-sky-500/30 text-sky-200' : 'bg-surface-700 text-surface-400'">
+                                    :class="isConditionSelected('ex_ibox') ? 'bg-surface-600 text-text-primary' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'ex_ibox')?.count || 0 }}
                                 </span>
                             </button>
@@ -1655,18 +1655,18 @@ onMounted(async () => {
                     <!-- Search & Multi-select Actions Bar -->
                     <div class="space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-                            <span class="font-bold text-surface-400 uppercase text-[10px] tracking-wider">
+                            <span class="font-bold text-text-secondary uppercase text-[10px] tracking-wider">
                                 Pilih Tipe HP (Bisa Pilih Banyak):
                             </span>
                             <div class="flex items-center gap-2">
-                                <span v-if="selectedProductNames.length > 0" class="text-xs font-bold text-emerald-400">
+                                <span v-if="selectedProductNames.length > 0" class="text-xs font-bold text-primary-600 dark:text-emerald-400">
                                     {{ selectedProductNames.length }} tipe dipilih ({{ selectedTotalUnits }} unit)
                                 </span>
-                                <button type="button" @click="selectAllTypes" class="text-emerald-400 text-xs font-bold hover:underline cursor-pointer">
+                                <button type="button" @click="selectAllTypes" class="text-primary-600 dark:text-emerald-400 text-xs font-bold hover:underline cursor-pointer">
                                     Pilih Semua ({{ filteredAvailableTypes.length }})
                                 </button>
                                 <span class="text-surface-600">•</span>
-                                <button v-if="selectedProductNames.length > 0" type="button" @click="resetTypes" class="text-rose-400 text-xs font-bold hover:underline cursor-pointer">
+                                <button v-if="selectedProductNames.length > 0" type="button" @click="resetTypes" class="text-rose-600 dark:text-rose-400 text-xs font-bold hover:underline cursor-pointer">
                                     Reset
                                 </button>
                             </div>
@@ -1675,14 +1675,14 @@ onMounted(async () => {
                         <!-- Search Type Input -->
                         <div class="relative">
                             <input v-model="searchType" type="text" placeholder="Cari nama tipe HP (contoh: iPhone 11, Samsung S24)..."
-                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800/80 border border-surface-700 text-white placeholder:text-surface-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all" />
-                            <Search :size="18" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-surface-400" />
+                                class="w-full px-4 py-3 pl-10 text-xs sm:text-sm rounded-xl bg-surface-800 border border-surface-700 text-neutral-900 dark:text-white placeholder:text-text-secondary/60 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all" />
+                            <Search :size="18" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary" />
                         </div>
                     </div>
 
                     <!-- Types Cards Grid (Multi-Select) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-                        <div v-if="filteredAvailableTypes.length === 0" class="col-span-full py-12 text-center text-surface-400 text-xs">
+                        <div v-if="filteredAvailableTypes.length === 0" class="col-span-full py-12 text-center text-text-secondary text-xs">
                             Tidak ada tipe HP yang perlu di-SO untuk filter ini.
                         </div>
                         <button v-for="t in filteredAvailableTypes" :key="t.product_name"
@@ -1690,27 +1690,27 @@ onMounted(async () => {
                             @click="toggleType(t.product_name)"
                             class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between gap-3 group cursor-pointer relative"
                             :class="isTypeSelected(t.product_name)
-                                ? 'border-emerald-500 bg-emerald-500/20 ring-2 ring-emerald-500/40 shadow-md'
-                                : 'border-surface-750 bg-surface-800/80 hover:border-emerald-500/50 hover:bg-surface-800'">
+                                ? 'border-primary-600 bg-primary-500/10 dark:bg-emerald-950/40 ring-1 ring-primary-500/30 shadow-xs'
+                                : 'border-surface-700 bg-surface-800 hover:border-primary-500/50 hover:bg-surface-750'">
                             <div class="flex items-center gap-3 min-w-0 flex-1">
                                 <!-- Checkbox Indicator -->
                                 <div class="w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all"
                                     :class="isTypeSelected(t.product_name)
-                                        ? 'bg-emerald-500 border-emerald-400 text-white'
-                                        : 'border-surface-600 bg-surface-900 group-hover:border-emerald-500/60'">
+                                        ? 'bg-primary-600 border-primary-500 text-white'
+                                        : 'border-surface-600 bg-surface-750 group-hover:border-primary-500/60'">
                                     <Check v-if="isTypeSelected(t.product_name)" :size="13" class="stroke-[3]" />
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <span class="text-[10px] font-black uppercase text-emerald-400">
+                                    <span class="text-[10px] font-black uppercase text-primary-700 dark:text-emerald-400">
                                         {{ t.brand || 'HP' }}
                                     </span>
-                                    <div class="font-black text-xs sm:text-sm text-white truncate group-hover:text-emerald-400 transition-colors mt-0.5">
+                                    <div class="font-black text-xs sm:text-sm text-neutral-900 dark:text-white truncate group-hover:text-primary-600 dark:group-hover:text-emerald-400 transition-colors mt-0.5">
                                         {{ t.product_name }}
                                     </div>
                                 </div>
                             </div>
                             <div class="shrink-0 flex items-center gap-2">
-                                <span class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/30">
+                                <span class="px-2.5 py-1 rounded-full text-xs font-black bg-surface-700/60 text-text-primary font-mono border border-surface-600/40">
                                     {{ t.count }} unit
                                 </span>
                             </div>
@@ -1720,13 +1720,13 @@ onMounted(async () => {
                     <!-- Bottom Navigation: Back on Left, Proceed on Right -->
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-surface-750">
                         <button type="button" @click="currentStep = 4"
-                            class="w-full sm:w-auto px-5 h-12 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-surface-400 hover:text-white hover:bg-surface-800 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            class="w-full sm:w-auto px-5 h-12 rounded-2xl border border-surface-700 font-bold text-xs sm:text-sm text-text-secondary hover:text-text-primary hover:bg-surface-800 transition-all flex items-center justify-center gap-2 cursor-pointer">
                             <ArrowLeft :size="16" />
                             <span>Kembali ke Pilih Metode</span>
                         </button>
 
                         <button type="button" @click="proceedFromStep5Imei" :disabled="selectedProductNames.length === 0"
-                            class="w-full sm:w-auto btn btn-primary px-8 h-12 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="w-full sm:w-auto btn btn-primary px-8 h-12 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span>Lanjutkan Audit ({{ selectedProductNames.length }} Tipe, {{ selectedTotalUnits }} Unit)</span>
                             <ArrowRight :size="16" />
                         </button>
@@ -1740,37 +1740,37 @@ onMounted(async () => {
         <!-- ========================================== -->
         <div v-else-if="currentStep === 6" class="space-y-6">
             <!-- Active Context Banner -->
-            <div class="bg-gradient-to-r from-surface-850 via-surface-900 to-surface-850 p-4 sm:p-5 rounded-3xl border border-surface-750 shadow-lg flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+            <div class="bg-surface-800 p-4 sm:p-5 rounded-3xl border border-surface-700 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                 <div class="flex items-center gap-3.5 min-w-0">
-                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                    <div class="w-11 h-11 rounded-2xl bg-primary-500/15 text-primary-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-primary-500/30">
                         <Building2 :size="22" />
                     </div>
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="text-base sm:text-lg font-black text-white tracking-tight">
+                            <h3 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white tracking-tight">
                                 {{ activeBranch?.name || 'Cabang Terpilih' }}
                             </h3>
-                            <span v-if="activeBranch?.code" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-800 text-surface-300 font-mono border border-surface-700">
+                            <span v-if="activeBranch?.code" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-surface-700/60 text-text-primary font-mono border border-surface-600/40">
                                 {{ activeBranch.code }}
                             </span>
                             <!-- Role Scope Pill Badge -->
-                            <span v-if="isAudit" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-purple-900/60 text-purple-300 border border-purple-500/40">
+                            <span v-if="isAudit" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40">
                                 <ShieldCheck :size="12" />
                                 <span>SO AUDIT</span>
                             </span>
-                            <span v-else-if="isLeader" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-sky-900/60 text-sky-300 border border-sky-500/40">
+                            <span v-else-if="isLeader" class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40">
                                 <UserCheck :size="12" />
                                 <span>SO LEADER</span>
                             </span>
-                            <span v-else class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-900/60 text-emerald-300 border border-emerald-500/40">
+                            <span v-else class="inline-flex items-center gap-1 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30">
                                 <Store :size="12" />
                                 <span>SO CS TOKO</span>
                             </span>
                         </div>
-                        <p class="text-xs text-surface-400 mt-1 flex items-center gap-2 flex-wrap">
-                            <span>Pelaksana: <strong class="text-white">{{ activeCsUser?.name || 'CS' }}</strong></span>
+                        <p class="text-xs text-text-secondary mt-1 flex items-center gap-2 flex-wrap">
+                            <span>Pelaksana: <strong class="text-neutral-900 dark:text-white">{{ activeCsUser?.name || 'CS' }}</strong></span>
                             <span class="text-surface-600">•</span>
-                            <span class="font-bold text-emerald-400">
+                            <span class="font-bold text-primary-700 dark:text-emerald-400">
                                 <template v-if="categoryType === 'hp' && method === 'by_imei'">
                                     Tipe: {{ selectedProductNames.length === 1 ? selectedProductNames[0] : (selectedProductNames.length === (filteredAvailableTypes || []).length ? 'Semua Tipe (' + selectedProductNames.length + ' Tipe)' : (selectedProductNames.length > 0 ? selectedProductNames.join(', ') : (selectedProductName || 'Semua Tipe'))) }} ({{ pendingItems.length }} unit)
                                 </template>
@@ -1790,22 +1790,22 @@ onMounted(async () => {
                 <!-- Fast Navigation Buttons -->
                 <div class="flex items-center gap-2 self-stretch lg:self-auto flex-wrap">
                     <button v-if="method === 'by_imei'" type="button" @click="changeSelectedType"
-                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 transition-all cursor-pointer">
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-primary-500/15 border border-primary-500/30 text-xs font-bold text-primary-800 dark:text-emerald-300 hover:bg-primary-500/25 transition-all cursor-pointer">
                         <Smartphone :size="14" />
                         <span>Ganti Tipe HP</span>
                     </button>
                     <button v-else type="button" @click="currentStep = 5"
-                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-xs font-bold text-emerald-300 hover:bg-emerald-500/30 transition-all cursor-pointer">
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-primary-500/15 border border-primary-500/30 text-xs font-bold text-primary-800 dark:text-emerald-300 hover:bg-primary-500/25 transition-all cursor-pointer">
                         <Filter :size="14" />
                         <span>Filter Brand / Kondisi</span>
                     </button>
                     <button v-if="hasCsStep" type="button" @click="currentStep = 2"
-                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-surface-300 hover:text-white hover:border-surface-600 transition-all cursor-pointer">
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-text-secondary hover:text-text-primary hover:border-surface-600 transition-all cursor-pointer">
                         <User :size="14" />
                         <span>Ganti CS</span>
                     </button>
                     <button type="button" @click="currentStep = 1"
-                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-surface-300 hover:text-white hover:border-surface-600 transition-all cursor-pointer">
+                        class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-text-secondary hover:text-text-primary hover:border-surface-600 transition-all cursor-pointer">
                         <Building2 :size="14" />
                         <span>Ganti Toko</span>
                     </button>
@@ -1813,14 +1813,14 @@ onMounted(async () => {
             </div>
 
             <!-- Examination Content (Tabel by Unit ATAU Checklist by IMEI) -->
-            <div class="bg-surface-850 rounded-3xl border border-surface-750 p-4 sm:p-6 shadow-xl space-y-4">
+            <div class="bg-surface-800 rounded-3xl border border-surface-700 p-4 sm:p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                        <h2 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                            <ClipboardCheck :size="20" class="text-emerald-400" />
+                        <h2 class="text-base sm:text-lg font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                            <ClipboardCheck :size="20" class="text-primary-600 dark:text-emerald-400" />
                             <span>{{ method === 'by_imei' ? 'Checklist IMEI: ' + selectedProductName : 'Tabel Perhitungan Unit Fisik' }}</span>
                         </h2>
-                        <p class="text-xs text-surface-400 mt-0.5">
+                        <p class="text-xs text-text-secondary mt-0.5">
                             {{ method === 'by_imei' ? 'Tandai Ada ✅ jika unit fisik ditemukan di toko, atau ❌ jika tidak ada' : 'Masukkan jumlah fisik unit yang ditemukan di toko' }}
                         </p>
                     </div>
@@ -1828,22 +1828,22 @@ onMounted(async () => {
                     <!-- Quick Action Buttons -->
                     <div class="flex items-center gap-2 self-stretch sm:self-auto flex-wrap">
                         <button v-if="method === 'by_unit' && pendingItems.length > 0" type="button" @click="fillAllMatchingSystem"
-                            class="px-3.5 py-2 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-surface-300 hover:text-white hover:border-emerald-500 transition-all cursor-pointer">
+                            class="px-3.5 py-2 rounded-xl border border-surface-700 bg-surface-750 text-xs font-bold text-text-secondary hover:text-text-primary hover:border-primary-500 transition-all cursor-pointer">
                             Isi Sesuai Sistem
                         </button>
                         <template v-else-if="method === 'by_imei' && pendingItems.length > 0">
                             <button type="button" @click="markAllPresent(true)"
-                                class="px-3.5 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold hover:bg-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer">
+                                class="px-3.5 py-2 rounded-xl bg-primary-500/15 border border-primary-500/30 text-primary-800 dark:text-emerald-300 text-xs font-bold hover:bg-primary-500/25 transition-all flex items-center gap-1.5 cursor-pointer">
                                 <Check :size="15" />
                                 <span>Semua Ada ✅</span>
                             </button>
                             <button type="button" @click="markAllPresent(false)"
-                                class="px-3.5 py-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold hover:bg-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer">
+                                class="px-3.5 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs font-bold hover:bg-rose-500/25 transition-all flex items-center gap-1.5 cursor-pointer">
                                 <X :size="15" />
                                 <span>Semua Tidak Ada ❌</span>
                             </button>
                             <button type="button" @click="markAllPresent(null)"
-                                class="px-3.5 py-2 rounded-xl bg-surface-800 border border-surface-700 text-surface-400 text-xs font-bold hover:bg-surface-750 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer">
+                                class="px-3.5 py-2 rounded-xl bg-surface-750 border border-surface-700 text-text-secondary text-xs font-bold hover:bg-surface-700 hover:text-text-primary transition-all flex items-center gap-1.5 cursor-pointer">
                                 <RotateCcw :size="14" />
                                 <span>Reset (Belum Dipilih)</span>
                             </button>
@@ -1852,27 +1852,27 @@ onMounted(async () => {
                 </div>
 
                 <!-- Loading State -->
-                <div v-if="loadingItems" class="py-14 flex flex-col items-center justify-center text-surface-400 gap-3">
-                    <RefreshCw :size="26" class="animate-spin text-emerald-500" />
+                <div v-if="loadingItems" class="py-14 flex flex-col items-center justify-center text-text-secondary gap-3">
+                    <RefreshCw :size="26" class="animate-spin text-primary-600" />
                     <span class="text-xs font-medium">Memuat data stok sistem...</span>
                 </div>
 
                 <!-- Empty State -->
-                <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-surface-400 bg-surface-900/60 rounded-2xl border border-dashed border-surface-700 px-4">
-                    <CheckCircle2 :size="40" class="mx-auto text-emerald-400 mb-2" />
-                    <p class="text-base font-bold text-white">
+                <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-text-secondary bg-surface-750/60 rounded-2xl border border-dashed border-surface-700 px-4">
+                    <CheckCircle2 :size="40" class="mx-auto text-primary-600 dark:text-emerald-400 mb-2" />
+                    <p class="text-base font-bold text-neutral-900 dark:text-white">
                         Semua Unit Untuk Pilihan Ini Sudah Selesai di-SO Hari Ini ✅
                     </p>
-                    <p class="text-xs text-surface-400 mt-1 max-w-md mx-auto leading-relaxed">
+                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
                         Seluruh unit untuk filter ini telah tercatat di sistem hari ini. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
                     </p>
                     <div class="mt-4 flex items-center justify-center gap-2">
                         <button type="button" @click="currentStep = 5"
-                            class="px-4 py-2 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-white hover:border-emerald-500 transition-all cursor-pointer">
+                            class="px-4 py-2 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-text-primary hover:border-primary-500 transition-all cursor-pointer">
                             Pilih Brand / Tipe Lain
                         </button>
                         <router-link to="/inventory/opname/history"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all">
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-sm transition-all">
                             <History :size="15" />
                             <span>Buka History Stok Opname</span>
                         </router-link>
@@ -1883,7 +1883,7 @@ onMounted(async () => {
                 <div v-else-if="method === 'by_unit'" class="overflow-x-auto custom-scrollbar">
                     <table class="w-full text-left border-collapse min-w-[720px]">
                         <thead>
-                            <tr class="border-b border-surface-700 bg-surface-900/80 text-[11px] font-black text-surface-400 uppercase tracking-wider">
+                            <tr class="border-b border-surface-700 bg-surface-750 text-[11px] font-black text-text-secondary uppercase tracking-wider">
                                 <th class="py-3 px-3">Brand & Tipe Produk</th>
                                 <th class="py-3 px-3 text-center">Kondisi</th>
                                 <th class="py-3 px-3 text-center">Kapasitas</th>
@@ -1893,46 +1893,46 @@ onMounted(async () => {
                                 <th class="py-3 px-3">Catatan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-surface-800 text-sm">
-                            <tr v-for="it in pendingItems" :key="it.key" class="hover:bg-surface-800/60 transition-colors">
+                        <tbody class="divide-y divide-surface-700/60 text-sm">
+                            <tr v-for="it in pendingItems" :key="it.key" class="hover:bg-surface-750/60 transition-colors">
                                 <td class="py-3 px-3">
-                                    <div class="font-bold text-white">{{ it.product_name }}</div>
-                                    <div class="text-xs text-surface-400 font-medium">{{ it.brand }}</div>
+                                    <div class="font-bold text-neutral-900 dark:text-white">{{ it.product_name }}</div>
+                                    <div class="text-xs text-text-secondary font-medium">{{ it.brand }}</div>
                                 </td>
                                 <td class="py-3 px-3 text-center">
-                                    <span v-if="it.condition === 'new'" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                    <span v-if="it.condition === 'new'" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30">
                                         Baru
                                     </span>
-                                    <span v-else class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                    <span v-else class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
                                         Second
                                     </span>
                                 </td>
-                                <td class="py-3 px-3 text-center font-mono text-xs font-semibold text-surface-300">
+                                <td class="py-3 px-3 text-center font-mono text-xs font-semibold text-text-secondary">
                                     {{ it.storage || '-' }}
                                 </td>
                                 <td class="py-3 px-3 text-center">
-                                    <span class="px-2.5 py-1 rounded-lg bg-surface-800 border border-surface-700 font-black font-mono text-xs text-white">
+                                    <span class="px-2.5 py-1 rounded-lg bg-surface-750 border border-surface-700 font-black font-mono text-xs text-neutral-900 dark:text-white">
                                         {{ it.system_qty }}
                                     </span>
                                 </td>
                                 <td class="py-3 px-3 text-center">
                                     <input type="number" min="0" v-model.number="it.physical_qty" @input="onPhysicalQtyChange(it)"
-                                        class="w-24 text-center font-bold font-mono text-sm py-1.5 bg-surface-900 border border-surface-700 rounded-xl focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 text-white" />
+                                        class="w-24 text-center font-bold font-mono text-sm py-1.5 bg-surface-800 border border-surface-700 rounded-xl focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 text-neutral-900 dark:text-white" />
                                 </td>
                                 <td class="py-3 px-3 text-center font-mono font-bold text-xs">
-                                    <span v-if="it.difference === 0" class="text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-lg">
+                                    <span v-if="it.difference === 0" class="text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-lg">
                                         Cocok (0)
                                     </span>
-                                    <span v-else-if="it.difference < 0" class="text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-lg">
+                                    <span v-else-if="it.difference < 0" class="text-rose-700 dark:text-rose-400 bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 rounded-lg">
                                         Kurang ({{ it.difference }})
                                     </span>
-                                    <span v-else class="text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
+                                    <span v-else class="text-amber-700 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-lg">
                                         Lebih (+{{ it.difference }})
                                     </span>
                                 </td>
                                 <td class="py-3 px-3">
                                     <input type="text" v-model="it.notes" placeholder="Catatan (opsional)..."
-                                        class="w-full text-xs py-1.5 px-3 bg-surface-900 border border-surface-700 rounded-xl focus:ring-1 focus:ring-emerald-500 text-white placeholder:text-surface-500" />
+                                        class="w-full text-xs py-1.5 px-3 bg-surface-800 border border-surface-700 rounded-xl focus:ring-1 focus:ring-primary-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                                 </td>
                             </tr>
                         </tbody>
@@ -1944,40 +1944,40 @@ onMounted(async () => {
                     <div v-for="it in pendingItems" :key="it.product_detail_id || it.imei"
                         class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3"
                         :class="it.is_present === true
-                            ? 'bg-surface-800/80 border-emerald-500/50 ring-1 ring-emerald-500/20'
+                            ? 'bg-surface-800 border-primary-500/50 ring-1 ring-primary-500/20'
                             : (it.is_present === false
-                                ? 'bg-rose-950/20 border-rose-800/60'
-                                : 'bg-surface-800/40 border-surface-750')">
+                                ? 'bg-rose-500/5 border-rose-300 dark:border-rose-800/60'
+                                : 'bg-surface-800 border-surface-700')">
 
                         <div class="flex items-start justify-between gap-2">
                             <div>
-                                <div class="font-mono text-sm sm:text-base font-black text-white tracking-wider">
+                                <div class="font-mono text-sm sm:text-base font-black text-neutral-900 dark:text-white tracking-wider">
                                     {{ it.imei }}
                                 </div>
-                                <div class="text-xs text-surface-400 mt-1 flex flex-wrap items-center gap-2">
-                                    <span class="font-bold text-surface-200">{{ it.product_name }}</span>
-                                    <span v-if="it.storage && it.storage !== '-'" class="px-1.5 py-0.5 rounded bg-surface-700 text-[10px] font-mono font-bold text-white">
+                                <div class="text-xs text-text-secondary mt-1 flex flex-wrap items-center gap-2">
+                                    <span class="font-bold text-neutral-900 dark:text-white">{{ it.product_name }}</span>
+                                    <span v-if="it.storage && it.storage !== '-'" class="px-1.5 py-0.5 rounded bg-surface-700/60 text-[10px] font-mono font-bold text-text-primary border border-surface-600/40">
                                         {{ it.storage }}
                                     </span>
                                     <span class="px-1.5 py-0.5 rounded text-[10px] font-black"
                                         :class="it.condition === 'new' 
-                                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                                            ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30' 
                                             : (it.condition === 'ex_ibox' 
-                                                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40' 
-                                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40')">
+                                                ? 'bg-surface-700 text-text-primary border border-surface-600' 
+                                                : 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30')">
                                         {{ it.condition_label || (it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second')) }}
                                     </span>
-                                    <span class="text-surface-500 text-[11px]">{{ it.distributor }}</span>
+                                    <span class="text-text-secondary text-[11px]">{{ it.distributor }}</span>
                                 </div>
                             </div>
 
                             <!-- Status Indicator Pill -->
                             <span class="text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase"
                                 :class="it.is_present === true 
-                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30' 
                                     : (it.is_present === false 
-                                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
-                                        : 'bg-surface-700/60 text-surface-400 border border-surface-600')">
+                                        ? 'bg-rose-500/15 text-rose-800 dark:text-rose-300 border border-rose-500/30' 
+                                        : 'bg-surface-700/60 text-text-secondary border border-surface-600/40')">
                                 {{ it.is_present === true ? 'Ada ✅' : (it.is_present === false ? 'Tidak Ada ❌' : 'Belum Dipilih ⏳') }}
                             </span>
                         </div>
@@ -1987,16 +1987,16 @@ onMounted(async () => {
                             <button type="button" @click="it.is_present = true"
                                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
                                 :class="it.is_present === true
-                                    ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/40 font-black'
-                                    : 'border border-surface-700 bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-750'">
+                                    ? 'bg-primary-600 text-white shadow-sm ring-1 ring-primary-500/40 font-black'
+                                    : 'border border-surface-700 bg-surface-750 text-text-secondary hover:text-text-primary hover:bg-surface-700'">
                                 <Check :size="16" />
                                 <span>Ada ✅</span>
                             </button>
                             <button type="button" @click="it.is_present = false"
                                 class="py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all touch-manipulation min-h-[44px] cursor-pointer"
                                 :class="it.is_present === false
-                                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/40 font-black'
-                                    : 'border border-surface-700 bg-surface-800 text-surface-400 hover:text-white hover:bg-surface-750'">
+                                    ? 'bg-rose-600 text-white shadow-sm ring-1 ring-rose-500/40 font-black'
+                                    : 'border border-surface-700 bg-surface-750 text-text-secondary hover:text-text-primary hover:bg-surface-700'">
                                 <X :size="16" />
                                 <span>Tidak Ada ❌</span>
                             </button>
@@ -2005,78 +2005,78 @@ onMounted(async () => {
                         <!-- Input Notes if Missing -->
                         <div v-if="it.is_present === false" class="pt-1">
                             <input type="text" v-model="it.notes" placeholder="Alasan tidak ada (misal: servis, display, dll)..."
-                                class="w-full text-xs py-2 px-3 bg-surface-900 border border-rose-800/80 rounded-xl focus:ring-1 focus:ring-rose-500 text-white placeholder:text-surface-500" />
+                                class="w-full text-xs py-2 px-3 bg-surface-800 border border-rose-300 dark:border-rose-800/80 rounded-xl focus:ring-1 focus:ring-rose-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Section: Barang Lebih (Surplus) -->
-            <div class="bg-surface-850 rounded-3xl border border-surface-750 p-4 sm:p-6 shadow-xl space-y-4">
+            <div class="bg-surface-800 rounded-3xl border border-surface-700 p-4 sm:p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                        <h2 class="text-base font-black text-white flex items-center gap-2">
-                            <AlertTriangle :size="18" class="text-amber-400" />
+                        <h2 class="text-base font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                            <AlertTriangle :size="18" class="text-amber-600 dark:text-amber-400" />
                             <span>Barang Lebih (Fisik Ada tapi Tidak di Sistem)</span>
                         </h2>
-                        <p class="text-xs text-surface-400 mt-0.5">
+                        <p class="text-xs text-text-secondary mt-0.5">
                             Catat jika ada barang fisik di toko yang belum terdaftar di sistem.
                         </p>
                     </div>
 
                     <button type="button" @click="showExcessModal = true"
-                        class="px-3.5 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold hover:bg-amber-500/30 transition-all flex items-center gap-1.5 cursor-pointer">
+                        class="px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-500/25 transition-all flex items-center gap-1.5 cursor-pointer">
                         <Plus :size="16" />
                         <span>Catat Barang Lebih</span>
                     </button>
                 </div>
 
                 <!-- List of Excess Items -->
-                <div v-if="excessItems.length > 0" class="divide-y divide-surface-800 border border-surface-750 rounded-2xl overflow-hidden">
-                    <div v-for="(ex, idx) in excessItems" :key="ex.id || idx" class="p-3.5 flex items-center justify-between gap-3 bg-surface-800/60">
+                <div v-if="excessItems.length > 0" class="divide-y divide-surface-700 border border-surface-700 rounded-2xl overflow-hidden">
+                    <div v-for="(ex, idx) in excessItems" :key="ex.id || idx" class="p-3.5 flex items-center justify-between gap-3 bg-surface-750/60">
                         <div class="space-y-0.5">
-                            <div class="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                            <div class="text-xs sm:text-sm font-bold text-neutral-900 dark:text-white flex items-center gap-2">
                                 <span>{{ ex.product_name }}</span>
-                                <span v-if="ex.brand" class="text-[10px] bg-surface-700 px-1.5 py-0.5 rounded font-medium text-surface-300">{{ ex.brand }}</span>
-                                <span v-if="ex.storage" class="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-bold font-mono">{{ ex.storage }}</span>
+                                <span v-if="ex.brand" class="text-[10px] bg-surface-700/60 px-1.5 py-0.5 rounded font-medium text-text-secondary">{{ ex.brand }}</span>
+                                <span v-if="ex.storage" class="text-[10px] bg-primary-500/15 text-primary-800 dark:text-emerald-300 px-1.5 py-0.5 rounded font-bold font-mono">{{ ex.storage }}</span>
                             </div>
-                            <div class="text-xs text-surface-400 flex flex-wrap items-center gap-2 font-mono">
+                            <div class="text-xs text-text-secondary flex flex-wrap items-center gap-2 font-mono">
                                 <span v-if="ex.imei">IMEI: {{ ex.imei }}</span>
                                 <span v-else>Jumlah: {{ ex.quantity }} unit</span>
-                                <span v-if="ex.notes" class="text-surface-500 font-sans italic">— "{{ ex.notes }}"</span>
+                                <span v-if="ex.notes" class="text-text-secondary font-sans italic">— "{{ ex.notes }}"</span>
                             </div>
                         </div>
-                        <button type="button" @click="removeExcessItem(idx)" class="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/20 rounded-xl transition-colors cursor-pointer">
+                        <button type="button" @click="removeExcessItem(idx)" class="p-2 text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-500/15 rounded-xl transition-colors cursor-pointer">
                             <Trash2 :size="16" />
                         </button>
                     </div>
                 </div>
-                <div v-else class="text-xs text-surface-500 italic py-2">
+                <div v-else class="text-xs text-text-secondary italic py-2">
                     Belum ada barang lebih yang dicatat.
                 </div>
             </div>
 
             <!-- Section: Foto Bukti SO & Catatan Umum -->
-            <div class="bg-surface-850 rounded-3xl border border-surface-750 p-4 sm:p-6 shadow-xl space-y-4">
-                <h2 class="text-base font-black text-white flex items-center gap-2">
-                    <Camera :size="18" class="text-emerald-400" />
+            <div class="bg-surface-800 rounded-3xl border border-surface-700 p-4 sm:p-6 shadow-sm space-y-4">
+                <h2 class="text-base font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                    <Camera :size="18" class="text-primary-600 dark:text-emerald-400" />
                     <span>Foto Bukti SO & Catatan Tambahan</span>
                 </h2>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Foto Upload -->
                     <div>
-                        <label class="block text-xs font-black text-surface-400 uppercase tracking-wider mb-2">
+                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider mb-2">
                             Foto Bukti Fisik Stok
                         </label>
 
                         <div class="flex items-center gap-3">
-                            <label class="flex items-center gap-2 px-4 py-2.5 bg-surface-800 border border-dashed border-surface-700 rounded-xl cursor-pointer hover:border-emerald-500 transition-colors text-xs font-semibold text-white">
-                                <Upload :size="16" class="text-emerald-400" />
+                            <label class="flex items-center gap-2 px-4 py-2.5 bg-surface-750 border border-dashed border-surface-700 rounded-xl cursor-pointer hover:border-primary-500 transition-colors text-xs font-semibold text-text-primary">
+                                <Upload :size="16" class="text-primary-600 dark:text-emerald-400" />
                                 <span>Pilih / Ambil Foto</span>
                                 <input type="file" accept="image/*" multiple @change="handlePhotoSelect" class="hidden" />
                             </label>
-                            <span class="text-xs text-surface-400">{{ photoPreviews.length }} foto terpilih</span>
+                            <span class="text-xs text-text-secondary">{{ photoPreviews.length }} foto terpilih</span>
                         </div>
 
                         <!-- Thumbnails Preview -->
@@ -2093,51 +2093,51 @@ onMounted(async () => {
 
                     <!-- Catatan Umum -->
                     <div>
-                        <label class="block text-xs font-black text-surface-400 uppercase tracking-wider mb-2">
+                        <label class="block text-xs font-black text-text-secondary uppercase tracking-wider mb-2">
                             Catatan Tambahan (Opsional)
                         </label>
                         <textarea v-model="generalNotes" rows="3" placeholder="Tuliskan catatan kondisi fisik stok, temuan khusus, atau kendala toko..."
-                            class="w-full text-xs sm:text-sm p-3 bg-surface-800 border border-surface-700 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-white placeholder:text-surface-500"></textarea>
+                            class="w-full text-xs sm:text-sm p-3 bg-surface-800 border border-surface-700 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60"></textarea>
                     </div>
                 </div>
             </div>
 
             <!-- Sticky Bottom Summary & Submit Dock -->
-            <div class="sticky bottom-4 z-30 bg-surface-900/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-surface-750 p-4 sm:p-5 shadow-2xl shadow-black/50 transition-all">
+            <div class="sticky bottom-4 z-30 bg-surface-800/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-surface-700 p-4 sm:p-5 shadow-xl transition-all">
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                     <!-- Summary Metrics Group -->
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-5 w-full lg:w-auto">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+                            <div class="w-10 h-10 rounded-2xl bg-primary-500/15 text-primary-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-primary-500/30">
                                 <ClipboardCheck :size="20" />
                             </div>
                             <div>
-                                <div class="text-[10px] uppercase font-black text-surface-400 tracking-wider">Hasil Pemeriksaan</div>
-                                <div class="text-sm sm:text-base font-black text-white">
-                                    {{ summaryStats.totalPhysical }} <span class="font-normal text-surface-400 text-xs">dari {{ summaryStats.totalSystem }} unit</span>
+                                <div class="text-[10px] uppercase font-black text-text-secondary tracking-wider">Hasil Pemeriksaan</div>
+                                <div class="text-sm sm:text-base font-black text-neutral-900 dark:text-white">
+                                    {{ summaryStats.totalPhysical }} <span class="font-normal text-text-secondary text-xs">dari {{ summaryStats.totalSystem }} unit</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Metrics Badges -->
                         <div class="flex flex-wrap items-center gap-2 text-xs">
-                            <div class="px-3 py-1.5 rounded-xl bg-surface-800 border border-surface-700 font-semibold text-surface-300 flex items-center gap-1.5">
+                            <div class="px-3 py-1.5 rounded-xl bg-surface-750 border border-surface-700 font-semibold text-text-secondary flex items-center gap-1.5">
                                 <span>Sistem:</span>
-                                <span class="font-bold font-mono text-white">{{ summaryStats.totalSystem }}</span>
+                                <span class="font-bold font-mono text-neutral-900 dark:text-white">{{ summaryStats.totalSystem }}</span>
                             </div>
-                            <div class="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 font-semibold text-emerald-300 flex items-center gap-1.5">
+                            <div class="px-3 py-1.5 rounded-xl bg-primary-500/15 border border-primary-500/30 font-semibold text-primary-800 dark:text-emerald-300 flex items-center gap-1.5">
                                 <span>Fisik Ada:</span>
                                 <span class="font-bold font-mono">{{ summaryStats.totalPhysical }}</span>
                             </div>
-                            <div v-if="method === 'by_imei' && summaryStats.totalUnselected > 0" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 font-semibold text-amber-300 flex items-center gap-1.5 animate-pulse">
+                            <div v-if="method === 'by_imei' && summaryStats.totalUnselected > 0" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 animate-pulse">
                                 <span>Belum Dipilih:</span>
                                 <span class="font-bold font-mono">{{ summaryStats.totalUnselected }}</span>
                             </div>
-                            <div v-if="summaryStats.totalMissing > 0" class="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 font-semibold text-rose-300 flex items-center gap-1.5">
+                            <div v-if="summaryStats.totalMissing > 0" class="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 font-semibold text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
                                 <span>Selisih:</span>
                                 <span class="font-bold font-mono">-{{ summaryStats.totalMissing }}</span>
                             </div>
-                            <div v-if="summaryStats.totalExcess > 0" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 font-semibold text-amber-300 flex items-center gap-1.5">
+                            <div v-if="summaryStats.totalExcess > 0" class="px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 font-semibold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
                                 <span>Lebih:</span>
                                 <span class="font-bold font-mono">+{{ summaryStats.totalExcess }}</span>
                             </div>
@@ -2149,15 +2149,15 @@ onMounted(async () => {
                         <button v-if="pendingItems.length === 0 && excessItems.length === 0 && totalAvailableUnits === 0"
                             type="button"
                             disabled
-                            class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-surface-800 border border-surface-700 text-surface-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-not-allowed min-h-[48px]">
-                            <CheckCircle2 :size="18" class="text-emerald-500" />
+                            class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-surface-750 border border-surface-700 text-text-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-not-allowed min-h-[48px]">
+                            <CheckCircle2 :size="18" class="text-primary-600" />
                             <span>Sudah Selesai di-SO Hari Ini (Reset 05:00 AM)</span>
                         </button>
                         <button v-else
                             type="button"
                             @click="handleVerifyAndSubmit"
                             :disabled="submitting || (pendingItems.length === 0 && excessItems.length === 0)"
-                            class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:from-emerald-700 active:to-teal-600 text-white font-black text-sm shadow-xl shadow-emerald-500/30 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]">
+                            class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white font-black text-sm shadow-lg shadow-primary-600/25 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]">
                             <RefreshCw v-if="submitting" :size="18" class="animate-spin" />
                             <CheckCircle2 v-else :size="18" />
                             <span>{{ submitting ? 'Menyimpan Hasil SO...' : 'Simpan & Selesaikan SO' }}</span>
@@ -2169,63 +2169,63 @@ onMounted(async () => {
 
         <!-- Modal Catat Barang Lebih -->
         <div v-if="showExcessModal" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-            <div class="bg-surface-850 rounded-3xl max-w-md w-full p-6 border border-surface-750 shadow-2xl space-y-4">
-                <div class="flex items-center justify-between border-b border-surface-750 pb-3">
-                    <h3 class="text-base font-black text-white flex items-center gap-2">
-                        <Plus :size="18" class="text-amber-400" />
+            <div class="bg-surface-800 rounded-3xl max-w-md w-full p-6 border border-surface-700 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-surface-700 pb-3">
+                    <h3 class="text-base font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                        <Plus :size="18" class="text-amber-600 dark:text-amber-400" />
                         <span>Tambah Barang Lebih</span>
                     </h3>
-                    <button @click="showExcessModal = false" class="p-1.5 rounded-lg text-surface-400 hover:text-white hover:bg-surface-800 transition-colors cursor-pointer">
+                    <button @click="showExcessModal = false" class="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors cursor-pointer">
                         <X :size="18" />
                     </button>
                 </div>
 
                 <div class="space-y-3 text-xs">
                     <div>
-                        <label class="block font-bold text-surface-300 uppercase mb-1">Merek / Brand</label>
+                        <label class="block font-bold text-text-secondary uppercase mb-1">Merek / Brand</label>
                         <input type="text" v-model="newExcess.brand" placeholder="Misal: iPhone / Samsung / Ugreen"
-                            class="w-full py-2.5 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white" />
+                            class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                     </div>
 
                     <div>
-                        <label class="block font-bold text-surface-300 uppercase mb-1">Nama / Tipe Barang *</label>
+                        <label class="block font-bold text-text-secondary uppercase mb-1">Nama / Tipe Barang *</label>
                         <input type="text" v-model="newExcess.product_name" placeholder="Misal: iPhone 13 / Charger 20W"
-                            class="w-full py-2.5 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white" />
+                            class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                     </div>
 
                     <div v-if="categoryType === 'hp'" class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block font-bold text-surface-300 uppercase mb-1">Storage (GB)</label>
+                            <label class="block font-bold text-text-secondary uppercase mb-1">Storage (GB)</label>
                             <input type="text" v-model="newExcess.storage" placeholder="Misal: 128 GB"
-                                class="w-full py-2.5 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white" />
+                                class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                         </div>
                         <div>
-                            <label class="block font-bold text-surface-300 uppercase mb-1">IMEI Unit</label>
+                            <label class="block font-bold text-text-secondary uppercase mb-1">IMEI Unit</label>
                             <input type="text" v-model="newExcess.imei" placeholder="15 digit IMEI"
-                                class="w-full py-2.5 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white font-mono" />
+                                class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60 font-mono" />
                         </div>
                     </div>
 
                     <div v-else>
-                        <label class="block font-bold text-surface-300 uppercase mb-1">Jumlah (Qty)</label>
+                        <label class="block font-bold text-text-secondary uppercase mb-1">Jumlah (Qty)</label>
                         <input type="number" min="1" v-model.number="newExcess.quantity"
-                            class="w-full py-2.5 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white font-mono" />
+                            class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60 font-mono" />
                     </div>
 
                     <div>
-                        <label class="block font-bold text-surface-300 uppercase mb-1">Catatan / Keterangan</label>
+                        <label class="block font-bold text-text-secondary uppercase mb-1">Catatan / Keterangan</label>
                         <textarea v-model="newExcess.notes" rows="2" placeholder="Keterangan asal barang lebih (misal: kiriman dari cabang lain)..."
-                            class="w-full py-2 px-3 bg-surface-900 border border-surface-700 rounded-xl text-sm text-white"></textarea>
+                            class="w-full py-2 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60"></textarea>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-2 pt-2 border-t border-surface-750">
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-surface-700">
                     <button type="button" @click="showExcessModal = false"
-                        class="px-4 py-2.5 rounded-xl text-xs font-bold text-surface-400 hover:bg-surface-800 hover:text-white cursor-pointer">
+                        class="px-4 py-2.5 rounded-xl text-xs font-bold text-text-secondary hover:bg-surface-700 hover:text-text-primary cursor-pointer">
                         Batal
                     </button>
                     <button type="button" @click="addExcessItem"
-                        class="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-surface-950 font-black text-xs shadow-md cursor-pointer">
+                        class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow-md cursor-pointer">
                         Simpan Barang Lebih
                     </button>
                 </div>

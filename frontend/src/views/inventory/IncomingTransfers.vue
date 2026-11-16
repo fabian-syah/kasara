@@ -228,12 +228,12 @@ onMounted(() => {
         <!-- Header Section -->
         <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-surface-700/50">
             <div class="flex items-start gap-5">
-                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-3xl flex items-center justify-center border border-blue-500/20 shadow-xl shadow-blue-500/5 shrink-0">
-                    <ArrowDownRight :size="32" class="text-blue-500" />
+                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-surface-750 rounded-3xl flex items-center justify-center border border-surface-700 shadow-sm shrink-0">
+                    <ArrowDownRight :size="32" class="text-primary-600 dark:text-primary-400" />
                 </div>
                 <div class="pt-1">
                     <h1 class="text-3xl lg:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
-                        Konfirmasi <span class="text-blue-500">Masuk</span> (OTW)
+                        Konfirmasi Masuk (OTW)
                     </h1>
                     <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
                         Daftar barang yang sedang dalam perjalanan menuju lokasi Anda. Silakan verifikasi barang saat tiba.
@@ -242,7 +242,7 @@ onMounted(() => {
             </div>
 
             <button @click="fetchPending" :disabled="isLoading"
-                class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-blue-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0 self-start lg:self-end">
+                class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-primary-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0 self-start lg:self-end">
                 <RefreshCw :size="20" :class="{ 'animate-spin': isLoading }" />
                 <span>{{ isLoading ? 'Memuat...' : 'Refresh Data' }}</span>
             </button>
@@ -274,21 +274,21 @@ onMounted(() => {
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                 <div v-for="transfer in transfers" :key="transfer.id"
-                    class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden border-l-4 border-l-blue-500 p-0 shadow-xl hover:shadow-blue-500/5 rounded-[2rem]"
+                    class="card hover:bg-surface-750 transition-all cursor-pointer group relative overflow-hidden border-l-4 border-l-primary-500 p-0 shadow-xl rounded-[2rem]"
                     @click="openConfirmModal(transfer)">
                     
                     <div class="p-6 lg:p-8">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-center gap-5">
-                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-700/50 text-blue-500 group-hover:scale-110 transition-transform border border-surface-600/30">
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-750 text-text-primary group-hover:scale-110 transition-transform border border-surface-700">
                                     <Building2 :size="32" />
                                 </div>
                                 <div>
-                                    <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-blue-400 transition-colors mb-1">
+                                    <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors mb-1">
                                         {{ transfer.receipt_id }}
                                     </p>
                                     <p class="text-base text-text-secondary font-medium flex items-center gap-2">
-                                        <User :size="16" class="text-blue-500/70" />
+                                        <User :size="16" class="text-text-secondary" />
                                         Dari: <span class="text-neutral-900 dark:text-white font-bold">{{ (transfer.inventory_user?.name || transfer.inventoryUser?.name) || transfer.user?.name || 'Unknown' }}</span>
                                     </p>
                                 </div>
@@ -301,7 +301,7 @@ onMounted(() => {
                                     Tanggal Kirim
                                 </p>
                                 <p class="text-sm lg:text-base font-bold text-text-primary flex items-center gap-2">
-                                    <Calendar :size="16" class="text-blue-500 opacity-70" />
+                                    <Calendar :size="16" class="text-text-secondary opacity-70" />
                                     {{ formatDate(transfer.created_at) }}
                                 </p>
                             </div>
@@ -331,15 +331,15 @@ onMounted(() => {
                     class="px-8 py-8 border-b border-surface-700 flex justify-between items-start bg-surface-800/80 backdrop-blur-xl z-20">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <div class="p-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                <ArrowDownRight :size="20" class="text-blue-500" />
+                            <div class="p-2.5 bg-surface-750 rounded-2xl border border-surface-700">
+                                <ArrowDownRight :size="20" class="text-primary-600 dark:text-primary-400" />
                             </div>
                             <h2 class="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">Konfirmasi Terima</h2>
                         </div>
                         <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
                             <span class="font-bold text-neutral-900 dark:text-white">{{ selectedTransfer.receipt_id }}</span>
                             <span class="opacity-30">•</span>
-                            <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-amber-500 border-amber-500/20 bg-amber-500/5">
+                            <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5">
                                 Verifikasi Unit
                             </span>
                         </div>
@@ -354,10 +354,10 @@ onMounted(() => {
                     
                     <!-- Account Selection Card -->
                     <div v-if="inventoryAccounts.length > 0"
-                        class="bg-blue-500/5 p-8 rounded-[2.5rem] border border-blue-500/20 backdrop-blur-sm shadow-inner group transition-all hover:bg-blue-500/10">
+                        class="bg-surface-750 p-8 rounded-[2.5rem] border border-surface-700 backdrop-blur-sm shadow-inner group transition-all">
                         <div class="flex items-center gap-4 mb-6">
-                            <div class="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 group-hover:scale-110 transition-transform">
-                                <User :size="24" class="text-blue-500" />
+                            <div class="p-3 bg-surface-700 rounded-2xl border border-surface-600 group-hover:scale-110 transition-transform">
+                                <User :size="24" class="text-text-primary" />
                             </div>
                             <div>
                                 <h3 class="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-tight">Akun Verifikator</h3>
@@ -367,7 +367,7 @@ onMounted(() => {
                         
                         <div class="grid grid-cols-1 gap-4">
                             <select v-model="selectedInventoryAccount"
-                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-xl">
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all appearance-none cursor-pointer shadow-xl">
                                 <option value="" disabled>Pilih Akun CS...</option>
                                 <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                     {{ acc.full_name }} — ({{ acc.code_id }})
@@ -382,8 +382,8 @@ onMounted(() => {
                         <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
                             <div class="flex items-center justify-between mb-8">
                                 <h3 class="font-black text-neutral-900 dark:text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
-                                    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5">
-                                        <Smartphone :size="20" class="text-blue-500" />
+                                    <div class="w-10 h-10 rounded-xl bg-surface-750 flex items-center justify-center border border-surface-700 shadow-sm">
+                                        <Smartphone :size="20" class="text-text-primary" />
                                     </div>
                                     Unit Barang HP <span class="text-text-secondary opacity-40 ml-2">({{ selectedTransfer.items.length }})</span>
                                 </h3>
@@ -396,15 +396,15 @@ onMounted(() => {
                                 <div v-for="item in selectedTransfer.items" :key="item.id"
                                     class="relative group cursor-pointer overflow-hidden p-6 rounded-[2rem] border-2 transition-all duration-300 shadow-lg"
                                     :class="form.accepted_items.includes(item.id)
-                                        ? 'bg-blue-500/5 border-blue-500/30 ring-1 ring-blue-500/20'
+                                        ? 'bg-surface-750 border-primary-500/30 ring-1 ring-primary-500/20'
                                         : 'bg-red-500/5 border-red-500/30 grayscale hover:grayscale-0'"
                                     @click="toggleHpItem(item.id)">
                                     
                                     <div class="flex items-start justify-between">
                                         <div class="space-y-2">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <p class="font-black text-xl text-neutral-900 dark:text-white tracking-tight group-hover:text-blue-400 transition-colors">
-                                                    <span v-if="getBrandName(item)" class="text-blue-500/70 mr-1">[{{ getBrandName(item) }}]</span>
+                                                <p class="font-black text-xl text-neutral-900 dark:text-white tracking-tight group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                                    <span v-if="getBrandName(item)" class="text-text-secondary mr-1">[{{ getBrandName(item) }}]</span>
                                                     {{ item.product?.name }}
                                                 </p>
                                             </div>
@@ -412,7 +412,7 @@ onMounted(() => {
                                                 {{ item.imei }}
                                             </p>
                                             <div class="flex items-center gap-2 pt-2">
-                                                <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-black border border-blue-500/10 uppercase">
+                                                <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-surface-700/60 text-text-primary text-[10px] font-black border border-surface-600/40 uppercase">
                                                     {{ item.ram }}/{{ item.storage }}
                                                 </span>
                                                 <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-surface-700 text-text-secondary text-[10px] font-black border border-surface-600 uppercase tracking-widest">
@@ -500,7 +500,7 @@ onMounted(() => {
                 <!-- Modal Footer -->
                 <div class="px-8 py-8 border-t border-surface-700 bg-surface-800/90 backdrop-blur-xl z-20">
                     <button @click="submitConfirmation()" :disabled="isSubmitting"
-                        class="w-full h-16 bg-blue-600 hover:bg-blue-500 shadow-xl shadow-blue-500/20 text-white font-black text-lg rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
+                        class="w-full h-16 bg-primary-600 hover:bg-primary-500 shadow-xl shadow-primary-500/20 text-white font-black text-lg rounded-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-4 disabled:opacity-50">
                         <Loader2 v-if="isSubmitting" :size="24" class="animate-spin" />
                         {{ isSubmitting ? 'MEMPROSES VERIFIKASI...' : 'TERIMA & INTEGRASIKAN KE STOK' }}
                         <CheckCircle2 v-if="!isSubmitting" :size="24" />

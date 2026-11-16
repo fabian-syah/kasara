@@ -1231,7 +1231,7 @@ async function exportInventory() {
                 <th class="cursor-pointer group relative">
                   <button @click="toggleFilterDropdown('brand')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Merek">
                     <span>Merek</span>
-                    <Filter :size="14" :class="filterBrand.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                    <Filter :size="14" :class="filterBrand.length > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-surface-400'" />
                   </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'brand'"
@@ -1263,7 +1263,7 @@ async function exportInventory() {
                 <th class="cursor-pointer group relative">
                   <button @click="toggleFilterDropdown('product')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Produk">
                     <span>Produk</span>
-                    <Filter :size="14" :class="filterProduct.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                    <Filter :size="14" :class="filterProduct.length > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-surface-400'" />
                   </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'product'"
@@ -1295,7 +1295,7 @@ async function exportInventory() {
                 <th class="hidden lg:table-cell cursor-pointer group relative">
                   <button @click="toggleFilterDropdown('capacity')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Kapasitas">
                     <span>Kapasitas</span>
-                    <Filter :size="14" :class="filterCapacity.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                    <Filter :size="14" :class="filterCapacity.length > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-surface-400'" />
                   </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'capacity'"
@@ -1330,7 +1330,7 @@ async function exportInventory() {
                 <th class="hidden xl:table-cell cursor-pointer group relative">
                   <button @click="toggleFilterDropdown('distributor')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Distributor">
                     <span>Distributor</span>
-                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-surface-400'" />
                   </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'distributor'"
@@ -1372,7 +1372,7 @@ async function exportInventory() {
                 <th class="hidden xl:table-cell cursor-pointer group relative">
                   <button @click="toggleFilterDropdown('distributor')" class="flex items-center justify-between w-full font-semibold uppercase tracking-wider text-xs outline-none" aria-label="Filter Distributor">
                     <span>Distributor / Supplier</span>
-                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-blue-400' : 'text-surface-400'" />
+                    <Filter :size="14" :class="filterDistributor.length > 0 ? 'text-primary-600 dark:text-primary-400' : 'text-surface-400'" />
                   </button>
                   <!-- Dropdown -->
                   <div v-if="activeFilterDropdown === 'distributor'"
@@ -1554,7 +1554,7 @@ async function exportInventory() {
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
                    {{ item.distributor?.name || item.distributor_name || item.supplier_name || item.latest_distributor || item.latest_supplier || '-' }}
                 </td>
-                <td class="text-sm font-bold text-blue-500 text-right">
+                <td class="text-sm font-bold text-neutral-900 dark:text-white text-right">
                   Rp {{ formatNumber(item.selling_price || item.price) }}
                 </td>
                 <td>
@@ -1589,7 +1589,7 @@ async function exportInventory() {
                   <span class="text-lg font-bold text-text-primary">{{ item.quantity }}</span>
                   <span class="text-xs text-text-secondary ml-1">Pcs</span>
                 </td>
-                <td class="text-sm font-bold text-blue-500 text-right">
+                <td class="text-sm font-bold text-neutral-900 dark:text-white text-right">
                   Rp {{ formatNumber(item.selling_price || item.price || 0) }}
                 </td>
                 <td class="text-sm text-text-secondary hidden xl:table-cell">
@@ -1715,7 +1715,7 @@ async function exportInventory() {
                 <div>
                   <label class="text-[10px] font-bold text-text-secondary uppercase tracking-wider block mb-1">Harga
                     Jual</label>
-                  <p class="text-lg font-bold text-blue-500">{{ formatCurrency(selectedItemDetail.selling_price) }}</p>
+                  <p class="text-lg font-bold text-neutral-900 dark:text-white">{{ formatCurrency(selectedItemDetail.selling_price) }}</p>
                 </div>
               </div>
               <div class="space-y-4">

@@ -225,7 +225,7 @@ function deleteProduct(id) {
             {{ product.brand }} • {{ product.category }}
           </p>
           <div class="flex items-center justify-between pt-2">
-            <span class="text-blue-500 dark:text-blue-400 font-bold">{{
+            <span class="text-neutral-900 dark:text-white font-bold">{{
               formatCurrency(product.price)
             }}</span>
             <span class="badge" :class="product.stock > product.minStock

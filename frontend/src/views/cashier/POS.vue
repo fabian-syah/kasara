@@ -263,7 +263,7 @@ function scrollToCart() {
                 <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">
                   {{ item.name }}
                 </h4>
-                <p class="text-blue-500 dark:text-blue-400 text-sm font-semibold">
+                <p class="text-neutral-900 dark:text-white text-sm font-semibold">
                   {{ formatCurrency(item.price) }}
                 </p>
               </div>
@@ -354,15 +354,15 @@ function scrollToCart() {
             <div class="grid grid-cols-3 gap-2">
               <button v-for="method in paymentMethods" :key="method.id" @click="selectedPaymentMethod = method.id"
                 class="p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2" :class="selectedPaymentMethod === method.id
-                  ? 'border-blue-500 bg-blue-500/10'
+                  ? 'border-primary-500 bg-primary-500/10'
                   : 'border-surface-700 hover:border-surface-600'
                   ">
                 <component :is="method.icon" :size="24" :class="selectedPaymentMethod === method.id
-                  ? 'text-blue-500 dark:text-blue-400'
+                  ? 'text-primary-600 dark:text-primary-400'
                   : 'text-slate-500 dark:text-slate-400'
                   " />
                 <span class="text-xs font-medium" :class="selectedPaymentMethod === method.id
-                  ? 'text-blue-500 dark:text-blue-400'
+                  ? 'text-primary-600 dark:text-primary-400 font-bold'
                   : 'text-slate-500 dark:text-slate-400'
                   ">
                   {{ method.label }}
@@ -386,7 +386,7 @@ function scrollToCart() {
 
             <!-- Exact Amount -->
             <button @click="setQuickAmount(cartTotal)"
-              class="w-full mt-2 py-2 text-sm font-medium text-blue-500 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20">
+              class="w-full mt-2 py-2 text-sm font-bold text-neutral-900 dark:text-white bg-surface-700/60 hover:bg-surface-700 rounded-lg transition-colors border border-surface-600">
               Uang Pas
             </button>
 

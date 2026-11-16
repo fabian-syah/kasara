@@ -433,13 +433,13 @@ const filteredProducts = computed(() => {
                                 formatNumber(b.hp_second) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 text-purple-400 font-medium">{{
                                 formatNumber(b.hp_ex_ibox) }}</td>
-                            <td class="px-6 py-4 border-b border-surface-800 text-blue-500 font-medium">
+                            <td class="px-6 py-4 border-b border-surface-800 text-text-primary font-medium">
                                 {{ formatNumber(b.angkat_barang) }}
                             </td>
                             <td class="px-6 py-4 border-b border-surface-800 text-red-500 font-medium">
                                 {{ formatNumber(b.refund) }}
                             </td>
-                            <td class="px-6 py-4 border-b border-surface-800 text-blue-400 font-medium">{{
+                            <td class="px-6 py-4 border-b border-surface-800 text-text-primary font-medium">{{
                                 formatNumber(b.non_hp) }}</td>
                             <td class="px-6 py-4 border-b border-surface-800 font-black text-text-primary">
                                 {{ formatNumber(b.hp_new + b.hp_second + b.hp_ex_ibox + b.non_hp + b.angkat_barang + b.refund) }}
@@ -594,13 +594,13 @@ const filteredProducts = computed(() => {
                                 </div>
                             </td>
                             <td class="px-6 py-4 border-b border-surface-800">
-                                <span class="font-bold text-blue-400">{{ formatNumber(c.hp_count) }}</span> HP
+                                <span class="font-bold text-text-primary">{{ formatNumber(c.hp_count) }}</span> HP
                             </td>
                             <td class="px-6 py-4 border-b border-surface-800">
                                 <span class="font-bold text-amber-400">{{ formatNumber(c.acc_count) }}</span> Item
                             </td>
                             <td class="px-6 py-4 border-b border-surface-800">
-                                <span class="font-bold text-blue-500">{{ formatNumber(c.ab_count) }}</span> Unit
+                                <span class="font-bold text-text-primary">{{ formatNumber(c.ab_count) }}</span> Unit
                             </td>
                             <td class="px-6 py-4 border-b border-surface-800">
                                 <span class="font-bold text-red-500">{{ formatNumber(c.refund_count) }}</span> Unit

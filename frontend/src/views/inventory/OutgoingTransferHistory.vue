@@ -115,12 +115,12 @@ onMounted(() => fetchHistory(1));
         <!-- Header Section -->
         <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-2 border-b border-surface-700/50">
             <div class="flex items-start gap-5">
-                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-3xl flex items-center justify-center border border-blue-500/20 shadow-xl shadow-blue-500/5 shrink-0">
-                    <FileText :size="32" class="text-blue-500" />
+                <div class="w-16 h-16 lg:w-20 lg:h-20 bg-surface-750 rounded-3xl flex items-center justify-center border border-surface-700 shadow-sm shrink-0">
+                    <FileText :size="32" class="text-primary-600 dark:text-primary-400" />
                 </div>
                 <div class="pt-1">
                     <h1 class="text-3xl lg:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
-                        Riwayat <span class="text-blue-500">Transfer</span> Keluar
+                        Riwayat Transfer Keluar
                     </h1>
                     <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
                         Monitor dan kelola seluruh riwayat pengiriman barang antar cabang dengan detail lengkap dan status real-time.
@@ -130,12 +130,12 @@ onMounted(() => fetchHistory(1));
 
             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
                 <div class="relative group flex-1 sm:w-80">
-                    <Search :size="20" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-blue-500 transition-colors" />
+                    <Search :size="20" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-primary-500 transition-colors" />
                     <input v-model="searchQuery" type="text" placeholder="Cari No. Resi atau Cabang..."
-                        class="w-full bg-surface-800 border border-surface-600 rounded-2xl pl-12 pr-4 py-3.5 text-base text-neutral-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-text-secondary/50 shadow-inner" />
+                        class="w-full bg-surface-800 border border-surface-600 rounded-2xl pl-12 pr-4 py-3.5 text-base text-neutral-900 dark:text-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-text-secondary/50 shadow-inner" />
                 </div>
                 <button @click="fetchHistory(currentPage)" :disabled="isLoading"
-                    class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-blue-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0">
+                    class="btn btn-secondary gap-3 rounded-2xl h-[54px] px-6 text-base font-bold border border-surface-600 hover:border-primary-500/50 hover:bg-surface-750 transition-all shadow-lg active:scale-95 shrink-0">
                     <RefreshCw :size="20" :class="{ 'animate-spin': isLoading }" />
                     <span class="sm:hidden lg:block">{{ isLoading ? 'Memuat...' : 'Refresh' }}</span>
                 </button>
@@ -169,16 +169,16 @@ onMounted(() => fetchHistory(1));
                     <div class="p-6 lg:p-8">
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex items-center gap-5">
-                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-700/50 text-blue-500 group-hover:scale-110 transition-transform border border-surface-600/30">
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-surface-750 text-text-primary group-hover:scale-110 transition-transform border border-surface-700">
                                     <Building2 :size="32" />
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-3 mb-1">
-                                        <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                                        <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                                             {{ transfer.receipt_id }}
                                         </p>
                                         <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] shadow-sm border"
-                                            :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'">
+                                            :class="transfer.status === 'confirmed' || transfer.status === 'received' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'">
                                             {{ transfer.status }}
                                         </span>
                                     </div>
@@ -197,7 +197,7 @@ onMounted(() => fetchHistory(1));
                                     Tanggal Kirim
                                 </p>
                                 <p class="text-sm lg:text-base font-bold text-text-primary flex items-center gap-2">
-                                    <Calendar :size="16" class="text-blue-500 opacity-70" />
+                                    <Calendar :size="16" class="text-text-secondary opacity-70" />
                                     {{ formatDate(transfer.created_at) }}
                                 </p>
                             </div>
@@ -246,8 +246,8 @@ onMounted(() => fetchHistory(1));
                     class="px-8 py-8 border-b border-surface-700 flex justify-between items-start bg-surface-800/80 backdrop-blur-xl z-20">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
-                            <div class="p-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/20">
-                                <FileText :size="20" class="text-blue-500" />
+                            <div class="p-2.5 bg-surface-750 rounded-2xl border border-surface-700">
+                                <FileText :size="20" class="text-primary-600 dark:text-primary-400" />
                             </div>
                             <h2 class="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">Detail Transfer</h2>
                         </div>
@@ -255,7 +255,7 @@ onMounted(() => fetchHistory(1));
                             <span class="font-bold text-neutral-900 dark:text-white">{{ selectedTransfer.receipt_id }}</span>
                             <span class="opacity-30">•</span>
                             <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border"
-                                :class="selectedTransfer.status === 'confirmed' || selectedTransfer.status === 'received' ? 'text-green-500 border-green-500/20 bg-green-500/5' : 'text-amber-500 border-amber-500/20 bg-amber-500/5'">
+                                :class="selectedTransfer.status === 'confirmed' || selectedTransfer.status === 'received' ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'">
                                 {{ selectedTransfer.status }}
                             </span>
                         </div>
@@ -266,34 +266,34 @@ onMounted(() => fetchHistory(1));
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-surface-800">
                     <!-- High Level Info Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-blue-500/20 transition-colors group">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-surface-600 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Pengirim / Kurir</p>
                             <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-                                <div class="p-2 bg-blue-500/10 rounded-lg"><User :size="20" class="text-blue-500" /></div>
+                                <div class="p-2 bg-surface-700 rounded-lg"><User :size="20" class="text-text-primary" /></div>
                                 {{ selectedTransfer.inventoryUser?.full_name || selectedTransfer.inventoryUser?.name || selectedTransfer.user?.name || 'Unknown' }}
                             </p>
                         </div>
-                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-blue-500/20 transition-colors group">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-surface-600 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Dikirim Tanggal</p>
                             <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-                                <div class="p-2 bg-blue-500/10 rounded-lg"><Calendar :size="20" class="text-blue-500" /></div>
+                                <div class="p-2 bg-surface-700 rounded-lg"><Calendar :size="20" class="text-text-primary" /></div>
                                 {{ formatDate(selectedTransfer.created_at) }}
                             </p>
                         </div>
-                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-blue-500/20 transition-colors group">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-surface-600 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Lokasi Tujuan</p>
                             <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-                                <div class="p-2 bg-blue-500/10 rounded-lg"><Store :size="20" class="text-blue-500" /></div>
+                                <div class="p-2 bg-surface-700 rounded-lg"><Store :size="20" class="text-text-primary" /></div>
                                 {{ selectedTransfer.destination?.name || selectedTransfer.destination_branch?.name || 'Unknown' }}
                             </p>
                         </div>
-                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-blue-500/20 transition-colors group">
+                        <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-surface-600 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Total Muatan</p>
                             <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
-                                <div class="p-2 bg-blue-500/10 rounded-lg"><Package :size="20" class="text-blue-500" /></div>
+                                <div class="p-2 bg-surface-700 rounded-lg"><Package :size="20" class="text-text-primary" /></div>
                                 {{ (selectedTransfer.items?.length || 0) + (selectedTransfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }} Unit
                             </p>
                         </div>
@@ -340,25 +340,25 @@ onMounted(() => fetchHistory(1));
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.items.filter(i => i.status !== 'in_transit' && i.pivot?.status !== 'rejected')"
                                     :key="item.id"
-                                    class="flex items-center justify-between p-5 rounded-[1.5rem] border border-surface-700 bg-surface-800/80 shadow-md hover:border-blue-500/30 transition-all group">
+                                    class="flex items-center justify-between p-5 rounded-[1.5rem] border border-surface-700 bg-surface-800/80 shadow-md hover:border-surface-600 transition-all group">
                                     <div class="space-y-1.5 text-left">
                                         <div class="flex items-center gap-2 flex-wrap">
-                                            <p class="font-black text-lg text-neutral-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
-                                                <span v-if="getBrandName(item)" class="text-blue-500 opacity-80 mr-1">[{{ getBrandName(item) }}]</span>
+                                            <p class="font-black text-lg text-neutral-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                                                <span v-if="getBrandName(item)" class="text-text-secondary mr-1">[{{ getBrandName(item) }}]</span>
                                                 {{ item.product?.name }}
                                             </p>
                                         </div>
                                         <div class="flex items-center gap-3">
-                                            <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500 dark:text-blue-400 text-[10px] font-bold border border-blue-500/20">
+                                            <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-surface-700/60 text-text-primary text-[10px] font-bold border border-surface-600/40">
                                                 {{ item.ram }}/{{ item.storage }}
                                             </span>
-                                            <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-black border border-amber-500/20 uppercase">
+                                            <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black border border-amber-500/20 uppercase">
                                                 {{ item.condition }}
                                             </span>
                                         </div>
                                         <p class="text-xs font-mono font-bold text-text-secondary tracking-widest pt-1">{{ item.imei }}</p>
                                     </div>
-                                    <CheckCircle2 :size="24" class="text-green-500 shrink-0 opacity-40" />
+                                    <CheckCircle2 :size="24" class="text-emerald-500 shrink-0 opacity-40" />
                                 </div>
                             </div>
                         </div>
@@ -384,7 +384,7 @@ onMounted(() => fetchHistory(1));
                                             {{ item.product?.name }}
                                         </p>
                                         <div class="flex items-center gap-3">
-                                            <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-surface-900/60 text-blue-500 dark:text-blue-400 text-[10px] font-bold border border-surface-700">
+                                            <span v-if="item.ram || item.storage" class="px-2 py-0.5 rounded-md bg-surface-700/60 text-text-primary text-[10px] font-bold border border-surface-600/40">
                                                 {{ item.ram }}/{{ item.storage }}
                                             </span>
                                             <span v-if="item.condition" class="px-2 py-0.5 rounded-md bg-surface-900/60 text-amber-500 text-[10px] font-black border border-surface-700 uppercase">
