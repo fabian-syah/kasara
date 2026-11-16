@@ -199,11 +199,11 @@ const routes = [
             },
             {
                 path: 'inventory/stock-opname',
-                alias: ['inventory/data-stok'],
+                alias: ['inventory/data-stok', 'inventory/stok-data'],
                 name: 'StockOpname',
                 component: () => import('../views/inventory/StockOpname.vue'),
                 meta: {
-                    title: 'Data Stok',
+                    title: 'Stok Data',
                     menu: 'inventory_opname',
                     permissions: ['inventory.view', 'audit.view', 'inventory']
                 }
