@@ -2205,7 +2205,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                 class="text-xs font-black text-primary-500 print:text-black uppercase tracking-[0.5em] mb-4">
                                 Stock Report</h2>
                             <p
-                                class="text-4xl font-black text-white print:text-black tabular-nums tracking-tighter mb-2">
+                                class="text-4xl font-black text-neutral-900 dark:text-white print:text-black tabular-nums tracking-tighter mb-2">
                                 {{ activeBranchName }}</p>
                             <div class="flex items-center justify-center gap-2">
                                 <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -2225,42 +2225,42 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                 <tbody class="text-lg font-bold">
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone New</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.iphone_new }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone Scd</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.iphone_scd }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Iphone Ex Ibox</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.iphone_ex_ibox }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Android New</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.android_new }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Android Scd</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.android_scd }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Laptop</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.laptop }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Tv</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.tv }}</td>
                                     </tr>
                                     <tr class="border-b border-surface-700/50 print:border-black">
                                         <td class="py-2.5 text-text-secondary print:text-black">Inventaris Toko</td>
-                                        <td class="py-2.5 text-right text-white print:text-black tabular-nums">{{
+                                        <td class="py-2.5 text-right text-neutral-900 dark:text-white print:text-black tabular-nums">{{
                                             newEraReport.stats.inventaris_toko }}</td>
                                     </tr>
                                 </tbody>
@@ -2269,7 +2269,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
 
                         <div class="pt-6 border-t-2 border-surface-600 print:border-black mt-6">
                             <div class="flex justify-between items-center">
-                                <span class="text-xl font-black text-white print:text-black uppercase italic">Total
+                                <span class="text-xl font-black text-neutral-900 dark:text-white print:text-black uppercase italic">Total
                                     Handphone</span>
                                 <span
                                     class="text-3xl font-black text-primary-500 print:text-black tabular-nums underline decoration-primary-500/30 underline-offset-8">{{
@@ -2284,7 +2284,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                             </div>
 
                             <h3
-                                class="text-2xl font-black text-white print:text-black uppercase tracking-tighter italic text-center">
+                                class="text-2xl font-black text-neutral-900 dark:text-white print:text-black uppercase tracking-tighter italic text-center">
                                 Rincian Unit</h3>
 
                             <!-- iPhone Sections -->
@@ -2302,7 +2302,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2320,7 +2320,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2338,7 +2338,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2357,7 +2357,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2375,7 +2375,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2394,7 +2394,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2413,7 +2413,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -2432,7 +2432,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                             class="flex justify-between text-base font-bold py-1 border-b border-surface-700/20 print:border-black last:border-0">
                                             <span class="text-text-secondary print:text-black uppercase text-[10px]">{{
                                                 item.name }}</span>
-                                            <span class="text-white print:text-black tabular-nums">{{ item.qty }}</span>
+                                            <span class="text-neutral-900 dark:text-white print:text-black tabular-nums">{{ item.qty }}</span>
                                         </div>
                                     </div>
                                 </div>

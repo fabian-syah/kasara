@@ -919,7 +919,7 @@ watch(() => filters.value.executor_role, () => {
 <template>
     <div class="space-y-5 pb-8">
         <!-- Top Navigation & Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:!bg-surface-800 p-4 sm:p-6 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-800 p-4 sm:p-6 rounded-2xl border border-surface-700 shadow-sm">
             <div>
                 <div class="flex items-center gap-2.5">
                     <button @click="router.back()" class="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-surface-700 transition-colors">
@@ -936,7 +936,7 @@ watch(() => filters.value.executor_role, () => {
 
             <div class="flex items-center gap-2 self-stretch sm:self-auto">
                 <button type="button" @click="fetchHistory(pagination.current_page)" :disabled="loading"
-                    class="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-gray-200 dark:border-surface-600 bg-white dark:!bg-surface-700 text-xs sm:text-sm font-semibold text-text-primary hover:border-emerald-500 transition-all shadow-sm">
+                    class="flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-750 text-xs sm:text-sm font-semibold text-text-primary hover:border-emerald-500 transition-all shadow-sm">
                     <RefreshCw :size="15" :class="{ 'animate-spin': loading }" />
                     <span class="hidden sm:inline">Segarkan</span>
                 </button>

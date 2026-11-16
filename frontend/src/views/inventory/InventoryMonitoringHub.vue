@@ -43,9 +43,9 @@ const activeTab = ref("incoming_otw"); // Default to incoming_otw
 const lastOtwTab = ref("incoming_otw");
 
 const topCards = [
-    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-text-primary", bg: "bg-surface-750", border: "border-surface-700", activeBorder: "border-primary-500 shadow-sm" },
-    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/30", activeBorder: "border-purple-500/80 shadow-purple-500/10" },
-    { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10", border: "border-red-500/30", activeBorder: "border-red-500/80 shadow-red-500/10" },
+    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/15 dark:bg-emerald-950/50", border: "border-emerald-500/40", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-md" },
+    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10 dark:bg-purple-950/40", border: "border-purple-500/30", activeBorder: "border-purple-500 ring-2 ring-purple-500/30 shadow-purple-500/10" },
+    { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10 dark:bg-red-950/40", border: "border-red-500/30", activeBorder: "border-red-500 ring-2 ring-red-500/30 shadow-red-500/10" },
 ];
 
 function selectTopCard(id) {
@@ -750,12 +750,12 @@ onMounted(() => {
                         <div class="p-5 lg:p-6 rounded-[2rem] border bg-surface-800/60 border-surface-700/50 flex flex-col justify-between gap-4 relative overflow-hidden group">
                             <div class="space-y-2">
                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Aset Pengiriman (OUT)</h3>
-                                <p class="text-xl lg:text-[15px] xl:text-lg 2xl:text-2xl font-black text-neutral-900 dark:text-white tracking-tighter transition-all duration-300 break-words" :title="formatCurrency(assetOutValue)">
+                                <p class="text-xl lg:text-[15px] xl:text-lg 2xl:text-2xl font-black text-emerald-500 tracking-tighter transition-all duration-300 break-words" :title="formatCurrency(assetOutValue)">
                                     {{ formatCurrency(assetOutValue) }}
                                 </p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-surface-700/60 text-neutral-900 dark:text-white font-bold">
+                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 font-bold">
                                     Realtime
                                 </span>
                                 <span class="text-[10px] text-text-secondary">dalam pengiriman</span>
@@ -768,19 +768,17 @@ onMounted(() => {
                         <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
                             class="p-5 lg:p-6 rounded-[2rem] border transition-all duration-300 flex items-start gap-3.5 cursor-pointer text-left w-full relative overflow-hidden group"
                             :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                                ? `${card.bg} ${card.activeBorder} text-white`
+                                ? `${card.bg} ${card.activeBorder}`
                                 : 'bg-surface-800 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600 shadow-sm'">
                             <div class="p-3.5 rounded-2xl flex items-center justify-center shrink-0"
                                 :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                                    ? 'bg-white/10 text-white'
+                                    ? (card.id === 'incoming_otw' ? 'bg-primary-500 text-white shadow-md shadow-primary-500/20' : card.id === 'outgoing_otw' ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' : 'bg-red-500 text-white shadow-md shadow-red-500/20')
                                     : 'bg-surface-700 text-text-secondary group-hover:text-primary-500 transition-all'">
                                 <component :is="card.icon" :size="20" />
                             </div>
                             <div class="space-y-1">
-                                <h3 class="text-base lg:text-lg font-black tracking-tight leading-none"
-                                    :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id ? 'text-white' : 'text-neutral-900 dark:text-white'">{{ card.name }}</h3>
-                                <p class="text-[11px] lg:text-xs font-medium tracking-normal leading-snug"
-                                    :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id ? 'text-white/80' : 'text-text-secondary'">{{ card.description }}</p>
+                                <h3 class="text-base lg:text-lg font-black tracking-tight leading-none text-neutral-900 dark:text-white">{{ card.name }}</h3>
+                                <p class="text-[11px] lg:text-xs font-medium tracking-normal leading-snug text-text-secondary">{{ card.description }}</p>
                             </div>
                         </button>
                     </div>
@@ -790,27 +788,27 @@ onMounted(() => {
                 <div class="mt-10 flex gap-8 border-b border-surface-700/30 pb-px">
                     <button @click="activeTab = lastOtwTab"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
+                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) ? 'text-primary-600 dark:text-emerald-400 font-black' : 'text-text-secondary hover:text-primary-600 dark:hover:text-emerald-400'">
                         <span>Sedang Diproses</span>
-                        <div v-if="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab)" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
+                        <div v-if="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab)" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_in'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_in' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
+                        :class="activeTab === 'history_in' ? 'text-primary-600 dark:text-emerald-400 font-black' : 'text-text-secondary hover:text-primary-600 dark:hover:text-emerald-400'">
                         <span>Riwayat Masuk</span>
-                        <div v-if="activeTab === 'history_in'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_in'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_out'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_out' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
+                        :class="activeTab === 'history_out' ? 'text-primary-600 dark:text-emerald-400 font-black' : 'text-text-secondary hover:text-primary-600 dark:hover:text-emerald-400'">
                         <span>Riwayat Keluar</span>
-                        <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_failed'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_failed' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
+                        :class="activeTab === 'history_failed' ? 'text-primary-600 dark:text-emerald-400 font-black' : 'text-text-secondary hover:text-primary-600 dark:hover:text-emerald-400'">
                         <span>Riwayat Gagal Kirim</span>
-                        <div v-if="activeTab === 'history_failed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_failed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500 rounded-full"></div>
                     </button>
                 </div>
             </div>

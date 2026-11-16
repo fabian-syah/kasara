@@ -20,19 +20,19 @@
   --color-primary-800: #065f46;
   --color-primary-900: #064e3b;
 
-  /* Surface Colors (White/Light) */
+  /* Surface Colors (White/Light - Cards tinted with Kasara Green Theme) */
   --color-surface-950: #ffffff;
-  --color-surface-900: #f8fafc;
-  --color-surface-850: #f1f5f9;
-  --color-surface-800: #ffffff;
-  --color-surface-750: #f8fafc;
-  --color-surface-700: #e2e8f0;
-  --color-surface-600: #cbd5e1;
-  --color-surface-500: #94a3b8;
+  --color-surface-900: #ffffff;
+  --color-surface-850: #e6f9ef;
+  --color-surface-800: var(--color-primary-50);
+  --color-surface-750: #f0fdf4;
+  --color-surface-700: var(--color-primary-200);
+  --color-surface-600: #9dd8bb;
+  --color-surface-500: #6ee7b7;
 
   /* Text Colors */
   --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
+  --color-text-secondary: #334155;
   /* Dark gray, almost black for hierarchy */
   --color-text-inverse: #ffffff;
 }
