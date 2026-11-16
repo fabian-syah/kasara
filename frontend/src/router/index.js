@@ -203,7 +203,7 @@ const routes = [
                 name: 'StockOpname',
                 component: () => import('../views/inventory/StockOpname.vue'),
                 meta: {
-                    title: 'Stok Opname',
+                    title: 'Data Stok',
                     menu: 'inventory_opname',
                     permissions: ['inventory.view', 'audit.view', 'inventory']
                 }
@@ -213,7 +213,7 @@ const routes = [
                 name: 'StockOpnameRun',
                 component: () => import('../views/inventory/StockOpnameRun.vue'),
                 meta: {
-                    title: 'Data Stok',
+                    title: 'Stok Opname',
                     menu: 'opname_run',
                     permissions: ['inventory.view', 'audit.view', 'inventory']
                 }
