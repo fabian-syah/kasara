@@ -953,14 +953,14 @@ onMounted(async () => {
                             <RotateCcw :size="22" />
                         </div>
                         <div>
-                            <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">Konfirmasi Koreksi Spesifikasi</h3>
+                            <h3 class="text-base sm:text-lg font-bold text-neutral-900 dark:text-white tracking-wide">Konfirmasi Koreksi Spesifikasi</h3>
                             <p class="text-xs text-text-secondary">Pastikan data perubahan spesifikasi unit sudah tepat</p>
                         </div>
                     </div>
                     <button
                         type="button"
                         @click="showConfirmModal = false"
-                        class="p-1.5 rounded-xl bg-surface-800 text-text-secondary hover:text-white hover:bg-surface-700 transition-colors"
+                        class="p-1.5 rounded-xl bg-surface-800 text-text-secondary hover:text-neutral-900 dark:hover:text-white hover:bg-surface-700 transition-colors"
                     >
                         <X :size="18" />
                     </button>
@@ -969,7 +969,7 @@ onMounted(async () => {
                 <!-- IMEI Info -->
                 <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-surface-800 border border-surface-700/70 text-xs">
                     <span class="text-text-secondary font-medium">Nomor IMEI Unit:</span>
-                    <span class="font-mono font-bold text-white bg-surface-700/60 px-2.5 py-0.5 rounded-lg border border-surface-600">
+                    <span class="font-mono font-bold text-neutral-900 dark:text-white bg-surface-700/60 px-2.5 py-0.5 rounded-lg border border-surface-600">
                         {{ deviceData.imei }}
                     </span>
                 </div>
@@ -978,21 +978,21 @@ onMounted(async () => {
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <!-- Sebelum (Salah Input) -->
                     <div class="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 space-y-1.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400 block">Sebelum (Salah Input)</span>
-                        <p class="text-sm font-extrabold text-white">{{ deviceData.product_name }}</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-rose-500 dark:text-rose-400 block">Sebelum (Salah Input)</span>
+                        <p class="text-sm font-extrabold text-neutral-900 dark:text-white">{{ deviceData.product_name }}</p>
                         <div class="text-xs space-y-0.5 text-text-secondary">
-                            <div>Merek: <span class="text-white font-medium">{{ deviceData.brand_name }}</span></div>
-                            <div>Storage: <span class="text-white font-medium">{{ deviceData.storage }}</span></div>
+                            <div>Merek: <span class="text-neutral-900 dark:text-white font-medium">{{ deviceData.brand_name }}</span></div>
+                            <div>Storage: <span class="text-neutral-900 dark:text-white font-medium">{{ deviceData.storage }}</span></div>
                         </div>
                     </div>
 
                     <!-- Sesudah (Koreksi Benar) -->
                     <div class="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1.5">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">Koreksi Baru (Benar)</span>
-                        <p class="text-sm font-extrabold text-white">{{ form.type_name }}</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400 block">Koreksi Baru (Benar)</span>
+                        <p class="text-sm font-extrabold text-neutral-900 dark:text-white">{{ form.type_name }}</p>
                         <div class="text-xs space-y-0.5 text-text-secondary">
-                            <div>Merek: <span class="text-white font-medium">{{ form.brand_name || deviceData.brand_name }}</span></div>
-                            <div>Storage: <span class="text-white font-medium">{{ form.storage }}</span></div>
+                            <div>Merek: <span class="text-neutral-900 dark:text-white font-medium">{{ form.brand_name || deviceData.brand_name }}</span></div>
+                            <div>Storage: <span class="text-neutral-900 dark:text-white font-medium">{{ form.storage }}</span></div>
                         </div>
                     </div>
                 </div>
@@ -1004,11 +1004,11 @@ onMounted(async () => {
                             <User :size="13" class="text-amber-400" />
                             <span>CS yang salah input:</span>
                         </span>
-                        <strong class="text-amber-400 font-bold uppercase">{{ form.cs_name_mistake }}</strong>
+                        <strong class="text-amber-500 dark:text-amber-400 font-bold uppercase">{{ form.cs_name_mistake }}</strong>
                     </div>
                     <div v-if="form.notes" class="pt-2 border-t border-surface-700/60 text-text-secondary">
                         <span class="block text-[11px] font-medium text-text-secondary mb-0.5">Catatan / Alasan:</span>
-                        <p class="text-white italic bg-surface-900/60 p-2 rounded-lg text-xs">{{ form.notes }}</p>
+                        <p class="text-neutral-800 dark:text-white italic bg-surface-900/60 p-2 rounded-lg text-xs">{{ form.notes }}</p>
                     </div>
                 </div>
 

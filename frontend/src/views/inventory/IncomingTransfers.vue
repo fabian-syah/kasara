@@ -232,7 +232,7 @@ onMounted(() => {
                     <ArrowDownRight :size="32" class="text-blue-500" />
                 </div>
                 <div class="pt-1">
-                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                    <h1 class="text-3xl lg:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
                         Konfirmasi <span class="text-blue-500">Masuk</span> (OTW)
                     </h1>
                     <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
@@ -284,12 +284,12 @@ onMounted(() => {
                                     <Building2 :size="32" />
                                 </div>
                                 <div>
-                                    <p class="font-black text-xl lg:text-2xl text-white group-hover:text-blue-400 transition-colors mb-1">
+                                    <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-blue-400 transition-colors mb-1">
                                         {{ transfer.receipt_id }}
                                     </p>
                                     <p class="text-base text-text-secondary font-medium flex items-center gap-2">
                                         <User :size="16" class="text-blue-500/70" />
-                                        Dari: <span class="text-white font-bold">{{ (transfer.inventory_user?.name || transfer.inventoryUser?.name) || transfer.user?.name || 'Unknown' }}</span>
+                                        Dari: <span class="text-neutral-900 dark:text-white font-bold">{{ (transfer.inventory_user?.name || transfer.inventoryUser?.name) || transfer.user?.name || 'Unknown' }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -306,7 +306,7 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="text-right">
-                                <p class="text-xl lg:text-2xl font-black text-white">
+                                <p class="text-xl lg:text-2xl font-black text-neutral-900 dark:text-white">
                                     {{ (transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }}
                                     <span class="text-xs font-bold text-text-secondary uppercase ml-1">Unit</span>
                                 </p>
@@ -334,10 +334,10 @@ onMounted(() => {
                             <div class="p-2.5 bg-blue-500/10 rounded-2xl border border-blue-500/20">
                                 <ArrowDownRight :size="20" class="text-blue-500" />
                             </div>
-                            <h2 class="text-3xl font-black text-white tracking-tight">Konfirmasi Terima</h2>
+                            <h2 class="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">Konfirmasi Terima</h2>
                         </div>
                         <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
-                            <span class="font-bold text-white">{{ selectedTransfer.receipt_id }}</span>
+                            <span class="font-bold text-neutral-900 dark:text-white">{{ selectedTransfer.receipt_id }}</span>
                             <span class="opacity-30">•</span>
                             <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-amber-500 border-amber-500/20 bg-amber-500/5">
                                 Verifikasi Unit
@@ -350,7 +350,7 @@ onMounted(() => {
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-surface-800">
                     
                     <!-- Account Selection Card -->
                     <div v-if="inventoryAccounts.length > 0"
@@ -360,14 +360,14 @@ onMounted(() => {
                                 <User :size="24" class="text-blue-500" />
                             </div>
                             <div>
-                                <h3 class="text-lg font-black text-white uppercase tracking-tight">Akun Verifikator</h3>
+                                <h3 class="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-tight">Akun Verifikator</h3>
                                 <p class="text-sm text-text-secondary font-medium italic opacity-70">Pilih identitas yang akan memproses stok ini</p>
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-1 gap-4">
                             <select v-model="selectedInventoryAccount"
-                                class="w-full bg-surface-900/80 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-xl">
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-lg font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all appearance-none cursor-pointer shadow-xl">
                                 <option value="" disabled>Pilih Akun CS...</option>
                                 <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                     {{ acc.full_name }} — ({{ acc.code_id }})
@@ -381,7 +381,7 @@ onMounted(() => {
                         <!-- HP Items -->
                         <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
                             <div class="flex items-center justify-between mb-8">
-                                <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
+                                <h3 class="font-black text-neutral-900 dark:text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em]">
                                     <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-lg shadow-blue-500/5">
                                         <Smartphone :size="20" class="text-blue-500" />
                                     </div>
@@ -403,7 +403,7 @@ onMounted(() => {
                                     <div class="flex items-start justify-between">
                                         <div class="space-y-2">
                                             <div class="flex items-center gap-2 flex-wrap">
-                                                <p class="font-black text-xl text-white tracking-tight group-hover:text-blue-400 transition-colors">
+                                                <p class="font-black text-xl text-neutral-900 dark:text-white tracking-tight group-hover:text-blue-400 transition-colors">
                                                     <span v-if="getBrandName(item)" class="text-blue-500/70 mr-1">[{{ getBrandName(item) }}]</span>
                                                     {{ item.product?.name }}
                                                 </p>
@@ -434,7 +434,7 @@ onMounted(() => {
                                         <p class="text-[10px] font-black text-red-400 uppercase tracking-[0.3em] mb-2 px-1">Alasan Penolakan</p>
                                         <textarea v-model="form.items_rejection[item.id]"
                                             placeholder="Jelaskan kenapa unit ditolak (misal: IMEI beda, pecah, dsb)..."
-                                            class="w-full bg-surface-900/50 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all min-h-[80px] shadow-inner font-medium"></textarea>
+                                            class="w-full bg-surface-900 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-red-500 focus:ring-4 focus:ring-red-500/10 transition-all min-h-[80px] shadow-inner font-medium"></textarea>
                                     </div>
                                     
                                     <!-- Status Badge -->
@@ -447,7 +447,7 @@ onMounted(() => {
 
                         <!-- Non-HP Items Section -->
                         <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                            <h3 class="font-black text-neutral-900 dark:text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
                                 <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
                                     <Package :size="20" class="text-orange-500" />
                                 </div>
@@ -456,18 +456,18 @@ onMounted(() => {
                             
                             <div class="grid grid-cols-1 gap-6">
                                 <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
-                                    class="p-8 rounded-[2.5rem] border border-surface-700 bg-surface-800/50 shadow-xl hover:border-orange-500/30 transition-all group">
+                                    class="p-8 rounded-[2.5rem] border border-surface-700 bg-surface-800 shadow-xl hover:border-orange-500/30 transition-all group">
                                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                                         <div class="flex items-center gap-5">
                                             <div class="w-14 h-14 bg-surface-700/50 rounded-2xl flex items-center justify-center border border-surface-600/30 text-orange-500">
                                                 <Package :size="24" />
                                             </div>
                                             <div>
-                                                <p class="font-black text-xl text-white leading-tight group-hover:text-orange-400 transition-colors">
+                                                <p class="font-black text-xl text-neutral-900 dark:text-white leading-tight group-hover:text-orange-400 transition-colors">
                                                     <span v-if="getBrandName(item)" class="text-orange-500/70 mr-1">[{{ getBrandName(item) }}]</span>
                                                     {{ item.product?.name }}
                                                 </p>
-                                                <p class="text-sm font-bold text-text-secondary mt-1 tracking-tight">Total Dikirim: <span class="text-white">{{ item.quantity }} Unit</span></p>
+                                                <p class="text-sm font-bold text-text-secondary mt-1 tracking-tight">Total Dikirim: <span class="text-neutral-900 dark:text-white">{{ item.quantity }} Unit</span></p>
                                             </div>
                                         </div>
                                         

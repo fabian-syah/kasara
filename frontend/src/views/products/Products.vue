@@ -127,7 +127,7 @@ function deleteProduct(id) {
     <!-- Header -->
     <div class="flex justify-between items-end">
       <div>
-        <h1 class="text-2xl font-bold text-white tracking-tight">Produk</h1>
+        <h1 class="text-2xl font-bold text-neutral-900 dark:text-white tracking-tight">Produk</h1>
         <p class="text-slate-500 mt-1">Kelola master data produk</p>
       </div>
       <button @click="openAddModal" class="btn btn-primary">
@@ -144,7 +144,7 @@ function deleteProduct(id) {
         </div>
         <div>
           <p class="text-slate-500 text-sm">Total Produk</p>
-          <p class="text-xl font-bold text-white">
+          <p class="text-xl font-bold text-neutral-900 dark:text-white">
             {{ inventoryStore.totalProducts }}
           </p>
         </div>
@@ -155,7 +155,7 @@ function deleteProduct(id) {
         </div>
         <div>
           <p class="text-slate-500 text-sm">Kategori</p>
-          <p class="text-xl font-bold text-white">{{ categories.length }}</p>
+          <p class="text-xl font-bold text-neutral-900 dark:text-white">{{ categories.length }}</p>
         </div>
       </div>
       <div class="card flex items-center gap-4">
@@ -164,7 +164,7 @@ function deleteProduct(id) {
         </div>
         <div>
           <p class="text-slate-500 text-sm">Brand</p>
-          <p class="text-xl font-bold text-white">8</p>
+          <p class="text-xl font-bold text-neutral-900 dark:text-white">8</p>
         </div>
       </div>
       <div class="card flex items-center gap-4">
@@ -173,7 +173,7 @@ function deleteProduct(id) {
         </div>
         <div>
           <p class="text-slate-500 text-sm">Nilai Total</p>
-          <p class="text-xl font-bold text-white">
+          <p class="text-xl font-bold text-neutral-900 dark:text-white">
             {{ formatCurrency(inventoryStore.totalValue) }}
           </p>
         </div>
@@ -220,12 +220,12 @@ function deleteProduct(id) {
 
         <div class="space-y-2">
           <p class="text-xs text-slate-500 font-mono">{{ product.sku }}</p>
-          <h3 class="font-semibold text-white truncate">{{ product.name }}</h3>
+          <h3 class="font-semibold text-neutral-900 dark:text-white truncate">{{ product.name }}</h3>
           <p class="text-sm text-slate-500">
             {{ product.brand }} • {{ product.category }}
           </p>
           <div class="flex items-center justify-between pt-2">
-            <span class="text-blue-400 font-bold">{{
+            <span class="text-blue-500 dark:text-blue-400 font-bold">{{
               formatCurrency(product.price)
             }}</span>
             <span class="badge" :class="product.stock > product.minStock
@@ -247,13 +247,13 @@ function deleteProduct(id) {
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeModal"></div>
 
         <div
-          class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          class="relative bg-surface-800 rounded-2xl border border-surface-700 w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
           <button @click="closeModal"
-            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors">
+            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
             <X :size="20" />
           </button>
 
-          <h3 class="text-xl font-bold text-white mb-6">
+          <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-6">
             {{ editingProduct ? "Edit Produk" : "Tambah Produk Baru" }}
           </h3>
 

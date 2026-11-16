@@ -516,7 +516,7 @@ const getCategoryColor = (cat) => {
                                 </td>
                                 <td class="px-6 py-4 hidden lg:table-cell">
                                     <div class="flex flex-col">
-                                        <div class="flex items-center gap-2 text-sm font-bold text-white">
+                                        <div class="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-white">
                                             <User :size="14" class="text-primary-400" />
                                             <span>{{ item.inventory_user ? (item.inventory_user.full_name || item.inventory_user.name) : '-' }}</span>
                                         </div>
@@ -562,7 +562,7 @@ const getCategoryColor = (cat) => {
                                 </td>
                                 <td class="px-6 py-4 hidden lg:table-cell">
                                     <div class="flex flex-col">
-                                        <div class="flex items-center gap-2 text-sm font-bold text-white">
+                                        <div class="flex items-center gap-2 text-sm font-bold text-neutral-900 dark:text-white">
                                             <User :size="14" class="text-primary-400" />
                                             <span>{{ item.inventory_user ? (item.inventory_user.full_name || item.inventory_user.name) : '-' }}</span>
                                         </div>

@@ -664,7 +664,7 @@ onMounted(() => {
                             <LayoutDashboard :size="24" class="text-primary-500" />
                         </div>
                         <div>
-                            <h1 class="text-2xl font-black text-white tracking-tight">Monitoring OTW</h1>
+                            <h1 class="text-2xl font-black text-neutral-900 dark:text-white tracking-tight">Monitoring OTW</h1>
                             <p class="text-xs text-text-secondary font-medium tracking-widest uppercase opacity-60">
                                 Inventory Transfer Hub</p>
                         </div>
@@ -674,7 +674,7 @@ onMounted(() => {
                     <div v-if="activeTab.includes('history')" class="relative flex-1 max-w-md slide-in">
                         <Search :size="18" class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary" />
                         <input v-model="searchQuery" type="text" placeholder="Cari Resi atau Cabang..."
-                            class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary-500 transition-all shadow-inner" />
+                            class="w-full bg-surface-800 border border-surface-700 rounded-xl pl-12 pr-4 py-2.5 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-primary-500 transition-all shadow-inner" />
                     </div>
 
                     <div class="flex items-center gap-3 ml-auto">
@@ -768,17 +768,19 @@ onMounted(() => {
                         <button v-for="card in topCards" :key="card.id" @click="selectTopCard(card.id)"
                             class="p-5 lg:p-6 rounded-[2rem] border transition-all duration-300 flex items-start gap-3.5 cursor-pointer text-left w-full relative overflow-hidden group"
                             :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
-                                ? `${card.bg} ${card.activeBorder}`
-                                : 'bg-surface-800/60 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600'">
+                                ? `${card.bg} ${card.activeBorder} text-white`
+                                : 'bg-surface-800 border-surface-700/50 hover:bg-surface-750 hover:border-surface-600 shadow-sm'">
                             <div class="p-3.5 rounded-2xl flex items-center justify-center shrink-0"
                                 :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id
                                     ? 'bg-white/10 text-white'
-                                    : 'bg-surface-700 text-text-secondary group-hover:text-white transition-all'">
+                                    : 'bg-surface-700 text-text-secondary group-hover:text-primary-500 transition-all'">
                                 <component :is="card.icon" :size="20" />
                             </div>
                             <div class="space-y-1">
-                                <h3 class="text-base lg:text-lg font-black text-white tracking-tight leading-none">{{ card.name }}</h3>
-                                <p class="text-[11px] lg:text-xs text-text-secondary font-medium tracking-normal leading-snug">{{ card.description }}</p>
+                                <h3 class="text-base lg:text-lg font-black tracking-tight leading-none"
+                                    :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id ? 'text-white' : 'text-neutral-900 dark:text-white'">{{ card.name }}</h3>
+                                <p class="text-[11px] lg:text-xs font-medium tracking-normal leading-snug"
+                                    :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) && activeTab === card.id ? 'text-white/80' : 'text-text-secondary'">{{ card.description }}</p>
                             </div>
                         </button>
                     </div>
@@ -788,27 +790,27 @@ onMounted(() => {
                 <div class="mt-10 flex gap-8 border-b border-surface-700/30 pb-px">
                     <button @click="activeTab = lastOtwTab"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        :class="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab) ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
                         <span>Sedang Diproses</span>
-                        <div v-if="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab)" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                        <div v-if="['incoming_otw', 'outgoing_otw', 'failed_otw'].includes(activeTab)" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_in'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_in' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        :class="activeTab === 'history_in' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
                         <span>Riwayat Masuk</span>
-                        <div v-if="activeTab === 'history_in'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_in'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_out'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_out' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        :class="activeTab === 'history_out' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
                         <span>Riwayat Keluar</span>
-                        <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_out'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
                     </button>
                     <button @click="activeTab = 'history_failed'"
                         class="pb-4 text-sm font-bold transition-all relative cursor-pointer"
-                        :class="activeTab === 'history_failed' ? 'text-white font-black' : 'text-text-secondary hover:text-white'">
+                        :class="activeTab === 'history_failed' ? 'text-neutral-900 dark:text-white font-black' : 'text-text-secondary hover:text-neutral-900 dark:hover:text-white'">
                         <span>Riwayat Gagal Kirim</span>
-                        <div v-if="activeTab === 'history_failed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full"></div>
+                        <div v-if="activeTab === 'history_failed'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-neutral-900 dark:bg-white rounded-full"></div>
                     </button>
                 </div>
             </div>
@@ -839,10 +841,10 @@ onMounted(() => {
             <!-- Unified Table Section -->
             <div v-else class="space-y-8 animate-in duration-500 mt-6">
                 <!-- Desktop Table (With Horizontal Scroll for No Cut-offs!) -->
-                <div class="hidden md:block overflow-x-auto rounded-[2rem] border border-surface-700/50 bg-surface-800/40 backdrop-blur-sm shadow-xl custom-scrollbar">
+                <div class="hidden md:block overflow-x-auto rounded-[2rem] border border-surface-700/50 bg-surface-800 backdrop-blur-sm shadow-xl custom-scrollbar">
                     <table class="w-full text-left border-collapse min-w-[1250px]">
                         <thead>
-                            <tr class="border-b border-surface-700/70 bg-surface-800/85">
+                            <tr class="border-b border-surface-700/70 bg-surface-750/50">
                                 <th class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">Id Transaksi</th>
                                 <th v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5 text-xs font-black uppercase tracking-wider text-text-secondary opacity-60">
                                     {{ ['incoming_otw', 'history_in'].includes(activeTab) ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}
@@ -857,19 +859,19 @@ onMounted(() => {
                         </thead>
                         <tbody class="divide-y divide-surface-700/30">
                             <tr v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
-                                class="group cursor-pointer hover:bg-surface-700/40 transition-colors duration-200">
+                                class="group cursor-pointer hover:bg-surface-750/70 transition-colors duration-200">
                                 <td class="px-8 py-5 whitespace-nowrap">
                                     <div class="flex flex-col gap-2.5">
                                         <!-- Receipt ID Badge -->
                                         <div class="flex items-center">
                                             <div class="px-3 py-1.5 bg-surface-750 border border-surface-700 rounded-lg flex items-center gap-2 shadow-sm">
                                                 <FileText :size="14" class="text-text-secondary" />
-                                                <span class="text-xs font-black text-white tracking-wider">{{ transfer.receipt_id }}</span>
+                                                <span class="text-xs font-black text-neutral-900 dark:text-white tracking-wider">{{ transfer.receipt_id }}</span>
                                             </div>
                                         </div>
                                         
                                         <!-- Extra Info (Sender/Receiver) depending on tab -->
-                                        <div class="flex flex-col gap-1.5 bg-surface-800/50 p-2.5 rounded-xl border border-surface-700/50 w-fit mt-1">
+                                        <div class="flex flex-col gap-1.5 bg-surface-850/50 p-2.5 rounded-xl border border-surface-700/50 w-fit mt-1">
                                             <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
                                                 <div class="flex items-center gap-2">
                                                     <div class="w-5 h-5 rounded-md bg-surface-700 flex items-center justify-center shrink-0">
@@ -877,7 +879,7 @@ onMounted(() => {
                                                     </div>
                                                     <div class="flex flex-col">
                                                         <span class="text-[8px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Pengirim</span>
-                                                        <span class="text-[10px] font-bold text-white leading-none">{{ getSenderBranchName(transfer) }}</span>
+                                                        <span class="text-[10px] font-bold text-neutral-900 dark:text-white leading-none">{{ getSenderBranchName(transfer) }}</span>
                                                     </div>
                                                 </div>
                                                 <div v-if="getSenderAccountName(transfer)" class="flex items-center gap-2">
@@ -897,7 +899,7 @@ onMounted(() => {
                                                     </div>
                                                     <div class="flex flex-col">
                                                         <span class="text-[8px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
-                                                        <span class="text-[10px] font-bold text-white leading-none">{{ getReceiverBranchName(transfer) }}</span>
+                                                        <span class="text-[10px] font-bold text-neutral-900 dark:text-white leading-none">{{ getReceiverBranchName(transfer) }}</span>
                                                     </div>
                                                 </div>
                                                 <div v-if="transfer.receiver_name" class="flex items-center gap-2">
@@ -920,10 +922,10 @@ onMounted(() => {
                                             <Building2 :size="14" />
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-white text-sm">
+                                            <span class="font-bold text-neutral-900 dark:text-white text-sm">
                                                 {{ ['incoming_otw', 'history_in'].includes(activeTab) ? getSenderDetails(transfer) : getReceiverBranchName(transfer) }}
                                             </span>
-                                            <span v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab) && transfer.receiver_name" class="text-[10px] font-black text-green-400 uppercase tracking-widest mt-0.5">
+                                            <span v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab) && transfer.receiver_name" class="text-[10px] font-black text-green-500 uppercase tracking-widest mt-0.5">
                                                 Penerima: {{ transfer.receiver_name }}
                                             </span>
                                         </div>
@@ -931,7 +933,7 @@ onMounted(() => {
                                 </td>
                                 <td class="px-8 py-5">
                                     <div class="flex items-center gap-3">
-                                        <span class="font-bold text-white text-base max-w-md truncate">
+                                        <span class="font-bold text-neutral-900 dark:text-white text-base max-w-md truncate">
                                             {{ getTransferItemsSummary(transfer) }}
                                         </span>
                                     </div>
@@ -939,11 +941,11 @@ onMounted(() => {
                                 <!-- Resi Ekspedisi -->
                                 <td v-if="['incoming_otw', 'outgoing_otw'].includes(activeTab)" class="px-8 py-5 whitespace-nowrap">
                                     <div v-if="transfer.expedition_tracking_no" class="flex flex-col gap-1">
-                                        <span class="text-xs font-black uppercase tracking-widest text-purple-400">
+                                        <span class="text-xs font-black uppercase tracking-widest text-purple-500 dark:text-purple-400">
                                             {{ transfer.expedition_name }}
                                         </span>
                                         <button @click.stop="trackPackage(transfer.expedition_name, transfer.expedition_tracking_no)"
-                                            class="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500 text-purple-400 hover:text-white border border-purple-500/20 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 w-fit">
+                                            class="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500 text-purple-600 dark:text-purple-400 hover:text-white border border-purple-500/20 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all inline-flex items-center gap-1.5 w-fit">
                                             <Truck :size="10" />
                                             <span>Lacak: {{ transfer.expedition_tracking_no }}</span>
                                         </button>
@@ -967,7 +969,7 @@ onMounted(() => {
                                 <!-- Detail Info -->
                                 <td v-if="['incoming_otw', 'outgoing_otw', 'history_in', 'history_out', 'history_failed'].includes(activeTab)" class="px-8 py-5">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-black text-white flex items-center gap-1.5">
+                                        <span class="text-xs font-black text-neutral-900 dark:text-white flex items-center gap-1.5">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                             {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || transfer.nonHpItems?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
                                         </span>
@@ -1020,23 +1022,23 @@ onMounted(() => {
                 <!-- Mobile Stacked Cards (No Scrolling Needed!) -->
                 <div class="block md:hidden space-y-4">
                     <div v-for="transfer in (activeTab.includes('history') ? historyData.data : transfers)" :key="transfer.id" @click="openModal(transfer)"
-                        class="p-6 bg-surface-800/50 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer">
+                        class="p-6 bg-surface-800 border border-surface-700/50 rounded-[2rem] active:scale-[0.98] transition-all flex flex-col gap-4 cursor-pointer shadow-sm">
                         <div class="flex flex-col gap-4">
                             <div class="flex items-start justify-between gap-4">
                                 <div class="px-3 py-1.5 bg-surface-750 border border-surface-700 rounded-lg flex items-center gap-2 shadow-sm">
                                     <FileText :size="14" class="text-text-secondary" />
-                                    <span class="text-xs font-black text-white tracking-wider">{{ transfer.receipt_id }}</span>
+                                    <span class="text-xs font-black text-neutral-900 dark:text-white tracking-wider">{{ transfer.receipt_id }}</span>
                                 </div>
                                 <span class="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-widest border shrink-0"
                                     :class="getStatusBadgeClass(transfer.status, activeTab)">
                                     <span class="w-1.5 h-1.5 rounded-full" 
                                         :class="getStatusBadgeClass(transfer.status, activeTab).includes('text-blue') ? 'bg-blue-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-green') ? 'bg-green-500' : getStatusBadgeClass(transfer.status, activeTab).includes('text-amber') ? 'bg-amber-500' : 'bg-red-500'"></span>
-                                    {{ getStatusLabel(transfer.status, activeTab) }}
+                                        {{ getStatusLabel(transfer.status, activeTab) }}
                                 </span>
                             </div>
 
                             <!-- New Sender/Receiver Info for Mobile -->
-                            <div class="flex flex-col gap-2.5 bg-surface-800/80 p-3.5 rounded-xl border border-surface-700/50 shadow-inner">
+                            <div class="flex flex-col gap-2.5 bg-surface-850 p-3.5 rounded-xl border border-surface-700/50 shadow-inner">
                                 <template v-if="['outgoing_otw', 'history_out', 'history_failed'].includes(activeTab)">
                                     <div class="flex items-center gap-3">
                                         <div class="w-7 h-7 rounded-lg bg-surface-700 flex items-center justify-center shrink-0 shadow-sm">
@@ -1044,7 +1046,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[9px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Pengirim</span>
-                                            <span class="text-[11px] font-bold text-white">{{ getSenderBranchName(transfer) }}</span>
+                                            <span class="text-[11px] font-bold text-neutral-900 dark:text-white">{{ getSenderBranchName(transfer) }}</span>
                                         </div>
                                     </div>
                                     <div v-if="getSenderAccountName(transfer)" class="flex items-center gap-3">
@@ -1053,7 +1055,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[9px] font-black uppercase tracking-widest text-primary-500/60">Pengirim</span>
-                                            <span class="text-[11px] font-bold text-primary-400">{{ getSenderAccountName(transfer) }}</span>
+                                            <span class="text-[11px] font-bold text-primary-500">{{ getSenderAccountName(transfer) }}</span>
                                         </div>
                                     </div>
                                 </template>
@@ -1064,7 +1066,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[9px] font-black uppercase tracking-widest text-text-secondary opacity-60">Cabang Penerima</span>
-                                            <span class="text-[11px] font-bold text-white">{{ getReceiverBranchName(transfer) }}</span>
+                                            <span class="text-[11px] font-bold text-neutral-900 dark:text-white">{{ getReceiverBranchName(transfer) }}</span>
                                         </div>
                                     </div>
                                     <div v-if="transfer.receiver_name" class="flex items-center gap-3">
@@ -1073,7 +1075,7 @@ onMounted(() => {
                                         </div>
                                         <div class="flex flex-col">
                                             <span class="text-[9px] font-black uppercase tracking-widest text-primary-500/60">Penerima</span>
-                                            <span class="text-[11px] font-bold text-primary-400">{{ transfer.receiver_name }}</span>
+                                            <span class="text-[11px] font-bold text-primary-500">{{ transfer.receiver_name }}</span>
                                         </div>
                                     </div>
                                 </template>
@@ -1085,7 +1087,7 @@ onMounted(() => {
                             </div>
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Nama Barang</span>
-                                <span class="font-bold text-white text-base truncate max-w-xs">
+                                <span class="font-bold text-neutral-900 dark:text-white text-base truncate max-w-xs">
                                     {{ getTransferItemsSummary(transfer) }}
                                 </span>
                             </div>
@@ -1097,7 +1099,7 @@ onMounted(() => {
                             </div>
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">{{ activeTab === 'incoming_otw' ? 'Cabang Pengirim' : 'Tujuan / Penerima' }}</span>
-                                <span class="font-bold text-white text-base truncate max-w-xs">
+                                <span class="font-bold text-neutral-900 dark:text-white text-base truncate max-w-xs">
                                     {{ activeTab === 'incoming_otw' ? getSenderDetails(transfer) : getReceiverBranchName(transfer) }}
                                 </span>
                             </div>
@@ -1109,7 +1111,7 @@ onMounted(() => {
                             </div>
                             <div class="flex flex-col">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Resi {{ transfer.expedition_name }}</span>
-                                <span class="font-bold text-purple-400 text-sm">
+                                <span class="font-bold text-purple-600 dark:text-purple-400 text-sm">
                                     {{ transfer.expedition_tracking_no }}
                                 </span>
                             </div>
@@ -1121,7 +1123,7 @@ onMounted(() => {
                             </div>
                             <div class="flex flex-col gap-0.5">
                                 <span class="text-[10px] uppercase font-black tracking-widest opacity-40">Detail Info</span>
-                                <span class="font-bold text-white text-sm">
+                                <span class="font-bold text-neutral-900 dark:text-white text-sm">
                                     {{ (transfer.items?.length || 0) }} HP, {{ (transfer.non_hp_items?.reduce((sum, i) => sum + (i.quantity || 0), 0) || transfer.nonHpItems?.reduce((sum, i) => sum + (i.quantity || 0), 0) || 0) }} Aksesoris
                                 </span>
                                 <div class="flex gap-2 items-center text-[10px] font-black uppercase tracking-wider">
@@ -1207,7 +1209,7 @@ onMounted(() => {
                     <div class="p-8 bg-blue-500/5 border border-blue-500/20 rounded-[2rem] space-y-4">
                         <div class="flex items-center gap-3">
                             <User :size="20" class="text-blue-500" />
-                            <h3 class="text-sm font-black uppercase tracking-widest text-white">Akun Verifikator</h3>
+                            <h3 class="text-sm font-black uppercase tracking-widest text-neutral-900 dark:text-white">Akun Verifikator</h3>
                         </div>
                         <select v-model="selectedInventoryAccount" class="modern-select">
                             <option value="" disabled>Pilih Identitas Penerima...</option>
@@ -1224,7 +1226,7 @@ onMounted(() => {
                             </div>
                             <div>
                                 <p class="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-50">Nama Penerima</p>
-                                <p class="text-base font-black text-white mt-0.5">{{ selectedTransfer.receiver_name || '-' }}</p>
+                                <p class="text-base font-black text-neutral-900 dark:text-white mt-0.5">{{ selectedTransfer.receiver_name || '-' }}</p>
                             </div>
                         </div>
                         <div class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex items-center gap-4">
@@ -1256,7 +1258,7 @@ onMounted(() => {
                                         else receiveForm.accepted_items.splice(idx, 1);
                                     })()">
                                     <div>
-                                        <p class="font-black text-white">{{ getBrandName(item) }} {{ item.product?.name
+                                        <p class="font-black text-neutral-900 dark:text-white">{{ getBrandName(item) }} {{ item.product?.name
                                             }}</p>
                                         <p
                                             class="text-[10px] font-mono font-bold text-text-secondary mt-1 tracking-widest">
@@ -1265,7 +1267,7 @@ onMounted(() => {
                                         <textarea v-if="!receiveForm.accepted_items.includes(item.id)"
                                             v-model="receiveForm.items_rejection[item.id]" @click.stop
                                             placeholder="Alasan penolakan..."
-                                            class="mt-3 w-full bg-surface-900/50 border border-red-500/20 rounded-xl p-3 text-xs text-white focus:outline-none"></textarea>
+                                            class="mt-3 w-full bg-surface-900 border border-red-500/30 rounded-xl p-3 text-xs text-neutral-900 dark:text-white focus:outline-none"></textarea>
                                     </div>
                                     <CheckCircle2 v-if="receiveForm.accepted_items.includes(item.id)"
                                         class="text-green-500" :size="20" />
@@ -1284,7 +1286,7 @@ onMounted(() => {
                                 <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
                                     class="p-6 bg-surface-800 border border-surface-700 rounded-2xl">
                                     <div class="flex items-center justify-between mb-4">
-                                        <p class="font-black text-white">{{ getBrandName(item) }} {{ item.product?.name
+                                        <p class="font-black text-neutral-900 dark:text-white">{{ getBrandName(item) }} {{ item.product?.name
                                             }}</p>
                                         <div class="flex items-center gap-4">
                                             <span class="text-xs font-bold text-text-secondary">Diterima:</span>
@@ -1296,7 +1298,7 @@ onMounted(() => {
                                     <textarea v-if="receiveForm.non_hp_quantities[item.id] < item.quantity"
                                         v-model="receiveForm.non_hp_rejection_notes[item.id]"
                                         placeholder="Alasan pengurangan..."
-                                        class="w-full bg-surface-900/50 border border-red-500/20 rounded-xl p-3 text-xs text-white focus:outline-none mt-2"></textarea>
+                                        class="w-full bg-surface-900 border border-red-500/30 rounded-xl p-3 text-xs text-neutral-900 dark:text-white focus:outline-none mt-2"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -1318,7 +1320,7 @@ onMounted(() => {
             <div class="modal-content max-w-4xl max-h-[90vh]">
                 <div class="modal-header">
                     <div>
-                        <h2 class="text-2xl font-black text-white">Detail Transfer</h2>
+                        <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Detail Transfer</h2>
                         <p class="text-sm font-bold text-text-secondary">{{ selectedTransfer.receipt_id }} — {{
                             selectedTransfer.status }}</p>
                     </div>
@@ -1331,19 +1333,19 @@ onMounted(() => {
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                         <div class="detail-card">
                             <p class="label">Pengirim</p>
-                            <p class="value text-white">{{ (selectedTransfer.inventory_user?.name || selectedTransfer.inventoryUser?.name || selectedTransfer.user?.name) || 'Unknown' }}</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ (selectedTransfer.inventory_user?.name || selectedTransfer.inventoryUser?.name || selectedTransfer.user?.name) || 'Unknown' }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Tujuan</p>
-                            <p class="value text-white">{{ getReceiverBranchName(selectedTransfer, '-') }}</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ getReceiverBranchName(selectedTransfer, '-') }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Waktu Kirim</p>
-                            <p class="value text-white">{{ formatDate(selectedTransfer.created_at) }}</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ formatDate(selectedTransfer.created_at) }}</p>
                         </div>
                         <div class="detail-card">
                             <p class="label">Nama Penerima</p>
-                            <p class="value text-white">{{ selectedTransfer.receiver_name || '-' }}</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ selectedTransfer.receiver_name || '-' }}</p>
                         </div>
                         <div class="detail-card col-span-1 sm:col-span-2 lg:col-span-2">
                             <p class="label">Catatan Transfer</p>
@@ -1352,21 +1354,21 @@ onMounted(() => {
 
                         <!-- Expedition Info -->
                         <div v-if="selectedTransfer.expedition_name" class="detail-card border-purple-500/20 bg-purple-500/5">
-                            <p class="label text-purple-400">Ekspedisi</p>
-                            <p class="value text-white">{{ selectedTransfer.expedition_name }}</p>
+                            <p class="label text-purple-600 dark:text-purple-400">Ekspedisi</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ selectedTransfer.expedition_name }}</p>
                         </div>
                         <div v-if="selectedTransfer.expedition_tracking_no" class="detail-card border-purple-500/20 bg-purple-500/5">
-                            <p class="label text-purple-400">No Resi</p>
-                            <p class="value text-white flex items-center justify-between">
+                            <p class="label text-purple-600 dark:text-purple-400">No Resi</p>
+                            <p class="value text-neutral-900 dark:text-white flex items-center justify-between">
                                 <span>{{ selectedTransfer.expedition_tracking_no }}</span>
-                                <button @click="trackPackage(selectedTransfer.expedition_name, selectedTransfer.expedition_tracking_no)" class="p-1 hover:bg-white/10 rounded">
-                                    <Search :size="14" class="text-purple-400" />
+                                <button @click="trackPackage(selectedTransfer.expedition_name, selectedTransfer.expedition_tracking_no)" class="p-1 hover:bg-neutral-200 dark:hover:bg-white/10 rounded">
+                                    <Search :size="14" class="text-purple-600 dark:text-purple-400" />
                                 </button>
                             </p>
                         </div>
                         <div v-if="selectedTransfer.expedition_date" class="detail-card border-purple-500/20 bg-purple-500/5">
-                            <p class="label text-purple-400">Tgl Ekspedisi</p>
-                            <p class="value text-white">{{ formatDate(selectedTransfer.expedition_date) }}</p>
+                            <p class="label text-purple-600 dark:text-purple-400">Tgl Ekspedisi</p>
+                            <p class="value text-neutral-900 dark:text-white">{{ formatDate(selectedTransfer.expedition_date) }}</p>
                         </div>
                     </div>
 
@@ -1379,7 +1381,7 @@ onMounted(() => {
                                 <div v-for="item in selectedTransfer.items" :key="item.id"
                                     class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex justify-between items-center group">
                                     <div>
-                                        <p class="font-black text-white group-hover:text-primary-400 transition-colors">
+                                        <p class="font-black text-neutral-900 dark:text-white group-hover:text-primary-500 transition-colors">
                                             {{ getBrandName(item) }} {{ item.product?.name }}
                                         </p>
                                         <p class="text-[10px] font-mono font-bold text-text-secondary mt-1">{{ item.imei
@@ -1408,7 +1410,7 @@ onMounted(() => {
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.non_hp_items" :key="item.id"
                                     class="p-6 bg-surface-800 border border-surface-700/50 rounded-2xl flex justify-between items-center">
-                                    <p class="font-black text-white">{{ item.product?.name || item.product_name }}</p>
+                                    <p class="font-black text-neutral-900 dark:text-white">{{ item.product?.name || item.product_name }}</p>
                                     <p class="text-lg font-black text-primary-500">{{ item.quantity }} <span
                                             class="text-[10px] uppercase opacity-40">Qty</span></p>
                                 </div>
@@ -1423,7 +1425,7 @@ onMounted(() => {
         <div v-if="showReturnModal && selectedTransfer" class="modal-backdrop" @click.self="closeModal">
             <div class="modal-content max-w-2xl">
                 <div class="modal-header">
-                    <h2 class="text-2xl font-black text-white">Terima Kembali Barang</h2>
+                    <h2 class="text-2xl font-black text-neutral-900 dark:text-white">Terima Kembali Barang</h2>
                     <button @click="closeModal" class="close-btn">
                         <X :size="20" />
                     </button>
@@ -1433,7 +1435,7 @@ onMounted(() => {
                     <div class="p-8 bg-red-500/5 border border-red-500/20 rounded-[2rem] space-y-4">
                         <div class="flex items-center gap-3">
                             <User :size="20" class="text-red-500" />
-                            <h3 class="text-sm font-black uppercase tracking-widest text-white">Akun Cabang Penerima
+                            <h3 class="text-sm font-black uppercase tracking-widest text-neutral-900 dark:text-white">Akun Cabang Penerima
                             </h3>
                         </div>
                         <select v-model="selectedInventoryAccount" class="modern-select">
@@ -1452,7 +1454,7 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <p class="text-xs text-text-secondary font-bold uppercase tracking-wider">Ditolak Oleh</p>
-                                    <p class="text-sm font-black text-white">
+                                    <p class="text-sm font-black text-neutral-900 dark:text-white">
                                         {{ (selectedTransfer.confirmed_by || selectedTransfer.confirmedBy).full_name }} 
                                         <span class="text-xs font-mono text-text-secondary">({{ (selectedTransfer.confirmed_by || selectedTransfer.confirmedBy).username }})</span>
                                     </p>
@@ -1469,7 +1471,7 @@ onMounted(() => {
                                  class="p-5 bg-surface-800 border border-surface-700/50 rounded-2xl space-y-3 animate-in">
                                 <div class="flex justify-between items-center">
                                     <div>
-                                        <p class="font-black text-white text-sm">{{ item.product?.name || item.product_name }}</p>
+                                        <p class="font-black text-neutral-900 dark:text-white text-sm">{{ item.product?.name || item.product_name }}</p>
                                         <p class="text-[11px] font-mono text-text-secondary mt-0.5">IMEI: {{ item.imei || '-' }}</p>
                                     </div>
                                     <span class="px-2.5 py-1 rounded bg-red-500/10 text-red-500 text-[10px] font-black uppercase">Ditolak</span>
@@ -1484,7 +1486,7 @@ onMounted(() => {
 
                     <p class="text-text-secondary font-medium px-4 leading-relaxed">
                         Konfirmasi ini akan memasukkan kembali unit yang ditolak dari nota <span
-                            class="text-white font-black">{{ selectedTransfer.receipt_id }}</span> kembali ke stok aktif
+                            class="text-neutral-900 dark:text-white font-black">{{ selectedTransfer.receipt_id }}</span> kembali ke stok aktif
                         Anda.
                     </p>
                 </div>
@@ -1505,7 +1507,7 @@ onMounted(() => {
             <div class="modal-content max-w-lg">
                 <div class="modal-header">
                     <div>
-                        <h2 class="text-2xl font-black text-white flex items-center gap-3">
+                        <h2 class="text-2xl font-black text-neutral-900 dark:text-white flex items-center gap-3">
                             <Truck class="text-purple-500" /> Informasi Ekspedisi
                         </h2>
                         <p class="text-sm text-text-secondary font-medium">Nota: {{ selectedTransfer.receipt_id }}</p>
@@ -1526,12 +1528,12 @@ onMounted(() => {
                         <div>
                             <label class="label">Nomor Resi</label>
                             <input v-model="expeditionForm.expedition_tracking_no" type="text" placeholder="Masukkan No Resi..."
-                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-purple-500 transition-all" />
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-purple-500 transition-all" />
                         </div>
                         <div>
                             <label class="label">Tanggal Kirim</label>
                             <input v-model="expeditionForm.expedition_date" type="date"
-                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-purple-500 transition-all" />
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-purple-500 transition-all" />
                         </div>
                     </div>
                 </div>
@@ -1733,11 +1735,11 @@ onMounted(() => {
 }
 
 .detail-card {
-    @apply bg-surface-800 p-6 rounded-3xl border border-white/5;
+    @apply bg-surface-800 p-6 rounded-3xl border border-surface-700/50;
 }
 
 .modern-select {
-    @apply w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-white focus:outline-none focus:border-primary-500 transition-all appearance-none cursor-pointer;
+    @apply w-full bg-surface-900 border-2 border-surface-700 rounded-2xl px-6 py-4 text-sm font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-primary-500 transition-all appearance-none cursor-pointer;
 }
 
 .action-btn {

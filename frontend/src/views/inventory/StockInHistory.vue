@@ -477,7 +477,7 @@ const handleVoid = async (item) => {
                             </td>
                             <td class="px-6 py-4">
                                 <div>
-                                    <div class="font-medium text-white">{{ item.product ? item.product.name : 'Unknown' }}</div>
+                                    <div class="font-medium text-neutral-900 dark:text-white">{{ item.product ? item.product.name : 'Unknown' }}</div>
                                     <div class="text-xs text-text-secondary">{{ item.product ? item.product.sku : '-' }}</div>
                                 </div>
                             </td>

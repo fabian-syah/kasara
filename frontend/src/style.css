@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:is(.dark, .dark *));
 
 /* ==========================================
    APEX POS - Premium Dark Theme Design System
@@ -22,21 +22,17 @@
 
   /* Surface Colors (White/Light) */
   --color-surface-950: #ffffff;
-  --color-surface-900: #ffffff;
-  /* Page Background: Turn to White */
-  /* Page BG */
-  --color-surface-800: var(--color-primary-50);
-  /* Cards: Tinted with Theme */
-  /* Cards */
-  --color-surface-700: var(--color-primary-200);
-  /* Borders: Slightly darker tint */
-  /* Borders */
+  --color-surface-900: #f8fafc;
+  --color-surface-850: #f1f5f9;
+  --color-surface-800: #ffffff;
+  --color-surface-750: #f8fafc;
+  --color-surface-700: #e2e8f0;
   --color-surface-600: #cbd5e1;
   --color-surface-500: #94a3b8;
 
   /* Text Colors */
-  --color-text-primary: #000000;
-  --color-text-secondary: #333333;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
   /* Dark gray, almost black for hierarchy */
   --color-text-inverse: #ffffff;
 }
@@ -46,14 +42,16 @@
   /* Surface Colors (Neutral Dark) */
   --color-surface-950: #0a0a0a;
   --color-surface-900: #171717;
+  --color-surface-850: #1e1e1e;
   --color-surface-800: #262626;
+  --color-surface-750: #333333;
   --color-surface-700: #404040;
   --color-surface-600: #525252;
   --color-surface-500: #737373;
 
   /* Text Colors */
   --color-text-primary: #ffffff;
-  --color-text-secondary: #ffffff;
+  --color-text-secondary: #a3a3a3;
   --color-text-inverse: #000000;
 }
 
@@ -77,7 +75,9 @@
   /* Surface Colors (Dynamic) */
   --color-surface-950: var(--color-surface-950);
   --color-surface-900: var(--color-surface-900);
+  --color-surface-850: var(--color-surface-850);
   --color-surface-800: var(--color-surface-800);
+  --color-surface-750: var(--color-surface-750);
   --color-surface-700: var(--color-surface-700);
   --color-surface-600: var(--color-surface-600);
   --color-surface-500: var(--color-surface-500);

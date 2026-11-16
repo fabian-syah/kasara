@@ -212,7 +212,7 @@ function scrollToCart() {
             </div>
 
             <!-- Product Info -->
-            <h3 class="font-semibold text-white text-sm truncate group-hover:text-primary-400 transition-colors">
+            <h3 class="font-semibold text-neutral-900 dark:text-white text-sm truncate group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
               {{ product.name }}
             </h3>
             <p class="text-primary-400 font-bold mt-1">
@@ -239,8 +239,8 @@ function scrollToCart() {
       <!-- Cart Header -->
       <div class="p-4 border-b border-surface-700">
         <div class="flex items-center gap-2">
-          <ShoppingCart class="text-primary-400" :size="20" />
-          <h2 class="text-lg font-bold text-white">Keranjang</h2>
+          <ShoppingCart class="text-primary-500 dark:text-primary-400" :size="20" />
+          <h2 class="text-lg font-bold text-neutral-900 dark:text-white">Keranjang</h2>
           <span v-if="cartItemCount > 0"
             class="ml-auto bg-primary-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
             {{ cartItemCount }}
@@ -260,10 +260,10 @@ function scrollToCart() {
           <div v-for="item in cartItems" :key="item.id" class="bg-surface-900 rounded-xl p-3 border border-surface-700">
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-medium text-white truncate">
+                <h4 class="text-sm font-medium text-neutral-900 dark:text-white truncate">
                   {{ item.name }}
                 </h4>
-                <p class="text-blue-400 text-sm font-semibold">
+                <p class="text-blue-500 dark:text-blue-400 text-sm font-semibold">
                   {{ formatCurrency(item.price) }}
                 </p>
               </div>
@@ -276,14 +276,14 @@ function scrollToCart() {
             <div class="flex items-center justify-between mt-3">
               <div class="flex items-center gap-2">
                 <button @click.stop="decrementQty(item.id)"
-                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors">
+                  class="w-7 h-7 rounded-lg bg-surface-700 hover:bg-surface-600 flex items-center justify-center transition-colors text-text-primary">
                   <Minus :size="14" />
                 </button>
-                <span class="w-8 text-center text-white font-semibold">{{
+                <span class="w-8 text-center text-neutral-900 dark:text-white font-semibold">{{
                   item.quantity
                 }}</span>
                 <button @click.stop="incrementQty(item.id)"
-                  class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition-colors"
+                  class="w-7 h-7 rounded-lg bg-surface-700 hover:bg-surface-600 flex items-center justify-center transition-colors text-text-primary"
                   :disabled="item.quantity >= item.stock" :class="{
                     'opacity-50 cursor-not-allowed':
                       item.quantity >= item.stock,
@@ -291,7 +291,7 @@ function scrollToCart() {
                   <Plus :size="14" />
                 </button>
               </div>
-              <span class="text-white font-bold">
+              <span class="text-neutral-900 dark:text-white font-bold">
                 {{ formatCurrency(item.price * item.quantity) }}
               </span>
             </div>
@@ -300,20 +300,20 @@ function scrollToCart() {
       </div>
 
       <!-- Cart Footer -->
-      <div class="p-4 border-t border-slate-700/50 bg-slate-900/50">
+      <div class="p-4 border-t border-surface-700/50 bg-surface-850/50">
         <div class="space-y-2 mb-4">
           <div class="flex justify-between text-sm">
-            <span class="text-slate-400">Subtotal</span>
-            <span class="text-white">{{ formatCurrency(cartSubtotal) }}</span>
+            <span class="text-slate-500 dark:text-slate-400">Subtotal</span>
+            <span class="text-neutral-900 dark:text-white font-medium">{{ formatCurrency(cartSubtotal) }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-slate-400">Diskon</span>
-            <span class="text-emerald-400">- {{ formatCurrency(cartStore.discountAmount) }}</span>
+            <span class="text-slate-500 dark:text-slate-400">Diskon</span>
+            <span class="text-emerald-500 dark:text-emerald-400">- {{ formatCurrency(cartStore.discountAmount) }}</span>
           </div>
-          <div class="h-px bg-slate-700"></div>
+          <div class="h-px bg-surface-700"></div>
           <div class="flex justify-between">
-            <span class="text-white font-semibold">Total</span>
-            <span class="text-xl font-bold text-emerald-400">{{
+            <span class="text-neutral-900 dark:text-white font-semibold">Total</span>
+            <span class="text-xl font-bold text-emerald-500 dark:text-emerald-400">{{
               formatCurrency(cartTotal)
             }}</span>
           </div>
@@ -332,38 +332,38 @@ function scrollToCart() {
       <div v-if="showPaymentModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showPaymentModal = false"></div>
 
-        <div class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-md p-6 shadow-2xl">
+        <div class="relative bg-surface-800 rounded-2xl border border-surface-700 w-full max-w-md p-6 shadow-2xl">
           <button @click="showPaymentModal = false"
-            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white transition-colors">
+            class="absolute top-4 right-4 p-2 text-slate-400 hover:text-neutral-900 dark:hover:text-white transition-colors">
             <X :size="20" />
           </button>
 
-          <h3 class="text-xl font-bold text-white mb-6">Pembayaran</h3>
+          <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-6">Pembayaran</h3>
 
           <!-- Total -->
-          <div class="bg-slate-800 rounded-xl p-4 mb-6">
-            <p class="text-slate-400 text-sm">Total Pembayaran</p>
-            <p class="text-3xl font-bold text-white">
+          <div class="bg-surface-850 rounded-xl p-4 mb-6 border border-surface-700/50">
+            <p class="text-slate-500 dark:text-slate-400 text-sm">Total Pembayaran</p>
+            <p class="text-3xl font-bold text-neutral-900 dark:text-white">
               {{ formatCurrency(cartTotal) }}
             </p>
           </div>
 
           <!-- Payment Methods -->
           <div class="mb-6">
-            <p class="text-sm text-slate-400 mb-3">Metode Pembayaran</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Metode Pembayaran</p>
             <div class="grid grid-cols-3 gap-2">
               <button v-for="method in paymentMethods" :key="method.id" @click="selectedPaymentMethod = method.id"
                 class="p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2" :class="selectedPaymentMethod === method.id
                   ? 'border-blue-500 bg-blue-500/10'
-                  : 'border-slate-700 hover:border-slate-600'
+                  : 'border-surface-700 hover:border-surface-600'
                   ">
                 <component :is="method.icon" :size="24" :class="selectedPaymentMethod === method.id
-                  ? 'text-blue-400'
-                  : 'text-slate-400'
+                  ? 'text-blue-500 dark:text-blue-400'
+                  : 'text-slate-500 dark:text-slate-400'
                   " />
                 <span class="text-xs font-medium" :class="selectedPaymentMethod === method.id
-                  ? 'text-blue-400'
-                  : 'text-slate-400'
+                  ? 'text-blue-500 dark:text-blue-400'
+                  : 'text-slate-500 dark:text-slate-400'
                   ">
                   {{ method.label }}
                 </span>
@@ -373,34 +373,34 @@ function scrollToCart() {
 
           <!-- Cash Amount -->
           <div v-if="selectedPaymentMethod === 'cash'" class="mb-6">
-            <p class="text-sm text-slate-400 mb-3">Jumlah Uang</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Jumlah Uang</p>
             <input v-money="val => paymentAmount = val" type="text" class="input text-center text-xl font-bold" />
 
             <!-- Quick Amounts -->
             <div class="grid grid-cols-4 gap-2 mt-3">
               <button v-for="amount in [50000, 100000, 150000, 200000]" :key="amount" @click="setQuickAmount(amount)"
-                class="py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+                class="py-2 text-xs font-medium bg-surface-750 hover:bg-surface-700 text-text-primary rounded-lg transition-colors border border-surface-700/50">
                 {{ formatCurrency(amount) }}
               </button>
             </div>
 
             <!-- Exact Amount -->
             <button @click="setQuickAmount(cartTotal)"
-              class="w-full mt-2 py-2 text-sm font-medium text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors">
+              class="w-full mt-2 py-2 text-sm font-medium text-blue-500 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 rounded-lg transition-colors border border-blue-500/20">
               Uang Pas
             </button>
 
             <!-- Change -->
             <div v-if="changeAmount >= 0" class="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
               <div class="flex justify-between items-center">
-                <span class="text-emerald-400">Kembalian</span>
-                <span class="text-xl font-bold text-emerald-400">{{
+                <span class="text-emerald-500 dark:text-emerald-400">Kembalian</span>
+                <span class="text-xl font-bold text-emerald-500 dark:text-emerald-400">{{
                   formatCurrency(changeAmount)
                 }}</span>
               </div>
             </div>
             <div v-else class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
-              <div class="flex items-center gap-2 text-red-400">
+              <div class="flex items-center gap-2 text-red-500 dark:text-red-400">
                 <AlertCircle :size="16" />
                 <span class="text-sm">Uang kurang
                   {{ formatCurrency(Math.abs(changeAmount)) }}</span>
@@ -424,32 +424,32 @@ function scrollToCart() {
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
         <div
-          class="relative bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-sm p-6 text-center shadow-2xl">
+          class="relative bg-surface-800 rounded-2xl border border-surface-700 w-full max-w-sm p-6 text-center shadow-2xl">
           <div class="w-20 h-20 mx-auto mb-4 bg-emerald-500/20 rounded-full flex items-center justify-center">
-            <CheckCircle class="text-emerald-400" :size="40" />
+            <CheckCircle class="text-emerald-500 dark:text-emerald-400" :size="40" />
           </div>
 
-          <h3 class="text-xl font-bold text-white mb-2">
+          <h3 class="text-xl font-bold text-neutral-900 dark:text-white mb-2">
             Pembayaran Berhasil!
           </h3>
-          <p class="text-slate-400 text-sm mb-6">
+          <p class="text-slate-500 dark:text-slate-400 text-sm mb-6">
             Transaksi telah selesai diproses
           </p>
 
-          <div v-if="lastTransaction" class="bg-slate-800 rounded-xl p-4 mb-6 text-left">
+          <div v-if="lastTransaction" class="bg-surface-850 rounded-xl p-4 mb-6 text-left border border-surface-700/50">
             <div class="flex justify-between text-sm mb-2">
-              <span class="text-slate-400">No. Transaksi</span>
-              <span class="text-white font-mono">{{ lastTransaction.id }}</span>
+              <span class="text-slate-500 dark:text-slate-400">No. Transaksi</span>
+              <span class="text-neutral-900 dark:text-white font-mono font-bold">{{ lastTransaction.id }}</span>
             </div>
             <div class="flex justify-between text-sm mb-2">
-              <span class="text-slate-400">Total</span>
-              <span class="text-white">{{
+              <span class="text-slate-500 dark:text-slate-400">Total</span>
+              <span class="text-neutral-900 dark:text-white font-bold">{{
                 formatCurrency(lastTransaction.total)
               }}</span>
             </div>
             <div v-if="lastTransaction.change > 0" class="flex justify-between text-sm">
-              <span class="text-slate-400">Kembalian</span>
-              <span class="text-emerald-400 font-bold">{{
+              <span class="text-slate-500 dark:text-slate-400">Kembalian</span>
+              <span class="text-emerald-500 dark:text-emerald-400 font-bold">{{
                 formatCurrency(lastTransaction.change)
               }}</span>
             </div>

@@ -1521,7 +1521,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                 <tr class="hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-surface-900/30': showBrandType || showBrandCondition }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
-                                    <td class="px-6 py-4 font-bold text-white">{{ row.brand }}</td>
+                                    <td class="px-6 py-4 font-bold text-neutral-900 dark:text-white">{{ row.brand }}</td>
                                     <td v-if="showBrandType || showBrandCondition"
                                         class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td v-if="showBrandType && showBrandCondition"
@@ -1635,7 +1635,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                     :class="{ 'bg-surface-900/30': showPerGb || showTypeCondition }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
                                     <td class="px-6 py-4 text-text-secondary">{{ row.brand }}</td>
-                                    <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
+                                    <td class="px-6 py-4 font-bold text-neutral-900 dark:text-white">{{ row.name }}</td>
                                     <td v-if="showPerGb" class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td v-if="showTypeCondition" class="px-6 py-4 text-text-secondary italic text-xs">—
                                     </td>
@@ -1928,7 +1928,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                 <tr class="hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-surface-900/30': showDistributorGb || showDistributorBrand || showDistributorType }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
-                                    <td class="px-6 py-4 font-bold text-white">{{ row.name }}</td>
+                                    <td class="px-6 py-4 font-bold text-neutral-900 dark:text-white">{{ row.name }}</td>
                                     <td v-if="showDistributorBrand"
                                         class="px-6 py-4 text-text-secondary italic text-xs">—</td>
                                     <td v-if="showDistributorType" class="px-6 py-4 text-text-secondary italic text-xs">
@@ -2093,7 +2093,7 @@ watch([selectedLocationKey, historyDate, historyMode], () => {
                                 <tr class="hover:bg-surface-700/30 transition-colors"
                                     :class="{ 'bg-surface-900/30': showCategoryBrand || showCategoryType }">
                                     <td class="px-6 py-4 text-text-secondary text-xs">{{ idx + 1 }}</td>
-                                    <td class="px-6 py-4 font-bold text-white">{{ row.category }}</td>
+                                    <td class="px-6 py-4 font-bold text-neutral-900 dark:text-white">{{ row.category }}</td>
                                     <td v-if="showCategoryBrand" class="px-6 py-4 text-text-secondary italic text-xs">—
                                     </td>
                                     <td v-if="showCategoryType" class="px-6 py-4 text-text-secondary italic text-xs">—

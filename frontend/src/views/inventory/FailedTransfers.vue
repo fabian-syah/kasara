@@ -163,7 +163,7 @@ onMounted(() => {
                     <Truck :size="32" class="text-red-500" />
                 </div>
                 <div class="pt-1">
-                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                    <h1 class="text-3xl lg:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
                         Gagal <span class="text-red-500">Kirim</span> (OTW Balik)
                     </h1>
                     <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
@@ -216,12 +216,12 @@ onMounted(() => {
                                 </div>
                                 <div>
                                     <div class="flex items-center gap-3 mb-1">
-                                        <p class="font-black text-xl text-white tracking-tight">{{ transfer.receipt_id }}</p>
+                                        <p class="font-black text-xl text-neutral-900 dark:text-white tracking-tight">{{ transfer.receipt_id }}</p>
                                         <span class="px-2 py-0.5 rounded bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20">RETUR</span>
                                     </div>
                                     <p class="text-sm text-text-secondary flex items-center gap-2">
                                         <Store :size="14" class="opacity-50" />
-                                        Tujuan: <span class="text-white font-bold">{{ transfer.destination?.name || 'Gudang Utama' }}</span>
+                                        Tujuan: <span class="text-neutral-900 dark:text-white font-bold">{{ transfer.destination?.name || 'Gudang Utama' }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -245,8 +245,8 @@ onMounted(() => {
                                     class="p-4 rounded-2xl border border-surface-700 bg-surface-900/30">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="font-bold text-sm text-white">
-                                                <span v-if="getBrandName(item)" class="text-red-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                            <p class="font-bold text-sm text-neutral-900 dark:text-white">
+                                                <span v-if="getBrandName(item)" class="text-red-500 dark:text-red-400 mr-1">[{{ getBrandName(item) }}]</span>
                                                 {{ item.product?.name }}
                                                 <span class="text-xs text-text-secondary font-medium ml-1">
                                                     {{ formatCapacity(item.ram, item.storage) }}
@@ -259,8 +259,8 @@ onMounted(() => {
                                         </span>
                                     </div>
                                     <div v-if="item.pivot?.notes" class="mt-3 p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
-                                        <p class="text-[9px] font-black text-red-400 uppercase tracking-widest mb-1 opacity-60">Alasan Tolak</p>
-                                        <p class="text-xs text-white/80 italic font-medium">"{{ item.pivot.notes }}"</p>
+                                        <p class="text-[9px] font-black text-red-500 dark:text-red-400 uppercase tracking-widest mb-1 opacity-60">Alasan Tolak</p>
+                                        <p class="text-xs text-neutral-800 dark:text-white/80 italic font-medium">"{{ item.pivot.notes }}"</p>
                                     </div>
                                 </div>
                             </div>
@@ -277,8 +277,8 @@ onMounted(() => {
                                     class="p-4 rounded-2xl border border-surface-700 bg-surface-900/30">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <p class="font-bold text-sm text-white">
-                                                <span v-if="getBrandName(item)" class="text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
+                                            <p class="font-bold text-sm text-neutral-900 dark:text-white">
+                                                <span v-if="getBrandName(item)" class="text-orange-500 dark:text-orange-400 mr-1">[{{ getBrandName(item) }}]</span>
                                                 {{ item.product?.name || item.product_name }}
                                             </p>
                                             <p class="text-xs text-text-secondary mt-1 font-bold">
@@ -291,7 +291,7 @@ onMounted(() => {
                                     </div>
                                     <div v-if="item.notes" class="mt-3 p-3 bg-red-500/5 border border-red-500/10 rounded-xl">
                                         <p class="text-[9px] font-black text-red-500 uppercase tracking-widest mb-1 opacity-60">Alasan Tolak</p>
-                                        <p class="text-xs text-white/80 italic font-medium">"{{ item.notes }}"</p>
+                                        <p class="text-xs text-neutral-800 dark:text-white/80 italic font-medium">"{{ item.notes }}"</p>
                                     </div>
                                 </div>
                             </div>
@@ -306,7 +306,7 @@ onMounted(() => {
                                 <p class="text-[10px] uppercase font-black text-blue-500 tracking-widest">Verifikator Penerima</p>
                             </div>
                             <select v-model="selectedInventoryAccount"
-                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-xl px-4 py-3 text-sm font-bold text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 appearance-none shadow-lg">
+                                class="w-full bg-surface-900 border-2 border-surface-700 rounded-xl px-4 py-3 text-sm font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 appearance-none shadow-lg">
                                 <option value="" disabled>Pilih Akun CS...</option>
                                 <option v-for="acc in inventoryAccounts" :key="acc.id" :value="acc.id">
                                     {{ acc.full_name }} ({{ acc.code_id }})

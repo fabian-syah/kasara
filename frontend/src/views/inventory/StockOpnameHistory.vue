@@ -984,20 +984,20 @@ watch(() => filters.value.executor_role, () => {
         </div>
 
         <!-- ROLE TIER SEGMENTED SELECTOR: Scoped History by Role Tier (Audit, Leader, Store) -->
-        <div v-if="isPrivilegedRole" class="bg-white dark:!bg-surface-800 p-2 sm:p-2.5 rounded-2xl border border-gray-100 dark:border-surface-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+        <div v-if="isPrivilegedRole" class="bg-surface-800 p-2 sm:p-2.5 rounded-2xl border border-surface-700 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                 <span class="text-[10px] font-black uppercase text-text-secondary tracking-wider pl-2 pr-1 shrink-0">
                     Kategori Laporan:
                 </span>
 
-                <!-- Filter: Semua Tipe -->
+                <!-- Filter: Semua Kategori -->
                 <button type="button" @click="filters.executor_role = ''"
                     class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
                     :class="filters.executor_role === ''
-                        ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 shadow-sm border border-transparent dark:border-neutral-200'
-                        : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:text-white dark:hover:bg-neutral-800 border border-transparent'">
+                        ? 'bg-neutral-900 text-white dark:bg-surface-600 dark:text-white shadow-sm border border-transparent'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-700/50 dark:hover:bg-surface-700/80 border border-transparent'">
                     <Layers :size="14" />
-                    <span>Semua Tipe</span>
+                    <span>Semua Kategori</span>
                 </button>
 
                 <!-- Filter: SO Audit (Audit, Leader, Super Admin) -->
@@ -1560,14 +1560,14 @@ watch(() => filters.value.executor_role, () => {
                     <!-- DETAIL TAMPILAN SO HARIAN: RINCIAN METRIK HARI INI (Total Sistem, Fisik Ada, Selisih, dll) -->
                     <div class="mt-3.5 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 text-xs">
                         <!-- Metric 1: Sistem -->
-                        <div class="p-2.5 rounded-xl bg-white dark:bg-neutral-800/90 border border-gray-200 dark:border-neutral-700 shadow-2xs">
-                            <div class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">
+                        <div class="p-2.5 rounded-xl bg-surface-800 border border-surface-700 shadow-2xs">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
                                 {{ activeTab === 'by_imei' ? 'Sistem IMEI' : activeTab === 'by_unit' ? 'Sistem Unit' : 'Total Sistem' }}
                             </div>
-                            <div class="text-sm font-black font-mono text-neutral-900 dark:text-white mt-0.5">
-                                {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-neutral-500 dark:text-neutral-400">unit</span>
+                            <div class="text-sm font-black font-mono text-text-primary mt-0.5">
+                                {{ getActiveDayStats(day).totalSystem }} <span class="text-[10px] font-normal text-text-secondary">unit</span>
                             </div>
-                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalSystem }}</span>
                                 <span>•</span>
                                 <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalSystem }}</span>
@@ -1575,12 +1575,12 @@ watch(() => filters.value.executor_role, () => {
                         </div>
 
                         <!-- Metric 2: Fisik Ditemukan (Ada) -->
-                        <div class="p-2.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
+                        <div class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs">
                             <div class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400 tracking-wider">Fisik Ada (Sesuai)</div>
                             <div class="text-sm font-black font-mono text-emerald-700 dark:text-emerald-300 mt-0.5">
                                 {{ getActiveDayStats(day).totalPhysical }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
-                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div v-if="activeTab === '' && (day.imeiStats.count > 0 || day.unitStats.count > 0)" class="text-[10px] text-text-secondary font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
                                 <span class="text-purple-600 dark:text-purple-400 font-bold">📱 {{ day.imeiStats.totalPhysical }}</span>
                                 <span>•</span>
                                 <span class="text-blue-600 dark:text-blue-400 font-bold">📦 {{ day.unitStats.totalPhysical }}</span>
@@ -1589,11 +1589,11 @@ watch(() => filters.value.executor_role, () => {
 
                         <!-- Metric 3: Selisih Kurang -->
                         <div class="p-2.5 rounded-xl border shadow-2xs"
-                            :class="getActiveDayStats(day).totalMissing > 0 ? 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-700 dark:text-rose-400' : 'bg-white dark:bg-neutral-800/90 border-gray-200 dark:border-neutral-700 text-neutral-900 dark:text-white'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-neutral-500 dark:text-neutral-400'">
+                            :class="getActiveDayStats(day).totalMissing > 0 ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-900/60 text-rose-700 dark:text-rose-400' : 'bg-surface-800 border-surface-700 text-text-primary'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-text-secondary'">
                                 Selisih Kurang
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-neutral-900 dark:text-white'">
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalMissing > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-text-primary'">
                                 {{ getActiveDayStats(day).totalMissing > 0 ? '-' + getActiveDayStats(day).totalMissing : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.totalMissing > 0 || day.unitStats.totalMissing > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1605,11 +1605,11 @@ watch(() => filters.value.executor_role, () => {
 
                         <!-- Metric 4: Selisih Lebih -->
                         <div class="p-2.5 rounded-xl border shadow-2xs"
-                            :class="getActiveDayStats(day).totalExcess > 0 ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-300 dark:border-amber-900/60 text-amber-700 dark:text-amber-400' : 'bg-white dark:bg-neutral-800/90 border-gray-200 dark:border-neutral-700 text-neutral-900 dark:text-white'">
-                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-neutral-500 dark:text-neutral-400'">
+                            :class="getActiveDayStats(day).totalExcess > 0 ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-900/60 text-amber-700 dark:text-amber-400' : 'bg-surface-800 border-surface-700 text-text-primary'">
+                            <div class="text-[10px] uppercase font-bold tracking-wider" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-text-secondary'">
                                 Unit Lebih
                             </div>
-                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-neutral-900 dark:text-white'">
+                            <div class="text-sm font-black font-mono mt-0.5" :class="getActiveDayStats(day).totalExcess > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-text-primary'">
                                 {{ getActiveDayStats(day).totalExcess > 0 ? '+' + getActiveDayStats(day).totalExcess : '0' }} <span class="text-[10px] font-normal opacity-80">unit</span>
                             </div>
                             <div v-if="activeTab === '' && (day.imeiStats.totalExcess > 0 || day.unitStats.totalExcess > 0)" class="text-[10px] font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -1620,8 +1620,8 @@ watch(() => filters.value.executor_role, () => {
                         </div>
 
                         <!-- Metric 5: Hasil Akhir / Status -->
-                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-white dark:bg-neutral-800/90 border border-gray-200 dark:border-neutral-700 shadow-2xs flex flex-col justify-center">
-                            <div class="text-[10px] uppercase font-bold text-neutral-500 dark:text-neutral-400 tracking-wider">Hasil Audit</div>
+                        <div class="col-span-2 sm:col-span-4 lg:col-span-1 p-2.5 rounded-xl bg-surface-800 border border-surface-700 shadow-2xs flex flex-col justify-center">
+                            <div class="text-[10px] uppercase font-bold text-text-secondary tracking-wider">Hasil Audit</div>
                             <div class="mt-0.5">
                                 <span v-if="!getActiveDayStats(day).hasDiff && getActiveDayStats(day).percent === 100" class="inline-flex items-center gap-1 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
                                     <CheckCircle2 :size="13" class="text-emerald-500" />

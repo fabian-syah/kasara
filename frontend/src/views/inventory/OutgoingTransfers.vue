@@ -114,7 +114,7 @@ onMounted(() => {
                     <ArrowUpRight :size="32" class="text-purple-500" />
                 </div>
                 <div class="pt-1">
-                    <h1 class="text-3xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                    <h1 class="text-3xl lg:text-5xl font-black text-neutral-900 dark:text-white tracking-tight leading-tight">
                         Menunggu <span class="text-purple-500">Konfirmasi</span> (OTW)
                     </h1>
                     <p class="text-text-secondary text-sm lg:text-base mt-2 max-w-xl">
@@ -166,12 +166,12 @@ onMounted(() => {
                                     <Building2 :size="32" />
                                 </div>
                                 <div>
-                                    <p class="font-black text-xl lg:text-2xl text-white group-hover:text-purple-400 transition-colors mb-1">
+                                    <p class="font-black text-xl lg:text-2xl text-neutral-900 dark:text-white group-hover:text-purple-400 transition-colors mb-1">
                                         {{ transfer.receipt_id }}
                                     </p>
                                     <p class="text-base text-text-secondary font-medium flex items-center gap-2">
                                         <Store :size="16" class="text-purple-500/70" />
-                                        Tujuan: <span class="text-white font-bold">{{ transfer.destination?.name || transfer.receiver_name || 'Unknown' }}</span>
+                                        Tujuan: <span class="text-neutral-900 dark:text-white font-bold">{{ transfer.destination?.name || transfer.receiver_name || 'Unknown' }}</span>
                                     </p>
                                 </div>
                             </div>
@@ -188,7 +188,7 @@ onMounted(() => {
                                 </p>
                             </div>
                             <div class="text-right">
-                                <p class="text-xl lg:text-2xl font-black text-white">
+                                <p class="text-xl lg:text-2xl font-black text-neutral-900 dark:text-white">
                                     {{ (transfer.items?.length || 0) + (transfer.non_hp_items?.reduce((acc, i) => acc + i.quantity, 0) || 0) }}
                                     <span class="text-xs font-bold text-text-secondary uppercase ml-1">Unit</span>
                                 </p>
@@ -216,10 +216,10 @@ onMounted(() => {
                             <div class="p-2.5 bg-purple-500/10 rounded-2xl border border-purple-500/20">
                                 <ArrowUpRight :size="20" class="text-purple-500" />
                             </div>
-                            <h2 class="text-3xl font-black text-white tracking-tight">Detail Pengiriman</h2>
+                            <h2 class="text-3xl font-black text-neutral-900 dark:text-white tracking-tight">Detail Pengiriman</h2>
                         </div>
                         <div class="flex items-center gap-3 text-base text-text-secondary mt-1 ml-0.5">
-                            <span class="font-bold text-white">{{ selectedTransfer.receipt_id }}</span>
+                            <span class="font-bold text-neutral-900 dark:text-white">{{ selectedTransfer.receipt_id }}</span>
                             <span class="opacity-30">•</span>
                             <span class="capitalize font-black tracking-widest text-xs px-2.5 py-1 rounded-lg border text-purple-500 border-purple-500/20 bg-purple-500/5">
                                 Menunggu Penerimaan
@@ -232,26 +232,26 @@ onMounted(() => {
                 </div>
 
                 <!-- Modal Body -->
-                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-gradient-to-b from-surface-800 via-surface-800 to-surface-900/40">
+                <div class="p-6 sm:p-12 overflow-y-auto flex-1 space-y-12 custom-scrollbar bg-surface-800">
                     <!-- High Level Info Grid -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                         <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Dikirim Oleh</p>
-                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                            <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
                                 <div class="p-2 bg-purple-500/10 rounded-lg"><User :size="20" class="text-purple-500" /></div>
                                 {{ (selectedTransfer.inventory_user?.name || selectedTransfer.inventoryUser?.name) || selectedTransfer.user?.name || 'Unknown' }}
                             </p>
                         </div>
                         <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Waktu Kirim</p>
-                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                            <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
                                 <div class="p-2 bg-purple-500/10 rounded-lg"><Calendar :size="20" class="text-purple-500" /></div>
                                 {{ formatDate(selectedTransfer.created_at) }}
                             </p>
                         </div>
                         <div class="space-y-2 bg-surface-750/30 p-6 sm:p-7 rounded-[2rem] border border-surface-700/50 shadow-sm shadow-black/20 hover:border-purple-500/20 transition-colors group">
                             <p class="text-[10px] text-text-secondary font-black uppercase tracking-[0.3em] opacity-50 group-hover:opacity-100 transition-opacity">Cabang Tujuan</p>
-                            <p class="text-xl font-bold text-white flex items-center gap-3">
+                            <p class="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-3">
                                 <div class="p-2 bg-purple-500/10 rounded-lg"><Store :size="20" class="text-purple-500" /></div>
                                 {{ selectedTransfer.destination?.name || selectedTransfer.receiver_name || 'Unknown' }}
                             </p>
@@ -262,7 +262,7 @@ onMounted(() => {
                     <div class="space-y-12">
                         <!-- HP Items -->
                         <div v-if="selectedTransfer.items && selectedTransfer.items.length > 0">
-                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                            <h3 class="font-black text-neutral-900 dark:text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
                                 <div class="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
                                     <Smartphone :size="20" class="text-purple-500" />
                                 </div>
@@ -271,9 +271,9 @@ onMounted(() => {
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="item in selectedTransfer.items" :key="item.id"
-                                    class="p-6 rounded-[2rem] border border-surface-700 bg-surface-800/80 shadow-md hover:border-purple-500/30 transition-all group">
+                                    class="p-6 rounded-[2rem] border border-surface-700 bg-surface-800 shadow-md hover:border-purple-500/30 transition-all group">
                                     <div class="space-y-2 text-left">
-                                        <p class="font-black text-lg text-white group-hover:text-purple-400 transition-colors">
+                                        <p class="font-black text-lg text-neutral-900 dark:text-white group-hover:text-purple-400 transition-colors">
                                             <span v-if="getBrandName(item)" class="text-purple-500/70 mr-1">[{{ getBrandName(item) }}]</span>
                                             {{ item.product?.name }}
                                         </p>
@@ -295,7 +295,7 @@ onMounted(() => {
 
                         <!-- Non-HP Items Section -->
                         <div v-if="selectedTransfer.non_hp_items && selectedTransfer.non_hp_items.length > 0">
-                            <h3 class="font-black text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
+                            <h3 class="font-black text-neutral-900 dark:text-white text-xl flex items-center gap-4 uppercase tracking-[0.1em] mb-8">
                                 <div class="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20">
                                     <Package :size="20" class="text-orange-500" />
                                 </div>
@@ -311,14 +311,14 @@ onMounted(() => {
                                                 <Package :size="24" />
                                             </div>
                                             <div>
-                                                <p class="font-black text-xl text-white leading-tight group-hover:text-orange-400 transition-colors">
+                                                <p class="font-black text-xl text-neutral-900 dark:text-white leading-tight group-hover:text-orange-400 transition-colors">
                                                     <span v-if="getBrandName(item)" class="text-orange-500/70 mr-1">[{{ getBrandName(item) }}]</span>
                                                     {{ item.product_name || item.product?.name }}
                                                 </p>
                                             </div>
                                         </div>
                                         <div class="px-5 py-2.5 bg-surface-900 rounded-2xl border border-surface-700 shadow-inner shrink-0">
-                                            <p class="text-2xl font-black text-white">{{ item.quantity }} <span class="text-[10px] font-bold text-text-secondary uppercase block leading-none">Unit</span></p>
+                                            <p class="text-2xl font-black text-neutral-900 dark:text-white">{{ item.quantity }} <span class="text-[10px] font-bold text-text-secondary uppercase block leading-none">Unit</span></p>
                                         </div>
                                     </div>
                                 </div>
@@ -332,7 +332,7 @@ onMounted(() => {
                             <Clock :size="20" class="text-amber-500/50" />
                             <p class="text-[10px] uppercase font-black text-amber-500 tracking-[0.4em]">Catatan Pengiriman</p>
                         </div>
-                        <p class="text-lg font-medium text-white/90 italic leading-relaxed pl-8">"{{ selectedTransfer.transfer_notes }}"</p>
+                        <p class="text-lg font-medium text-text-primary italic leading-relaxed pl-8">"{{ selectedTransfer.transfer_notes }}"</p>
                     </div>
                 </div>
 
