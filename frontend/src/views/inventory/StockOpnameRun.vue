@@ -121,19 +121,29 @@ const isPrivilegedRole = computed(() => {
 });
 
 const isCsLogin = computed(() => {
-    return (typeof authStore.hasRole === 'function' && authStore.hasRole('inventory')) || 
-           (authStore.userRole || '').toLowerCase() === 'inventory' ||
-           (authStore.user?.roles?.[0]?.name || '').toLowerCase() === 'inventory';
+    const role = userRole.value;
+    if (role === 'inventory' || role === 'cs' || role.includes('inventory') || role.includes('cs')) return true;
+    if (typeof authStore.hasRole === 'function' && (authStore.hasRole('inventory') || authStore.hasRole('cs'))) return true;
+    if (authStore.user?.role && (String(authStore.user.role).toLowerCase().includes('inventory') || String(authStore.user.role).toLowerCase().includes('cs'))) return true;
+    if (Array.isArray(authStore.user?.roles)) {
+        return authStore.user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r?.name || '');
+            const lower = name.toLowerCase();
+            return lower.includes('inventory') || lower.includes('cs');
+        });
+    }
+    return false;
 });
 
 const isStoreAccount = computed(() => {
-    if (isCsLogin.value && authStore.user?.id === selectedCsUserId.value) return false;
+    if (isCsLogin.value) return false;
     if (isLeaderOrAudit.value || isPrivilegedRole.value) return false;
+    if (authStore.user?.id && Number(authStore.user.id) === Number(selectedCsUserId.value)) return false;
     return true;
 });
 
-// Akun leader, audit, atau super admin tidak ada pilihan akun CS (otomatis pakai akun pribadi sendiri)
-const hasCsStep = computed(() => !isLeaderOrAudit.value && !isPrivilegedRole.value);
+// Akun leader, audit, super admin, atau CS/inventory otomatis menggunakan akun sendiri tanpa pilihan akun CS
+const hasCsStep = computed(() => !isLeaderOrAudit.value && !isPrivilegedRole.value && !isCsLogin.value);
 
 // Stepper Progress Definitions
 const activeSteps = computed(() => {
@@ -221,8 +231,8 @@ const activeBranch = computed(() => {
 });
 
 const activeCsUser = computed(() => {
-    if (isLeaderOrAudit.value || isPrivilegedRole.value) {
-        return authStore.user || { name: authStore.userName || 'Leader / Audit' };
+    if (isLeaderOrAudit.value || isPrivilegedRole.value || isCsLogin.value) {
+        return authStore.user || { name: authStore.userName || (isCsLogin.value ? 'CS' : 'Leader / Audit') };
     }
     return csUsers.value.find(u => Number(u.id) === Number(selectedCsUserId.value)) || authStore.user || null;
 });
@@ -577,7 +587,7 @@ const changeSelectedType = () => {
 // Watchers
 watch(selectedBranchId, () => {
     if (!hasCsStep.value) {
-        selectedCsUserId.value = authStore.user?.id;
+        selectedCsUserId.value = authStore.user?.id || null;
         passwordVerified.value = true;
     } else {
         selectedCsUserId.value = null;
@@ -588,6 +598,13 @@ watch(selectedBranchId, () => {
     selectedProductName.value = '';
     selectedProductNames.value = [];
 });
+
+watch(() => authStore.user, (u) => {
+    if (u && !hasCsStep.value) {
+        selectedCsUserId.value = u.id;
+        passwordVerified.value = true;
+    }
+}, { immediate: true });
 
 // Physical Calculation
 const onPhysicalQtyChange = (item) => {
@@ -717,8 +734,13 @@ const handleVerifyAndSubmit = async () => {
         return;
     }
     if (!selectedCsUserId.value) {
-        toast.warning('Pilih akun CS penanggung jawab SO.');
-        return;
+        if (!hasCsStep.value && authStore.user?.id) {
+            selectedCsUserId.value = authStore.user.id;
+            passwordVerified.value = true;
+        } else {
+            toast.warning('Pilih akun CS penanggung jawab SO.');
+            return;
+        }
     }
     if (pendingItems.value.length === 0 && excessItems.value.length === 0) {
         toast.warning('Tidak ada barang yang diperiksa.');
