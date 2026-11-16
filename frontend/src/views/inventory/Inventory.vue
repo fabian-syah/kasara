@@ -989,10 +989,10 @@ const canToggleReturn = computed(() => {
 
 function getStockStatus(product) {
   if (product.stock === 0)
-    return { label: "Habis", class: "bg-red-500/20 text-red-400" };
+    return { label: "Habis", class: "bg-red-500/10 text-red-700 dark:text-red-400 font-bold border border-red-500/20" };
   if (product.stock <= product.minStock)
-    return { label: "Menipis", class: "bg-amber-500/20 text-amber-400" };
-  return { label: "Tersedia", class: "bg-emerald-500/20 text-emerald-400" };
+    return { label: "Menipis", class: "bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20" };
+  return { label: "Tersedia", class: "bg-primary-700/10 text-primary-800 dark:bg-emerald-950/60 dark:text-emerald-400 font-bold border border-primary-700/20" };
 }
 
 
@@ -1528,7 +1528,7 @@ async function exportInventory() {
                 </td>
                 <td class="text-sm hidden lg:table-cell">
                   <span class="badge"
-                    :class="item.condition === 'new' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : (item.condition === 'ex_ibox' ? 'bg-purple-500/20 text-purple-600 dark:text-purple-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400')">
+                    :class="item.condition === 'new' ? 'bg-primary-700/10 text-primary-800 dark:bg-emerald-950/60 dark:text-emerald-400 font-bold border border-primary-700/20' : (item.condition === 'ex_ibox' ? 'bg-purple-500/10 text-purple-700 dark:text-purple-400 font-bold border border-purple-500/20' : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20')">
                     {{ item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : 'Bekas') }}
                   </span>
                 </td>
@@ -1559,7 +1559,7 @@ async function exportInventory() {
                 </td>
                 <td>
                   <span class="badge"
-                    :class="item.status === 'available' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-surface-600 text-text-primary'">
+                    :class="item.status === 'available' ? 'bg-primary-700/10 text-primary-800 dark:bg-emerald-950/60 dark:text-emerald-400 font-bold border border-primary-700/20' : 'bg-surface-700 text-text-primary border border-surface-600'">
                     {{ item.status }}
                   </span>
                 </td>

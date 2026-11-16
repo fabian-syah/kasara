@@ -493,9 +493,9 @@ const currentLocalRank = computed(() => {
           <div class="stat-icon" :class="getColorClasses(stat.color).icon">
             <component :is="stat.icon" :size="20" class="text-white" />
           </div>
-          <div v-if="stat.trend" class="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full" :class="stat.trend === 'up'
-            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-            : (stat.trend === 'down' ? 'bg-red-500/20 text-red-600 dark:text-red-400' : 'bg-surface-500/20 text-text-secondary')
+          <div v-if="stat.trend" class="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border" :class="stat.trend === 'up'
+            ? 'bg-primary-700/10 text-primary-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-primary-700/20'
+            : (stat.trend === 'down' ? 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20' : 'bg-neutral-100 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700')
             ">
             <TrendingUp v-if="stat.trend === 'up'" :size="12" />
             <TrendingDown v-else-if="stat.trend === 'down'" :size="12" />
@@ -621,18 +621,18 @@ const currentLocalRank = computed(() => {
           <!-- Header and Tabs -->
           <div class="px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between mb-12 gap-6">
             <div class="text-center md:text-left">
-              <p class="text-[10px] font-bold text-surface-500 uppercase tracking-[0.3em] mb-1">{{ leftPodiumTitle }}
+              <p class="text-[10px] font-black text-primary-800 dark:text-emerald-400 uppercase tracking-[0.3em] mb-1">{{ leftPodiumTitle }}
               </p>
               <h2 class="font-black text-4xl lg:text-5xl text-text-primary tracking-tighter uppercase leading-none">
-                Live Global <span class="text-primary-500">Rankings</span>
+                Live Global <span class="text-primary-700 dark:text-emerald-400">Rankings</span>
               </h2>
             </div>
 
-            <div class="flex bg-surface-800/50 backdrop-blur-md p-1 rounded-2xl border border-surface-700/50 shadow-xl">
+            <div class="flex bg-surface-800/80 backdrop-blur-md p-1 rounded-2xl border border-surface-700 shadow-sm">
               <button v-for="tab in [{ id: 'today', lab: 'Hari Ini' }, { id: 'this_month', lab: 'Bulan Ini' }]"
                 :key="tab.id" @click="podiumTab = tab.id"
-                class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300"
-                :class="podiumTab === tab.id ? 'bg-primary-500 text-black shadow-lg' : 'text-text-secondary hover:text-primary-500'">
+                class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer"
+                :class="podiumTab === tab.id ? 'bg-primary-700 text-white shadow-md font-bold' : 'text-text-secondary hover:text-primary-800'">
                 {{ tab.lab }}
               </button>
             </div>
@@ -645,7 +645,7 @@ const currentLocalRank = computed(() => {
             <div class="relative flex flex-col items-center justify-end h-[420px] sm:h-[480px] lg:h-[500px] w-full max-w-4xl mx-auto px-2 sm:px-4">
               <!-- Background Glow for Rank 1 -->
               <div
-                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px] h-[300px] sm:h-[400px] bg-primary-500/10 rounded-full blur-[100px] pointer-events-none">
+                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[400px] h-[300px] sm:h-[400px] bg-primary-700/5 rounded-full blur-[100px] pointer-events-none">
               </div>
 
               <div v-if="leftPodiumData && leftPodiumData.podium"
@@ -657,11 +657,11 @@ const currentLocalRank = computed(() => {
                   style="animation-delay: 0.1s">
                   <div class="avatar-container mb-2 sm:mb-4 relative scale-75 sm:scale-100">
                     <div v-if="leftPodiumData.podium[0].is_me"
-                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-500 text-black text-[8px] sm:text-[9px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg animate-pulse z-10 whitespace-nowrap">
+                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-700 text-white text-[8px] sm:text-[9px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg animate-pulse z-10 whitespace-nowrap">
                       YOU</div>
                     <div
-                      class="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-surface-800 border sm:border-2 border-slate-400 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 overflow-hidden"
-                      :class="leftPodiumData.podium[0].is_me ? 'ring-4 ring-primary-500/20' : ''">
+                      class="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-surface-800 border sm:border-2 border-slate-400 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 overflow-hidden"
+                      :class="leftPodiumData.podium[0].is_me ? 'ring-4 ring-primary-700/20' : ''">
                       <Store
                         v-if="leftPodiumData.podium[0].type === 'branch' || leftPodiumData.podium[0].type === 'Offline'"
                         class="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" />
@@ -670,11 +670,11 @@ const currentLocalRank = computed(() => {
                   </div>
                   <div class="text-center mb-2 sm:mb-4 px-1 sm:px-2 min-h-[40px] flex flex-col justify-end">
                     <h4 class="font-black text-[9px] sm:text-xs text-text-primary uppercase truncate w-full tracking-tight mb-0.5"
-                      :class="leftPodiumData.podium[0].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[0].name }}</h4>
+                      :class="leftPodiumData.podium[0].is_me ? 'text-primary-700 dark:text-emerald-400' : ''">{{ leftPodiumData.podium[0].name }}</h4>
                     <span class="text-[8px] sm:text-[10px] font-bold text-slate-400/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[0].omset) }}</span>
                     <span class="text-[8px] sm:text-[10px] font-bold tabular-nums truncate w-full"
-                      :class="leftPodiumData.podium[0].omset_bersih < 0 ? 'text-red-400/80' : 'text-emerald-400/80'">Bersih: {{
+                      :class="leftPodiumData.podium[0].omset_bersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-primary-800 dark:text-emerald-300'">Bersih: {{
                       formatCurrency(leftPodiumData.podium[0].omset_bersih) }}</span>
                   </div>
                   <div
@@ -692,38 +692,38 @@ const currentLocalRank = computed(() => {
                   style="animation-delay: 0s">
                   <div class="avatar-container mb-3 sm:mb-6 relative scale-90 sm:scale-100">
                     <Sparkles
-                      class="absolute -top-10 sm:-top-14 left-1/2 -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 text-primary-500 animate-pulse" />
+                      class="absolute -top-10 sm:-top-14 left-1/2 -translate-x-1/2 w-6 h-6 sm:w-8 sm:h-8 text-primary-700 dark:text-emerald-400 animate-pulse" />
                     <div v-if="leftPodiumData.podium[1].is_me"
-                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-500 text-black text-[8px] sm:text-[9px] font-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-lg animate-bounce z-10 whitespace-nowrap">
+                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-700 text-white text-[8px] sm:text-[9px] font-black px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-lg animate-bounce z-10 whitespace-nowrap">
                       YOU</div>
                     <div
-                      class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-surface-800 border sm:border-4 border-primary-500 flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.2)] group-hover:scale-110 transition-transform duration-700 overflow-hidden"
-                      :class="leftPodiumData.podium[1].is_me ? 'ring-8 ring-primary-500/10' : ''">
+                      class="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-white dark:bg-surface-800 border sm:border-4 border-primary-700 dark:border-primary-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-700 overflow-hidden"
+                      :class="leftPodiumData.podium[1].is_me ? 'ring-8 ring-primary-700/20' : ''">
                       <Store
                         v-if="leftPodiumData.podium[1].type === 'branch' || leftPodiumData.podium[1].type === 'Offline'"
-                        class="w-10 h-10 sm:w-14 sm:h-14 text-primary-500" />
-                      <Globe v-else class="w-10 h-10 sm:w-14 sm:h-14 text-primary-500" />
+                        class="w-10 h-10 sm:w-14 sm:h-14 text-primary-700 dark:text-emerald-400" />
+                      <Globe v-else class="w-10 h-10 sm:w-14 sm:h-14 text-primary-700 dark:text-emerald-400" />
                     </div>
                   </div>
                   <div class="text-center mb-3 sm:mb-6 px-1 sm:px-2 min-h-[60px] flex flex-col justify-end items-center gap-1">
                     <h4 class="font-black text-xs sm:text-base lg:text-lg text-text-primary uppercase tracking-tighter mb-0.5 sm:mb-1 truncate w-full"
-                      :class="leftPodiumData.podium[1].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[1].name }}</h4>
+                      :class="leftPodiumData.podium[1].is_me ? 'text-primary-700 dark:text-emerald-400' : ''">{{ leftPodiumData.podium[1].name }}</h4>
                     <div class="flex flex-col gap-1 items-center">
-                      <div class="inline-flex bg-primary-500/10 px-2 sm:px-4 py-0.5 rounded-full border border-primary-500/20 mx-auto">
-                        <span class="text-[9px] sm:text-xs font-black text-primary-500 tabular-nums">Total: {{
+                      <div class="inline-flex bg-primary-700/10 dark:bg-emerald-950/60 px-2 sm:px-4 py-0.5 rounded-full border border-primary-700/30 dark:border-emerald-700/50 mx-auto">
+                        <span class="text-[9px] sm:text-xs font-black text-primary-800 dark:text-emerald-300 tabular-nums">Total: {{
                           formatCurrency(leftPodiumData.podium[1].omset) }}</span>
                       </div>
                       <div class="inline-flex px-2 sm:px-4 py-0.5 rounded-full border mx-auto transition-colors duration-300"
-                        :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-emerald-500/10 border-emerald-500/20'">
+                        :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-primary-700/10 border-primary-700/30 dark:bg-emerald-950/60 dark:border-emerald-700/50'">
                         <span class="text-[9px] sm:text-xs font-black tabular-nums"
-                          :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'text-red-400' : 'text-emerald-400'">Bersih: {{
+                          :class="leftPodiumData.podium[1].omset_bersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-primary-800 dark:text-emerald-300'">Bersih: {{
                           formatCurrency(leftPodiumData.podium[1].omset_bersih) }}</span>
                       </div>
                     </div>
                   </div>
                   <div
-                    class="w-full h-36 sm:h-48 lg:h-64 bg-gradient-to-b from-primary-900/40 to-primary-950/20 rounded-t-2xl sm:rounded-t-3xl border-t-2 sm:border-t-4 border-primary-500 border-x border-primary-500/20 flex flex-col items-center justify-center shadow-[0_-20px_50px_rgba(245,158,11,0.1)] relative overflow-hidden group-hover:brightness-125 transition-all">
-                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(245,158,11,0.15),transparent)]">
+                    class="w-full h-36 sm:h-48 lg:h-64 bg-gradient-to-b from-primary-900/40 to-primary-950/20 rounded-t-2xl sm:rounded-t-3xl border-t-2 sm:border-t-4 border-primary-700 dark:border-primary-500 border-x border-primary-700/30 flex flex-col items-center justify-center shadow-lg relative overflow-hidden group-hover:brightness-110 transition-all">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(4,120,87,0.15),transparent)]">
                     </div>
                     <span class="text-5xl sm:text-7xl font-black text-primary-500 leading-none">{{ leftPodiumData.podium[1].rank }}</span>
                     <span class="text-[8px] sm:text-[10px] font-black text-primary-500/50 uppercase tracking-[0.3em] sm:tracking-[0.4em] mt-1 sm:mt-2">GLOBAL RANK</span>
@@ -736,11 +736,11 @@ const currentLocalRank = computed(() => {
                   style="animation-delay: 0.2s">
                   <div class="avatar-container mb-2 sm:mb-4 relative scale-75 sm:scale-100">
                     <div v-if="leftPodiumData.podium[2].is_me"
-                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-500 text-black text-[8px] sm:text-[9px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg animate-pulse z-10 whitespace-nowrap">
+                      class="absolute -top-8 sm:-top-10 left-1/2 -translate-x-1/2 bg-primary-700 text-white text-[8px] sm:text-[9px] font-black px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg animate-pulse z-10 whitespace-nowrap">
                       YOU</div>
                     <div
-                      class="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-surface-800 border sm:border-2 border-amber-700 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 overflow-hidden"
-                      :class="leftPodiumData.podium[2].is_me ? 'ring-4 ring-primary-500/20' : ''">
+                      class="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-white dark:bg-surface-800 border sm:border-2 border-amber-700 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-500 overflow-hidden"
+                      :class="leftPodiumData.podium[2].is_me ? 'ring-4 ring-primary-700/20' : ''">
                       <Store
                         v-if="leftPodiumData.podium[2].type === 'branch' || leftPodiumData.podium[2].type === 'Offline'"
                         class="w-8 h-8 sm:w-10 sm:h-10 text-amber-700" />
@@ -749,11 +749,11 @@ const currentLocalRank = computed(() => {
                   </div>
                   <div class="text-center mb-2 sm:mb-4 px-1 sm:px-2 min-h-[40px] flex flex-col justify-end">
                     <h4 class="font-black text-[9px] sm:text-xs text-text-primary uppercase truncate w-full tracking-tight mb-0.5"
-                      :class="leftPodiumData.podium[2].is_me ? 'text-primary-500' : ''">{{ leftPodiumData.podium[2].name }}</h4>
+                      :class="leftPodiumData.podium[2].is_me ? 'text-primary-700 dark:text-emerald-400' : ''">{{ leftPodiumData.podium[2].name }}</h4>
                     <span class="text-[8px] sm:text-[10px] font-bold text-amber-700/60 tabular-nums truncate w-full">Total: {{
                       formatCurrency(leftPodiumData.podium[2].omset) }}</span>
                     <span class="text-[8px] sm:text-[10px] font-bold tabular-nums truncate w-full"
-                      :class="leftPodiumData.podium[2].omset_bersih < 0 ? 'text-red-400/80' : 'text-emerald-400/80'">Bersih: {{
+                      :class="leftPodiumData.podium[2].omset_bersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-primary-800 dark:text-emerald-300'">Bersih: {{
                       formatCurrency(leftPodiumData.podium[2].omset_bersih) }}</span>
                   </div>
                   <div
@@ -770,13 +770,13 @@ const currentLocalRank = computed(() => {
 
             <!-- PREVIOUS PERIOD PODIUM (RIGHT SIDE) -->
             <div
-              class="bg-surface-800/10 rounded-[3rem] border border-surface-700/30 p-8 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden backdrop-blur-sm group/prev transition-all hover:bg-surface-800/20">
+              class="bg-white/90 dark:bg-surface-800/20 rounded-[3rem] border border-neutral-200 dark:border-surface-700/30 p-8 flex flex-col items-center justify-center min-h-[500px] relative overflow-hidden shadow-sm backdrop-blur-sm group/prev transition-all hover:bg-white dark:hover:bg-surface-800/30">
               <div class="absolute top-0 right-0 p-6">
-                <Trophy class="w-12 h-12 text-surface-700 group-hover/prev:text-primary-500/20 transition-colors" />
+                <Trophy class="w-12 h-12 text-primary-800/30 dark:text-surface-700 group-hover/prev:text-primary-800 dark:group-hover/prev:text-primary-400 transition-colors" />
               </div>
 
               <div class="text-center mb-12">
-                <h3 class="text-[10px] font-black text-primary-500 uppercase tracking-[0.5em] mb-2">{{ rightPodiumTitle
+                <h3 class="text-[10px] font-black text-primary-800 dark:text-emerald-400 uppercase tracking-[0.5em] mb-2">{{ rightPodiumTitle
                   }}
                 </h3>
                 <p class="text-[9px] font-bold text-text-secondary uppercase tracking-widest">{{ rightPodiumSubtitle }}
@@ -785,39 +785,39 @@ const currentLocalRank = computed(() => {
 
               <div v-if="rightPodiumData && rightPodiumData.podium" class="w-full space-y-4 max-w-sm">
                 <div v-for="(item, idx) in rightPodiumData.podium" :key="idx"
-                  class="flex items-center gap-4 p-4 rounded-2xl bg-surface-800/40 border transition-all group/item relative overflow-hidden"
+                  class="flex items-center gap-4 p-4 rounded-2xl bg-neutral-50 dark:bg-surface-800/40 border border-neutral-200 dark:border-surface-700/50 transition-all group/item relative overflow-hidden"
                   :class="[
                     item.is_me 
-                      ? 'ring-2 ring-primary-500 border-primary-500/50 shadow-[0_0_30px_rgba(16,185,129,0.15)] scale-[1.03] z-10' 
-                      : 'border-surface-700/50 hover:border-primary-500/30'
+                      ? 'ring-2 ring-primary-700 border-primary-700/50 shadow-md scale-[1.03] z-10' 
+                      : 'hover:border-primary-700/40'
                   ]">
                   
                   <!-- Subtle Background Glow for YOU -->
-                  <div v-if="item.is_me" class="absolute inset-0 bg-primary-500/5 animate-pulse pointer-events-none"></div>
+                  <div v-if="item.is_me" class="absolute inset-0 bg-primary-700/5 animate-pulse pointer-events-none"></div>
 
                   <div
                     class="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm transition-transform group-hover/item:scale-110 shadow-lg relative z-10"
                     :class="[
-                      item.is_me ? 'bg-primary-500 text-black shadow-primary-500/20' : {
-                        'bg-primary-500 text-black': item.rank === 1,
-                        'bg-slate-400 text-black': item.rank === 2,
+                      item.is_me ? 'bg-primary-700 text-white shadow-primary-700/20' : {
+                        'bg-primary-700 text-white': item.rank === 1,
+                        'bg-slate-500 text-white': item.rank === 2,
                         'bg-amber-700 text-white': item.rank === 3,
-                        'bg-surface-700 text-text-secondary': item.rank > 3
+                        'bg-neutral-200 dark:bg-surface-700 text-text-secondary': item.rank > 3
                       }
                     ]">
                     {{ item.rank }}
                   </div>
 
                   <div class="flex-1 min-w-0 relative z-10">
-                    <h4 class="font-black text-xs text-text-primary uppercase truncate mb-1" :class="item.is_me ? 'text-primary-500' : ''">
+                    <h4 class="font-black text-xs text-text-primary uppercase truncate mb-1" :class="item.is_me ? 'text-primary-700 dark:text-emerald-400 font-bold' : ''">
                       {{ item.name }}
                     </h4>
                     <div class="flex flex-col sm:flex-row sm:gap-3">
-                      <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-400/80' : 'text-text-secondary opacity-60'">
+                      <span class="text-[10px] font-bold tabular-nums" :class="item.is_me ? 'text-primary-700/80 dark:text-emerald-400/80' : 'text-text-secondary opacity-60'">
                         Total: {{ formatCurrency(item.omset) }}
                       </span>
                       <span class="text-[10px] font-bold tabular-nums transition-colors duration-300"
-                        :class="item.omset_bersih < 0 ? 'text-red-400/90' : 'text-emerald-400/90'">
+                        :class="item.omset_bersih < 0 ? 'text-red-600 dark:text-red-400' : 'text-primary-800 dark:text-emerald-400 font-bold'">
                         Bersih: {{ formatCurrency(item.omset_bersih) }}
                       </span>
                     </div>

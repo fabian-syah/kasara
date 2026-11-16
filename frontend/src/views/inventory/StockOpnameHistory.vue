@@ -1230,10 +1230,10 @@ watch(() => filters.value.executor_role, () => {
             <div v-else v-for="day in groupedAllImeisByDay" :key="day.date"
                 class="bg-white dark:!bg-surface-800 rounded-3xl border border-gray-100 dark:border-surface-700 shadow-sm overflow-hidden transition-all duration-300">
                 <!-- Day Header & Progress Bar -->
-                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-purple-50/40 via-white to-gray-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
+                <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-surface-700/80 bg-gradient-to-r from-primary-700/5 via-white to-neutral-50/60 dark:from-surface-800/90 dark:via-surface-800 dark:to-surface-850/80">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-200 dark:border-purple-800">
+                            <div class="w-10 h-10 rounded-xl bg-primary-700/10 dark:bg-emerald-950/60 text-primary-800 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-primary-700/20 dark:border-emerald-700/50">
                                 <Smartphone :size="18" />
                             </div>
                             <div>

@@ -1564,7 +1564,7 @@ onMounted(async () => {
                             <button type="button" @click="toggleBrand('')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1"
                                 :class="isBrandSelected('')
-                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    ? 'bg-primary-700 text-white border-primary-700 shadow-sm'
                                     : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="isBrandSelected('')" :size="12" />
                                 <span>Semua Brand</span>
@@ -1572,12 +1572,12 @@ onMounted(async () => {
                             <button v-for="b in availableBrands" :key="b.brand" type="button" @click="toggleBrand(b.brand)"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isBrandSelected(b.brand)
-                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500'
+                                    ? 'bg-primary-700/15 text-primary-900 dark:text-emerald-300 border-primary-700 font-black'
                                     : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
-                                <Check v-if="isBrandSelected(b.brand)" :size="12" class="text-primary-600 dark:text-emerald-400" />
+                                <Check v-if="isBrandSelected(b.brand)" :size="12" class="text-primary-700 dark:text-emerald-400" />
                                 <span>{{ b.brand }}</span>
                                 <span class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isBrandSelected(b.brand) ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
+                                    :class="isBrandSelected(b.brand) ? 'bg-primary-700/25 text-primary-900 dark:text-emerald-200 font-bold' : 'bg-surface-700 text-text-secondary'">
                                     {{ b.count }}
                                 </span>
                             </button>
@@ -1588,7 +1588,7 @@ onMounted(async () => {
                     <div class="space-y-2 bg-surface-800 p-3.5 sm:p-4 rounded-2xl border border-surface-700 shadow-xs">
                         <div class="flex items-center justify-between text-xs">
                             <div class="flex items-center gap-1.5">
-                                <Sparkles :size="13" class="text-primary-600 dark:text-emerald-400" />
+                                <Sparkles :size="13" class="text-primary-700 dark:text-emerald-400" />
                                 <span class="font-bold text-text-secondary uppercase text-[10px] tracking-wider">
                                     Opsi Kondisi Unit (New / Scd / Ex iBox)
                                 </span>
@@ -1602,7 +1602,7 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('all')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer flex items-center gap-1"
                                 :class="selectedConditions.length === 0
-                                    ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                                    ? 'bg-primary-700 text-white border-primary-700 shadow-sm'
                                     : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
                                 <Check v-if="selectedConditions.length === 0" :size="12" />
                                 <span>Belum Dipilih (Semua)</span>
@@ -1612,12 +1612,12 @@ onMounted(async () => {
                             <button type="button" @click="toggleCondition('new')"
                                 class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer"
                                 :class="isConditionSelected('new')
-                                    ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border-primary-500 shadow-xs'
+                                    ? 'bg-primary-700/15 text-primary-900 dark:text-emerald-300 border-primary-700 shadow-xs font-black'
                                     : 'bg-surface-800 text-text-secondary border-surface-700 hover:border-surface-600 hover:text-text-primary'">
-                                <Check v-if="isConditionSelected('new')" :size="12" class="text-primary-600 dark:text-emerald-400" />
+                                <Check v-if="isConditionSelected('new')" :size="12" class="text-primary-700 dark:text-emerald-400" />
                                 <span>Baru (New)</span>
                                 <span v-if="availableConditions.find(c => c.condition === 'new')" class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
-                                    :class="isConditionSelected('new') ? 'bg-primary-500/25 text-primary-900 dark:text-emerald-200' : 'bg-surface-700 text-text-secondary'">
+                                    :class="isConditionSelected('new') ? 'bg-primary-700/25 text-primary-900 dark:text-emerald-200 font-bold' : 'bg-surface-700 text-text-secondary'">
                                     {{ availableConditions.find(c => c.condition === 'new')?.count || 0 }}
                                 </span>
                             </button>
@@ -1690,14 +1690,14 @@ onMounted(async () => {
                             @click="toggleType(t.product_name)"
                             class="p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between gap-3 group cursor-pointer relative"
                             :class="isTypeSelected(t.product_name)
-                                ? 'border-primary-600 bg-primary-500/10 dark:bg-emerald-950/40 ring-1 ring-primary-500/30 shadow-xs'
-                                : 'border-surface-700 bg-surface-800 hover:border-primary-500/50 hover:bg-surface-750'">
+                                ? 'border-primary-700 bg-primary-700/10 dark:bg-emerald-950/40 ring-1 ring-primary-700/30 shadow-xs'
+                                : 'border-surface-700 bg-surface-800 hover:border-primary-700/50 hover:bg-surface-750'">
                             <div class="flex items-center gap-3 min-w-0 flex-1">
                                 <!-- Checkbox Indicator -->
                                 <div class="w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 transition-all"
                                     :class="isTypeSelected(t.product_name)
-                                        ? 'bg-primary-600 border-primary-500 text-white'
-                                        : 'border-surface-600 bg-surface-750 group-hover:border-primary-500/60'">
+                                        ? 'bg-primary-700 border-primary-700 text-white'
+                                        : 'border-surface-600 bg-surface-750 group-hover:border-primary-700/60'">
                                     <Check v-if="isTypeSelected(t.product_name)" :size="13" class="stroke-[3]" />
                                 </div>
                                 <div class="min-w-0 flex-1">

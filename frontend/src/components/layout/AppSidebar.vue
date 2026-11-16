@@ -562,7 +562,7 @@ watch(() => route.path, () => {
                                     type="button"
                                     class="w-full flex items-center justify-between px-3 py-2 rounded-[12px] text-[13px] font-medium transition-all duration-300 group"
                                     :class="isSubGroupActive(subitem.items)
-                                        ? 'text-primary-800 dark:text-emerald-300 bg-primary-600/20 font-bold border border-primary-700/30'
+                                        ? 'text-primary-900 dark:text-emerald-300 bg-primary-700/15 font-bold border border-primary-700/40'
                                         : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
                                 >
                                     <div class="flex items-center gap-2 min-w-0 flex-1">

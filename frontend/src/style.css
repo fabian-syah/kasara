@@ -8,33 +8,46 @@
 /* Custom CSS Variables */
 /* Base Variables (Light Mode Default) */
 :root {
-  /* Primary Brand Colors (Deeper, mature forest emerald - "hijau tuaan", eye-friendly, no neon glare) */
-  --color-primary-50: #ecfdf5;
-  --color-primary-100: #d1fae5;
-  --color-primary-200: #a7f3d0;
-  --color-primary-300: #6ee7b7;
-  --color-primary-400: #10b981;
+  /* Primary Brand Colors (Deep forest green - "hijau tuaan", elegant, bold, eye-friendly, no neon glare) */
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #047857; /* Deep emerald, never light/pale mint */
+  --color-primary-400: #047857;
   --color-primary-500: #047857; /* Deep emerald / Hijau tuaan - elegan, tegas, tidak silau */
-  --color-primary-600: #065f46; /* Darker green for hover/active */
-  --color-primary-700: #064e3b;
+  --color-primary-600: #065f46; /* Darker forest green */
+  --color-primary-700: #064e3b; /* Darkest forest green */
   --color-primary-800: #022c22;
   --color-primary-900: #011913;
 
-  /* Surface Colors (White/Light - Cards tinted with Kasara Green Theme) */
+  /* Surface Colors (Clean crisp white cards with neutral soft borders - NO pale mint wash!) */
   --color-surface-950: #ffffff;
-  --color-surface-900: #ffffff;
-  --color-surface-850: #e6f9ef;
-  --color-surface-800: var(--color-primary-50);
-  --color-surface-750: #f0fdf4;
-  --color-surface-700: var(--color-primary-200);
-  --color-surface-600: #9dd8bb;
-  --color-surface-500: #6ee7b7;
+  --color-surface-900: #f8fafc; /* Crisp neutral canvas, soft on eyes */
+  --color-surface-850: #f1f5f9;
+  --color-surface-800: #ffffff; /* Clean white cards */
+  --color-surface-750: #f8fafc; /* Subtle hover state */
+  --color-surface-700: #e2e8f0; /* Crisp neutral border */
+  --color-surface-600: #cbd5e1;
+  --color-surface-500: #64748b; /* Neutral slate text, not mint! */
 
   /* Text Colors */
   --color-text-primary: #0f172a;
   --color-text-secondary: #334155;
   /* Dark gray, almost black for hierarchy */
   --color-text-inverse: #ffffff;
+
+  /* Emerald & Green variables in Light Mode - mapped to deep forest green so no text-emerald-400 is light mint! */
+  --color-emerald-300: #047857;
+  --color-emerald-400: #047857;
+  --color-emerald-500: #047857;
+  --color-emerald-600: #065f46;
+  --color-emerald-700: #064e3b;
+
+  --color-green-300: #047857;
+  --color-green-400: #047857;
+  --color-green-500: #047857;
+  --color-green-600: #065f46;
+  --color-green-700: #064e3b;
 }
 
 /* Dark Mode Overrides */
@@ -43,11 +56,11 @@
   --color-primary-50: #022c22;
   --color-primary-100: #064e3b;
   --color-primary-200: #065f46;
-  --color-primary-300: #047857;
-  --color-primary-400: #059669;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
   --color-primary-500: #10b981;
-  --color-primary-600: #34d399;
-  --color-primary-700: #6ee7b7;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
   --color-primary-800: #a7f3d0;
   --color-primary-900: #d1fae5;
 
@@ -65,6 +78,19 @@
   --color-text-primary: #ffffff;
   --color-text-secondary: #a3a3a3;
   --color-text-inverse: #000000;
+
+  /* Emerald & Green variables in Dark Mode */
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+
+  --color-green-300: #6ee7b7;
+  --color-green-400: #34d399;
+  --color-green-500: #10b981;
+  --color-green-600: #059669;
+  --color-green-700: #047857;
 }
 
 
@@ -100,12 +126,16 @@
   --color-text-inverse: var(--color-text-inverse);
 
   /* Map emerald and green so they also use the deeper "hijau tuaan" */
-  --color-emerald-500: var(--color-primary-500);
-  --color-emerald-600: var(--color-primary-600);
-  --color-emerald-700: var(--color-primary-700);
-  --color-green-500: var(--color-primary-500);
-  --color-green-600: var(--color-primary-600);
-  --color-green-700: var(--color-primary-700);
+  --color-emerald-300: var(--color-emerald-300);
+  --color-emerald-400: var(--color-emerald-400);
+  --color-emerald-500: var(--color-emerald-500);
+  --color-emerald-600: var(--color-emerald-600);
+  --color-emerald-700: var(--color-emerald-700);
+  --color-green-300: var(--color-green-300);
+  --color-green-400: var(--color-green-400);
+  --color-green-500: var(--color-green-500);
+  --color-green-600: var(--color-green-600);
+  --color-green-700: var(--color-green-700);
 
   /* Accent Colors (Constant) */
   --color-success: var(--color-primary-500);
@@ -460,19 +490,19 @@ input[type="checkbox"]:indeterminate {
   }
 
   .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 shadow-lg shadow-primary-500/25 active:scale-[0.98];
+    @apply bg-primary-700 text-white hover:bg-primary-800 shadow-sm active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply bg-surface-700 text-text-primary hover:bg-surface-600 border border-surface-600;
+    @apply bg-white dark:bg-surface-800 text-neutral-800 dark:text-white hover:bg-neutral-50 dark:hover:bg-surface-700 border border-neutral-300 dark:border-surface-600 shadow-xs;
   }
 
   .btn-success {
-    @apply bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/25;
+    @apply bg-primary-700 text-white hover:bg-primary-800 shadow-sm;
   }
 
   .btn-danger {
-    @apply bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/25;
+    @apply bg-red-600 text-white hover:bg-red-700 shadow-sm;
   }
 
   .btn-ghost {
@@ -480,7 +510,7 @@ input[type="checkbox"]:indeterminate {
   }
 
   .input {
-    @apply w-full bg-surface-800/50 border border-surface-700 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 transition-all;
+    @apply w-full bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-primary-600/30 focus:border-primary-600 transition-all;
   }
 
   .input-error {
@@ -492,7 +522,7 @@ input[type="checkbox"]:indeterminate {
   }
 
   .card-hover {
-    @apply hover:border-primary-500 hover:shadow-lg hover:shadow-primary-500/10;
+    @apply hover:border-primary-600 hover:shadow-md hover:shadow-primary-700/5;
   }
 
   .badge {
@@ -500,19 +530,19 @@ input[type="checkbox"]:indeterminate {
   }
 
   .badge-success {
-    @apply bg-emerald-500/20 text-emerald-500 dark:text-emerald-400;
+    @apply bg-primary-700/10 text-primary-800 dark:bg-emerald-950/60 dark:text-emerald-400 font-bold border border-primary-700/20;
   }
 
   .badge-warning {
-    @apply bg-amber-500/20 text-amber-500 dark:text-amber-400;
+    @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20;
   }
 
   .badge-danger {
-    @apply bg-red-500/20 text-red-500 dark:text-red-400;
+    @apply bg-red-500/10 text-red-700 dark:text-red-400 font-bold border border-red-500/20;
   }
 
   .badge-info {
-    @apply bg-primary-500/20 text-primary-600 dark:text-primary-400;
+    @apply bg-primary-700/10 text-primary-800 dark:bg-primary-900/40 dark:text-primary-300 font-bold border border-primary-700/20;
   }
 
   .stat-card {

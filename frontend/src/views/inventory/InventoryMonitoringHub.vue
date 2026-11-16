@@ -43,9 +43,9 @@ const activeTab = ref("incoming_otw"); // Default to incoming_otw
 const lastOtwTab = ref("incoming_otw");
 
 const topCards = [
-    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-primary-700 dark:text-emerald-400", bg: "bg-emerald-500/15 dark:bg-emerald-950/50", border: "border-emerald-500/40", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-md" },
-    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-primary-700 dark:text-emerald-400", bg: "bg-emerald-500/10 dark:bg-emerald-950/40", border: "border-emerald-500/30", activeBorder: "border-emerald-500 ring-2 ring-emerald-500/30 shadow-emerald-500/10" },
-    { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-600 dark:text-red-400", bg: "bg-red-500/10 dark:bg-red-950/40", border: "border-red-500/30", activeBorder: "border-red-500 ring-2 ring-red-500/30 shadow-red-500/10" },
+    { id: "incoming_otw", name: "Konfirmasi Masuk", description: "Verifikasi penerimaan barang", icon: ArrowDownRight, color: "text-primary-800 dark:text-emerald-400", bg: "bg-primary-700/10 dark:bg-emerald-950/50", border: "border-primary-700/40", activeBorder: "border-primary-700 ring-2 ring-primary-700/30 shadow-md" },
+    { id: "outgoing_otw", name: "Pantau Kiriman", description: "Lacak status pengiriman", icon: ArrowUpRight, color: "text-primary-800 dark:text-emerald-400", bg: "bg-primary-700/10 dark:bg-emerald-950/40", border: "border-primary-700/40", activeBorder: "border-primary-700 ring-2 ring-primary-700/30 shadow-md" },
+    { id: "failed_otw", name: "Gagal Kirim", description: "Tindak lanjuti masalah", icon: AlertTriangle, color: "text-red-700 dark:text-red-400", bg: "bg-red-500/10 dark:bg-red-950/40", border: "border-red-500/40", activeBorder: "border-red-500 ring-2 ring-red-500/30 shadow-md" },
 ];
 
 function selectTopCard(id) {
