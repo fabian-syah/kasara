@@ -541,7 +541,7 @@ watch(() => route.path, () => {
                         :class="[
                             isExpanded ? 'gap-3 px-4 py-3' : 'justify-center p-3',
                             isGroupActive(item.items)
-                                ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400'
+                                ? 'bg-primary-700 text-white shadow-sm font-bold dark:bg-emerald-950 dark:text-emerald-300 dark:border dark:border-emerald-700/50'
                                 : 'text-text-secondary hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-text-primary'
                         ]">
                         <component :is="item.icon" :size="20" class="shrink-0" />
@@ -553,7 +553,7 @@ watch(() => route.path, () => {
 
                     <!-- Submenu Items -->
                     <div v-if="isExpanded" v-show="expandedMenus[item.id] || isGroupActive(item.items)"
-                        class="ml-8 space-y-1 mt-1.5 border-l-2 border-neutral-100 dark:border-neutral-800/60 pl-2">
+                        class="ml-8 space-y-1 mt-1.5 border-l-2 border-primary-700/30 dark:border-neutral-800/60 pl-2">
                         <template v-for="subitem in item.items" :key="subitem.id">
                             <!-- Nested Level 2 Sub-Group (Dropdown like Data Stok) -->
                             <div v-if="subitem.items && subitem.items.length > 0" class="space-y-1 my-1">
@@ -562,12 +562,12 @@ watch(() => route.path, () => {
                                     type="button"
                                     class="w-full flex items-center justify-between px-3 py-2 rounded-[12px] text-[13px] font-medium transition-all duration-300 group"
                                     :class="isSubGroupActive(subitem.items)
-                                        ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 font-semibold'
+                                        ? 'text-primary-800 dark:text-emerald-300 bg-primary-600/20 font-bold border border-primary-700/30'
                                         : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
                                 >
                                     <div class="flex items-center gap-2 min-w-0 flex-1">
                                         <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                            :class="isSubGroupActive(subitem.items) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                            :class="isSubGroupActive(subitem.items) ? 'bg-primary-700' : 'bg-neutral-300 dark:bg-neutral-600'">
                                         </div>
                                         <span class="truncate">{{ subitem.label }}</span>
                                         <span v-if="subitem.badge"
@@ -583,7 +583,7 @@ watch(() => route.path, () => {
                                 <!-- Level 3 Nested Items -->
                                 <div
                                     v-show="isSubMenuExpanded(subitem.id, subitem.items)"
-                                    class="ml-3.5 pl-2.5 space-y-1 border-l-2 border-primary-500/20 dark:border-primary-500/10 py-1 transition-all duration-200"
+                                    class="ml-3.5 pl-2.5 space-y-1 border-l-2 border-primary-700/30 dark:border-primary-500/10 py-1 transition-all duration-200"
                                 >
                                     <router-link
                                         v-for="nestedItem in subitem.items"
@@ -591,11 +591,11 @@ watch(() => route.path, () => {
                                         :to="nestedItem.path"
                                         class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[10px] text-[12px] font-medium transition-all duration-200"
                                         :class="isActiveRoute(nestedItem.path)
-                                            ? 'text-primary-600 dark:text-primary-400 bg-primary-500/15 font-semibold shadow-xs'
+                                            ? 'bg-primary-700 text-white font-bold shadow-xs dark:bg-emerald-900/60 dark:text-emerald-300'
                                             : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/60 dark:hover:bg-neutral-800/60'"
                                     >
                                         <div class="w-1 h-1 rounded-full shrink-0"
-                                            :class="isActiveRoute(nestedItem.path) ? 'bg-primary-500 scale-125' : 'bg-neutral-400 dark:bg-neutral-500'">
+                                            :class="isActiveRoute(nestedItem.path) ? 'bg-white' : 'bg-neutral-400 dark:bg-neutral-500'">
                                         </div>
                                         <span>{{ nestedItem.label }}</span>
                                     </router-link>
@@ -608,12 +608,12 @@ watch(() => route.path, () => {
                                 :to="subitem.path"
                                 class="flex items-center justify-between px-3 py-2.5 rounded-[12px] text-[13px] font-medium transition-all duration-300"
                                 :class="isActiveRoute(subitem.path)
-                                    ? 'text-primary-600 dark:text-primary-400 bg-primary-500/10 shadow-sm'
+                                    ? 'bg-primary-700 text-white font-bold shadow-sm dark:bg-emerald-900/60 dark:text-emerald-300'
                                     : 'text-text-secondary hover:text-text-primary hover:bg-neutral-100/50 dark:hover:bg-neutral-800/50'"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
                                     <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                        :class="isActiveRoute(subitem.path) ? 'bg-primary-500' : 'bg-neutral-300 dark:bg-neutral-600'">
+                                        :class="isActiveRoute(subitem.path) ? 'bg-white' : 'bg-neutral-300 dark:bg-neutral-600'">
                                     </div>
                                     <span class="truncate">{{ subitem.label }}</span>
                                 </div>
@@ -631,7 +631,7 @@ watch(() => route.path, () => {
                     class="flex items-center rounded-[14px] font-medium transition-all duration-300 group" :class="[
                         isExpanded ? 'gap-3 px-4 py-3' : 'justify-center p-3',
                         isActiveRoute(item.path)
-                            ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 shadow-sm'
+                            ? 'bg-primary-700 text-white shadow-sm font-bold dark:bg-emerald-950 dark:text-emerald-300 dark:border dark:border-emerald-700/50'
                             : 'text-text-secondary hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 hover:text-text-primary'
                     ]" :title="!isExpanded ? item.label : undefined">
                     <component :is="item.icon" :size="20"
@@ -646,15 +646,15 @@ watch(() => route.path, () => {
             <div v-if="isExpanded" class="flex items-center gap-3 mb-4 px-2">
                 <img :src="authStore.userPhotoUrl
                     ? authStore.userPhotoUrl
-                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '10b981' : '050505'}&color=fff&size=128`"
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '047857' : '050505'}&color=fff&size=128`"
                     class="w-10 h-10 rounded-full border-2 border-surface-200 dark:border-surface-700 object-cover shadow-sm transition-transform hover:scale-105"
                     :alt="userName"
-                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '10b981' : '050505'}&color=fff&size=128`" />
+                    @error="(e) => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${themeStore.isDark ? '047857' : '050505'}&color=fff&size=128`" />
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-text-primary truncate">
                         {{ userName }}
                     </p>
-                    <p class="text-[11px] text-primary-500 font-medium uppercase tracking-wide">
+                    <p class="text-[11px] text-primary-700 dark:text-emerald-400 font-bold uppercase tracking-wide">
                         {{ userRole }}
                     </p>
                     <p v-if="authStore.user?.branch?.name" class="text-[10px] text-text-secondary truncate mt-0.5">
