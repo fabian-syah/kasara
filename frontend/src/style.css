@@ -8,61 +8,50 @@
 /* Custom CSS Variables */
 /* Base Variables (Light Mode Default) */
 :root {
-  /* Primary Brand Colors (Calm, mature forest emerald - not harsh/neon) */
-  --color-primary-50: #f2f7f4;
-  --color-primary-100: #e2ede6;
-  --color-primary-200: #c5dbcf;
-  --color-primary-300: #9fc1af;
-  --color-primary-400: #5b9e78;
-  --color-primary-500: #2d7a54;
-  --color-primary-600: #226343;
-  --color-primary-700: #1a4d34;
-  --color-primary-800: #153c29;
-  --color-primary-900: #102e1f;
+  /* Primary Brand Colors (Changed from Blue to Emerald to match Login UI) */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #34d399;
+  --color-primary-500: #10b981;
+  --color-primary-600: #059669;
+  --color-primary-700: #047857;
+  --color-primary-800: #065f46;
+  --color-primary-900: #064e3b;
 
-  /* Surface Colors (Soft muted canvas, eliminates blinding white glare) */
+  /* Surface Colors (White/Light) */
   --color-surface-950: #ffffff;
-  --color-surface-900: #eef1f4;
-  --color-surface-850: #e4e8ec;
+  --color-surface-900: #f8fafc;
+  --color-surface-850: #f1f5f9;
   --color-surface-800: #ffffff;
-  --color-surface-750: #f6f8fa;
-  --color-surface-700: #dce1e7;
-  --color-surface-600: #c4ccd5;
-  --color-surface-500: #8c97a5;
+  --color-surface-750: #f8fafc;
+  --color-surface-700: #e2e8f0;
+  --color-surface-600: #cbd5e1;
+  --color-surface-500: #94a3b8;
 
-  /* Text Colors (Crisp black text in light theme) */
-  --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
+  /* Text Colors */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  /* Dark gray, almost black for hierarchy */
   --color-text-inverse: #ffffff;
 }
 
 /* Dark Mode Overrides */
 .dark {
-  /* Primary Brand Colors for Dark Mode (Gentle on the eyes, no neon) */
-  --color-primary-50: #0a1f14;
-  --color-primary-100: #0e2b1c;
-  --color-primary-200: #133a26;
-  --color-primary-300: #1c5035;
-  --color-primary-400: #4a9e70;
-  --color-primary-500: #388e62;
-  --color-primary-600: #2d7a54;
-  --color-primary-700: #226343;
-  --color-primary-800: #1a4d34;
-  --color-primary-900: #102e1f;
-
   /* Surface Colors (Neutral Dark) */
   --color-surface-950: #0a0a0a;
-  --color-surface-900: #141414;
-  --color-surface-850: #1c1c1c;
-  --color-surface-800: #242424;
-  --color-surface-750: #2e2e2e;
-  --color-surface-700: #3a3a3a;
-  --color-surface-600: #4d4d4d;
-  --color-surface-500: #707070;
+  --color-surface-900: #171717;
+  --color-surface-850: #1e1e1e;
+  --color-surface-800: #262626;
+  --color-surface-750: #333333;
+  --color-surface-700: #404040;
+  --color-surface-600: #525252;
+  --color-surface-500: #737373;
 
   /* Text Colors */
-  --color-text-primary: #f3f4f6;
-  --color-text-secondary: #9ca3af;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a3a3a3;
   --color-text-inverse: #000000;
 }
 
@@ -99,55 +88,10 @@
   --color-text-inverse: var(--color-text-inverse);
 
   /* Accent Colors (Constant) */
-  --color-success: #2d7a54;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  --color-info: #4b5563;
-
-  /* Calmed-down Eye-Friendly Green / Emerald (Eliminates eye-hurting neon glare) */
-  --color-emerald-50: #f2f7f4;
-  --color-emerald-100: #e2ede6;
-  --color-emerald-200: #c5dbcf;
-  --color-emerald-300: #8fb89f;
-  --color-emerald-400: #5b9e78;
-  --color-emerald-500: #2d7a54;
-  --color-emerald-600: #226343;
-  --color-emerald-700: #1a4d34;
-  --color-emerald-800: #153c29;
-  --color-emerald-900: #102e1f;
-  --color-emerald-950: #0a1f14;
-
-  --color-green-50: #f2f7f4;
-  --color-green-100: #e2ede6;
-  --color-green-200: #c5dbcf;
-  --color-green-300: #8fb89f;
-  --color-green-400: #5b9e78;
-  --color-green-500: #2d7a54;
-  --color-green-600: #226343;
-  --color-green-700: #1a4d34;
-  --color-green-800: #153c29;
-  --color-green-900: #102e1f;
-  --color-green-950: #0a1f14;
-
-  --color-teal-50: #f2f7f4;
-  --color-teal-100: #e2ede6;
-  --color-teal-200: #c5dbcf;
-  --color-teal-300: #8fb89f;
-  --color-teal-400: #5b9e78;
-  --color-teal-500: #2d7a54;
-  --color-teal-600: #226343;
-
-  /* Alias Blue, Cyan, Purple to clean text colors so that light theme uses crisp black text without blue font clutters */
-  --color-blue-400: var(--color-text-secondary);
-  --color-blue-500: var(--color-text-primary);
-  --color-blue-600: var(--color-text-primary);
-  --color-blue-700: var(--color-text-primary);
-  --color-cyan-400: var(--color-text-secondary);
-  --color-cyan-500: var(--color-text-primary);
-  --color-cyan-600: var(--color-text-primary);
-  --color-purple-400: var(--color-text-secondary);
-  --color-purple-500: var(--color-text-primary);
-  --color-purple-600: var(--color-text-primary);
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
 
   /* Alias Slate and Gray to Neutral to eliminate any blue tints globally */
   --color-slate-50: #fafafa;
@@ -205,11 +149,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 12px rgba(45, 122, 84, 0.15);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 24px rgba(45, 122, 84, 0.25);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
   }
 }
 
