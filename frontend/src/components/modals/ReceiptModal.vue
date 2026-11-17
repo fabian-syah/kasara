@@ -618,7 +618,7 @@ const close = () => {
 };
 
 const isGeneratingPDF = ref(false);
-const paperSize = ref('A4');
+const paperSize = ref('A5');
 
 watch(() => props.isOpen, async (newVal) => {
     if (newVal && props.autoSend) {
@@ -884,11 +884,7 @@ const sendWaReceiptFromModal = async () => {
 };
 
 const printReceipt = () => {
-    // === iOS SAFARI "NEW TAB" FALLBACK REMOVED ===
-    // We now use the standard @media print logic for iOS as well, 
-    // because opening a new tab and document.write() causes a blank page in modern iOS Safari.
-
-    // 1. Dapatkan atau siapkan style element (disiapkan di luar pemanggilan untuk menghindari DOM insertion saat klik)
+    // 1. Dapatkan atau siapkan style element untuk ukuran halaman cetak A5
     const styleId = 'dynamic-print-page-size';
     let styleEl = document.getElementById(styleId);
     if (!styleEl) {
@@ -897,137 +893,24 @@ const printReceipt = () => {
         document.head.appendChild(styleEl);
     }
     
-    const isA5 = paperSize.value === 'A5';
-    const size = isA5 ? 'A5 portrait' : 'A4 portrait';
-
-    // 2. Set styling untuk print
+    // STRICTLY ONLY A5 PORTRAIT (1 lembar pas)
     styleEl.textContent = `
         @media print {
-            @page { size: ${size}; margin: 0 !important; }
-            ${isA5 ? `
-            html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            #receipt-modal-print-wrapper,
-            #receipt-modal-print-wrapper > div,
-            #receipt-content {
-                display: block !important;
-                position: relative !important;
-                width: 148mm !important;
-                max-width: 148mm !important;
-                height: auto !important;
-                max-height: 210mm !important;
-                overflow: hidden !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-            .nota-paper {
-                width: 148mm !important;
-                max-width: 148mm !important;
-                height: 210mm !important;
-                max-height: 210mm !important;
-                overflow: hidden !important;
-                padding: 1mm 3mm !important;
-                margin: 0 !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                transform: none !important;
-                font-size: 6.5px !important;
-            }
-            .nota-paper .text-3xl { font-size: 1rem !important; }
-            .nota-paper .text-2xl { font-size: 0.9rem !important; }
-            .nota-paper .text-xl { font-size: 0.8rem !important; }
-            .nota-paper .text-lg { font-size: 0.7rem !important; }
-            .nota-paper .text-base { font-size: 0.65rem !important; }
-            .nota-paper .text-sm { font-size: 0.6rem !important; }
-            .nota-paper .text-xs { font-size: 0.55rem !important; }
-            .nota-paper .text-\\[11px\\] { font-size: 7.5px !important; }
-            .nota-paper .text-\\[10px\\] { font-size: 7px !important; }
-            .nota-paper .text-\\[9px\\] { font-size: 6.5px !important; }
-            .nota-paper .text-\\[8px\\] { font-size: 6px !important; }
-            .nota-paper .text-\\[7px\\] { font-size: 5.5px !important; }
-            .nota-paper .text-\\[6px\\] { font-size: 5px !important; }
-            .nota-paper .mb-6 { margin-bottom: 0.3rem !important; }
-            .nota-paper .mb-5 { margin-bottom: 0.25rem !important; }
-            .nota-paper .mb-4 { margin-bottom: 0.2rem !important; }
-            .nota-paper .mt-6 { margin-top: 0.3rem !important; }
-            .nota-paper .mt-8 { margin-top: 0.4rem !important; }
-            .nota-paper .gap-6 { gap: 0.3rem !important; }
-            .nota-paper .gap-5 { gap: 0.25rem !important; }
-            .nota-paper .gap-4 { gap: 0.2rem !important; }
-            .nota-paper .p-6 { padding: 0.3rem !important; }
-            .nota-paper .p-4 { padding: 0.25rem !important; }
-            .nota-paper .px-6 { padding-left: 0.3rem !important; padding-right: 0.3rem !important; }
-            .nota-paper .py-4 { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
-            .nota-paper .py-3 { padding-top: 0.15rem !important; padding-bottom: 0.15rem !important; }
-            .nota-paper .w-16 { width: 2.5rem !important; }
-            .nota-paper .h-16 { height: 2.5rem !important; }
-            .nota-paper .w-20 { width: 3rem !important; }
-            .nota-paper .h-20 { height: 3rem !important; }
-            .nota-paper img { max-height: 2.5rem !important; }
-            .nota-paper svg { transform: scale(0.8) !important; }
-            .nota-paper > div.absolute svg {
-                transform: none !important;
-                width: 100% !important;
-                height: 100% !important;
-            }
-            .nota-paper > div.absolute svg polygon[fill="#dc2626"] {
-                fill: #dc2626 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-            .nota-paper > div.absolute svg polygon[fill="#0a0a0a"] {
-                fill: #0a0a0a !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-            .nota-paper > div.absolute[class*="top-0"][class*="w-20"] {
-                width: 4.5rem !important;
-                height: 4.5rem !important;
-                top: 0 !important;
-                overflow: visible !important;
-                z-index: 50 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-            }
-            .nota-paper > div.absolute[class*="left-0"][class*="w-20"] {
-                left: 0 !important;
-            }
-            .nota-paper > div.absolute[class*="right-0"][class*="w-20"] {
-                right: 0 !important;
-            }
-            /* Header section: keep logo, branch name, social same size as A4 */
-            .nota-paper .relative.z-10 > div:first-child {
-                margin-top: 1.5rem !important;
-                margin-bottom: 0.4rem !important;
-                padding-left: 0.8rem !important;
-                padding-right: 0.8rem !important;
-                gap: 0.6rem !important;
-            }
-            .nota-paper .relative.z-10 > div:first-child img {
-                width: 4rem !important;
-                height: 4rem !important;
-                max-height: 4rem !important;
-            }
-            .nota-paper .relative.z-10 > div:first-child .text-2xl {
-                font-size: 1.1rem !important;
-            }
-            .nota-paper .relative.z-10 > div:first-child .text-\\[10px\\] {
-                font-size: 9px !important;
-            }
-            .nota-paper .relative.z-10 > div:first-child .text-\\[9px\\] {
-                font-size: 8px !important;
-            }
-            ` : ''}
+            @page { size: A5 portrait; margin: 0 !important; }
         }
     `;
 
-    // 3. Panggil window.print() secara langsung
-    // (Kami tidak mengubah document.title sebelum ini agar Safari tidak curiga)
+    // 2. Bersihkan judul dokumen sementara agar browser header/footer tidak tercetak
+    const originalTitle = document.title;
+    document.title = ' ';
+
+    // 3. Panggil window.print()
     window.print();
+
+    // 4. Kembalikan judul dokumen
+    setTimeout(() => {
+        document.title = originalTitle;
+    }, 1000);
 };
 
 useEscapeKey(() => {
@@ -1497,136 +1380,302 @@ const processedReceiptItems = computed(() => {
 </style>
 
 <style>
+/* UNSCOPED PRINT CSS - DEDICATED STRICT A5 1-PAGE GUARANTEE */
 @media print {
     @page {
-        margin: 0;
+        size: A5 portrait;
+        margin: 0 !important;
     }
 
-    /* Robustly hide ALL other elements at the root body level to avoid cross-browser rendering bugs and conflicts */
-    body> :not(#receipt-modal-print-wrapper):not(#transfer-receipt-modal-wrapper) {
+    /* Robustly hide ALL other elements at the root body level except the print wrapper */
+    body > :not(#receipt-modal-print-wrapper):not(#transfer-receipt-modal-wrapper) {
         display: none !important;
     }
 
     html,
     body {
-        height: auto !important;
-        width: 100% !important;
+        width: 148mm !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
-        overflow: visible !important;
+        overflow: hidden !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
     }
 
-    /* COMPLETE PARENT RESET: Strips away viewport constraints, flex centering, and max-height crushing */
+    /* COMPLETE PARENT RESET: Strict A5 Page Box */
     #receipt-modal-print-wrapper,
-    #receipt-modal-print-wrapper>div,
+    #receipt-modal-print-wrapper > div,
     #receipt-content {
         display: block !important;
         position: relative !important;
         left: 0 !important;
         top: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
+        width: 148mm !important;
+        max-width: 148mm !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         box-sizing: border-box !important;
         background: white !important;
         z-index: 9999999 !important;
         flex: none !important;
-        align-items: flex-start !important;
-        justify-content: flex-start !important;
         transform: none !important;
         border: 0 !important;
         outline: 0 !important;
     }
 
-    /* CRITICAL FIX: Direct fitting to physical dimensions with free-flowing bottom overflow to prevent clipping signatures */
+    /* A5 NOTA PAPER CONTAINER: Strictly fits on 1 sheet of paper */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        padding: 4mm 8mm !important;
-        /* Compressed internal print padding */
+        padding: 2.5mm 5mm !important;
         margin: 0 auto !important;
-        color: black !important;
+        color: #0f172a !important;
         background: white !important;
         border-radius: 0 !important;
         box-sizing: border-box !important;
-        display: flex !important;
-        flex-direction: column !important;
-
-        width: 100% !important;
-        max-width: 210mm !important;
-        height: auto !important;
-        /* Fluid auto height to 100% guarantee 1-page fitting regardless of native browser margins */
-        min-height: auto !important;
-        max-height: none !important;
-        overflow: visible !important;
+        width: 148mm !important;
+        max-width: 148mm !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
+        overflow: hidden !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-
-        transform-origin: top center !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        transform: none !important;
     }
 
-    /* Optimized for A5 Printing - Removed excessive scaling to ensure 1-page fit */
-    .nota-paper .text-\[6px\] { font-size: 7px !important; }
-    .nota-paper .text-\[7px\] { font-size: 8px !important; }
-    .nota-paper .text-\[8px\] { font-size: 9px !important; }
-    .nota-paper .text-\[9px\] { font-size: 10px !important; }
-    .nota-paper .text-\[10px\] { font-size: 11px !important; }
-    .nota-paper .text-\[11px\] { font-size: 12px !important; }
-    .nota-paper .text-xs { font-size: 0.85rem !important; }
-    .nota-paper .text-sm { font-size: 0.95rem !important; }
-    .nota-paper .text-base { font-size: 1.05rem !important; }
-    .nota-paper .text-lg { font-size: 1.15rem !important; }
-    .nota-paper .text-xl { font-size: 1.25rem !important; }
-    .nota-paper .text-2xl { font-size: 1.5rem !important; }
-    .nota-paper .text-3xl { font-size: 1.8rem !important; }
-
-    .nota-paper svg {
-        transform: scale(1);
-    }
-
-    .nota-paper>.relative.z-10 {
-        flex: none !important;
+    /* Vertical distribution: cleanly fills top to bottom within 1 page */
+    .nota-paper > .relative.z-10 {
         display: flex !important;
         flex-direction: column !important;
-        height: auto !important;
+        justify-content: space-between !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        box-sizing: border-box !important;
     }
 
-    /* Compact visual spacing to fit A5 gracefully */
-    .nota-paper .mb-6 { margin-bottom: 0.75rem !important; }
-    .nota-paper .mb-5 { margin-bottom: 0.5rem !important; }
-    .nota-paper .mb-4 { margin-bottom: 0.5rem !important; }
-    .nota-paper .mt-6 { margin-top: 0.75rem !important; }
-    .nota-paper .mt-8 { margin-top: 1.5rem !important; }
-    .nota-paper .gap-6 { gap: 0.75rem !important; }
-    .nota-paper .gap-4 { gap: 0.5rem !important; }
-    .nota-paper .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
-    .nota-paper .py-3 { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
-    .nota-paper .p-4 { padding: 0.75rem !important; }
-    .nota-paper .p-6 { padding: 0.85rem !important; }
-    .nota-paper .px-6 { padding-left: 0.85rem !important; padding-right: 0.85rem !important; }
+    /* Watermark in background */
+    .nota-paper .opacity-\[0\.08\] img {
+        width: 220px !important;
+        height: 220px !important;
+        transform: scale(1) !important;
+    }
 
-    .nota-paper img {
-        height: auto !important;
-        max-height: none !important;
+    /* Corner Accents */
+    .nota-paper > div.absolute.top-0 {
+        width: 3rem !important;
+        height: 3rem !important;
+        z-index: 20 !important;
+    }
+    .nota-paper > div.absolute svg {
+        width: 100% !important;
+        height: 100% !important;
+        transform: none !important;
+    }
+
+    /* Header Section (Logo, Branch, Address, Socials) */
+    .nota-paper .relative.z-10 > div:first-child {
+        margin-top: 0.15rem !important;
+        margin-bottom: 0.15rem !important;
+        padding-left: 0.35rem !important;
+        padding-right: 0.35rem !important;
+        gap: 0.45rem !important;
+    }
+    .nota-paper .relative.z-10 > div:first-child img {
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        max-height: 2.5rem !important;
         object-fit: contain !important;
     }
+    .nota-paper .relative.z-10 > div:first-child .text-2xl {
+        font-size: 0.95rem !important;
+        line-height: 1.1 !important;
+    }
+    .nota-paper .relative.z-10 > div:first-child .text-\[10px\] {
+        font-size: 7.5px !important;
+        line-height: 1.1 !important;
+        margin-top: 2px !important;
+    }
+    .nota-paper .relative.z-10 > div:first-child .text-\[9px\] {
+        font-size: 7px !important;
+        margin-top: 2px !important;
+    }
 
-    .nota-paper tr,
-    .nota-paper .payment-section,
+    /* Thick Middle Segment Separator Line */
+    .nota-paper .relative.w-full.h-px {
+        margin-top: 0.12rem !important;
+        margin-bottom: 0.12rem !important;
+    }
+
+    /* Invoice Type Title ("BUKTI TRANSAKSI") */
+    .nota-paper .text-center.mb-5.mt-2 {
+        margin-top: 0.12rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    .nota-paper .text-3xl {
+        font-size: 0.95rem !important;
+        line-height: 1.1 !important;
+    }
+    .nota-paper .text-\[10px\] {
+        font-size: 7.5px !important;
+    }
+
+    /* Metadata Info Grid */
+    .nota-paper .grid.grid-cols-3 {
+        padding: 0.3rem 0.4rem !important;
+        margin-bottom: 0.2rem !important;
+        border-radius: 6px !important;
+    }
+    .nota-paper .grid.grid-cols-3 .w-7.h-7 {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+    .nota-paper .grid.grid-cols-3 svg {
+        width: 0.65rem !important;
+        height: 0.65rem !important;
+    }
+    .nota-paper .grid.grid-cols-3 .gap-4 {
+        gap: 0.2rem !important;
+    }
+    .nota-paper .grid.grid-cols-3 .text-\[7px\] {
+        font-size: 6.5px !important;
+        margin-bottom: 1px !important;
+    }
+    .nota-paper .grid.grid-cols-3 .text-\[10px\],
+    .nota-paper .grid.grid-cols-3 .text-\[11px\] {
+        font-size: 8px !important;
+        line-height: 1.15 !important;
+    }
+
+    /* Items Table */
+    .nota-paper .rounded-xl.overflow-hidden.border.border-neutral-200.mb-6 {
+        margin-bottom: 0.2rem !important;
+        border-radius: 6px !important;
+    }
+    .nota-paper table {
+        font-size: 8px !important;
+    }
+    .nota-paper th {
+        background-color: #0a0a0a !important;
+        color: #ffffff !important;
+        padding: 2.5px 5px !important;
+        font-size: 7.5px !important;
+    }
+    .nota-paper td {
+        padding: 2.5px 5px !important;
+        font-size: 8px !important;
+    }
+    .nota-paper td .text-\[10px\],
+    .nota-paper td .text-\[11px\],
+    .nota-paper td .text-\[12px\] {
+        font-size: 8px !important;
+        line-height: 1.15 !important;
+    }
+
+    /* Split Column (Notes & Warranty / Breakdown & Grand Total) */
+    .nota-paper .flex.flex-col.md\:flex-row.gap-6.mb-6.mt-2 {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 0.35rem !important;
+        margin-top: 0.12rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    .nota-paper .mb-5.relative {
+        margin-bottom: 0.2rem !important;
+    }
+    .nota-paper .notes-box {
+        padding: 0.25rem 0.4rem !important;
+        min-height: 22px !important;
+        max-height: 42px !important;
+        overflow: hidden !important;
+        font-size: 7.5px !important;
+        line-height: 1.2 !important;
+        border-radius: 6px !important;
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
+    }
+    .nota-paper .flex-1 .mb-4 {
+        margin-bottom: 0 !important;
+    }
+    .nota-paper .flex-1 .mb-4 span.text-\[10px\] {
+        font-size: 7px !important;
+    }
+    .nota-paper .flex-1 .mb-4 ul,
+    .nota-paper .flex-1 .mb-4 div.text-\[9px\] {
+        font-size: 6.5px !important;
+        line-height: 1.2 !important;
+        margin-top: 2px !important;
+    }
+    .nota-paper .w-full.md\:w-\[260px\] {
+        width: 58mm !important;
+        flex-shrink: 0 !important;
+    }
+    .nota-paper .bg-neutral-50\/80.rounded-xl.border {
+        padding: 0.25rem 0.4rem !important;
+        margin-bottom: 0.18rem !important;
+        border-radius: 6px !important;
+        gap: 0.1rem !important;
+    }
+    .nota-paper .bg-neutral-50\/80.rounded-xl.border span {
+        font-size: 7.5px !important;
+    }
+    .nota-paper .bg-neutral-50\/80.rounded-xl.border .text-sm {
+        font-size: 8.5px !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 {
+        height: 30px !important;
+        border-radius: 6px !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 .text-\[8px\] {
+        font-size: 6px !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 .text-lg,
+    .nota-paper .h-\[60px\].bg-red-600 .text-xl {
+        font-size: 11px !important;
+    }
+    .nota-paper .text-\[8px\].text-right.italic {
+        font-size: 6.5px !important;
+        margin-top: 1px !important;
+    }
+
+    /* Signature Area */
     .nota-paper .signature-area {
-        break-inside: avoid;
+        margin-top: 0.2rem !important;
+        margin-bottom: 0.1rem !important;
+        padding: 0.25rem 0.4rem !important;
+        gap: 0.4rem !important;
+        border-radius: 6px !important;
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
+    }
+    .nota-paper .signature-area .mb-12 {
+        margin-bottom: 1.1rem !important;
+        font-size: 7px !important;
+    }
+    .nota-paper .signature-area .border-b {
+        max-width: 95px !important;
+        margin-bottom: 2px !important;
+    }
+    .nota-paper .signature-area .text-\[11px\] {
+        font-size: 8px !important;
+        font-weight: 900 !important;
     }
 
     .print\:hidden {
         display: none !important;
     }
 
-    /* COMPLETE ARTIFACT ELIMINATION: Universally strips all box-shadows and blurs which render as solid gray halos in browser print engines */
+    /* COMPLETE ARTIFACT ELIMINATION: Strips all halos/shadows */
     #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper *,
     .nota-paper,
@@ -1640,14 +1689,6 @@ const processedReceiptItems = computed(() => {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
-    }
-
-    /* Force translucent elements to be 100% solid pure white opaque to prevent gray backgrounds */
-    .nota-paper .signature-area,
-    .nota-paper .notes-box {
-        background-color: #ffffff !important;
-        background: white !important;
-        border-color: #e5e7eb !important;
     }
 
     img {
