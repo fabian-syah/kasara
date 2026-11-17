@@ -2414,55 +2414,56 @@ onUnmounted(() => {
                     </table>
                 </div>
 
-                <!-- Search & Status Filter for IMEI -->
-                <div v-if="method === 'by_imei' && pendingItems.length > 0" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 pb-2 border-b border-surface-700/60">
-                    <!-- Status Filter Tabs -->
-                    <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
-                        <button type="button" @click="filterImeiStatus = 'all'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
-                            :class="filterImeiStatus === 'all'
-                                ? 'bg-surface-700 text-text-primary shadow-xs'
-                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-750'">
-                            Semua ({{ pendingItems.length }})
-                        </button>
-                        <button type="button" @click="filterImeiStatus = 'ada'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
-                            :class="filterImeiStatus === 'ada'
-                                ? 'bg-primary-500/25 border border-primary-500/40 text-emerald-400 shadow-xs'
-                                : 'text-text-secondary hover:text-emerald-400 hover:bg-surface-750'">
-                            <Check :size="13" />
-                            <span>Ada ({{ summaryStats.totalPhysical }})</span>
-                        </button>
-                        <button type="button" @click="filterImeiStatus = 'tidak_ada'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
-                            :class="filterImeiStatus === 'tidak_ada'
-                                ? 'bg-rose-500/25 border border-rose-500/40 text-rose-400 shadow-xs'
-                                : 'text-text-secondary hover:text-rose-400 hover:bg-surface-750'">
-                            <X :size="13" />
-                            <span>Tidak Ada ({{ summaryStats.totalMissing }})</span>
-                        </button>
-                        <button v-if="summaryStats.totalUnselected > 0" type="button" @click="filterImeiStatus = 'belum_dipilih'"
-                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
-                            :class="filterImeiStatus === 'belum_dipilih'
-                                ? 'bg-amber-500/25 border border-amber-500/40 text-amber-400 shadow-xs animate-pulse'
-                                : 'text-text-secondary hover:text-amber-400 hover:bg-surface-750'">
-                            <span>Belum Dipilih ({{ summaryStats.totalUnselected }})</span>
-                        </button>
+                <!-- CASE B: STOK BY IMEI (SEARCH, FILTER & CHECKLIST CARDS) -->
+                <div v-else-if="method === 'by_imei'" class="space-y-4">
+                    <!-- Search & Status Filter for IMEI -->
+                    <div v-if="pendingItems.length > 0" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 pb-2 border-b border-surface-700/60">
+                        <!-- Status Filter Tabs -->
+                        <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                            <button type="button" @click="filterImeiStatus = 'all'"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                                :class="filterImeiStatus === 'all'
+                                    ? 'bg-surface-700 text-text-primary shadow-xs'
+                                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-750'">
+                                Semua ({{ pendingItems.length }})
+                            </button>
+                            <button type="button" @click="filterImeiStatus = 'ada'"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                                :class="filterImeiStatus === 'ada'
+                                    ? 'bg-primary-500/25 border border-primary-500/40 text-emerald-400 shadow-xs'
+                                    : 'text-text-secondary hover:text-emerald-400 hover:bg-surface-750'">
+                                <Check :size="13" />
+                                <span>Ada ({{ summaryStats.totalPhysical }})</span>
+                            </button>
+                            <button type="button" @click="filterImeiStatus = 'tidak_ada'"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                                :class="filterImeiStatus === 'tidak_ada'
+                                    ? 'bg-rose-500/25 border border-rose-500/40 text-rose-400 shadow-xs'
+                                    : 'text-text-secondary hover:text-rose-400 hover:bg-surface-750'">
+                                <X :size="13" />
+                                <span>Tidak Ada ({{ summaryStats.totalMissing }})</span>
+                            </button>
+                            <button v-if="summaryStats.totalUnselected > 0" type="button" @click="filterImeiStatus = 'belum_dipilih'"
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                                :class="filterImeiStatus === 'belum_dipilih'
+                                    ? 'bg-amber-500/25 border border-amber-500/40 text-amber-400 shadow-xs animate-pulse'
+                                    : 'text-text-secondary hover:text-amber-400 hover:bg-surface-750'">
+                                <span>Belum Dipilih ({{ summaryStats.totalUnselected }})</span>
+                            </button>
+                        </div>
+
+                        <!-- Search IMEI / Tipe Input -->
+                        <div class="relative w-full sm:w-64">
+                            <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/60 pointer-events-none" />
+                            <input type="text" v-model="searchImeiQuery" placeholder="Cari IMEI / unit..."
+                                class="w-full text-xs py-2 pl-9 pr-7 bg-surface-750 border border-surface-700 rounded-xl focus:ring-1 focus:ring-primary-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
+                            <button v-if="searchImeiQuery" @click="searchImeiQuery = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer">
+                                <X :size="12" />
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Search IMEI / Tipe Input -->
-                    <div class="relative w-full sm:w-64">
-                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/60 pointer-events-none" />
-                        <input type="text" v-model="searchImeiQuery" placeholder="Cari IMEI / unit..."
-                            class="w-full text-xs py-2 pl-9 pr-7 bg-surface-750 border border-surface-700 rounded-xl focus:ring-1 focus:ring-primary-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
-                        <button v-if="searchImeiQuery" @click="searchImeiQuery = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer">
-                            <X :size="12" />
-                        </button>
-                    </div>
-                </div>
-
-                <!-- CASE B: STOK BY IMEI (CHECKLIST CARDS) -->
-                <div v-else-if="method === 'by_imei'" class="space-y-3">
+                    <!-- Cards Container -->
                     <div v-if="filteredPendingImeis.length === 0" class="py-10 text-center text-text-secondary bg-surface-750/30 rounded-2xl border border-dashed border-surface-700/80">
                         <p class="text-xs font-bold">Tidak ada unit IMEI yang cocok dengan filter atau pencarian ini.</p>
                         <button type="button" @click="filterImeiStatus = 'all'; searchImeiQuery = ''" class="mt-2 text-xs text-primary-400 hover:underline cursor-pointer">
