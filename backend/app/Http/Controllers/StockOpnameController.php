@@ -955,8 +955,29 @@ class StockOpnameController extends Controller
             // Generate unique opname number
             $recordDate = $cycle['date'];
             $todayStr = date('Ymd');
+            $prefix = 'SO-' . $todayStr . '-';
+
+            // Find highest existing sequence for today to avoid duplicate key conflicts
+            $lastOpname = StockOpname::where('opname_number', 'like', $prefix . '%')
+                ->orderByRaw('LENGTH(opname_number) DESC, opname_number DESC')
+                ->value('opname_number');
+
+            $nextSeq = 1;
+            if ($lastOpname) {
+                $lastNumStr = substr($lastOpname, strlen($prefix));
+                $nextSeq = ((int) $lastNumStr) + 1;
+            }
+
+            // Fallback count check
             $countToday = StockOpname::whereBetween('created_at', [$cycle['start'], $cycle['end']])->count() + 1;
-            $opnameNumber = 'SO-' . $todayStr . '-' . str_pad($countToday, 4, '0', STR_PAD_LEFT);
+            $nextSeq = max($nextSeq, $countToday);
+
+            // Double check existence in loop to ensure complete uniqueness
+            $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            while (StockOpname::where('opname_number', $opnameNumber)->exists()) {
+                $nextSeq++;
+                $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+            }
 
             $brandVal = $request->filled('brand') ? (string) $request->brand : null;
             $productTypeVal = $request->filled('product_type') ? (string) $request->product_type : null;
