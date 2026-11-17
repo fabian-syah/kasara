@@ -47,9 +47,25 @@ const form = reactive({
     product_id: null,
     type_name: "",
     storage: "",
+    condition: "second",
     cs_name_mistake: "",
     notes: ""
 });
+
+function formatCondition(val) {
+    if (!val) return "-";
+    const v = String(val).toLowerCase();
+    if (v === 'new' || v === 'baru') return 'New';
+    if (v === 'ex_ibox' || v === 'ex ibox') return 'Ex ibox';
+    return 'Scd';
+}
+
+function conditionBadgeClass(val) {
+    const v = String(val).toLowerCase();
+    if (v === 'new' || v === 'baru') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    if (v === 'ex_ibox' || v === 'ex ibox') return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+}
 
 // Combined unique types strictly belonging to the currently selected brand
 const combinedTypes = computed(() => {
@@ -262,6 +278,7 @@ async function doSearch() {
             }
 
             form.product_id = deviceData.value.product_id || null;
+            form.condition = deviceData.value.condition || 'second';
             form.cs_name_mistake = "";
             form.notes = "";
 
@@ -376,6 +393,10 @@ function openConfirmModal() {
         toast.error("Storage (GB) wajib dipilih atau diisi!");
         return;
     }
+    if (!form.condition) {
+        toast.error("Kondisi unit wajib dipilih (New / Scd / Ex ibox)!");
+        return;
+    }
 
     showConfirmModal.value = true;
 }
@@ -391,6 +412,7 @@ async function executeCorrection() {
             product_id: form.product_id,
             type_name: form.type_name.trim(),
             storage: form.storage.trim(),
+            condition: form.condition,
             notes: form.notes ? form.notes.trim() : null
         };
 
@@ -525,9 +547,12 @@ onMounted(async () => {
                                 <p class="text-base sm:text-lg font-extrabold text-text-primary">{{ deviceData.product_name }}</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-surface-700 text-text-primary border border-surface-600">
                                 IMEI: {{ deviceData.imei }}
+                            </span>
+                            <span class="inline-block px-2.5 py-1 rounded-lg text-xs font-bold border" :class="conditionBadgeClass(deviceData.condition)">
+                                {{ formatCondition(deviceData.condition) }}
                             </span>
                             <span class="inline-block px-2 py-0.5 rounded text-xs font-bold uppercase" :class="{
                                 'bg-green-500/10 text-green-500 border border-green-500/20': deviceData.status === 'available',
@@ -551,6 +576,12 @@ onMounted(async () => {
                             <strong class="text-text-primary text-sm">{{ deviceData.storage }}</strong>
                         </div>
                         <div>
+                            <span class="text-text-secondary block">Kondisi Unit:</span>
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold border mt-0.5" :class="conditionBadgeClass(deviceData.condition)">
+                                {{ formatCondition(deviceData.condition) }}
+                            </span>
+                        </div>
+                        <div>
                             <span class="text-text-secondary block">Posisi Lokasi:</span>
                             <strong class="text-text-primary text-sm">{{ deviceData.placement_name }}</strong>
                         </div>
@@ -566,7 +597,7 @@ onMounted(async () => {
                             <span class="text-text-secondary block">Diinput oleh (CS):</span>
                             <strong class="text-text-primary text-sm">{{ deviceData.input_by }}</strong>
                         </div>
-                        <div class="col-span-2">
+                        <div>
                             <span class="text-text-secondary block">Tgl Registrasi Masuk:</span>
                             <strong class="text-text-primary text-sm">{{ formatDate(deviceData.registered_at) }}</strong>
                         </div>
@@ -763,7 +794,65 @@ onMounted(async () => {
                             </template>
                         </div>
 
-                        <!-- Row 3: CRITICAL FIELD - Nama CS Yang Salah Input -->
+                        <!-- Row 3: Kondisi Unit (New / Scd / Ex ibox) -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label class="text-xs font-bold text-text-primary flex items-center gap-1.5">
+                                    <Tag :size="14" class="text-purple-400" />
+                                    <span>Kondisi Unit</span>
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                <span class="text-[11px] text-text-secondary font-medium">
+                                    Pilihan: <strong class="text-text-primary">{{ formatCondition(form.condition) }}</strong>
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+                                <!-- New -->
+                                <button
+                                    type="button"
+                                    @click="form.condition = 'new'"
+                                    class="p-3 sm:py-3.5 rounded-xl border text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-2 font-bold text-xs sm:text-sm cursor-pointer"
+                                    :class="form.condition === 'new'
+                                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-400 ring-2 ring-emerald-500/30 shadow-md shadow-emerald-500/10'
+                                        : 'bg-surface-800 border-surface-700 text-text-secondary hover:border-surface-600 hover:text-text-primary'"
+                                >
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="form.condition === 'new' ? 'bg-emerald-400 ring-4 ring-emerald-400/20' : 'bg-surface-600'"></span>
+                                    <span>New</span>
+                                </button>
+
+                                <!-- Scd -->
+                                <button
+                                    type="button"
+                                    @click="form.condition = 'second'"
+                                    class="p-3 sm:py-3.5 rounded-xl border text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-2 font-bold text-xs sm:text-sm cursor-pointer"
+                                    :class="form.condition === 'second'
+                                        ? 'bg-amber-500/15 border-amber-500 text-amber-400 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/10'
+                                        : 'bg-surface-800 border-surface-700 text-text-secondary hover:border-surface-600 hover:text-text-primary'"
+                                >
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="form.condition === 'second' ? 'bg-amber-400 ring-4 ring-amber-400/20' : 'bg-surface-600'"></span>
+                                    <span>Scd</span>
+                                </button>
+
+                                <!-- Ex ibox -->
+                                <button
+                                    type="button"
+                                    @click="form.condition = 'ex_ibox'"
+                                    class="p-3 sm:py-3.5 rounded-xl border text-center transition-all flex flex-col sm:flex-row items-center justify-center gap-2 font-bold text-xs sm:text-sm cursor-pointer"
+                                    :class="form.condition === 'ex_ibox'
+                                        ? 'bg-purple-500/15 border-purple-500 text-purple-400 ring-2 ring-purple-500/30 shadow-md shadow-purple-500/10'
+                                        : 'bg-surface-800 border-surface-700 text-text-secondary hover:border-surface-600 hover:text-text-primary'"
+                                >
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="form.condition === 'ex_ibox' ? 'bg-purple-400 ring-4 ring-purple-400/20' : 'bg-surface-600'"></span>
+                                    <span>Ex ibox</span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-text-secondary mt-1.5">
+                                Tentukan kondisi fisik unit hasil balancing: <strong>New</strong>, <strong>Scd</strong> (Second), atau <strong>Ex ibox</strong>.
+                            </p>
+                        </div>
+
+                        <!-- Row 4: CRITICAL FIELD - Nama CS Yang Salah Input -->
                         <div class="p-4 rounded-xl bg-amber-500/10 border-2 border-amber-500/30">
                             <label class="block text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 mb-1 flex items-center gap-1.5">
                                 <AlertTriangle :size="16" class="text-amber-500" />
@@ -841,9 +930,19 @@ onMounted(async () => {
                                     <span class="badge-xs bg-amber-500/10 text-amber-400 border-amber-500/20">CS SALAH: {{ hist.cs_name_mistake }}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-text-primary font-bold text-sm flex-wrap mt-1">
-                                    <span class="text-red-400 line-through">{{ hist.old_product_name }} ({{ hist.old_storage || '-' }})</span>
+                                    <span class="text-red-400 line-through">
+                                        {{ hist.old_product_name }} ({{ hist.old_storage || '-' }})
+                                        <span v-if="hist.old_condition" class="text-[10px] font-bold px-1.5 py-0.5 rounded border ml-1" :class="conditionBadgeClass(hist.old_condition)">
+                                            {{ formatCondition(hist.old_condition) }}
+                                        </span>
+                                    </span>
                                     <ArrowRight :size="14" class="text-surface-500" />
-                                    <span class="text-emerald-400">{{ hist.new_product_name }} ({{ hist.new_storage || '-' }})</span>
+                                    <span class="text-emerald-400">
+                                        {{ hist.new_product_name }} ({{ hist.new_storage || '-' }})
+                                        <span v-if="hist.new_condition" class="text-[10px] font-bold px-1.5 py-0.5 rounded border ml-1" :class="conditionBadgeClass(hist.new_condition)">
+                                            {{ formatCondition(hist.new_condition) }}
+                                        </span>
+                                    </span>
                                 </div>
                                 <p v-if="hist.notes" class="text-text-secondary italic mt-1 text-[11px]">{{ hist.notes }}</p>
                             </div>
@@ -911,11 +1010,21 @@ onMounted(async () => {
                                 <td class="py-2.5 px-3 font-mono font-bold text-text-primary">{{ item.imei }}</td>
                                 <td class="py-2.5 px-3">
                                     <span class="text-red-400 font-medium">{{ item.old_product_name }}</span>
-                                    <span class="text-text-secondary text-[11px] block">{{ item.old_storage || '-' }}</span>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        <span class="text-text-secondary text-[11px]">{{ item.old_storage || '-' }}</span>
+                                        <span v-if="item.old_condition" class="text-[10px] font-bold px-1.5 py-0.5 rounded border" :class="conditionBadgeClass(item.old_condition)">
+                                            {{ formatCondition(item.old_condition) }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="py-2.5 px-3">
                                     <span class="text-emerald-400 font-bold">{{ item.new_product_name }}</span>
-                                    <span class="text-text-secondary text-[11px] block">{{ item.new_storage || '-' }}</span>
+                                    <div class="flex items-center gap-1.5 mt-0.5">
+                                        <span class="text-text-secondary text-[11px]">{{ item.new_storage || '-' }}</span>
+                                        <span v-if="item.new_condition" class="text-[10px] font-bold px-1.5 py-0.5 rounded border" :class="conditionBadgeClass(item.new_condition)">
+                                            {{ formatCondition(item.new_condition) }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td class="py-2.5 px-3">
                                     <span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20">
@@ -983,6 +1092,7 @@ onMounted(async () => {
                         <div class="text-xs space-y-0.5 text-text-secondary">
                             <div>Merek: <span class="text-neutral-900 dark:text-white font-medium">{{ deviceData.brand_name }}</span></div>
                             <div>Storage: <span class="text-neutral-900 dark:text-white font-medium">{{ deviceData.storage }}</span></div>
+                            <div>Kondisi: <span class="text-neutral-900 dark:text-white font-medium">{{ formatCondition(deviceData.condition) }}</span></div>
                         </div>
                     </div>
 
@@ -993,6 +1103,7 @@ onMounted(async () => {
                         <div class="text-xs space-y-0.5 text-text-secondary">
                             <div>Merek: <span class="text-neutral-900 dark:text-white font-medium">{{ form.brand_name || deviceData.brand_name }}</span></div>
                             <div>Storage: <span class="text-neutral-900 dark:text-white font-medium">{{ form.storage }}</span></div>
+                            <div>Kondisi: <span class="text-emerald-400 font-bold">{{ formatCondition(form.condition) }}</span></div>
                         </div>
                     </div>
                 </div>

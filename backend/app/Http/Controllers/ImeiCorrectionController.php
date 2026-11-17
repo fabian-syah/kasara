@@ -344,6 +344,7 @@ class ImeiCorrectionController extends Controller
             'brand_name' => 'nullable|string',
             'product_id' => 'nullable|integer',
             'storage' => 'required|string',
+            'condition' => 'nullable|string|in:new,second,ex_ibox',
             'color' => 'nullable|string',
             'ram' => 'nullable|string',
             'notes' => 'nullable|string|max:1000',
@@ -352,6 +353,7 @@ class ImeiCorrectionController extends Controller
             'cs_name_mistake.min' => 'Nama CS yang salah input minimal 2 karakter.',
             'type_name.required' => 'Tipe HP tujuan wajib diisi.',
             'storage.required' => 'Storage (GB) wajib dipilih atau diisi.',
+            'condition.in' => 'Kondisi harus New, Scd, atau Ex ibox.',
         ]);
 
         $imei = trim($validated['imei']);
@@ -373,6 +375,7 @@ class ImeiCorrectionController extends Controller
             $oldBrandName = $productDetail->product?->brand ?? $productDetail->product?->brandRelation?->name ?? null;
             $oldBrandId = $productDetail->product?->brand_id;
             $oldStorage = $productDetail->storage;
+            $oldCondition = $productDetail->condition ?? 'second';
             $oldColor = $productDetail->color;
             $oldRam = $productDetail->ram;
 
@@ -445,17 +448,19 @@ class ImeiCorrectionController extends Controller
 
             // Update ProductDetail
             $newStorage = trim($validated['storage']);
+            $newCondition = !empty($validated['condition']) ? trim($validated['condition']) : $oldCondition;
             $newColor = isset($validated['color']) ? trim($validated['color']) : $productDetail->color;
             $newRam = isset($validated['ram']) ? trim($validated['ram']) : $productDetail->ram;
 
             $productDetail->product_id = $targetProduct->id;
             $productDetail->storage = $newStorage;
+            $productDetail->condition = $newCondition;
             $productDetail->color = $newColor;
             $productDetail->ram = $newRam;
             $productDetail->save();
 
             // Record in ImeiCorrectionHistory
-            $history = ImeiCorrectionHistory::create([
+            $historyData = [
                 'product_detail_id' => $productDetail->id,
                 'imei' => $imei,
                 'old_product_id' => $oldProductId,
@@ -475,7 +480,16 @@ class ImeiCorrectionController extends Controller
                 'cs_name_mistake' => trim($validated['cs_name_mistake']),
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => $user->id,
-            ]);
+            ];
+
+            if (Schema::hasColumn('imei_correction_histories', 'old_condition')) {
+                $historyData['old_condition'] = $oldCondition;
+            }
+            if (Schema::hasColumn('imei_correction_histories', 'new_condition')) {
+                $historyData['new_condition'] = $newCondition;
+            }
+
+            $history = ImeiCorrectionHistory::create($historyData);
 
             // Clean up any stray InventoryLog from previous corrections so they never show up as fake stock_in
             try {
@@ -488,9 +502,15 @@ class ImeiCorrectionController extends Controller
 
             Cache::increment('inv_version');
 
+            $condLabel = match ($newCondition) {
+                'new' => 'New',
+                'ex_ibox' => 'Ex ibox',
+                default => 'Scd'
+            };
+
             return response()->json([
                 'success' => true,
-                'message' => "Berhasil mengoreksi spesifikasi IMEI {$imei} menjadi {$targetProduct->name} ({$newStorage}).",
+                'message' => "Berhasil mengoreksi spesifikasi IMEI {$imei} menjadi {$targetProduct->name} ({$newStorage}) - [{$condLabel}].",
                 'history' => $history->load(['creator', 'oldProduct', 'newProduct'])
             ]);
         } catch (\Exception $e) {
