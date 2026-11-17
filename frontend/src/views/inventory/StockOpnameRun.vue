@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
     Smartphone, Package, Check, X, CheckCircle2, XCircle, ClipboardCheck,
@@ -83,6 +83,190 @@ const newExcess = ref({
 // Foto SO & Catatan Umum
 const photoPreviews = ref([]);
 const generalNotes = ref('');
+
+// ==========================================
+// DRAFT PERSISTENCE (AUTO-SAVE & RECOVERY)
+// ==========================================
+const DRAFT_STORAGE_PREFIX = 'kasara_so_draft_';
+const getStorageKey = () => `${DRAFT_STORAGE_PREFIX}${authStore.user?.id || 'default'}`;
+
+const showDraftModal = ref(false);
+const existingDraft = ref(null);
+const hasActiveDraft = ref(false);
+const isRestoringDraft = ref(false);
+
+let saveDraftTimeout = null;
+
+const saveDraftImmediate = () => {
+    if (isRestoringDraft.value) return;
+    if (currentStep.value !== 6 || !pendingItems.value || pendingItems.value.length === 0) return;
+
+    try {
+        const draftData = {
+            savedAt: Date.now(),
+            currentStep: currentStep.value,
+            selectedBranchId: selectedBranchId.value,
+            selectedCsUserId: selectedCsUserId.value,
+            categoryType: categoryType.value,
+            method: method.value,
+            selectedBrands: selectedBrands.value,
+            selectedConditions: selectedConditions.value,
+            selectedProductNames: selectedProductNames.value,
+            selectedProductName: selectedProductName.value,
+            branchName: activeBranch.value?.name || '',
+            csName: activeCsUser.value?.name || '',
+            pendingItems: pendingItems.value,
+            excessItems: excessItems.value,
+            generalNotes: generalNotes.value,
+            photoPreviews: photoPreviews.value,
+            totalAvailableUnits: totalAvailableUnits.value
+        };
+        localStorage.setItem(getStorageKey(), JSON.stringify(draftData));
+        hasActiveDraft.value = true;
+    } catch (e) {
+        try {
+            const safeData = {
+                savedAt: Date.now(),
+                currentStep: currentStep.value,
+                selectedBranchId: selectedBranchId.value,
+                selectedCsUserId: selectedCsUserId.value,
+                categoryType: categoryType.value,
+                method: method.value,
+                selectedBrands: selectedBrands.value,
+                selectedConditions: selectedConditions.value,
+                selectedProductNames: selectedProductNames.value,
+                selectedProductName: selectedProductName.value,
+                branchName: activeBranch.value?.name || '',
+                csName: activeCsUser.value?.name || '',
+                pendingItems: pendingItems.value,
+                excessItems: excessItems.value,
+                generalNotes: generalNotes.value,
+                photoPreviews: [],
+                totalAvailableUnits: totalAvailableUnits.value
+            };
+            localStorage.setItem(getStorageKey(), JSON.stringify(safeData));
+            hasActiveDraft.value = true;
+        } catch (err) {
+            console.warn('Failed to save SO draft:', err);
+        }
+    }
+};
+
+const saveDraft = () => {
+    if (isRestoringDraft.value) return;
+    if (currentStep.value !== 6 || !pendingItems.value || pendingItems.value.length === 0) return;
+
+    clearTimeout(saveDraftTimeout);
+    saveDraftTimeout = setTimeout(() => {
+        saveDraftImmediate();
+    }, 400);
+};
+
+const clearDraft = () => {
+    try {
+        localStorage.removeItem(getStorageKey());
+        hasActiveDraft.value = false;
+        existingDraft.value = null;
+    } catch (e) {}
+};
+
+const checkSavedDraft = () => {
+    try {
+        const raw = localStorage.getItem(getStorageKey());
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (!draft || !draft.pendingItems || draft.pendingItems.length === 0) {
+            clearDraft();
+            return;
+        }
+
+        const ageHours = (Date.now() - (draft.savedAt || 0)) / (1000 * 60 * 60);
+        if (ageHours > 48) {
+            clearDraft();
+            return;
+        }
+
+        existingDraft.value = draft;
+        showDraftModal.value = true;
+    } catch (e) {
+        clearDraft();
+    }
+};
+
+const restoreDraft = async () => {
+    if (!existingDraft.value) return;
+    const draft = existingDraft.value;
+    isRestoringDraft.value = true;
+
+    try {
+        selectedBranchId.value = draft.selectedBranchId;
+        selectedCsUserId.value = draft.selectedCsUserId;
+        passwordVerified.value = true;
+        categoryType.value = draft.categoryType || 'hp';
+        method.value = draft.method || 'by_unit';
+        selectedBrands.value = draft.selectedBrands || [];
+        selectedConditions.value = draft.selectedConditions || [];
+        selectedProductNames.value = draft.selectedProductNames || [];
+        selectedProductName.value = draft.selectedProductName || '';
+        totalAvailableUnits.value = draft.totalAvailableUnits || draft.pendingItems.length;
+
+        pendingItems.value = draft.pendingItems || [];
+        excessItems.value = draft.excessItems || [];
+        generalNotes.value = draft.generalNotes || '';
+        photoPreviews.value = draft.photoPreviews || [];
+
+        currentStep.value = 6;
+        hasActiveDraft.value = true;
+        showDraftModal.value = false;
+
+        toast.success(`Draf SO berhasil dipulihkan! (${pendingItems.value.length} barang siap dilanjutkan) ✅`);
+    } catch (err) {
+        console.error('Error restoring draft:', err);
+        toast.error('Gagal memulihkan draf SO.');
+    } finally {
+        await nextTick();
+        isRestoringDraft.value = false;
+    }
+};
+
+const discardDraft = () => {
+    clearDraft();
+    showDraftModal.value = false;
+    toast.info('Draf SO lama dibatalkan. Anda dapat memulai SO baru.');
+};
+
+const confirmDiscardDraft = () => {
+    if (confirm('Apakah Anda yakin ingin membatalkan SO ini dan menghapus draf pemeriksaan? Semua checklist yang belum disimpan akan direset.')) {
+        clearDraft();
+        currentStep.value = 1;
+        pendingItems.value = [];
+        excessItems.value = [];
+        generalNotes.value = '';
+        photoPreviews.value = [];
+        toast.info('Draf SO dibatalkan dan direset.');
+    }
+};
+
+const formatDraftTime = (ts) => {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    return d.toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+};
+
+const onBeforeUnload = (e) => {
+    if (currentStep.value === 6 && pendingItems.value.length > 0) {
+        saveDraftImmediate();
+        e.preventDefault();
+        e.returnValue = 'Pemeriksaan fisik SO sedang berlangsung. Data telah disimpan di perangkat Anda.';
+        return e.returnValue;
+    }
+};
 
 // User Role Helpers
 const userRole = computed(() => (authStore.userRole || '').toLowerCase().trim());
@@ -581,7 +765,29 @@ const selectTypeAndProceed = async (typeName) => {
 };
 
 const changeSelectedType = () => {
+    const hasProgress = method.value === 'by_imei'
+        ? pendingItems.value.some(it => it.is_present !== null)
+        : pendingItems.value.some(it => Number(it.physical_qty) > 0);
+    if (hasProgress) {
+        if (!confirm('Pemeriksaan fisik sedang berjalan. Jika Anda mengganti tipe HP, data centang yang belum disimpan akan direset. Lanjutkan?')) {
+            return;
+        }
+        clearDraft();
+    }
     currentStep.value = 5;
+};
+
+const goToBranchStep = () => {
+    const hasProgress = method.value === 'by_imei'
+        ? pendingItems.value.some(it => it.is_present !== null)
+        : pendingItems.value.some(it => Number(it.physical_qty) > 0);
+    if (hasProgress) {
+        if (!confirm('Pemeriksaan fisik sedang berjalan. Jika Anda mengganti toko, draf pemeriksaan saat ini akan direset. Lanjutkan?')) {
+            return;
+        }
+        clearDraft();
+    }
+    currentStep.value = 1;
 };
 
 // Watchers
@@ -605,6 +811,11 @@ watch(() => authStore.user, (u) => {
         passwordVerified.value = true;
     }
 }, { immediate: true });
+
+// Auto-save draft on any changes during physical inspection
+watch([pendingItems, excessItems, generalNotes, photoPreviews], () => {
+    saveDraft();
+}, { deep: true });
 
 // Physical Calculation
 const onPhysicalQtyChange = (item) => {
@@ -796,6 +1007,7 @@ const submitOpname = async () => {
         const res = await axios.post('/inventory/opname/submit', payload);
 
         if (res.data.success) {
+            clearDraft();
             toast.success('Stok Opname berhasil disimpan!');
             router.push('/inventory/opname/history');
         } else {
@@ -810,6 +1022,7 @@ const submitOpname = async () => {
 };
 
 onMounted(async () => {
+    window.addEventListener('beforeunload', onBeforeUnload);
     if (!authStore.user && typeof authStore.fetchUser === 'function') {
         try {
             await authStore.fetchUser();
@@ -822,6 +1035,12 @@ onMounted(async () => {
     } else if (selectedBranchId.value) {
         await fetchCsUsers();
     }
+    checkSavedDraft();
+});
+
+onUnmounted(() => {
+    window.removeEventListener('beforeunload', onBeforeUnload);
+    clearTimeout(saveDraftTimeout);
 });
 </script>
 
@@ -1826,12 +2045,25 @@ onMounted(async () => {
                         <User :size="14" />
                         <span>Ganti CS</span>
                     </button>
-                    <button type="button" @click="currentStep = 1"
+                    <button type="button" @click="goToBranchStep"
                         class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-text-secondary hover:text-text-primary hover:border-surface-600 transition-all cursor-pointer">
                         <Building2 :size="14" />
                         <span>Ganti Toko</span>
                     </button>
                 </div>
+            </div>
+
+            <!-- Autosave & Draft Info Banner -->
+            <div class="px-4 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between gap-3 text-xs flex-wrap">
+                <div class="flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span class="font-medium">Autosave Aktif: Progres checklist SO tersimpan otomatis di perangkat ini. Jika halaman tertutup atau reload, data ratusan barang tidak akan hilang.</span>
+                </div>
+                <button type="button" @click="confirmDiscardDraft"
+                    class="text-rose-600 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 font-bold hover:underline cursor-pointer flex items-center gap-1 shrink-0">
+                    <RotateCcw :size="13" />
+                    <span>Mulai Ulang dari Awal</span>
+                </button>
             </div>
 
             <!-- Examination Content (Tabel by Unit ATAU Checklist by IMEI) -->
@@ -2265,5 +2497,67 @@ onMounted(async () => {
             :error="passwordModalError"
             @close="showPasswordModal = false; passwordModalError = ''"
             @success="handlePasswordSuccess" />
+
+        <!-- Modal Pemulihan Draf SO -->
+        <div v-if="showDraftModal && existingDraft" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div class="w-full max-w-lg bg-surface-900 border border-surface-700 rounded-3xl p-6 shadow-2xl space-y-5 text-neutral-900 dark:text-white relative overflow-hidden">
+                <div class="absolute -top-24 -right-24 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                <div class="flex items-center gap-3 relative z-10">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                        <History :size="24" />
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black text-white">Draf Sesi SO Ditemukan!</h3>
+                        <p class="text-xs text-surface-400">Terdapat data pemeriksaan stok fisik yang belum selesai sebelumnya.</p>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-surface-800/80 border border-surface-700 space-y-2.5 text-xs relative z-10">
+                    <div class="flex items-center justify-between">
+                        <span class="text-surface-400">Toko / Cabang:</span>
+                        <strong class="text-white">{{ existingDraft.branchName || 'Cabang Terpilih' }}</strong>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-surface-400">Metode / Kategori:</span>
+                        <span class="text-white font-semibold">
+                            {{ existingDraft.categoryType === 'hp' ? 'HP' : 'Non-HP' }} • 
+                            {{ existingDraft.method === 'by_imei' ? 'SO by IMEI' : 'SO by Unit' }}
+                        </span>
+                    </div>
+                    <div v-if="existingDraft.selectedProductName" class="flex items-center justify-between">
+                        <span class="text-surface-400">Tipe / Brand:</span>
+                        <span class="text-emerald-400 font-bold truncate max-w-[240px]">{{ existingDraft.selectedProductName }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-surface-400">Jumlah Barang Tersimpan:</span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
+                            {{ existingDraft.pendingItems?.length || 0 }} unit
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-surface-700/60 pt-2">
+                        <span class="text-surface-400">Waktu Tersimpan:</span>
+                        <span class="text-surface-300 font-mono">{{ formatDraftTime(existingDraft.savedAt) }}</span>
+                    </div>
+                </div>
+
+                <div class="text-xs text-surface-400 leading-relaxed relative z-10">
+                    Apakah Anda ingin melanjutkan pemeriksaan fisik yang sudah di-SO sebelumnya? Semua centang dan progres ratusan barang akan langsung dipulihkan.
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2 border-t border-surface-750 relative z-10">
+                    <button type="button" @click="discardDraft"
+                        class="w-full sm:w-auto px-4 py-3 rounded-xl border border-surface-700 hover:bg-surface-800 text-xs font-bold text-surface-400 hover:text-rose-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                        <Trash2 :size="14" />
+                        <span>Hapus & Mulai Baru</span>
+                    </button>
+                    <button type="button" @click="restoreDraft"
+                        class="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer">
+                        <ArrowRight :size="15" />
+                        <span>Lanjutkan Sesi SO</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>

@@ -957,6 +957,12 @@ class StockOpnameController extends Controller
             $todayStr = date('Ymd');
             $prefix = 'SO-' . $todayStr . '-';
 
+            // Serialize opname number generation across concurrent requests using a
+            // transaction-scoped advisory lock. This prevents duplicate key violations
+            // (race condition: two requests picking the same sequence at the same time).
+            // The lock is released automatically when the transaction commits/rolls back.
+            DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('stock_opname_number_generation')]);
+
             // Find highest existing sequence for today to avoid duplicate key conflicts
             $lastOpname = StockOpname::where('opname_number', 'like', $prefix . '%')
                 ->orderByRaw('LENGTH(opname_number) DESC, opname_number DESC')
@@ -967,10 +973,6 @@ class StockOpnameController extends Controller
                 $lastNumStr = substr($lastOpname, strlen($prefix));
                 $nextSeq = ((int) $lastNumStr) + 1;
             }
-
-            // Fallback count check
-            $countToday = StockOpname::whereBetween('created_at', [$cycle['start'], $cycle['end']])->count() + 1;
-            $nextSeq = max($nextSeq, $countToday);
 
             // Double check existence in loop to ensure complete uniqueness
             $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
