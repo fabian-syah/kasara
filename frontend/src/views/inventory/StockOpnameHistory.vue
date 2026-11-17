@@ -6,7 +6,7 @@ import {
     CheckCircle2, AlertTriangle, Eye, ChevronDown, ChevronRight, ChevronUp,
     RefreshCw, Plus, ArrowLeft, Camera, X, Smartphone, Package, Boxes, Check, Download,
     Copy, CheckCheck, ListFilter, Layers, Sparkles, ImageOff,
-    ShieldCheck, UserCheck, Store, Crown
+    ShieldCheck, UserCheck, Store, Crown, RotateCcw
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -797,6 +797,19 @@ const groupedAllImeisByDay = computed(() => {
 });
 
 // View Detail in Modal
+const handleReOpname = (rec) => {
+    if (!rec) return;
+    router.push({
+        path: '/inventory/opname',
+        query: {
+            re_opname_id: rec.id,
+            branch_id: rec.branch_id,
+            category_type: rec.category_type,
+            method: rec.method,
+        }
+    });
+};
+
 const openDetail = async (item) => {
     loadingDetail.value = true;
     showDetailModal.value = true;
@@ -1777,11 +1790,19 @@ watch(() => filters.value.executor_role, () => {
                                 </span>
                                 <span v-else class="text-xs text-gray-400">Tanpa foto</span>
 
-                                <button type="button" @click="openDetail(rec)"
-                                    class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1.5">
-                                    <Eye :size="14" />
-                                    <span>Rincian Lengkap</span>
-                                </button>
+                                <div class="flex items-center gap-1.5">
+                                    <button v-if="rec.is_today_cycle" type="button" @click="handleReOpname(rec)"
+                                        class="px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 hover:bg-amber-500/25 text-xs font-bold text-amber-700 dark:text-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                        title="Buka kembali untuk perbaiki atau lanjutkan SO hari ini">
+                                        <RotateCcw :size="13" />
+                                        <span>SO Ulang</span>
+                                    </button>
+                                    <button type="button" @click="openDetail(rec)"
+                                        class="px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-xs font-bold text-text-primary transition-colors flex items-center gap-1.5 cursor-pointer">
+                                        <Eye :size="14" />
+                                        <span>Rincian</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1910,11 +1931,19 @@ watch(() => filters.value.executor_role, () => {
 
                                         <!-- Action Detail -->
                                         <td class="py-3.5 px-4 text-right">
-                                            <button type="button" @click="openDetail(rec)"
-                                                class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
-                                                <Eye :size="14" />
-                                                <span>Rincian</span>
-                                            </button>
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <button v-if="rec.is_today_cycle" type="button" @click="handleReOpname(rec)"
+                                                    class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                                    title="Buka kembali untuk perbaiki atau periksa ulang hasil SO hari ini">
+                                                    <RotateCcw :size="13" />
+                                                    <span>SO Ulang</span>
+                                                </button>
+                                                <button type="button" @click="openDetail(rec)"
+                                                    class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-surface-600 text-xs font-bold text-text-primary hover:border-emerald-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1 cursor-pointer">
+                                                    <Eye :size="14" />
+                                                    <span>Rincian</span>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
 
@@ -2336,9 +2365,16 @@ watch(() => filters.value.executor_role, () => {
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="p-4 border-t border-gray-100 dark:border-surface-700 flex justify-end shrink-0">
+                <div class="p-4 border-t border-gray-100 dark:border-surface-700 flex items-center justify-between gap-2 shrink-0">
+                    <div>
+                        <button v-if="selectedDetail?.is_today_cycle" type="button" @click="handleReOpname(selectedDetail); showDetailModal = false;"
+                            class="px-4 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer">
+                            <RotateCcw :size="14" />
+                            <span>SO Ulang / Perbarui Sesi Ini</span>
+                        </button>
+                    </div>
                     <button type="button" @click="showDetailModal = false"
-                        class="px-5 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-text-primary text-xs font-bold transition-colors">
+                        class="px-5 py-2 rounded-xl bg-gray-100 dark:bg-surface-700 hover:bg-gray-200 dark:hover:bg-surface-600 text-text-primary text-xs font-bold transition-colors cursor-pointer">
                         Tutup
                     </button>
                 </div>

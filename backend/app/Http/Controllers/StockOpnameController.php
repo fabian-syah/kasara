@@ -348,10 +348,17 @@ class StockOpnameController extends Controller
 
         $cycle = self::getLogicalCycleRange();
 
+        $isReOpname = $request->boolean('include_today_audited') || $request->filled('re_opname_id');
+        $targetReOpnameId = $request->input('re_opname_id');
+
         // Check already audited items in the current 05:00 AM daily cycle for THIS specific role scope
         $auditedImeis = [];
+        $auditedItemsData = [];
         $auditedProductNamesByUnit = [];
         $auditedNonHpProductIds = [];
+        $auditedMapByImei = [];
+        $auditedMapByUnit = [];
+        $todayOpnameIds = collect();
 
         if (Schema::hasTable('stock_opnames') && Schema::hasTable('stock_opname_items')) {
             $todayOpnameQuery = StockOpname::where('branch_id', $branchId)
@@ -412,6 +419,9 @@ class StockOpnameController extends Controller
 
                 $auditedItemsData = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)->get();
                 foreach ($auditedItemsData as $ait) {
+                    if ($ait->imei && $ait->imei !== '-') {
+                        $auditedMapByImei[strtoupper(trim((string)$ait->imei))] = $ait;
+                    }
                     if ($ait->product_name) {
                         $bKey = strtoupper(trim($ait->brand ?? ''));
                         $pKey = strtoupper(trim($ait->product_name));
@@ -421,14 +431,32 @@ class StockOpnameController extends Controller
                             $condNorm = ($rawAitCond === 'new' || str_contains($rawAitCond, 'baru')) ? 'new' : 'second';
                             $key = $bKey . '|' . $pKey . '|' . $sKey . '|' . $condNorm;
                             $auditedProductNamesByUnit[$key] = true;
+                            $auditedMapByUnit[$key] = $ait;
                         }
                         $legacyKey = $bKey . '|' . $pKey . '|' . $sKey;
                         $auditedProductNamesByUnit[$legacyKey] = true;
+                        $auditedMapByUnit[$legacyKey] = $ait;
                     }
                     if ($ait->product_id) {
                         $auditedNonHpProductIds[] = $ait->product_id;
                     }
                 }
+            }
+        }
+
+        $previousOpnameData = null;
+        if ($todayOpnameIds->isNotEmpty()) {
+            $prevRecId = $targetReOpnameId ?: $todayOpnameIds->first();
+            $prevRec = StockOpname::with(['excessItems'])->find($prevRecId);
+            if ($prevRec) {
+                $previousOpnameData = [
+                    'id' => $prevRec->id,
+                    'opname_number' => $prevRec->opname_number,
+                    'time' => $prevRec->created_at ? $prevRec->created_at->setTimezone('Asia/Jakarta')->format('H:i') : null,
+                    'notes' => $prevRec->notes ?? '',
+                    'photos' => $prevRec->photos ?? [],
+                    'excess_items' => $prevRec->excessItems ? $prevRec->excessItems->toArray() : [],
+                ];
             }
         }
 
@@ -467,7 +495,9 @@ class StockOpnameController extends Controller
                     $key = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage) . '|' . $itemCond;
                     $legacyKey = strtoupper($bName) . '|' . strtoupper($pName) . '|' . strtoupper($storage);
 
-                    if (isset($auditedProductNamesByUnit[$key]) || (isset($auditedProductNamesByUnit[$legacyKey]) && !isset($auditedProductNamesByUnit[$key]))) {
+                    $isAudited = isset($auditedProductNamesByUnit[$key]) || (isset($auditedProductNamesByUnit[$legacyKey]) && !isset($auditedProductNamesByUnit[$key]));
+
+                    if ($isAudited && !$isReOpname) {
                         // Skip if already audited by unit today
                         continue;
                     }
@@ -492,6 +522,8 @@ class StockOpnameController extends Controller
                     }
 
                     if (!isset($grouped[$key])) {
+                        $prevItem = $auditedMapByUnit[$key] ?? $auditedMapByUnit[$legacyKey] ?? null;
+                        $prevPhys = ($isReOpname && $prevItem) ? (int)$prevItem->physical_qty : 0;
                         $grouped[$key] = [
                             'key' => $key,
                             'product_id' => $item->product_id,
@@ -501,12 +533,16 @@ class StockOpnameController extends Controller
                             'condition' => $itemCond,
                             'condition_label' => $getConditionLabel($itemCond),
                             'system_qty' => 0,
-                            'physical_qty' => 0,
+                            'physical_qty' => $prevPhys,
                             'difference' => 0,
-                            'is_audited_today' => false,
+                            'is_audited_today' => $isAudited,
+                            'notes' => ($isReOpname && $prevItem) ? (string)($prevItem->notes ?? '') : '',
                         ];
                     }
                     $grouped[$key]['system_qty']++;
+                    if ($isReOpname && isset($grouped[$key]['physical_qty'])) {
+                        $grouped[$key]['difference'] = $grouped[$key]['physical_qty'] - $grouped[$key]['system_qty'];
+                    }
                 }
 
                 // Available brands only includes brands that STILL HAVE PENDING UNITS to be audited
@@ -547,12 +583,16 @@ class StockOpnameController extends Controller
                     'available_conditions' => $availableConditions,
                     'total_available_units' => $totalPendingUnits,
                     'items' => $resultList,
+                    'has_today_completed_opname' => $todayOpnameIds->isNotEmpty(),
+                    'today_audited_count' => count($auditedImeis),
+                    'is_re_opname_mode' => $isReOpname,
+                    'previous_opname' => $previousOpnameData,
                 ]);
             } else {
                 // Method: by_imei
-                // Exclude already audited IMEIs
+                // Exclude already audited IMEIs unless in re-opname mode
                 $filteredHp = $rawHp;
-                if (!empty($auditedImeis)) {
+                if (!empty($auditedImeis) && !$isReOpname) {
                     $filteredHp = $filteredHp->reject(function ($item) use ($auditedImeis) {
                         return in_array(strtoupper(trim((string)$item->imei)), $auditedImeis);
                     });
@@ -638,6 +678,8 @@ class StockOpnameController extends Controller
 
                     foreach ($selectedHpItems as $item) {
                         $itemCond = $normalizeCondition($item->condition ?? 'second');
+                        $uImei = strtoupper(trim((string)$item->imei));
+                        $prevItem = $auditedMapByImei[$uImei] ?? null;
 
                         $imeiList[] = [
                             'product_detail_id' => $item->id,
@@ -650,7 +692,9 @@ class StockOpnameController extends Controller
                             'imei' => $item->imei,
                             'distributor' => $item->distributor?->name ?? '-',
                             'status' => $item->status,
-                            'is_present' => null, // Default: belum dipilih!
+                            'is_present' => ($isReOpname && $prevItem) ? (bool)$prevItem->is_present : null, // Pre-filled if re-opname!
+                            'notes' => ($isReOpname && $prevItem) ? (string)($prevItem->notes ?? '') : '',
+                            'was_previously_audited' => !empty($prevItem),
                         ];
                     }
                 }
@@ -674,6 +718,10 @@ class StockOpnameController extends Controller
                     'available_types' => $availableTypes,
                     'total_available_units' => $totalPendingUnits,
                     'items' => $imeiList,
+                    'has_today_completed_opname' => $todayOpnameIds->isNotEmpty(),
+                    'today_audited_count' => count($auditedImeis),
+                    'is_re_opname_mode' => $isReOpname,
+                    'previous_opname' => $previousOpnameData,
                 ]);
             }
         } else {
@@ -688,7 +736,7 @@ class StockOpnameController extends Controller
                 ->where('quantity', '>', 0)
                 ->whereHas('product', fn($q) => $q->where('type', 'non-hp')->orWhere('has_imei', false));
 
-            if (!empty($auditedNonHpProductIds)) {
+            if (!empty($auditedNonHpProductIds) && !$isReOpname) {
                 $nonHpQuery->whereNotIn('product_id', $auditedNonHpProductIds);
             }
 
@@ -758,6 +806,9 @@ class StockOpnameController extends Controller
                 'available_brands' => $availableBrands,
                 'total_available_units' => $totalPendingUnits,
                 'items' => $resultList,
+                'has_today_completed_opname' => $todayOpnameIds->isNotEmpty(),
+                'is_re_opname_mode' => $isReOpname,
+                'previous_opname' => $previousOpnameData,
             ]);
         }
     }
@@ -781,6 +832,8 @@ class StockOpnameController extends Controller
             'photos' => 'nullable|array',
             'notes' => 'nullable|string|max:2000',
             'password' => 'nullable|string',
+            'is_re_opname' => 'nullable|boolean',
+            'replace_opname_id' => 'nullable|integer',
         ]);
 
         /** @var \App\Models\User $user */
@@ -865,8 +918,9 @@ class StockOpnameController extends Controller
         }
 
         $todayOpnameIds = $todayOpnameQuery->pluck('id');
+        $isReOpname = $request->boolean('is_re_opname') || $request->filled('replace_opname_id');
 
-        if ($todayOpnameIds->isNotEmpty() && $request->method === 'by_imei') {
+        if (!$isReOpname && $todayOpnameIds->isNotEmpty() && $request->method === 'by_imei') {
             $auditedImeis = StockOpnameItem::whereIn('stock_opname_id', $todayOpnameIds)
                 ->whereNotNull('imei')
                 ->where('imei', '!=', '-')
@@ -952,61 +1006,104 @@ class StockOpnameController extends Controller
             $hasDifference = ($totalMissing > 0 || $totalExcess > 0);
             $status = $hasDifference ? 'has_difference' : 'completed';
 
-            // Generate unique opname number
-            $recordDate = $cycle['date'];
-            $todayStr = date('Ymd');
-            $prefix = 'SO-' . $todayStr . '-';
-
-            // Serialize opname number generation across concurrent requests using a
-            // transaction-scoped advisory lock. This prevents duplicate key violations
-            // (race condition: two requests picking the same sequence at the same time).
-            // The lock is released automatically when the transaction commits/rolls back.
-            DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('stock_opname_number_generation')]);
-
-            // Find highest existing sequence for today to avoid duplicate key conflicts
-            $lastOpname = StockOpname::where('opname_number', 'like', $prefix . '%')
-                ->orderByRaw('LENGTH(opname_number) DESC, opname_number DESC')
-                ->value('opname_number');
-
-            $nextSeq = 1;
-            if ($lastOpname) {
-                $lastNumStr = substr($lastOpname, strlen($prefix));
-                $nextSeq = ((int) $lastNumStr) + 1;
-            }
-
-            // Double check existence in loop to ensure complete uniqueness
-            $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
-            while (StockOpname::where('opname_number', $opnameNumber)->exists()) {
-                $nextSeq++;
-                $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
-            }
-
             $brandVal = $request->filled('brand') ? (string) $request->brand : null;
             $productTypeVal = $request->filled('product_type') ? (string) $request->product_type : null;
 
-            // Create StockOpname record
-            $recordData = [
-                'opname_number' => $opnameNumber,
-                'date' => $recordDate,
-                'branch_id' => $request->branch_id,
-                'user_id' => $user->id,
-                'cs_user_id' => $csUser->id,
-                'category_type' => $request->category_type,
-                'method' => $request->method,
-                'brand' => $brandVal,
-                'product_type' => $productTypeVal,
-                'total_system' => $totalSystem,
-                'total_physical' => $totalPhysical,
-                'total_missing' => $totalMissing,
-                'total_excess' => $totalExcess,
-                'photos' => $savedPhotos,
-                'notes' => $request->notes,
-                'status' => $status,
-            ];
-            if ($hasExecutorRole) {
-                $recordData['executor_role'] = $userRoleScope;
+            // Check if this is an update of an existing opname session (Re-Opname / SO Ulang mode)
+            $targetOpname = null;
+            if ($request->filled('replace_opname_id')) {
+                $targetOpname = StockOpname::where('id', $request->replace_opname_id)
+                    ->where('branch_id', $request->branch_id)
+                    ->first();
             }
-            $stockOpname = StockOpname::create($recordData);
+            if (!$targetOpname && $isReOpname && $todayOpnameIds->isNotEmpty()) {
+                $targetOpname = StockOpname::whereIn('id', $todayOpnameIds)
+                    ->where('branch_id', $request->branch_id)
+                    ->latest()
+                    ->first();
+            }
+
+            if ($targetOpname) {
+                // Wipe previous items & excess items to cleanly replace with updated audit session
+                $targetOpname->items()->delete();
+                $targetOpname->excessItems()->delete();
+
+                $mergedPhotos = !empty($savedPhotos) ? $savedPhotos : ($targetOpname->photos ?? []);
+
+                $updateData = [
+                    'user_id' => $user->id,
+                    'cs_user_id' => $csUser->id,
+                    'category_type' => $request->category_type,
+                    'method' => $request->method,
+                    'brand' => $brandVal,
+                    'product_type' => $productTypeVal,
+                    'total_system' => $totalSystem,
+                    'total_physical' => $totalPhysical,
+                    'total_missing' => $totalMissing,
+                    'total_excess' => $totalExcess,
+                    'photos' => $mergedPhotos,
+                    'notes' => $request->filled('notes') ? $request->notes : $targetOpname->notes,
+                    'status' => $status,
+                ];
+                if ($hasExecutorRole) {
+                    $updateData['executor_role'] = $userRoleScope;
+                }
+                $targetOpname->update($updateData);
+                $stockOpname = $targetOpname;
+            } else {
+                // Generate unique opname number
+                $recordDate = $cycle['date'];
+                $todayStr = date('Ymd');
+                $prefix = 'SO-' . $todayStr . '-';
+
+                // Serialize opname number generation across concurrent requests using a
+                // transaction-scoped advisory lock. This prevents duplicate key violations
+                // (race condition: two requests picking the same sequence at the same time).
+                // The lock is released automatically when the transaction commits/rolls back.
+                DB::select('SELECT pg_advisory_xact_lock(?)', [crc32('stock_opname_number_generation')]);
+
+                // Find highest existing sequence for today to avoid duplicate key conflicts
+                $lastOpname = StockOpname::where('opname_number', 'like', $prefix . '%')
+                    ->orderByRaw('LENGTH(opname_number) DESC, opname_number DESC')
+                    ->value('opname_number');
+
+                $nextSeq = 1;
+                if ($lastOpname) {
+                    $lastNumStr = substr($lastOpname, strlen($prefix));
+                    $nextSeq = ((int) $lastNumStr) + 1;
+                }
+
+                // Double check existence in loop to ensure complete uniqueness
+                $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+                while (StockOpname::where('opname_number', $opnameNumber)->exists()) {
+                    $nextSeq++;
+                    $opnameNumber = $prefix . str_pad($nextSeq, 4, '0', STR_PAD_LEFT);
+                }
+
+                // Create StockOpname record
+                $recordData = [
+                    'opname_number' => $opnameNumber,
+                    'date' => $recordDate,
+                    'branch_id' => $request->branch_id,
+                    'user_id' => $user->id,
+                    'cs_user_id' => $csUser->id,
+                    'category_type' => $request->category_type,
+                    'method' => $request->method,
+                    'brand' => $brandVal,
+                    'product_type' => $productTypeVal,
+                    'total_system' => $totalSystem,
+                    'total_physical' => $totalPhysical,
+                    'total_missing' => $totalMissing,
+                    'total_excess' => $totalExcess,
+                    'photos' => $savedPhotos,
+                    'notes' => $request->notes,
+                    'status' => $status,
+                ];
+                if ($hasExecutorRole) {
+                    $recordData['executor_role'] = $userRoleScope;
+                }
+                $stockOpname = StockOpname::create($recordData);
+            }
 
             // Insert Items
             foreach ($itemsData as $item) {
@@ -1266,10 +1363,12 @@ class StockOpnameController extends Controller
         $perPage = min(max((int)$request->query('per_page', 30), 5), 100);
         $records = $query->latest('id')->paginate($perPage);
 
+        $cycle = self::getLogicalCycleRange();
         // Normalize totals across records so legacy or updated items always mathematically hold:
         // total_physical = total_system - total_missing + total_excess
-        $records->getCollection()->transform(function ($rec) {
+        $records->getCollection()->transform(function ($rec) use ($cycle) {
             self::normalizeRecordTotals($rec);
+            $rec->is_today_cycle = ($rec->created_at >= $cycle['start'] && $rec->created_at <= $cycle['end']);
             return $rec;
         });
 

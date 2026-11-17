@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {
     Smartphone, Package, Check, X, CheckCircle2, XCircle, ClipboardCheck,
     Camera, Upload, Plus, Trash2, AlertTriangle, Building2,
@@ -14,8 +14,15 @@ import { useAuthStore } from '../../store/auth';
 import PasswordModal from '../../components/modals/PasswordModal.vue';
 
 const router = useRouter();
+const route = useRoute();
 const toast = useToast();
 const authStore = useAuthStore();
+
+// Re-Opname / Update Today's SO Mode
+const isReOpnameMode = ref(false);
+const reOpnameId = ref(null);
+const hasTodayCompletedOpname = ref(false);
+const previousOpnameInfo = ref(null);
 
 // Loading states
 const loadingBranches = ref(false);
@@ -127,7 +134,10 @@ const saveDraftImmediate = () => {
             excessItems: excessItems.value,
             generalNotes: generalNotes.value,
             photoPreviews: photoPreviews.value,
-            totalAvailableUnits: totalAvailableUnits.value
+            totalAvailableUnits: totalAvailableUnits.value,
+            isReOpnameMode: isReOpnameMode.value,
+            reOpnameId: reOpnameId.value,
+            previousOpnameInfo: previousOpnameInfo.value
         };
         localStorage.setItem(getStorageKey(), JSON.stringify(draftData));
         hasActiveDraft.value = true;
@@ -150,7 +160,10 @@ const saveDraftImmediate = () => {
                 excessItems: excessItems.value,
                 generalNotes: generalNotes.value,
                 photoPreviews: [],
-                totalAvailableUnits: totalAvailableUnits.value
+                totalAvailableUnits: totalAvailableUnits.value,
+                isReOpnameMode: isReOpnameMode.value,
+                reOpnameId: reOpnameId.value,
+                previousOpnameInfo: previousOpnameInfo.value
             };
             localStorage.setItem(getStorageKey(), JSON.stringify(safeData));
             hasActiveDraft.value = true;
@@ -226,6 +239,11 @@ const restoreDraft = async () => {
         excessItems.value = draft.excessItems || [];
         generalNotes.value = draft.generalNotes || '';
         photoPreviews.value = draft.photoPreviews || [];
+        isReOpnameMode.value = Boolean(draft.isReOpnameMode);
+        reOpnameId.value = draft.reOpnameId || null;
+        if (draft.previousOpnameInfo) {
+            previousOpnameInfo.value = draft.previousOpnameInfo;
+        }
 
         currentStep.value = 6;
         hasActiveDraft.value = true;
@@ -500,16 +518,31 @@ const fetchCsUsers = async () => {
     }
 };
 
-const fetchPendingItems = async () => {
+const fetchPendingItems = async (options = {}) => {
     if (!selectedBranchId.value) return;
     loadingItems.value = true;
 
     try {
+        const includeAudited = options.include_today_audited !== undefined
+            ? options.include_today_audited
+            : isReOpnameMode.value;
+
+        const targetId = options.re_opname_id !== undefined
+            ? options.re_opname_id
+            : reOpnameId.value;
+
         const params = {
             branch_id: selectedBranchId.value,
             category_type: categoryType.value,
             method: method.value,
         };
+
+        if (includeAudited) {
+            params.include_today_audited = 1;
+        }
+        if (targetId) {
+            params.re_opname_id = targetId;
+        }
 
         if (selectedBrands.value.length > 0) {
             params.brands = selectedBrands.value.join(',');
@@ -530,21 +563,30 @@ const fetchPendingItems = async () => {
         availableBrands.value = res.data.available_brands || [];
         availableConditions.value = res.data.available_conditions || [];
         totalAvailableUnits.value = res.data.total_available_units || 0;
+        hasTodayCompletedOpname.value = !!res.data.has_today_completed_opname;
+        if (res.data.previous_opname) {
+            previousOpnameInfo.value = res.data.previous_opname;
+        }
 
         if (method.value === 'by_imei') {
             availableTypes.value = res.data.available_types || [];
             pendingItems.value = (res.data.items || []).map(item => ({
                 ...item,
-                is_present: item.is_present !== undefined && item.is_present !== null ? item.is_present : null, // Default: Belum dipilih (null)
-                notes: item.notes || ''
+                is_present: item.is_present !== undefined && item.is_present !== null ? Boolean(item.is_present) : null,
+                notes: item.notes || '',
+                was_previously_audited: !!item.was_previously_audited
             }));
         } else {
-            pendingItems.value = (res.data.items || []).map(item => ({
-                ...item,
-                physical_qty: 0, // Default: NOL!
-                difference: 0 - (Number(item.system_qty) || 0),
-                notes: item.notes || ''
-            }));
+            pendingItems.value = (res.data.items || []).map(item => {
+                const phys = (isReOpnameMode.value && item.physical_qty !== undefined) ? Number(item.physical_qty) : 0;
+                const sys = Number(item.system_qty) || 0;
+                return {
+                    ...item,
+                    physical_qty: phys,
+                    difference: phys - sys,
+                    notes: item.notes || ''
+                };
+            });
         }
     } catch (err) {
         console.error('Error fetching pending items for opname:', err);
@@ -552,6 +594,29 @@ const fetchPendingItems = async () => {
     } finally {
         loadingItems.value = false;
     }
+};
+
+const startReOpnameMode = async (targetId = null) => {
+    isReOpnameMode.value = true;
+    if (targetId) {
+        reOpnameId.value = targetId;
+    } else if (previousOpnameInfo.value?.id) {
+        reOpnameId.value = previousOpnameInfo.value.id;
+    }
+    await fetchPendingItems({ include_today_audited: true, re_opname_id: reOpnameId.value });
+    if (previousOpnameInfo.value) {
+        if (!generalNotes.value && previousOpnameInfo.value.notes) {
+            generalNotes.value = previousOpnameInfo.value.notes;
+        }
+        if (photoPreviews.value.length === 0 && Array.isArray(previousOpnameInfo.value.photos)) {
+            photoPreviews.value = [...previousOpnameInfo.value.photos];
+        }
+        if (excessItems.value.length === 0 && Array.isArray(previousOpnameInfo.value.excess_items)) {
+            excessItems.value = [...previousOpnameInfo.value.excess_items];
+        }
+    }
+    currentStep.value = 6;
+    toast.info('Mode SO Ulang aktif. Data yang sudah dicek sebelumnya telah dimuat kembali! 🔄');
 };
 
 // Wizard Step Navigation Transitions
@@ -1019,13 +1084,18 @@ const submitOpname = async () => {
             photos: photoPreviews.value,
             notes: generalNotes.value,
             password: csPassword.value || undefined,
+            is_re_opname: isReOpnameMode.value,
+            replace_opname_id: reOpnameId.value || undefined,
         };
 
         const res = await axios.post('/inventory/opname/submit', payload);
 
         if (res.data.success) {
+            const wasReOpname = isReOpnameMode.value;
             clearDraft();
-            toast.success('Stok Opname berhasil disimpan!');
+            isReOpnameMode.value = false;
+            reOpnameId.value = null;
+            toast.success(wasReOpname ? 'Hasil Stok Opname berhasil diperbarui!' : 'Stok Opname berhasil disimpan!');
             router.push('/inventory/opname/history');
         } else {
             toast.error(res.data.message || 'Gagal menyimpan stok opname.');
@@ -1052,7 +1122,23 @@ onMounted(async () => {
     } else if (selectedBranchId.value) {
         await fetchCsUsers();
     }
-    checkSavedDraft();
+
+    if (route.query.re_opname_id) {
+        reOpnameId.value = Number(route.query.re_opname_id);
+        isReOpnameMode.value = true;
+        if (route.query.branch_id) {
+            selectedBranchId.value = Number(route.query.branch_id);
+        }
+        if (route.query.category_type) {
+            categoryType.value = route.query.category_type;
+        }
+        if (route.query.method) {
+            method.value = route.query.method;
+        }
+        await startReOpnameMode(reOpnameId.value);
+    } else {
+        checkSavedDraft();
+    }
 });
 
 onUnmounted(() => {
@@ -2083,6 +2169,30 @@ onUnmounted(() => {
                 </button>
             </div>
 
+            <!-- Mode SO Ulang / Perbarui Hasil SO Hari Ini Banner -->
+            <div v-if="isReOpnameMode" class="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/35 text-amber-300 flex items-start sm:items-center justify-between gap-3 shadow-md shadow-amber-500/5">
+                <div class="flex items-start sm:items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                        <RotateCcw :size="18" />
+                    </div>
+                    <div>
+                        <div class="font-black text-xs sm:text-sm text-amber-200 flex items-center gap-2 flex-wrap">
+                            <span>Mode SO Ulang / Perbarui SO Hari Ini Aktif</span>
+                            <span v-if="previousOpnameInfo?.opname_number" class="font-mono text-[10px] px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 font-bold">
+                                {{ previousOpnameInfo.opname_number }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-amber-300/85 mt-0.5 leading-relaxed">
+                            Checklist dan data yang sudah Anda periksa sebelumnya telah terisi otomatis (tidak hilang). Anda dapat memeriksa sisa unit atau mengubah status fisik sebelum menyimpan perbaruan.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" @click="isReOpnameMode = false; reOpnameId = null; fetchPendingItems()"
+                    class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-amber-500/40 hover:bg-amber-500/20 text-amber-200 transition-colors shrink-0 cursor-pointer">
+                    Keluar Mode Ini
+                </button>
+            </div>
+
             <!-- Examination Content (Tabel by Unit ATAU Checklist by IMEI) -->
             <div class="bg-surface-800 rounded-3xl border border-surface-700 p-4 sm:p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -2129,21 +2239,42 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Empty State -->
-                <div v-else-if="pendingItems.length === 0" class="py-12 text-center text-text-secondary bg-surface-750/60 rounded-2xl border border-dashed border-surface-700 px-4">
-                    <CheckCircle2 :size="40" class="mx-auto text-primary-600 dark:text-emerald-400 mb-2" />
-                    <p class="text-base font-bold text-neutral-900 dark:text-white">
-                        Semua Unit Untuk Pilihan Ini Sudah Selesai di-SO Hari Ini ✅
-                    </p>
-                    <p class="text-xs text-text-secondary mt-1 max-w-md mx-auto leading-relaxed">
-                        Seluruh unit untuk filter ini telah tercatat di sistem hari ini. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
-                    </p>
-                    <div class="mt-4 flex items-center justify-center gap-2">
+                <div v-else-if="pendingItems.length === 0" class="py-10 text-center text-text-secondary bg-surface-750/60 rounded-2xl border border-dashed border-surface-700 px-5 space-y-4">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <CheckCircle2 :size="32" />
+                    </div>
+                    <div>
+                        <p class="text-base sm:text-lg font-black text-neutral-900 dark:text-white">
+                            Semua Unit Selesai di-SO Hari Ini ✅
+                        </p>
+                        <p class="text-xs sm:text-sm text-text-secondary mt-1.5 max-w-lg mx-auto leading-relaxed">
+                            Semua unit untuk filter ini telah tercatat di sistem hari ini. Sesi SO baru akan aktif otomatis besok pukul <strong>05:00 AM</strong>.
+                        </p>
+                    </div>
+
+                    <!-- RE-OPNAME BUTTON & INFO -->
+                    <div v-if="hasTodayCompletedOpname || previousOpnameInfo" class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 max-w-md mx-auto text-left space-y-2">
+                        <div class="flex items-center gap-2 text-xs font-black text-amber-400">
+                            <RotateCcw :size="15" />
+                            <span>Fitur SO Ulang / Perbarui Hasil SO Hari Ini</span>
+                        </div>
+                        <p class="text-[11px] text-amber-200/90 leading-relaxed">
+                            Jika tidak sengaja ter-submit atau ingin memperbaiki checklist, klik tombol di bawah. <strong>Barang yang sudah di-SO sebelumnya tidak akan hilang</strong> dan langsung terisi kembali!
+                        </p>
+                        <button type="button" @click="startReOpnameMode()"
+                            class="w-full mt-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <RotateCcw :size="15" />
+                            <span>Buka SO Ulang & Lanjutkan Checklist</span>
+                        </button>
+                    </div>
+
+                    <div class="pt-2 flex items-center justify-center gap-2 flex-wrap">
                         <button type="button" @click="currentStep = 5"
                             class="px-4 py-2 rounded-xl border border-surface-700 bg-surface-800 text-xs font-bold text-text-primary hover:border-primary-500 transition-all cursor-pointer">
                             Pilih Brand / Tipe Lain
                         </button>
                         <router-link to="/inventory/opname/history"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-sm transition-all">
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-800 hover:bg-surface-700 border border-surface-700 text-text-primary text-xs font-bold shadow-sm transition-all">
                             <History :size="15" />
                             <span>Buka History Stok Opname</span>
                         </router-link>
@@ -2239,6 +2370,9 @@ onUnmounted(() => {
                                         {{ it.condition_label || (it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second')) }}
                                     </span>
                                     <span class="text-text-secondary text-[11px]">{{ it.distributor }}</span>
+                                    <span v-if="it.was_previously_audited" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                        Sudah di-SO
+                                    </span>
                                 </div>
                             </div>
 
@@ -2417,7 +2551,7 @@ onUnmounted(() => {
 
                     <!-- Submit Button -->
                     <div class="w-full lg:w-auto">
-                        <button v-if="pendingItems.length === 0 && excessItems.length === 0 && totalAvailableUnits === 0"
+                        <button v-if="!isReOpnameMode && pendingItems.length === 0 && excessItems.length === 0 && totalAvailableUnits === 0"
                             type="button"
                             disabled
                             class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-surface-750 border border-surface-700 text-text-secondary font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-not-allowed min-h-[48px]">
@@ -2428,10 +2562,14 @@ onUnmounted(() => {
                             type="button"
                             @click="handleVerifyAndSubmit"
                             :disabled="submitting || (pendingItems.length === 0 && excessItems.length === 0)"
-                            class="w-full lg:w-auto px-7 py-3 rounded-2xl bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white font-black text-sm shadow-lg shadow-primary-600/25 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]">
+                            class="w-full lg:w-auto px-7 py-3 rounded-2xl font-black text-sm shadow-lg transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer min-h-[48px]"
+                            :class="isReOpnameMode
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-amber-500/25'
+                                : 'bg-primary-600 hover:bg-primary-500 active:bg-primary-700 text-white shadow-primary-600/25'">
                             <RefreshCw v-if="submitting" :size="18" class="animate-spin" />
+                            <RotateCcw v-else-if="isReOpnameMode" :size="18" />
                             <CheckCircle2 v-else :size="18" />
-                            <span>{{ submitting ? 'Menyimpan Hasil SO...' : 'Simpan & Selesaikan SO' }}</span>
+                            <span>{{ submitting ? (isReOpnameMode ? 'Menyimpan Perbaruan SO...' : 'Menyimpan Hasil SO...') : (isReOpnameMode ? 'Perbarui Hasil SO Hari Ini' : 'Simpan & Selesaikan SO') }}</span>
                         </button>
                     </div>
                 </div>
