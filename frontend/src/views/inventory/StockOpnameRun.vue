@@ -566,6 +566,28 @@ const fetchPendingItems = async (options = {}) => {
         hasTodayCompletedOpname.value = !!res.data.has_today_completed_opname;
         if (res.data.previous_opname) {
             previousOpnameInfo.value = res.data.previous_opname;
+            if (isReOpnameMode.value) {
+                if (res.data.previous_opname.brand && selectedBrands.value.length === 0) {
+                    selectedBrands.value = res.data.previous_opname.brand.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                if (res.data.previous_opname.product_type) {
+                    if (selectedProductNames.value.length === 0) {
+                        selectedProductNames.value = res.data.previous_opname.product_type.split(',').map(s => s.trim()).filter(Boolean);
+                    }
+                    if (!selectedProductName.value) {
+                        selectedProductName.value = res.data.previous_opname.product_type;
+                    }
+                }
+            }
+        }
+        if (res.data.selected_product_name && !selectedProductName.value) {
+            selectedProductName.value = res.data.selected_product_name;
+        }
+        if (Array.isArray(res.data.selected_product_names) && res.data.selected_product_names.length > 0 && selectedProductNames.value.length === 0) {
+            selectedProductNames.value = res.data.selected_product_names;
+        }
+        if (Array.isArray(res.data.selected_brands) && res.data.selected_brands.length > 0 && selectedBrands.value.length === 0) {
+            selectedBrands.value = res.data.selected_brands;
         }
 
         if (method.value === 'by_imei') {
@@ -613,6 +635,13 @@ const startReOpnameMode = async (targetId = null) => {
         }
         if (excessItems.value.length === 0 && Array.isArray(previousOpnameInfo.value.excess_items)) {
             excessItems.value = [...previousOpnameInfo.value.excess_items];
+        }
+        if (selectedBrands.value.length === 0 && previousOpnameInfo.value.brand) {
+            selectedBrands.value = previousOpnameInfo.value.brand.split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (selectedProductNames.value.length === 0 && previousOpnameInfo.value.product_type) {
+            selectedProductName.value = previousOpnameInfo.value.product_type;
+            selectedProductNames.value = previousOpnameInfo.value.product_type.split(',').map(s => s.trim()).filter(Boolean);
         }
     }
     currentStep.value = 6;
@@ -969,6 +998,35 @@ const summaryStats = computed(() => {
     };
 });
 
+// Step 6: IMEI Filter & Search inside Checklist
+const filterImeiStatus = ref('all'); // 'all', 'ada', 'tidak_ada', 'belum_dipilih'
+const searchImeiQuery = ref('');
+
+const filteredPendingImeis = computed(() => {
+    if (method.value !== 'by_imei') return pendingItems.value;
+    let list = pendingItems.value;
+
+    if (filterImeiStatus.value === 'ada') {
+        list = list.filter(it => it.is_present === true);
+    } else if (filterImeiStatus.value === 'tidak_ada') {
+        list = list.filter(it => it.is_present === false);
+    } else if (filterImeiStatus.value === 'belum_dipilih') {
+        list = list.filter(it => it.is_present === null || it.is_present === undefined);
+    }
+
+    if (searchImeiQuery.value.trim()) {
+        const q = searchImeiQuery.value.toLowerCase().trim();
+        list = list.filter(it =>
+            (it.imei && String(it.imei).toLowerCase().includes(q)) ||
+            (it.product_name && String(it.product_name).toLowerCase().includes(q)) ||
+            (it.storage && String(it.storage).toLowerCase().includes(q)) ||
+            (it.distributor && String(it.distributor).toLowerCase().includes(q)) ||
+            (it.notes && String(it.notes).toLowerCase().includes(q))
+        );
+    }
+    return list;
+});
+
 // Excess Items Management
 const addExcessItem = () => {
     if (!newExcess.value.product_name) {
@@ -1134,6 +1192,13 @@ onMounted(async () => {
         }
         if (route.query.method) {
             method.value = route.query.method;
+        }
+        if (route.query.brand) {
+            selectedBrands.value = String(route.query.brand).split(',').map(s => s.trim()).filter(Boolean);
+        }
+        if (route.query.product_type) {
+            selectedProductName.value = String(route.query.product_type);
+            selectedProductNames.value = String(route.query.product_type).split(',').map(s => s.trim()).filter(Boolean);
         }
         await startReOpnameMode(reOpnameId.value);
     } else {
@@ -2243,7 +2308,15 @@ onUnmounted(() => {
                     <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                         <CheckCircle2 :size="32" />
                     </div>
-                    <div>
+                    <div v-if="isReOpnameMode">
+                        <p class="text-base sm:text-lg font-black text-amber-400">
+                            Tidak Ada Unit untuk Filter Saat Ini
+                        </p>
+                        <p class="text-xs sm:text-sm text-text-secondary mt-1.5 max-w-lg mx-auto leading-relaxed">
+                            Jika daftar unit belum muncul, silakan pilih brand atau tipe produk yang ingin diperiksa melalui tombol di bawah.
+                        </p>
+                    </div>
+                    <div v-else>
                         <p class="text-base sm:text-lg font-black text-neutral-900 dark:text-white">
                             Semua Unit Selesai di-SO Hari Ini ✅
                         </p>
@@ -2253,7 +2326,7 @@ onUnmounted(() => {
                     </div>
 
                     <!-- RE-OPNAME BUTTON & INFO -->
-                    <div v-if="hasTodayCompletedOpname || previousOpnameInfo" class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 max-w-md mx-auto text-left space-y-2">
+                    <div v-if="!isReOpnameMode && (hasTodayCompletedOpname || previousOpnameInfo)" class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 max-w-md mx-auto text-left space-y-2">
                         <div class="flex items-center gap-2 text-xs font-black text-amber-400">
                             <RotateCcw :size="15" />
                             <span>Fitur SO Ulang / Perbarui Hasil SO Hari Ini</span>
@@ -2341,9 +2414,63 @@ onUnmounted(() => {
                     </table>
                 </div>
 
+                <!-- Search & Status Filter for IMEI -->
+                <div v-if="method === 'by_imei' && pendingItems.length > 0" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1 pb-2 border-b border-surface-700/60">
+                    <!-- Status Filter Tabs -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+                        <button type="button" @click="filterImeiStatus = 'all'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer"
+                            :class="filterImeiStatus === 'all'
+                                ? 'bg-surface-700 text-text-primary shadow-xs'
+                                : 'text-text-secondary hover:text-text-primary hover:bg-surface-750'">
+                            Semua ({{ pendingItems.length }})
+                        </button>
+                        <button type="button" @click="filterImeiStatus = 'ada'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                            :class="filterImeiStatus === 'ada'
+                                ? 'bg-primary-500/25 border border-primary-500/40 text-emerald-400 shadow-xs'
+                                : 'text-text-secondary hover:text-emerald-400 hover:bg-surface-750'">
+                            <Check :size="13" />
+                            <span>Ada ({{ summaryStats.totalPhysical }})</span>
+                        </button>
+                        <button type="button" @click="filterImeiStatus = 'tidak_ada'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                            :class="filterImeiStatus === 'tidak_ada'
+                                ? 'bg-rose-500/25 border border-rose-500/40 text-rose-400 shadow-xs'
+                                : 'text-text-secondary hover:text-rose-400 hover:bg-surface-750'">
+                            <X :size="13" />
+                            <span>Tidak Ada ({{ summaryStats.totalMissing }})</span>
+                        </button>
+                        <button v-if="summaryStats.totalUnselected > 0" type="button" @click="filterImeiStatus = 'belum_dipilih'"
+                            class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1"
+                            :class="filterImeiStatus === 'belum_dipilih'
+                                ? 'bg-amber-500/25 border border-amber-500/40 text-amber-400 shadow-xs animate-pulse'
+                                : 'text-text-secondary hover:text-amber-400 hover:bg-surface-750'">
+                            <span>Belum Dipilih ({{ summaryStats.totalUnselected }})</span>
+                        </button>
+                    </div>
+
+                    <!-- Search IMEI / Tipe Input -->
+                    <div class="relative w-full sm:w-64">
+                        <Search :size="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary/60 pointer-events-none" />
+                        <input type="text" v-model="searchImeiQuery" placeholder="Cari IMEI / unit..."
+                            class="w-full text-xs py-2 pl-9 pr-7 bg-surface-750 border border-surface-700 rounded-xl focus:ring-1 focus:ring-primary-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
+                        <button v-if="searchImeiQuery" @click="searchImeiQuery = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary cursor-pointer">
+                            <X :size="12" />
+                        </button>
+                    </div>
+                </div>
+
                 <!-- CASE B: STOK BY IMEI (CHECKLIST CARDS) -->
-                <div v-else-if="method === 'by_imei'" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <div v-for="it in pendingItems" :key="it.product_detail_id || it.imei"
+                <div v-else-if="method === 'by_imei'" class="space-y-3">
+                    <div v-if="filteredPendingImeis.length === 0" class="py-10 text-center text-text-secondary bg-surface-750/30 rounded-2xl border border-dashed border-surface-700/80">
+                        <p class="text-xs font-bold">Tidak ada unit IMEI yang cocok dengan filter atau pencarian ini.</p>
+                        <button type="button" @click="filterImeiStatus = 'all'; searchImeiQuery = ''" class="mt-2 text-xs text-primary-400 hover:underline cursor-pointer">
+                            Tampilkan Semua ({{ pendingItems.length }} unit)
+                        </button>
+                    </div>
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        <div v-for="it in filteredPendingImeis" :key="it.product_detail_id || it.imei"
                         class="p-4 rounded-2xl border transition-all flex flex-col justify-between gap-3"
                         :class="it.is_present === true
                             ? 'bg-surface-800 border-primary-500/50 ring-1 ring-primary-500/20'
@@ -2412,6 +2539,7 @@ onUnmounted(() => {
                             <input type="text" v-model="it.notes" placeholder="Alasan tidak ada (misal: servis, display, dll)..."
                                 class="w-full text-xs py-2 px-3 bg-surface-800 border border-rose-300 dark:border-rose-800/80 rounded-xl focus:ring-1 focus:ring-rose-500 text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

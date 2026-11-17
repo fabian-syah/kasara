@@ -804,8 +804,10 @@ const handleReOpname = (rec) => {
         query: {
             re_opname_id: rec.id,
             branch_id: rec.branch_id,
-            category_type: rec.category_type,
-            method: rec.method,
+            category_type: rec.category_type || 'hp',
+            method: rec.method || 'by_unit',
+            brand: rec.brand || '',
+            product_type: rec.product_type || '',
         }
     });
 };

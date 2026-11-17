@@ -322,7 +322,7 @@ class StockOpnameController extends Controller
         };
 
         // Brand & Condition matcher helpers
-        $matchesBrand = function ($bName) use ($selectedBrands) {
+        $matchesBrand = function ($bName) use (&$selectedBrands) {
             if (empty($selectedBrands)) return true;
             foreach ($selectedBrands as $sb) {
                 if (strcasecmp($sb, $bName) === 0) return true;
@@ -330,7 +330,7 @@ class StockOpnameController extends Controller
             return false;
         };
 
-        $matchesCondition = function ($itemCond) use ($selectedConditions) {
+        $matchesCondition = function ($itemCond) use (&$selectedConditions) {
             if (empty($selectedConditions)) return true;
             return in_array($itemCond, $selectedConditions);
         };
@@ -444,19 +444,56 @@ class StockOpnameController extends Controller
             }
         }
 
+        $targetReOpname = null;
+        if ($targetReOpnameId) {
+            $targetReOpname = StockOpname::with(['excessItems', 'items'])->find($targetReOpnameId);
+        }
+        if (!$targetReOpname && $todayOpnameIds->isNotEmpty()) {
+            $targetReOpname = StockOpname::with(['excessItems', 'items'])->find($todayOpnameIds->first());
+        }
+
         $previousOpnameData = null;
-        if ($todayOpnameIds->isNotEmpty()) {
-            $prevRecId = $targetReOpnameId ?: $todayOpnameIds->first();
-            $prevRec = StockOpname::with(['excessItems'])->find($prevRecId);
-            if ($prevRec) {
-                $previousOpnameData = [
-                    'id' => $prevRec->id,
-                    'opname_number' => $prevRec->opname_number,
-                    'time' => $prevRec->created_at ? $prevRec->created_at->setTimezone('Asia/Jakarta')->format('H:i') : null,
-                    'notes' => $prevRec->notes ?? '',
-                    'photos' => $prevRec->photos ?? [],
-                    'excess_items' => $prevRec->excessItems ? $prevRec->excessItems->toArray() : [],
-                ];
+        if ($targetReOpname) {
+            $previousOpnameData = [
+                'id' => $targetReOpname->id,
+                'opname_number' => $targetReOpname->opname_number,
+                'brand' => $targetReOpname->brand ?? '',
+                'product_type' => $targetReOpname->product_type ?? '',
+                'category_type' => $targetReOpname->category_type ?? 'hp',
+                'method' => $targetReOpname->method ?? 'by_imei',
+                'time' => $targetReOpname->created_at ? $targetReOpname->created_at->setTimezone('Asia/Jakarta')->format('H:i') : null,
+                'notes' => $targetReOpname->notes ?? '',
+                'photos' => $targetReOpname->photos ?? [],
+                'excess_items' => $targetReOpname->excessItems ? $targetReOpname->excessItems->toArray() : [],
+                'items_count' => $targetReOpname->items->count(),
+            ];
+
+            // If in Re-Opname mode, auto-detect brand and product_type from previous session if not provided
+            if (empty($selectedBrands) && !empty($targetReOpname->brand)) {
+                $selectedBrands = array_filter(array_map('trim', explode(',', $targetReOpname->brand)));
+            }
+
+            if ($categoryType === 'hp' && $method === 'by_imei') {
+                if (empty($selectedProductNames)) {
+                    if (!empty($targetReOpname->product_type) && strtolower($targetReOpname->product_type) !== 'semua tipe') {
+                        $selectedProductNames = array_filter(array_map('trim', explode(',', $targetReOpname->product_type)));
+                    } else {
+                        $itemNames = $targetReOpname->items->pluck('product_name')->filter()->unique()->values()->toArray();
+                        if (!empty($itemNames)) {
+                            $selectedProductNames = $itemNames;
+                        }
+                    }
+                    if (!empty($selectedProductNames)) {
+                        $selectedProductName = $selectedProductNames[0];
+                    }
+                }
+            }
+
+            // Map all items from this previous opname session
+            foreach ($targetReOpname->items as $ait) {
+                if ($ait->imei && $ait->imei !== '-') {
+                    $auditedMapByImei[strtoupper(trim((string)$ait->imei))] = $ait;
+                }
             }
         }
 
@@ -661,7 +698,7 @@ class StockOpnameController extends Controller
 
                 $imeiList = [];
                 if (!empty($selectedProductNames)) {
-                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $matchesCondition, $normalizeCondition, $selectedProductNames) {
+                    $selectedHpItems = $filteredHp->filter(function ($item) use ($matchesBrand, $matchesCondition, $normalizeCondition, &$selectedProductNames) {
                         $bName = trim($item->product?->brand ?? 'Unknown');
                         if (!$bName || $bName === '-') $bName = 'Other';
                         if (!$matchesBrand($bName)) return false;
@@ -699,6 +736,32 @@ class StockOpnameController extends Controller
                     }
                 }
 
+                // If in Re-Opname mode, ensure EVERY item from previous opname session is present in $imeiList!
+                if ($isReOpname && $targetReOpname) {
+                    $existingImeis = array_map(fn($it) => strtoupper(trim((string)$it['imei'])), $imeiList);
+                    foreach ($targetReOpname->items as $prevIt) {
+                        $pImei = strtoupper(trim((string)($prevIt->imei ?? '')));
+                        if ($pImei && $pImei !== '-' && !in_array($pImei, $existingImeis)) {
+                            $imeiList[] = [
+                                'product_detail_id' => $prevIt->product_detail_id,
+                                'product_id' => $prevIt->product_id,
+                                'brand' => $prevIt->brand ?? '-',
+                                'product_name' => $prevIt->product_name ?? '-',
+                                'storage' => $prevIt->storage ?? '-',
+                                'condition' => $prevIt->condition ?? 'second',
+                                'condition_label' => $getConditionLabel($prevIt->condition ?? 'second'),
+                                'imei' => $prevIt->imei,
+                                'distributor' => '-',
+                                'status' => 'audited',
+                                'is_present' => (bool)$prevIt->is_present,
+                                'notes' => (string)($prevIt->notes ?? ''),
+                                'was_previously_audited' => true,
+                            ];
+                            $existingImeis[] = $pImei;
+                        }
+                    }
+                }
+
                 $totalPendingUnits = !empty($selectedBrands)
                     ? array_sum(array_intersect_key($brandsMap, array_flip($selectedBrands)))
                     : $filteredHp->count();
@@ -713,6 +776,9 @@ class StockOpnameController extends Controller
                         'admin' => 'SO Admin',
                         default => 'SO CS Toko',
                     },
+                    'selected_product_names' => $selectedProductNames,
+                    'selected_product_name' => $selectedProductName,
+                    'selected_brands' => $selectedBrands,
                     'available_brands' => $availableBrands,
                     'available_conditions' => $availableConditions,
                     'available_types' => $availableTypes,
