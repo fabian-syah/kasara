@@ -88,7 +88,15 @@ const generalNotes = ref('');
 // DRAFT PERSISTENCE (AUTO-SAVE & RECOVERY)
 // ==========================================
 const DRAFT_STORAGE_PREFIX = 'kasara_so_draft_';
-const getStorageKey = () => `${DRAFT_STORAGE_PREFIX}${authStore.user?.id || 'default'}`;
+const getUserId = () => {
+    if (authStore.user?.id) return authStore.user.id;
+    try {
+        const u = JSON.parse(localStorage.getItem('user'));
+        if (u?.id) return u.id;
+    } catch (e) {}
+    return 'default';
+};
+const getStorageKey = () => `${DRAFT_STORAGE_PREFIX}${getUserId()}`;
 
 const showDraftModal = ref(false);
 const existingDraft = ref(null);
@@ -165,6 +173,7 @@ const saveDraft = () => {
 const clearDraft = () => {
     try {
         localStorage.removeItem(getStorageKey());
+        localStorage.removeItem(`${DRAFT_STORAGE_PREFIX}default`);
         hasActiveDraft.value = false;
         existingDraft.value = null;
     } catch (e) {}
@@ -172,7 +181,10 @@ const clearDraft = () => {
 
 const checkSavedDraft = () => {
     try {
-        const raw = localStorage.getItem(getStorageKey());
+        let raw = localStorage.getItem(getStorageKey());
+        if (!raw && getUserId() !== 'default') {
+            raw = localStorage.getItem(`${DRAFT_STORAGE_PREFIX}default`);
+        }
         if (!raw) return;
         const draft = JSON.parse(raw);
         if (!draft || !draft.pendingItems || draft.pendingItems.length === 0) {
@@ -806,9 +818,14 @@ watch(selectedBranchId, () => {
 });
 
 watch(() => authStore.user, (u) => {
-    if (u && !hasCsStep.value) {
-        selectedCsUserId.value = u.id;
-        passwordVerified.value = true;
+    if (u) {
+        if (!hasCsStep.value) {
+            selectedCsUserId.value = u.id;
+            passwordVerified.value = true;
+        }
+        if (!existingDraft.value && !showDraftModal.value) {
+            checkSavedDraft();
+        }
     }
 }, { immediate: true });
 
