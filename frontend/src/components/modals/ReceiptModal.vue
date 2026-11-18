@@ -330,9 +330,19 @@
                                                         <!-- IMEI COLUMN -->
                                                         <td class="py-2 px-3 align-middle text-left">
                                                             <div v-if="!item.is_bundle_header && !item.is_bundle_child"
-                                                                class="imei-cell text-[10px] font-black font-mono text-neutral-900">
+                                                                class="imei-cell text-[10px] font-bold font-mono text-neutral-900">
                                                                 {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei
                                                                 : '-') : '-' }}
+                                                            </div>
+                                                            <div v-else-if="item.is_bundle_header && item.bundle_imeis && item.bundle_imeis.length > 0"
+                                                                class="imei-cell font-mono font-bold text-neutral-900 text-[8.5px] leading-tight flex flex-col gap-0.5">
+                                                                <span v-for="(bImei, bIdx) in item.bundle_imeis" :key="bIdx">
+                                                                    {{ bImei }}
+                                                                </span>
+                                                            </div>
+                                                            <div v-else-if="item.is_bundle_child"
+                                                                class="imei-cell font-mono font-bold text-neutral-900 text-[8.5px]">
+                                                                {{ item.imei && item.imei !== '-' ? item.imei : '' }}
                                                             </div>
                                                         </td>
 
@@ -341,8 +351,21 @@
                                                             <div v-if="item.is_bundle_header"
                                                                 class="desc-bundle-header font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex flex-col">
                                                                 <span>📦 {{ item.name }}</span>
-                                                                <div v-if="item.sub_items_summary"
-                                                                    class="desc-bundle-summary text-[9px] font-semibold text-neutral-600 mt-0.5 normal-case tracking-normal leading-tight">
+                                                                <div v-if="item.sub_items_list && item.sub_items_list.length > 0"
+                                                                    class="desc-bundle-summary text-[9px] font-medium text-neutral-700 mt-0.5 normal-case tracking-normal leading-tight">
+                                                                    <template v-for="(sub, sIdx) in item.sub_items_list" :key="sIdx">
+                                                                        <span>
+                                                                            <span v-if="sIdx > 0"> • </span>
+                                                                            <span v-else>• </span>
+                                                                            <span>{{ sub.name }}</span>
+                                                                            <span v-if="sub.imei" class="bundle-sub-imei font-mono font-bold text-neutral-950">
+                                                                                (IMEI {{ sub.imei }})
+                                                                            </span>
+                                                                        </span>
+                                                                    </template>
+                                                                </div>
+                                                                <div v-else-if="item.sub_items_summary"
+                                                                    class="desc-bundle-summary text-[9px] font-medium text-neutral-700 mt-0.5 normal-case tracking-normal leading-tight">
                                                                     • {{ item.sub_items_summary }}
                                                                 </div>
                                                             </div>
@@ -400,7 +423,7 @@
 
                                                         <!-- JUMLAH COLUMN -->
                                                         <td class="py-2 px-3 align-middle text-right">
-                                                            <div v-if="!item.is_bundle_child" class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                            <div v-if="!item.is_bundle_child" class="item-amount text-[10px] sm:text-[11px] font-bold text-neutral-900">
                                                                 <span v-if="item.is_bundle_header">
                                                                     {{ formatNumber(Math.abs(item.price)) }}
                                                                 </span>
@@ -1513,28 +1536,49 @@ const processedReceiptItems = computed(() => {
                     absorbed = true;
                 }
 
-                // 4. Compact Sub-Items rule: If sub-items > 3, merge into 1 paragraph below bundle name separated by " • "
-                if (groupItems.length > 3) {
-                    const subSummary = groupItems.map((c) => {
-                        let cName = c.name || c.product?.name || '';
-                        return cName
-                            .replace('Tukar Tambah OUT: ', '')
-                            .replace('Tukar Tambah IN: ', '')
-                            .replace('Tukar Unit OUT: ', '')
-                            .replace('Tukar Unit IN: ', '')
-                            .replace('OUT: ', '')
-                            .replace('IN: ', '')
-                            .replace(/paket bundling/gi, '')
-                            .replace('📦 ', '')
-                            .trim();
-                    }).filter(Boolean).join(' • ');
+                // 4. Sub-items list with per-item IMEI support
+                const subItemsList = groupItems.map((c) => {
+                    let cName = (c.name || c.product?.name || c.product_name || '')
+                        .replace('Tukar Tambah OUT: ', '')
+                        .replace('Tukar Tambah IN: ', '')
+                        .replace('Tukar Unit OUT: ', '')
+                        .replace('Tukar Unit IN: ', '')
+                        .replace('Downgrade OUT: ', '')
+                        .replace('Downgrade IN: ', '')
+                        .replace('OUT: ', '')
+                        .replace('IN: ', '')
+                        .replace(/paket bundling/gi, '')
+                        .replace('📦 ', '')
+                        .trim();
+                    if (c.is_hp) {
+                        const brand = (c.brand && c.brand !== '-') ? c.brand : (c.product?.brand?.name || c.product?.brandRelation?.name || c.product?.brand || '');
+                        if (brand && !cName.toLowerCase().includes(brand.toLowerCase())) {
+                            cName = brand + ' ' + cName;
+                        }
+                        if (c.storage && c.storage !== '-' && !cName.includes(c.storage)) {
+                            cName += ' ' + c.storage;
+                        }
+                    }
+                    const rawImei = c.imei || c.product_detail?.imei || c.pivot?.imei || '';
+                    const imei = (rawImei && rawImei !== '-' && rawImei !== 'null' && rawImei !== 'undefined') ? String(rawImei).trim() : '';
+                    return { name: cName, imei: imei };
+                }).filter(sub => Boolean(sub.name));
 
+                const bundleImeis = subItemsList.map(sub => sub.imei).filter(Boolean);
+                const subSummary = subItemsList.map(sub => {
+                    return sub.imei ? `${sub.name} (IMEI ${sub.imei})` : sub.name;
+                }).join(' • ');
+
+                // Compact Sub-Items rule: If sub-items > 3, merge into 1 paragraph below bundle name separated by " • "
+                if (groupItems.length > 3) {
                     newList.push({
                         is_hp: false,
                         is_bundle_header: true,
                         is_bundle_child: false,
                         name: bundleDisplayName,
+                        sub_items_list: subItemsList,
                         sub_items_summary: subSummary,
+                        bundle_imeis: bundleImeis,
                         price: groupTotal,
                         originalPrice: groupOriginalTotal,
                         itemDiscount: groupDiscountTotal,
@@ -1551,6 +1595,9 @@ const processedReceiptItems = computed(() => {
                         is_bundle_header: true,
                         is_bundle_child: false,
                         name: bundleDisplayName,
+                        sub_items_list: subItemsList,
+                        sub_items_summary: subSummary,
+                        bundle_imeis: bundleImeis,
                         price: groupTotal,
                         originalPrice: groupOriginalTotal,
                         itemDiscount: groupDiscountTotal,
@@ -1562,8 +1609,11 @@ const processedReceiptItems = computed(() => {
                     });
 
                     groupItems.forEach((child, childIdx) => {
+                        const rawChildImei = child.imei || child.product_detail?.imei || child.pivot?.imei || '';
+                        const childImei = (rawChildImei && rawChildImei !== '-' && rawChildImei !== 'null' && rawChildImei !== 'undefined') ? String(rawChildImei).trim() : '';
                         newList.push({
                             ...child,
+                            imei: childImei,
                             is_bundle_header: false,
                             is_bundle_child: true,
                             _hidePrice: true,
@@ -1580,14 +1630,6 @@ const processedReceiptItems = computed(() => {
 </script>
 
 <style scoped>
-@font-face {
-    font-family: 'Inter';
-    font-style: normal;
-    font-weight: 400 900;
-    font-display: block;
-    src: local('Inter'), local('Segoe UI'), local('Arial'), sans-serif;
-}
-
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease;
@@ -1619,10 +1661,8 @@ const processedReceiptItems = computed(() => {
     text-size-adjust: none !important;
     background-color: #ffffff !important;
     color: #0f172a !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     font-weight: 600 !important;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     page-break-after: avoid !important;
@@ -1737,28 +1777,28 @@ const processedReceiptItems = computed(() => {
 }
 .header-title-store {
     font-size: 5.2mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     color: #dc2626 !important;
     line-height: 1 !important;
     letter-spacing: -0.2mm !important;
 }
 .header-title-branch {
     font-size: 5.2mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     color: #171717 !important;
     line-height: 1 !important;
     letter-spacing: -0.2mm !important;
 }
 .header-address {
     font-size: 2.3mm !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: #404040 !important;
     line-height: 1.2 !important;
     margin-top: 1mm !important;
 }
 .header-social {
     font-size: 2.1mm !important;
-    font-weight: 800 !important;
+    font-weight: 700 !important;
     color: #262626 !important;
     line-height: 1.2 !important;
     margin-top: 1mm !important;
@@ -1785,7 +1825,7 @@ const processedReceiptItems = computed(() => {
 
 .title-main {
     font-size: 5.8mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     color: #0a0a0a !important;
     text-transform: uppercase !important;
     letter-spacing: 0.2mm !important;
@@ -1793,7 +1833,7 @@ const processedReceiptItems = computed(() => {
 }
 .title-sub {
     font-size: 2.3mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     letter-spacing: 0.3mm !important;
     color: #dc2626 !important;
     margin-top: 0.8mm !important;
@@ -1843,7 +1883,7 @@ const processedReceiptItems = computed(() => {
 }
 .metadata-label {
     font-size: 1.8mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #0a0a0a !important;
     text-transform: uppercase !important;
     letter-spacing: 0.2mm !important;
@@ -1852,7 +1892,7 @@ const processedReceiptItems = computed(() => {
 }
 .metadata-val {
     font-size: 2.4mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #0a0a0a !important;
     line-height: 1.2 !important;
     word-break: break-word !important;
@@ -1873,7 +1913,7 @@ const processedReceiptItems = computed(() => {
     background-color: #0a0a0a !important;
     color: #ffffff !important;
     font-size: 2.3mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.15mm !important;
     padding: 1.8mm 2mm !important;
@@ -1884,17 +1924,18 @@ const processedReceiptItems = computed(() => {
 .items-table-wrapper td {
     padding: 1.6mm 2mm !important;
     font-size: 2.4mm !important;
+    font-weight: 600 !important;
     line-height: 1.25 !important;
     vertical-align: middle !important;
 }
 .items-table-wrapper .imei-cell {
     font-size: 2.3mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     font-family: monospace !important;
 }
 .items-table-wrapper .desc-bundle-header {
     font-size: 2.6mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     color: #0a0a0a !important;
 }
 .items-table-wrapper .desc-bundle-summary {
@@ -1903,15 +1944,22 @@ const processedReceiptItems = computed(() => {
     color: #525252 !important;
     line-height: 1.2 !important;
 }
+.items-table-wrapper .bundle-sub-imei {
+    font-weight: 700 !important;
+}
 .items-table-wrapper .desc-item-name {
     font-size: 2.4mm !important;
     font-weight: 700 !important;
     color: #262626 !important;
 }
+.items-table-wrapper .item-amount {
+    font-weight: 700 !important;
+}
 .nota-item-row.nota-bundle-child td {
     padding-top: 0.8mm !important;
     padding-bottom: 0.8mm !important;
     font-size: 2.1mm !important;
+    font-weight: 600 !important;
 }
 
 /* Bottom 2-Column Grid (Consistent everywhere, NO collapse) */
@@ -1938,7 +1986,7 @@ const processedReceiptItems = computed(() => {
     background-color: #dc2626 !important;
     color: white !important;
     font-size: 1.9mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.15mm !important;
     padding: 0.4mm 1.8mm !important;
@@ -1951,7 +1999,7 @@ const processedReceiptItems = computed(() => {
     border-radius: 1.5mm !important;
     padding: 1.6mm 2mm !important;
     font-size: 2.1mm !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: #262626 !important;
     line-height: 1.25 !important;
     overflow-wrap: break-word !important;
@@ -1960,7 +2008,7 @@ const processedReceiptItems = computed(() => {
 }
 .warranty-title {
     font-size: 2.1mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #dc2626 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.15mm !important;
@@ -1969,7 +2017,7 @@ const processedReceiptItems = computed(() => {
 .warranty-list {
     font-size: 1.9mm !important;
     color: #525252 !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     line-height: 1.25 !important;
 }
 
@@ -1988,24 +2036,24 @@ const processedReceiptItems = computed(() => {
 }
 .totals-row-label {
     font-size: 2.1mm !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: #737373 !important;
 }
 .totals-row-val {
     font-size: 2.3mm !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     color: #171717 !important;
 }
 .totals-change-label {
     font-size: 2.1mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #dc2626 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.15mm !important;
 }
 .totals-change-val {
     font-size: 2.6mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     color: #dc2626 !important;
 }
 
@@ -2036,7 +2084,7 @@ const processedReceiptItems = computed(() => {
 }
 .grand-total-trapezoid-text {
     font-size: 1.7mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.1mm !important;
     line-height: 1.1 !important;
@@ -2053,7 +2101,7 @@ const processedReceiptItems = computed(() => {
 }
 .totals-grand-val {
     font-size: 3.8mm !important;
-    font-weight: 900 !important;
+    font-weight: 800 !important;
     letter-spacing: -0.1mm !important;
     line-height: 1 !important;
     color: white !important;
@@ -2062,7 +2110,7 @@ const processedReceiptItems = computed(() => {
     font-size: 1.9mm !important;
     color: #a3a3a3 !important;
     font-style: italic !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
     text-align: right !important;
     margin-top: 0.8mm !important;
 }
@@ -2079,7 +2127,7 @@ const processedReceiptItems = computed(() => {
 }
 .signature-title {
     font-size: 2.0mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #dc2626 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.2mm !important;
@@ -2093,7 +2141,7 @@ const processedReceiptItems = computed(() => {
 }
 .signature-name {
     font-size: 2.4mm !important;
-    font-weight: 900 !important;
+    font-weight: 700 !important;
     color: #171717 !important;
     text-transform: uppercase !important;
 }
@@ -2188,7 +2236,8 @@ const processedReceiptItems = computed(() => {
         line-height: 1.25 !important;
         -webkit-text-size-adjust: none !important;
         text-size-adjust: none !important;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        font-weight: 600 !important;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
