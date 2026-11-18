@@ -30,7 +30,7 @@
                     <div id="receipt-content"
                         class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                         <div v-if="transaction"
-                            class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 print:p-6 relative overflow-hidden select-none">
+                            class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 relative overflow-hidden select-none">
 
                             <!-- ===== DYNAMIC CORNER ACCENTS (Mockup Style) ===== -->
                             <div class="absolute top-0 left-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
@@ -58,7 +58,7 @@
                                     <!-- Giant Floating Logo Left -->
                                     <div class="shrink-0">
                                         <img src="/images/ps.png" alt="PSTORE"
-                                            class="w-16 h-16 print:w-20 print:h-20 object-contain" />
+                                            class="w-16 h-16 object-contain" />
                                     </div>
                                     <!-- Branch & Social Info -->
                                     <div class="flex-1">
@@ -127,7 +127,7 @@
 
                                 <!-- ===== METADATA INFO GRID (3 Columns, 2 Rows) ===== -->
                                 <div
-                                    class="grid grid-cols-3 gap-x-0 mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
+                                    class="metadata-grid grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-x-0 mb-4 print:grid-cols-3 print:gap-x-0 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
                                     <!-- Column 1: No Nota & Tanggal -->
                                     <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                         <!-- No Nota -->
@@ -282,7 +282,7 @@
 
                                 <!-- ===== TABEL ITEMS (6 Columns) ===== -->
                                 <div
-                                    class="rounded-xl overflow-hidden border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
+                                    class="items-table-wrapper rounded-xl overflow-x-auto print:overflow-visible border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
                                     <table class="w-full text-[10px] sm:text-xs border-collapse">
                                         <thead>
                                             <tr style="background-color: #0a0a0a !important;"
@@ -408,7 +408,7 @@
                                 </div>
 
                                 <!-- ===== SPLIT COLUMN: Left (Note, Warranty) | Right (Breakdown, Total) ===== -->
-                                <div class="flex flex-col md:flex-row gap-6 mb-6 mt-2">
+                                <div class="split-section flex flex-col md:flex-row gap-6 mb-6 mt-2 print:flex-row print:gap-3">
                                     <!-- Left Column: Notes & Warranty -->
                                     <div class="flex-1">
                                         <!-- Catatan Ribbon Box -->
@@ -1380,7 +1380,7 @@ const processedReceiptItems = computed(() => {
 </style>
 
 <style>
-/* UNSCOPED PRINT CSS - DEDICATED STRICT A5 1-PAGE GUARANTEE */
+/* UNSCOPED PRINT CSS - RESPONSIVE STRICT A5 1-PAGE GUARANTEE */
 @media print {
     @page {
         size: A5 portrait;
@@ -1395,12 +1395,12 @@ const processedReceiptItems = computed(() => {
     html,
     body {
         width: 148mm !important;
-        height: 210mm !important;
-        max-height: 210mm !important;
+        height: auto !important;
+        min-height: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -1416,11 +1416,12 @@ const processedReceiptItems = computed(() => {
         top: 0 !important;
         width: 148mm !important;
         max-width: 148mm !important;
-        height: 210mm !important;
-        max-height: 210mm !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: hidden !important;
+        overflow: visible !important;
         box-sizing: border-box !important;
         background: white !important;
         z-index: 9999999 !important;
@@ -1430,11 +1431,11 @@ const processedReceiptItems = computed(() => {
         outline: 0 !important;
     }
 
-    /* A5 NOTA PAPER CONTAINER: Strictly fits on 1 sheet of paper */
+    /* A5 NOTA PAPER CONTAINER: Clean, centered, fits naturally on 1 sheet of paper */
     .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        padding: 2.5mm 5mm !important;
+        padding: 3.5mm 5mm 3mm 5mm !important;
         margin: 0 auto !important;
         color: #0f172a !important;
         background: white !important;
@@ -1442,9 +1443,10 @@ const processedReceiptItems = computed(() => {
         box-sizing: border-box !important;
         width: 148mm !important;
         max-width: 148mm !important;
-        height: 210mm !important;
-        max-height: 210mm !important;
-        overflow: hidden !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: 205mm !important;
+        overflow: visible !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
         page-break-after: avoid !important;
@@ -1452,27 +1454,28 @@ const processedReceiptItems = computed(() => {
         transform: none !important;
     }
 
-    /* Vertical distribution: cleanly fills top to bottom within 1 page */
+    /* Natural vertical flow: NO giant gaps, elements flow in unified professional hierarchy */
     .nota-paper > .relative.z-10 {
         display: flex !important;
         flex-direction: column !important;
-        justify-content: space-between !important;
-        height: 100% !important;
-        max-height: 100% !important;
+        justify-content: flex-start !important;
+        height: auto !important;
+        max-height: none !important;
         box-sizing: border-box !important;
+        gap: 0 !important;
     }
 
     /* Watermark in background */
     .nota-paper .opacity-\[0\.08\] img {
-        width: 220px !important;
-        height: 220px !important;
+        width: 200px !important;
+        height: 200px !important;
         transform: scale(1) !important;
     }
 
     /* Corner Accents */
     .nota-paper > div.absolute.top-0 {
-        width: 3rem !important;
-        height: 3rem !important;
+        width: 3.25rem !important;
+        height: 3.25rem !important;
         z-index: 20 !important;
     }
     .nota-paper > div.absolute svg {
@@ -1483,121 +1486,149 @@ const processedReceiptItems = computed(() => {
 
     /* Header Section (Logo, Branch, Address, Socials) */
     .nota-paper .relative.z-10 > div:first-child {
-        margin-top: 0.15rem !important;
-        margin-bottom: 0.15rem !important;
-        padding-left: 0.35rem !important;
-        padding-right: 0.35rem !important;
-        gap: 0.45rem !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+        padding-left: 0.4rem !important;
+        padding-right: 0.4rem !important;
+        gap: 0.5rem !important;
     }
     .nota-paper .relative.z-10 > div:first-child img {
-        width: 2.5rem !important;
-        height: 2.5rem !important;
-        max-height: 2.5rem !important;
+        width: 2.65rem !important;
+        height: 2.65rem !important;
+        max-height: 2.65rem !important;
         object-fit: contain !important;
     }
     .nota-paper .relative.z-10 > div:first-child .text-2xl {
-        font-size: 0.95rem !important;
-        line-height: 1.1 !important;
+        font-size: 1.15rem !important;
+        line-height: 1.15 !important;
+        font-weight: 900 !important;
     }
     .nota-paper .relative.z-10 > div:first-child .text-\[10px\] {
-        font-size: 7.5px !important;
-        line-height: 1.1 !important;
+        font-size: 8px !important;
+        line-height: 1.15 !important;
         margin-top: 2px !important;
     }
     .nota-paper .relative.z-10 > div:first-child .text-\[9px\] {
-        font-size: 7px !important;
+        font-size: 7.5px !important;
         margin-top: 2px !important;
     }
 
-    /* Thick Middle Segment Separator Line */
+    /* Middle Segment Separator Line */
     .nota-paper .relative.w-full.h-px {
-        margin-top: 0.12rem !important;
-        margin-bottom: 0.12rem !important;
+        margin-top: 0.18rem !important;
+        margin-bottom: 0.18rem !important;
     }
 
     /* Invoice Type Title ("BUKTI TRANSAKSI") */
     .nota-paper .text-center.mb-5.mt-2 {
-        margin-top: 0.12rem !important;
-        margin-bottom: 0.2rem !important;
+        margin-top: 0.18rem !important;
+        margin-bottom: 0.25rem !important;
     }
     .nota-paper .text-3xl {
-        font-size: 0.95rem !important;
-        line-height: 1.1 !important;
+        font-size: 1.1rem !important;
+        line-height: 1.15 !important;
+        font-weight: 900 !important;
     }
     .nota-paper .text-\[10px\] {
-        font-size: 7.5px !important;
+        font-size: 8px !important;
+        font-weight: 900 !important;
     }
 
     /* Metadata Info Grid */
-    .nota-paper .grid.grid-cols-3 {
-        padding: 0.3rem 0.4rem !important;
-        margin-bottom: 0.2rem !important;
+    .nota-paper .grid.grid-cols-3,
+    .nota-paper .metadata-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        padding: 0.3rem 0.45rem !important;
+        margin-bottom: 0.25rem !important;
         border-radius: 6px !important;
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
     }
-    .nota-paper .grid.grid-cols-3 .w-7.h-7 {
-        width: 1.25rem !important;
-        height: 1.25rem !important;
+    .nota-paper .grid.grid-cols-3 .w-7.h-7,
+    .nota-paper .metadata-grid .w-7.h-7 {
+        width: 1.35rem !important;
+        height: 1.35rem !important;
     }
-    .nota-paper .grid.grid-cols-3 svg {
-        width: 0.65rem !important;
-        height: 0.65rem !important;
+    .nota-paper .grid.grid-cols-3 svg,
+    .nota-paper .metadata-grid svg {
+        width: 0.7rem !important;
+        height: 0.7rem !important;
     }
-    .nota-paper .grid.grid-cols-3 .gap-4 {
-        gap: 0.2rem !important;
+    .nota-paper .grid.grid-cols-3 .gap-4,
+    .nota-paper .metadata-grid .gap-4 {
+        gap: 0.25rem !important;
     }
-    .nota-paper .grid.grid-cols-3 .text-\[7px\] {
+    .nota-paper .grid.grid-cols-3 .text-\[7px\],
+    .nota-paper .metadata-grid .text-\[7px\] {
         font-size: 6.5px !important;
         margin-bottom: 1px !important;
+        font-weight: 900 !important;
     }
     .nota-paper .grid.grid-cols-3 .text-\[10px\],
-    .nota-paper .grid.grid-cols-3 .text-\[11px\] {
-        font-size: 8px !important;
+    .nota-paper .grid.grid-cols-3 .text-\[11px\],
+    .nota-paper .metadata-grid .text-\[10px\],
+    .nota-paper .metadata-grid .text-\[11px\] {
+        font-size: 8.5px !important;
         line-height: 1.15 !important;
+        font-weight: 900 !important;
     }
 
     /* Items Table */
+    .nota-paper .items-table-wrapper,
     .nota-paper .rounded-xl.overflow-hidden.border.border-neutral-200.mb-6 {
-        margin-bottom: 0.2rem !important;
+        margin-bottom: 0.25rem !important;
         border-radius: 6px !important;
+        overflow: visible !important;
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
     }
     .nota-paper table {
-        font-size: 8px !important;
+        font-size: 8.5px !important;
+        border-collapse: collapse !important;
     }
     .nota-paper th {
         background-color: #0a0a0a !important;
         color: #ffffff !important;
-        padding: 2.5px 5px !important;
-        font-size: 7.5px !important;
+        padding: 3.5px 5px !important;
+        font-size: 8px !important;
+        font-weight: 900 !important;
+        border-color: #0a0a0a !important;
     }
     .nota-paper td {
-        padding: 2.5px 5px !important;
-        font-size: 8px !important;
+        padding: 3.5px 5px !important;
+        font-size: 8.5px !important;
+        border-color: #e5e7eb !important;
     }
     .nota-paper td .text-\[10px\],
     .nota-paper td .text-\[11px\],
     .nota-paper td .text-\[12px\] {
-        font-size: 8px !important;
-        line-height: 1.15 !important;
+        font-size: 8.5px !important;
+        line-height: 1.2 !important;
     }
 
-    /* Split Column (Notes & Warranty / Breakdown & Grand Total) */
+    /* Split Section (Notes & Warranty / Breakdown & Grand Total) */
+    .nota-paper .split-section,
     .nota-paper .flex.flex-col.md\:flex-row.gap-6.mb-6.mt-2 {
         display: flex !important;
         flex-direction: row !important;
-        gap: 0.35rem !important;
-        margin-top: 0.12rem !important;
-        margin-bottom: 0.2rem !important;
+        gap: 0.45rem !important;
+        margin-top: 0.18rem !important;
+        margin-bottom: 0.25rem !important;
+        align-items: flex-start !important;
     }
     .nota-paper .mb-5.relative {
         margin-bottom: 0.2rem !important;
     }
     .nota-paper .notes-box {
-        padding: 0.25rem 0.4rem !important;
-        min-height: 22px !important;
-        max-height: 42px !important;
+        padding: 0.3rem 0.45rem !important;
+        min-height: 28px !important;
+        max-height: 48px !important;
         overflow: hidden !important;
-        font-size: 7.5px !important;
-        line-height: 1.2 !important;
+        font-size: 8px !important;
+        line-height: 1.25 !important;
         border-radius: 6px !important;
         background-color: #ffffff !important;
         background: white !important;
@@ -1607,67 +1638,80 @@ const processedReceiptItems = computed(() => {
         margin-bottom: 0 !important;
     }
     .nota-paper .flex-1 .mb-4 span.text-\[10px\] {
-        font-size: 7px !important;
+        font-size: 7.5px !important;
+        font-weight: 900 !important;
     }
     .nota-paper .flex-1 .mb-4 ul,
     .nota-paper .flex-1 .mb-4 div.text-\[9px\] {
-        font-size: 6.5px !important;
-        line-height: 1.2 !important;
+        font-size: 7px !important;
+        line-height: 1.25 !important;
         margin-top: 2px !important;
     }
     .nota-paper .w-full.md\:w-\[260px\] {
-        width: 58mm !important;
+        width: 60mm !important;
         flex-shrink: 0 !important;
     }
     .nota-paper .bg-neutral-50\/80.rounded-xl.border {
-        padding: 0.25rem 0.4rem !important;
-        margin-bottom: 0.18rem !important;
+        padding: 0.3rem 0.45rem !important;
+        margin-bottom: 0.2rem !important;
         border-radius: 6px !important;
-        gap: 0.1rem !important;
-    }
-    .nota-paper .bg-neutral-50\/80.rounded-xl.border span {
-        font-size: 7.5px !important;
-    }
-    .nota-paper .bg-neutral-50\/80.rounded-xl.border .text-sm {
-        font-size: 8.5px !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 {
-        height: 30px !important;
-        border-radius: 6px !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 .text-\[8px\] {
-        font-size: 6px !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 .text-lg,
-    .nota-paper .h-\[60px\].bg-red-600 .text-xl {
-        font-size: 11px !important;
-    }
-    .nota-paper .text-\[8px\].text-right.italic {
-        font-size: 6.5px !important;
-        margin-top: 1px !important;
-    }
-
-    /* Signature Area */
-    .nota-paper .signature-area {
-        margin-top: 0.2rem !important;
-        margin-bottom: 0.1rem !important;
-        padding: 0.25rem 0.4rem !important;
-        gap: 0.4rem !important;
-        border-radius: 6px !important;
+        gap: 0.12rem !important;
         background-color: #ffffff !important;
         background: white !important;
         border-color: #e5e7eb !important;
     }
-    .nota-paper .signature-area .mb-12 {
-        margin-bottom: 1.1rem !important;
+    .nota-paper .bg-neutral-50\/80.rounded-xl.border span {
+        font-size: 8px !important;
+    }
+    .nota-paper .bg-neutral-50\/80.rounded-xl.border .text-sm {
+        font-size: 9px !important;
+        font-weight: 900 !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 {
+        height: 36px !important;
+        border-radius: 6px !important;
+        background-color: #dc2626 !important;
+        background: #dc2626 !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 .text-\[8px\] {
+        font-size: 6.5px !important;
+        font-weight: 900 !important;
+    }
+    .nota-paper .h-\[60px\].bg-red-600 .text-lg,
+    .nota-paper .h-\[60px\].bg-red-600 .text-xl {
+        font-size: 13.5px !important;
+        font-weight: 900 !important;
+    }
+    .nota-paper .text-\[8px\].text-right.italic {
         font-size: 7px !important;
+        margin-top: 2px !important;
+    }
+
+    /* Signature Area - sits cleanly beneath totals with natural professional spacing */
+    .nota-paper .signature-area {
+        margin-top: 0.45rem !important;
+        margin-bottom: 0.15rem !important;
+        padding: 0.35rem 0.5rem !important;
+        gap: 0.5rem !important;
+        border-radius: 6px !important;
+        background-color: #ffffff !important;
+        background: white !important;
+        border-color: #e5e7eb !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    .nota-paper .signature-area .mb-12 {
+        margin-bottom: 1.3rem !important;
+        font-size: 7.5px !important;
+        font-weight: 900 !important;
     }
     .nota-paper .signature-area .border-b {
-        max-width: 95px !important;
+        max-width: 110px !important;
         margin-bottom: 2px !important;
+        border-color: #94a3b8 !important;
     }
     .nota-paper .signature-area .text-\[11px\] {
-        font-size: 8px !important;
+        font-size: 8.5px !important;
         font-weight: 900 !important;
     }
 
