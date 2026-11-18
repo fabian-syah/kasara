@@ -1697,9 +1697,9 @@ watch(() => filters.value.executor_role, () => {
                                         </span>
                                     </span>
                                 </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-text-secondary">Metode:</span>
-                                    <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="text-text-secondary shrink-0">Metode:</span>
+                                    <span class="font-bold uppercase text-[10px] px-2 py-0.5 rounded-full bg-surface-700/60 text-text-primary border border-surface-600/40 truncate max-w-[70%]" :title="(rec.brand || '') + ' ' + (rec.product_type || '')">
                                         {{ rec.method === 'by_imei' ? 'By IMEI' : 'By Unit' }}
                                         <span v-if="rec.brand || rec.product_type">• {{ rec.brand }} {{ rec.product_type }}</span>
                                     </span>

@@ -21,8 +21,8 @@ return new class extends Migration
                 $table->unsignedBigInteger('cs_user_id'); // Selected CS user PIC
                 $table->string('category_type', 20); // 'hp' or 'non_hp'
                 $table->string('method', 20); // 'by_unit' or 'by_imei'
-                $table->string('brand', 100)->nullable();
-                $table->string('product_type', 150)->nullable();
+                $table->text('brand')->nullable();
+                $table->text('product_type')->nullable();
                 $table->integer('total_system')->default(0);
                 $table->integer('total_physical')->default(0);
                 $table->integer('total_missing')->default(0);
@@ -43,8 +43,8 @@ return new class extends Migration
                 $table->foreignId('stock_opname_id')->constrained('stock_opnames')->onDelete('cascade');
                 $table->unsignedBigInteger('product_id')->nullable();
                 $table->unsignedBigInteger('product_detail_id')->nullable();
-                $table->string('brand', 100)->nullable();
-                $table->string('product_name', 200)->nullable();
+                $table->text('brand')->nullable();
+                $table->text('product_name')->nullable();
                 $table->string('storage', 50)->nullable();
                 $table->string('condition', 50)->nullable();
                 $table->string('imei', 100)->nullable();
@@ -65,8 +65,8 @@ return new class extends Migration
             Schema::create('stock_opname_excess_items', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('stock_opname_id')->constrained('stock_opnames')->onDelete('cascade');
-                $table->string('brand', 100)->nullable();
-                $table->string('product_name', 200)->nullable();
+                $table->text('brand')->nullable();
+                $table->text('product_name')->nullable();
                 $table->string('storage', 50)->nullable();
                 $table->string('imei', 100)->nullable();
                 $table->integer('quantity')->default(1);

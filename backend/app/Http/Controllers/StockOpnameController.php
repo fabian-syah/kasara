@@ -1003,6 +1003,19 @@ class StockOpnameController extends Controller
             }
         }
 
+        // Auto-upgrade brand & product_type columns to TEXT in PostgreSQL if not already done
+        static $hasEnsuredOpnameTextCols = false;
+        if (!$hasEnsuredOpnameTextCols) {
+            try {
+                DB::statement('ALTER TABLE stock_opnames ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_type TYPE TEXT');
+                DB::statement('ALTER TABLE stock_opname_items ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_name TYPE TEXT');
+                DB::statement('ALTER TABLE stock_opname_excess_items ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_name TYPE TEXT');
+                $hasEnsuredOpnameTextCols = true;
+            } catch (\Throwable $e) {
+                // Ignore if already TEXT or if DB user lacks ALTER permission
+            }
+        }
+
         try {
             DB::beginTransaction();
 
@@ -1074,6 +1087,16 @@ class StockOpnameController extends Controller
 
             $brandVal = $request->filled('brand') ? (string) $request->brand : null;
             $productTypeVal = $request->filled('product_type') ? (string) $request->product_type : null;
+
+            // Defensive safeguard: If columns could not be altered and remain legacy varchar, clamp length
+            if (!$hasEnsuredOpnameTextCols) {
+                if ($brandVal && mb_strlen($brandVal) > 100) {
+                    $brandVal = mb_substr($brandVal, 0, 100);
+                }
+                if ($productTypeVal && mb_strlen($productTypeVal) > 150) {
+                    $productTypeVal = mb_substr($productTypeVal, 0, 150);
+                }
+            }
 
             // Check if this is an update of an existing opname session (Re-Opname / SO Ulang mode)
             $targetOpname = null;
