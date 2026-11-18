@@ -30,104 +30,111 @@
                     <div id="receipt-content"
                         class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
                         <div v-if="transaction"
-                            class="nota-paper w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 relative overflow-hidden select-none">
+                            ref="notaPaperRef"
+                            class="nota-paper nota-page w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 relative overflow-hidden select-none">
 
                             <!-- ===== DYNAMIC CORNER ACCENTS (Mockup Style) ===== -->
-                            <div class="absolute top-0 left-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
+                            <div class="corner-accent-tl absolute top-0 left-0 w-16 h-16 pointer-events-none overflow-hidden z-20">
                                 <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                                     <polygon points="0,0 100,0 0,100" fill="#0a0a0a" />
                                     <polygon points="0,0 55,0 0,55" fill="#dc2626" />
                                 </svg>
                             </div>
-                            <div class="absolute top-0 right-0 w-20 h-20 pointer-events-none overflow-hidden z-20">
+                            <div class="corner-accent-tr absolute top-0 right-0 w-16 h-16 pointer-events-none overflow-hidden z-20">
                                 <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
                                     <polygon points="100,0 0,0 100,100" fill="#0a0a0a" />
                                     <polygon points="100,0 45,0 100,55" fill="#dc2626" />
                                 </svg>
                             </div>
 
-                            <div
-                                class="absolute inset-0 flex items-center justify-center opacity-[0.08] pointer-events-none z-0">
+                            <!-- Watermark Background Logo (Zero Layout Impact) -->
+                            <div class="watermark-container absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden select-none">
                                 <img src="/images/ps.png" alt=""
-                                    class="w-[400px] h-[400px] object-contain transform scale-125" />
+                                    class="w-[200px] h-[200px] object-contain opacity-[0.05] pointer-events-none select-none" />
                             </div>
 
-                            <div class="relative z-10">
-                                <!-- ===== NOTA HEADER ===== -->
-                                <div class="flex items-center gap-5 mb-4 mt-6 px-6">
-                                    <!-- Giant Floating Logo Left -->
-                                    <div class="shrink-0">
-                                        <img src="/images/ps.png" alt="PSTORE"
-                                            class="w-16 h-16 object-contain" />
-                                    </div>
-                                    <!-- Branch & Social Info -->
-                                    <div class="flex-1">
-                                        <div class="flex items-baseline gap-1.5 flex-wrap">
-                                            <span
-                                                class="text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
-                                            <span
-                                                class="text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
-                                                {{ (transaction.branch_name || transaction.branch?.name ||
-                                                    authStore.userBranch?.name || 'CABANG').toUpperCase().replace('PSTORE ',
-                                                        '').replace('PSTORE', '') }}
-                                            </span>
+                            <div ref="notaInnerRef" class="nota-inner relative z-10 flex flex-col h-full">
+                                <!-- 1. HEADER SECTION (Store Logo, Branch, Socials, Line, Title) -->
+                                <div class="nota-section header-section shrink-0">
+                                    <div class="flex items-center gap-4 px-3 sm:px-6 mb-2">
+                                        <!-- Store Logo -->
+                                        <div class="shrink-0">
+                                            <img src="/images/ps.png" alt="PSTORE"
+                                                class="w-14 h-14 sm:w-16 sm:h-16 object-contain" />
                                         </div>
-                                        <div class="text-[10px] font-bold text-neutral-700 mt-1.5 leading-tight">
-                                            {{ displayAddress }}
-                                        </div>
+                                        <!-- Branch & Social Info -->
+                                        <div class="flex-1">
+                                            <div class="flex items-baseline gap-1.5 flex-wrap">
+                                                <span
+                                                    class="text-xl sm:text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
+                                                <span
+                                                    class="text-xl sm:text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
+                                                    {{ (transaction.branch_name || transaction.branch?.name ||
+                                                        authStore.userBranch?.name || 'CABANG').toUpperCase().replace('PSTORE ',
+                                                            '').replace('PSTORE', '') }}
+                                                </span>
+                                            </div>
+                                            <div class="text-[10px] font-bold text-neutral-700 mt-1 leading-tight">
+                                                {{ displayAddress }}
+                                            </div>
 
-                                        <!-- Social Bar -->
+                                            <!-- Social Bar -->
+                                            <div
+                                                class="flex items-center gap-x-3 gap-y-1 mt-1 text-[9px] font-extrabold text-neutral-800 flex-wrap">
+                                                <span class="flex items-center gap-1">
+                                                    <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                                        <path
+                                                            d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
+                                                    </svg>
+                                                    WA: {{ displayPhoneClean }}
+                                                </span>
+                                                <span v-if="receiptSetting?.tiktok" class="text-neutral-300">|</span>
+                                                <span v-if="receiptSetting?.tiktok" class="flex items-center gap-1">
+                                                    <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                                        <path
+                                                            d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
+                                                    </svg>
+                                                    TikTok: {{ receiptSetting.tiktok.replace('@', '') }}
+                                                </span>
+                                                <span v-if="receiptSetting?.instagram" class="text-neutral-300">|</span>
+                                                <span v-if="receiptSetting?.instagram" class="flex items-center gap-1">
+                                                    <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
+                                                        <path
+                                                            d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                                                    </svg>
+                                                    IG: {{ receiptSetting.instagram.replace('@', '') }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Thick Middle Segment Separator Line -->
+                                    <div class="relative w-full h-px bg-neutral-200 mb-2 mt-1 flex justify-center">
+                                        <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
+                                    </div>
+
+                                    <!-- Invoice Type Head -->
+                                    <div class="text-center mb-1 mt-1">
+                                        <h2
+                                            class="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
+                                            {{ receiptTitle }}
+                                        </h2>
                                         <div
-                                            class="flex items-center gap-x-3 gap-y-1 mt-2 text-[9px] font-extrabold text-neutral-800">
-                                            <span class="flex items-center gap-1">
-                                                <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                                    <path
-                                                        d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.05 15.05 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1.02A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1zM12 3v10l3-3h6V3h-9z" />
-                                                </svg>
-                                                WA: {{ displayPhoneClean }}
-                                            </span>
-                                            <span v-if="receiptSetting?.tiktok" class="text-neutral-300">|</span>
-                                            <span v-if="receiptSetting?.tiktok" class="flex items-center gap-1">
-                                                <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                                    <path
-                                                        d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.59-1 .01 2.24.01 4.48 0 6.72-.09 2.93-1.52 5.82-4.32 7.01-2.86 1.29-6.51.83-8.86-1.38-2.43-2.22-2.99-6.09-1.31-8.93 1.49-2.6 4.72-4 7.69-3.43v4.25c-1.82-.35-3.87.19-4.98 1.69-1.13 1.48-1.09 3.72-.02 5.22 1.15 1.66 3.58 2.27 5.44 1.4 1.71-.73 2.71-2.59 2.76-4.44.06-3.34.03-6.68.03-10.02l.02-.31z" />
-                                                </svg>
-                                                TikTok: {{ receiptSetting.tiktok.replace('@', '') }}
-                                            </span>
-                                            <span v-if="receiptSetting?.instagram" class="text-neutral-300">|</span>
-                                            <span v-if="receiptSetting?.instagram" class="flex items-center gap-1">
-                                                <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
-                                                    <path
-                                                        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                                                </svg>
-                                                IG: {{ receiptSetting.instagram.replace('@', '') }}
-                                            </span>
+                                            class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                                            <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
+                                            <span>BUKTI TRANSAKSI</span>
+                                            <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Thick Middle Segment Separator Line -->
-                                <div class="relative w-full h-px bg-neutral-200 mb-4 mt-2 flex justify-center">
-                                    <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
-                                </div>
+                                <!-- Spacer 1: Flexible distribution -->
+                                <div class="nota-spacer"></div>
 
-                                <!-- ===== INVOICE TYPE HEAD ===== -->
-                                <div class="text-center mb-5 mt-2">
-                                    <h2
-                                        class="text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
-                                        {{ receiptTitle }}
-                                    </h2>
+                                <!-- 2. METADATA INFO GRID (3 Columns, 2 Rows) -->
+                                <div class="nota-section metadata-section shrink-0">
                                     <div
-                                        class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
-                                        <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                        <span>BUKTI TRANSAKSI</span>
-                                        <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                    </div>
-                                </div>
-
-                                <!-- ===== METADATA INFO GRID (3 Columns, 2 Rows) ===== -->
-                                <div
-                                    class="metadata-grid grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-x-0 mb-4 print:grid-cols-3 print:gap-x-0 bg-white/60 backdrop-blur-[2px] rounded-xl p-4 border border-neutral-200">
+                                        class="metadata-grid grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-x-0 print:grid-cols-3 print:gap-x-0 bg-white/60 backdrop-blur-[2px] rounded-xl p-3 border border-neutral-200">
                                     <!-- Column 1: No Nota & Tanggal -->
                                     <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                         <!-- No Nota -->
@@ -260,285 +267,301 @@
                                     </div>
                                 </div>
 
-                                <!-- Alamat Pengiriman (Khusus Transaksi dengan Tujuan Kirim) -->
-                                <div v-if="displayShippingAddress"
-                                    class="mb-4 bg-white/60 backdrop-blur-[2px] rounded-xl p-3 border border-neutral-200 flex items-start gap-2.5">
+                                    <!-- Alamat Pengiriman (Khusus Transaksi dengan Tujuan Kirim) -->
+                                    <div v-if="displayShippingAddress"
+                                        class="mt-2 bg-white/60 backdrop-blur-[2px] rounded-xl p-3 border border-neutral-200 flex items-start gap-2.5">
+                                        <div
+                                            class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600 mt-0.5">
+                                            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                                <path
+                                                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <div
+                                                class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                Alamat Pengiriman</div>
+                                            <div
+                                                class="text-[10px] sm:text-[11px] font-bold text-neutral-900 leading-snug break-words">
+                                                {{ displayShippingAddress }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Spacer 2: Flexible distribution -->
+                                <div class="nota-spacer"></div>
+
+                                <!-- 3. TABEL ITEMS (6 Columns) -->
+                                <div class="nota-section items-table-section shrink-0">
                                     <div
-                                        class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600 mt-0.5">
-                                        <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                            <path
-                                                d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                                        </svg>
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div
-                                            class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
-                                            Alamat Pengiriman</div>
-                                        <div
-                                            class="text-[10px] sm:text-[11px] font-bold text-neutral-900 leading-snug break-words">
-                                            {{ displayShippingAddress }}</div>
-                                    </div>
-                                </div>
-
-                                <!-- ===== TABEL ITEMS (6 Columns) ===== -->
-                                <div
-                                    class="items-table-wrapper rounded-xl overflow-x-auto print:overflow-visible border border-neutral-200 mb-6 shadow-sm bg-white/60 backdrop-blur-[1px]">
-                                    <table class="w-full text-[10px] sm:text-xs border-collapse">
-                                        <thead>
-                                            <tr style="background-color: #0a0a0a !important;"
-                                                class="text-[9px] sm:text-[10px] uppercase tracking-wider">
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-left font-black w-[110px]">IMEI</th>
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-left font-black">Deskripsi Barang</th>
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-right font-black w-[85px]">Harga Satuan</th>
-                                                <th v-if="hasAnyItemDiscount" style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-right font-black w-[70px]">Diskon</th>
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-center font-black w-[40px]">Qty</th>
-                                                <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
-                                                    class="py-3 px-3 text-right font-black w-[85px]">Jumlah</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <template v-if="processedReceiptItems.length > 0">
-                                                <tr v-for="(item, index) in processedReceiptItems" :key="index" :class="[
-                                                    item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'),
-                                                    item.show_bottom_border ? 'border-b border-neutral-300' : ''
-                                                ]">
-
-                                                    <!-- IMEI COLUMN -->
-                                                    <td class="py-3 px-3 align-middle text-left">
-                                                        <div v-if="!item.is_bundle_header"
-                                                            class="text-[10px] font-black font-mono text-neutral-900"
-                                                            :class="{ 'pl-4': item.is_bundle_child }">
-                                                            {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei
-                                                            : '-') : '-' }}
-                                                        </div>
-                                                        <div v-else
-                                                            class="text-[10px] font-bold text-neutral-400 text-center">-
-                                                        </div>
-                                                    </td>
-
-                                                    <!-- DESKRIPSI BARANG COLUMN -->
-                                                    <td class="py-3 px-3 align-middle">
-                                                        <div v-if="item.is_bundle_header"
-                                                            class="font-black text-neutral-950 text-[12px] uppercase tracking-wide flex items-center">
-                                                            <span>📦 {{ item.name }}</span>
-                                                        </div>
-                                                        <div v-else
-                                                            class="font-bold text-neutral-800 text-[11px] uppercase flex items-start"
-                                                            :class="{ 'pl-4 font-semibold': item.is_bundle_child }">
-                                                            <span v-if="item.is_bundle_child"
-                                                                class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
-                                                            <span>
-                                                                <span v-if="item.is_dp_deduction" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">DP</span>
-                                                                <span v-if="transaction.category === 'pelunasan_dp' && !item.is_dp_deduction && !item.is_bundle_header" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">PELUNASAN</span>
-                                                                <span v-if="(item.name || '').includes('IN:')" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">MASUK</span>
-                                                                <span v-if="(item.name || '').includes('OUT:')" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">KELUAR</span>
-                                                                <span class="align-middle">
-                                                                    {{ item.is_hp ? (
-                                                                        ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) ? 
-                                                                        ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) + ' - ' : ''
-                                                                    ) : ''
-                                                                    }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
-                                                                    <template v-if="item.is_hp">
-                                                                        {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
-                                                                        {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
-
-                                                                    </template>
-                                                                </span>
-                                                            </span>
-                                                        </div>
-                                                    </td>
-
-                                                    <!-- HARGA SATUAN COLUMN -->
-                                                    <td class="py-3 px-3 align-middle text-right">
-                                                        <div v-if="!item.is_bundle_child"
-                                                            class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
-                                                            {{ formatNumber(Math.abs(item.originalPrice || 0)) }}
-                                                        </div>
-                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
-                                                    </td>
-
-                                                    <!-- DISKON COLUMN -->
-                                                    <td v-if="hasAnyItemDiscount" class="py-3 px-3 align-middle text-right">
-                                                        <div v-if="!item.is_bundle_child"
-                                                            class="text-[10px] font-black text-red-600">
-                                                            <span v-if="(item.itemDiscount || 0) > 0">
-                                                                - {{ formatNumber(Math.abs(item.itemDiscount || 0)) }}
-                                                            </span>
-                                                            <span v-else class="text-neutral-300">-</span>
-                                                        </div>
-                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
-                                                    </td>
-
-                                                    <!-- QTY COLUMN -->
-                                                    <td class="py-3 px-3 align-middle text-center">
-                                                        <div v-if="!item.is_bundle_child"
-                                                            class="text-[10px] sm:text-[11px] font-black text-neutral-900">
-                                                            {{ item.qty || 1 }}
-                                                        </div>
-                                                        <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
-                                                    </td>
-
-                                                    <!-- JUMLAH COLUMN -->
-                                                    <td class="py-3 px-3 align-middle text-right">
-                                                        <div class="text-[10px] sm:text-[11px] font-black text-neutral-900">
-                                                            <span v-if="item.is_bundle_child" class="text-neutral-400">-</span>
-                                                            <span v-else-if="item.is_bundle_header">
-                                                                {{ formatNumber(Math.abs(item.price)) }}
-                                                            </span>
-                                                            <span v-else>
-                                                                {{ formatNumber(Math.abs(item.finalTotal || 0)) }}
-                                                            </span>
-                                                        </div>
-                                                    </td>
+                                        class="items-table-wrapper rounded-xl overflow-x-auto print:overflow-visible border border-neutral-200 shadow-sm bg-white/60 backdrop-blur-[1px]">
+                                        <table class="w-full text-[10px] sm:text-xs border-collapse">
+                                            <thead>
+                                                <tr style="background-color: #0a0a0a !important;"
+                                                    class="text-[9px] sm:text-[10px] uppercase tracking-wider">
+                                                    <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-left font-black w-[110px]">IMEI</th>
+                                                    <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-left font-black">Deskripsi Barang</th>
+                                                    <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-right font-black w-[85px]">Harga Satuan</th>
+                                                    <th v-if="hasAnyItemDiscount" style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-right font-black w-[70px]">Diskon</th>
+                                                    <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-center font-black w-[40px]">Qty</th>
+                                                    <th style="background-color: #0a0a0a !important; color: #ffffff !important;"
+                                                        class="py-2.5 px-3 text-right font-black w-[85px]">Jumlah</th>
                                                 </tr>
-                                            </template>
-                                            <!-- Filler rows (hidden on print) -->
-                                            <tr v-for="n in Math.max(0, 2 - (processedReceiptItems.length || 0))"
-                                                :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
-                                                <td class="py-3 px-3">&nbsp;</td>
-                                                <td colspan="5"></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                <template v-if="processedReceiptItems.length > 0">
+                                                    <tr v-for="(item, index) in processedReceiptItems" :key="index" :class="[
+                                                        item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'),
+                                                        item.show_bottom_border ? 'border-b border-neutral-300' : ''
+                                                    ]">
+
+                                                        <!-- IMEI COLUMN -->
+                                                        <td class="py-2 px-3 align-middle text-left">
+                                                            <div v-if="!item.is_bundle_header"
+                                                                class="text-[10px] font-black font-mono text-neutral-900"
+                                                                :class="{ 'pl-4': item.is_bundle_child }">
+                                                                {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei
+                                                                : '-') : '-' }}
+                                                            </div>
+                                                            <div v-else
+                                                                class="text-[10px] font-bold text-neutral-400 text-center">-
+                                                            </div>
+                                                        </td>
+
+                                                        <!-- DESKRIPSI BARANG COLUMN -->
+                                                        <td class="py-2 px-3 align-middle">
+                                                            <div v-if="item.is_bundle_header"
+                                                                class="font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex items-center">
+                                                                <span>📦 {{ item.name }}</span>
+                                                            </div>
+                                                            <div v-else
+                                                                class="font-bold text-neutral-800 text-[10px] sm:text-[11px] uppercase flex items-start"
+                                                                :class="{ 'pl-4 font-semibold': item.is_bundle_child }">
+                                                                <span v-if="item.is_bundle_child"
+                                                                    class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
+                                                                <span>
+                                                                    <span v-if="item.is_dp_deduction" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">DP</span>
+                                                                    <span v-if="transaction.category === 'pelunasan_dp' && !item.is_dp_deduction && !item.is_bundle_header" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">PELUNASAN</span>
+                                                                    <span v-if="(item.name || '').includes('IN:')" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">MASUK</span>
+                                                                    <span v-if="(item.name || '').includes('OUT:')" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">KELUAR</span>
+                                                                    <span class="align-middle">
+                                                                        {{ item.is_hp ? (
+                                                                            ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) ? 
+                                                                            ((item.brand && item.brand !== '-' ? item.brand : (item.product?.brand?.name || item.product?.brandRelation?.name || item.product?.brand))) + ' - ' : ''
+                                                                        ) : ''
+                                                                        }}{{ (item.name || '').replace('Tukar Tambah OUT: ', '').replace('Tukar Tambah IN: ', '').replace('Tukar Unit OUT: ', '').replace('Tukar Unit IN: ', '').replace('Downgrade OUT: ', '').replace('Downgrade IN: ', '').replace('OUT: ', '').replace('IN: ', '').replace(/paket bundling/gi, 'Paket Promo').replace('📦 ', '') }}
+                                                                        <template v-if="item.is_hp">
+                                                                            {{ item.storage && item.storage !== '-' ? ' ' + item.storage : '' }}
+                                                                            {{ item.condition && item.condition !== '-' ? ' ' + (item.condition === 'new' ? 'Baru' : (item.condition === 'ex_ibox' ? 'Ex iBox' : (item.condition === 'second' ? 'Second' : item.condition))) : '' }}
+                                                                        </template>
+                                                                    </span>
+                                                                </span>
+                                                            </div>
+                                                        </td>
+
+                                                        <!-- HARGA SATUAN COLUMN -->
+                                                        <td class="py-2 px-3 align-middle text-right">
+                                                            <div v-if="!item.is_bundle_child"
+                                                                class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
+                                                                {{ formatNumber(Math.abs(item.originalPrice || 0)) }}
+                                                            </div>
+                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
+                                                        </td>
+
+                                                        <!-- DISKON COLUMN -->
+                                                        <td v-if="hasAnyItemDiscount" class="py-2 px-3 align-middle text-right">
+                                                            <div v-if="!item.is_bundle_child"
+                                                                class="text-[10px] font-black text-red-600">
+                                                                <span v-if="(item.itemDiscount || 0) > 0">
+                                                                    - {{ formatNumber(Math.abs(item.itemDiscount || 0)) }}
+                                                                </span>
+                                                                <span v-else class="text-neutral-300">-</span>
+                                                            </div>
+                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
+                                                        </td>
+
+                                                        <!-- QTY COLUMN -->
+                                                        <td class="py-2 px-3 align-middle text-center">
+                                                            <div v-if="!item.is_bundle_child"
+                                                                class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                                {{ item.qty || 1 }}
+                                                            </div>
+                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
+                                                        </td>
+
+                                                        <!-- JUMLAH COLUMN -->
+                                                        <td class="py-2 px-3 align-middle text-right">
+                                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                                <span v-if="item.is_bundle_child" class="text-neutral-400">-</span>
+                                                                <span v-else-if="item.is_bundle_header">
+                                                                    {{ formatNumber(Math.abs(item.price)) }}
+                                                                </span>
+                                                                <span v-else>
+                                                                    {{ formatNumber(Math.abs(item.finalTotal || 0)) }}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                                <!-- Filler rows (hidden on print) -->
+                                                <tr v-for="n in Math.max(0, 2 - (processedReceiptItems.length || 0))"
+                                                    :key="'empty-' + n" class="border-b border-neutral-100 print:hidden">
+                                                    <td class="py-2 px-3">&nbsp;</td>
+                                                    <td colspan="5"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
 
-                                <!-- ===== SPLIT COLUMN: Left (Note, Warranty) | Right (Breakdown, Total) ===== -->
-                                <div class="split-section flex flex-col md:flex-row gap-6 mb-6 mt-2 print:flex-row print:gap-3">
-                                    <!-- Left Column: Notes & Warranty -->
-                                    <div class="flex-1">
-                                        <!-- Catatan Ribbon Box -->
-                                        <div class="mb-5 relative">
-                                            <div
-                                                class="relative inline-block bg-red-600 text-white text-[9px] font-black uppercase tracking-wider px-4 py-1.5 rounded-tr-2xl rounded-bl-sm shadow-sm z-10">
-                                                Catatan
-                                            </div>
-                                            <div
-                                                class="notes-box bg-neutral-50/40 border border-neutral-200 rounded-xl p-3.5 pt-5 -mt-2.5 text-[10px] font-bold text-neutral-800 min-h-[64px]">
-                                                {{ transaction.notes || transaction.reason || 'Tidak ada catatan tambahan.' }}
-                                            </div>
-                                        </div>
+                                <!-- Spacer 3: Flexible distribution -->
+                                <div class="nota-spacer"></div>
 
-                                        <!-- Syarat & Ketentuan (Warranty) -->
-                                        <div class="mb-4">
-                                            <div class="flex items-center gap-2 mb-2">
-                                                <span
-                                                    class="text-[10px] font-black text-red-600 tracking-wider uppercase">Syarat
-                                                    & Ketentuan</span>
-                                                <div class="h-0.5 w-10 bg-red-200 rounded-full"></div>
-                                            </div>
-                                            <div v-if="displayWarranty"
-                                                class="text-[9px] text-neutral-600 font-bold whitespace-pre-line leading-relaxed">
-                                                {{ displayWarranty }}
-                                            </div>
-                                            <ul v-else
-                                                class="text-[8px] sm:text-[9px] text-neutral-600 font-bold space-y-1 list-disc pl-4 leading-relaxed">
-                                                <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
-                                                <li>Garansi yang sudah tidak batas tanggal akan tidak mendapatkan klaim
-                                                    garansi.</li>
-                                                <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <!-- Right Column: Financial Details & Slanted Total -->
-                                    <div class="w-full md:w-[260px] shrink-0">
-                                        <!-- Small Subtotal Breakdown -->
-                                        <div
-                                            class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-3 space-y-2 text-xs mb-3">
-                                            <div class="flex justify-between">
-                                                <span class="font-bold text-neutral-500 text-[10px]">Sub Total</span>
-                                                <span class="text-neutral-900 font-bold">
-                                                    {{ formatCurrency(Math.abs(transaction.original_price ||
-                                                        (Number(transaction.selling_price || 0) +
-                                                            Number(transaction.global_discount_value || 0)))) }}
-                                                </span>
-                                            </div>
-                                            <div v-if="Number(transaction.global_discount_value) > 0 && !hasBundleAbsorbedGlobalDiscount" class="flex justify-between">
-                                                <span class="font-bold text-neutral-500 text-[10px]">Diskon (Nota)</span>
-                                                <span class="text-red-600 font-bold">-{{
-                                                    formatCurrency(transaction.global_discount_value) }}</span>
-                                            </div>
-                                            <div v-for="(payment, idx) in transaction.split_payments_data || []"
-                                                :key="idx"
-                                                class="flex justify-between border-t border-neutral-200/50 pt-1">
-                                                <span class="font-bold text-neutral-500 text-[10px] uppercase">{{
-                                                    payment.method_name }}</span>
-                                                <span class="text-neutral-900 font-bold">{{
-                                                    formatCurrency(payment.amount)
-                                                    }}</span>
-                                            </div>
-
-                                            <!-- Slanted or Red Divider Line -->
-                                            <div
-                                                class="border-t border-neutral-300 border-dashed pt-1.5 flex justify-between">
-                                                <span
-                                                    class="font-black text-red-600 text-[10px] uppercase tracking-wider">Kembalian</span>
-                                                <span class="text-red-600 font-black text-sm">
-                                                    {{ formatCurrency(calculatedChange) }}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <!-- Exact Slanted Grand Total Header Box -->
-                                        <div
-                                            class="flex rounded-xl overflow-hidden shadow-md h-[60px] bg-red-600 w-full relative">
-                                            <!-- Black Trapezoid Part -->
-                                            <div class="bg-neutral-950 text-white pl-4 pr-8 flex flex-col justify-center shrink-0 select-none pointer-events-none"
-                                                style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
+                                <!-- 4. SUMMARY & NOTES SECTION (Split Column: Notes/Warranty & Breakdown/Total) -->
+                                <div class="nota-section summary-section shrink-0">
+                                    <div class="split-section flex flex-col md:flex-row gap-4 print:flex-row print:gap-3 items-start">
+                                        <!-- Left Column: Notes & Warranty -->
+                                        <div class="flex-1 w-full min-w-0">
+                                            <!-- Catatan Section (Separate Block, Clean Margin, No Overlap) -->
+                                            <div class="notes-container mb-2.5">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        class="inline-block bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded shadow-sm">
+                                                        Catatan
+                                                    </span>
+                                                    <div class="h-0.5 flex-1 bg-red-100 rounded-full"></div>
+                                                </div>
                                                 <div
-                                                    class="text-[8px] font-black uppercase tracking-wider leading-none text-white">
-                                                    {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Total' : 'Yang Harus' }}</div>
+                                                    class="notes-box bg-neutral-50/60 border border-neutral-200 rounded-lg p-2 text-[9px] font-bold text-neutral-800 break-words whitespace-pre-wrap leading-tight"
+                                                    style="word-break: break-word;">
+                                                    {{ transaction.notes || transaction.reason || 'Tidak ada catatan tambahan.' }}
+                                                </div>
+                                            </div>
+
+                                            <!-- Syarat & Ketentuan (Warranty) -->
+                                            <div class="warranty-container">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span
+                                                        class="text-[9px] font-black text-red-600 tracking-wider uppercase">Syarat
+                                                        & Ketentuan</span>
+                                                    <div class="h-0.5 w-8 bg-red-200 rounded-full"></div>
+                                                </div>
+                                                <div v-if="displayWarranty"
+                                                    class="text-[8px] text-neutral-600 font-bold whitespace-pre-line leading-relaxed">
+                                                    {{ displayWarranty }}
+                                                </div>
+                                                <ul v-else
+                                                    class="text-[8px] text-neutral-600 font-bold space-y-0.5 list-disc pl-4 leading-relaxed">
+                                                    <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
+                                                    <li>Garansi yang sudah lewat batas tanggal tidak dapat diklaim garansi.</li>
+                                                    <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+
+                                        <!-- Right Column: Financial Details & Slanted Total -->
+                                        <div class="w-full md:w-[240px] shrink-0">
+                                            <!-- Small Subtotal Breakdown -->
+                                            <div
+                                                class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-2.5 space-y-1.5 text-xs mb-2">
+                                                <div class="flex justify-between">
+                                                    <span class="font-bold text-neutral-500 text-[9px]">Sub Total</span>
+                                                    <span class="text-neutral-900 font-bold text-[10px]">
+                                                        {{ formatCurrency(Math.abs(transaction.original_price ||
+                                                            (Number(transaction.selling_price || 0) +
+                                                                Number(transaction.global_discount_value || 0)))) }}
+                                                    </span>
+                                                </div>
+                                                <div v-if="Number(transaction.global_discount_value) > 0 && !hasBundleAbsorbedGlobalDiscount" class="flex justify-between">
+                                                    <span class="font-bold text-neutral-500 text-[9px]">Diskon (Nota)</span>
+                                                    <span class="text-red-600 font-bold text-[10px]">-{{
+                                                        formatCurrency(transaction.global_discount_value) }}</span>
+                                                </div>
+                                                <div v-for="(payment, idx) in transaction.split_payments_data || []"
+                                                    :key="idx"
+                                                    class="flex justify-between border-t border-neutral-200/50 pt-1">
+                                                    <span class="font-bold text-neutral-500 text-[9px] uppercase">{{
+                                                        payment.method_name }}</span>
+                                                    <span class="text-neutral-900 font-bold text-[10px]">{{
+                                                        formatCurrency(payment.amount)
+                                                        }}</span>
+                                                </div>
+
+                                                <!-- Slanted or Red Divider Line -->
                                                 <div
-                                                    class="text-[8px] font-black uppercase tracking-wider leading-tight text-white">
-                                                    {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Dikembalikan' : 'Dibayarkan' }}</div>
+                                                    class="border-t border-neutral-300 border-dashed pt-1 flex justify-between">
+                                                    <span
+                                                        class="font-black text-red-600 text-[9px] uppercase tracking-wider">Kembalian</span>
+                                                    <span class="text-red-600 font-black text-xs">
+                                                        {{ formatCurrency(calculatedChange) }}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <!-- Red Total Part -->
-                                            <div class="flex-1 flex items-center justify-end pr-4 text-white"
-                                                style="z-index: 1;">
-                                                <span class="text-lg sm:text-xl font-black text-white tracking-tight">{{
-                                                    formatCurrency(Math.abs(calculatedGrandTotal)) }}</span>
-                                            </div>
-                                        </div>
 
-                                        <div class="text-[8px] text-right text-neutral-400 italic mt-2 font-bold">
-                                            Metode: {{ transaction.split_payments_data?.length > 1 ? 'SPLIT (CAMPURAN)'
-                                                :
-                                                (transaction.payment_method_name || transaction.payment_method || '-') }}
+                                            <!-- Exact Slanted Grand Total Header Box -->
+                                            <div
+                                                class="flex rounded-xl overflow-hidden shadow-md h-[48px] bg-red-600 w-full relative">
+                                                <!-- Black Trapezoid Part -->
+                                                <div class="bg-neutral-950 text-white pl-3 pr-6 flex flex-col justify-center shrink-0 select-none pointer-events-none"
+                                                    style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
+                                                    <div
+                                                        class="text-[7.5px] font-black uppercase tracking-wider leading-none text-white">
+                                                        {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Total' : 'Yang Harus' }}</div>
+                                                    <div
+                                                        class="text-[7.5px] font-black uppercase tracking-wider leading-tight text-white">
+                                                        {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Dikembalikan' : 'Dibayarkan' }}</div>
+                                                </div>
+                                                <!-- Red Total Part -->
+                                                <div class="flex-1 flex items-center justify-end pr-3 text-white"
+                                                    style="z-index: 1;">
+                                                    <span class="text-base sm:text-lg font-black text-white tracking-tight">{{
+                                                        formatCurrency(Math.abs(calculatedGrandTotal)) }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-[8px] text-right text-neutral-400 italic mt-1 font-bold">
+                                                Metode: {{ transaction.split_payments_data?.length > 1 ? 'SPLIT (CAMPURAN)'
+                                                    :
+                                                    (transaction.payment_method_name || transaction.payment_method || '-') }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- ===== SIGNATURE AREA ===== -->
-                                <div
-                                    class="signature-area grid grid-cols-2 text-[10px] mt-8 mb-6 gap-6 border border-neutral-100 rounded-xl py-4 bg-white/60 backdrop-blur-[1px]">
-                                    <div class="text-center border-r border-neutral-200">
-                                        <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">
-                                            Customer / Pembeli</div>
-                                        <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5">
+                                <!-- Spacer 4: Flexible distribution -->
+                                <div class="nota-spacer"></div>
+
+                                <!-- 5. SIGNATURE AREA (Clean Bottom Placement) -->
+                                <div class="nota-section signature-section shrink-0">
+                                    <div
+                                        class="signature-area grid grid-cols-2 text-[10px] gap-4 border border-neutral-100 rounded-xl py-3 bg-white/60 backdrop-blur-[1px]">
+                                        <div class="text-center border-r border-neutral-200">
+                                            <div class="text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
+                                                Customer / Pembeli</div>
+                                            <div class="border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
+                                            </div>
+                                            <div class="text-[10px] font-black text-neutral-900 uppercase">
+                                                {{ transaction.customer_name || 'Umum' }}
+                                            </div>
                                         </div>
-                                        <div class="text-[11px] font-black text-neutral-900 uppercase">
-                                            {{ transaction.customer_name || 'Umum' }}
-                                        </div>
-                                    </div>
-                                    <div class="text-center">
-                                        <div class="text-[9px] font-black text-red-600 uppercase tracking-widest mb-12">
-                                            Hormat Kami</div>
-                                        <div class="border-b border-neutral-400 w-full max-w-[160px] mx-auto mb-1.5">
-                                        </div>
-                                        <div class="text-[11px] font-black text-neutral-900 uppercase">
-                                            {{ transaction.inventory_user_name || transaction.inventory_account_name ||
-                                                transaction.sales_account ||
-                                                transaction.sales_name || 'PSTORE' }}
+                                        <div class="text-center">
+                                            <div class="text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
+                                                Hormat Kami</div>
+                                            <div class="border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
+                                            </div>
+                                            <div class="text-[10px] font-black text-neutral-900 uppercase">
+                                                {{ transaction.inventory_user_name || transaction.inventory_account_name ||
+                                                    transaction.sales_account ||
+                                                    transaction.sales_name || 'PSTORE' }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-
 
                             </div>
                         </div>
@@ -590,7 +613,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, watch, nextTick } from 'vue';
+import { defineProps, defineEmits, ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { Printer, Pencil, X, MessageSquare, Loader2 } from 'lucide-vue-next';
 import { useEscapeKey } from '../../composables/useEscapeKey';
 import api from '../../api/axios';
@@ -619,15 +642,94 @@ const close = () => {
 
 const isGeneratingPDF = ref(false);
 const paperSize = ref('A5');
+const notaPaperRef = ref(null);
+const notaInnerRef = ref(null);
+
+const autoFitA5 = () => {
+    if (!notaPaperRef.value || !notaInnerRef.value) return;
+    const page = notaPaperRef.value;
+    const inner = notaInnerRef.value;
+
+    // Reset zoom and classes to get clean unscaled measurement
+    inner.style.zoom = '1';
+    inner.classList.remove('is-tight');
+
+    // Available printable height on A5 paper (210mm total - 12mm padding = 198mm)
+    // CSS standard: 1in = 25.4mm = 96px => 1mm = 96 / 25.4 ≈ 3.779527559px
+    // 198mm ≈ 748.346px
+    const a5AvailablePx = (210 - 12) * (96 / 25.4);
+    const computedStyle = window.getComputedStyle(page);
+    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+    let avail = page.clientHeight - paddingTop - paddingBottom;
+    if (avail <= 150 || avail > 1200) {
+        avail = a5AvailablePx;
+    }
+
+    // Measure needed content height with spacers in minimum collapsed condition
+    inner.classList.add('is-measuring');
+    const needed = inner.scrollHeight;
+    inner.classList.remove('is-measuring');
+
+    // Mode 1: Content fits comfortably (< 1 A5 page)
+    // Keep scale = 1.0, let flex spacers distribute the remaining space evenly across sections.
+    if (needed <= avail) {
+        inner.style.zoom = '1';
+        return;
+    }
+
+    // Mode 2: Content overflows (> 1 A5 page)
+    // Calculate required scale down to minimum 0.7 to ensure everything fits on 1 sheet.
+    let scale = Math.max(0.7, avail / needed);
+    inner.style.zoom = String(scale);
+
+    // If scale reaches 0.75 or still tight, apply .is-tight for compact table row padding and gaps
+    if (scale <= 0.75 || (needed * scale) > avail) {
+        inner.classList.add('is-tight');
+
+        inner.classList.add('is-measuring');
+        const tightNeeded = inner.scrollHeight;
+        inner.classList.remove('is-measuring');
+
+        const tightScale = Math.max(0.7, avail / tightNeeded);
+        inner.style.zoom = String(tightScale);
+    }
+};
+
+const resetFit = () => {
+    if (!notaInnerRef.value) return;
+    notaInnerRef.value.style.zoom = '1';
+    notaInnerRef.value.classList.remove('is-tight');
+};
+
+onMounted(() => {
+    window.addEventListener('beforeprint', autoFitA5);
+    window.addEventListener('afterprint', resetFit);
+});
+
+onUnmounted(() => {
+    window.removeEventListener('beforeprint', autoFitA5);
+    window.removeEventListener('afterprint', resetFit);
+});
 
 watch(() => props.isOpen, async (newVal) => {
-    if (newVal && props.autoSend) {
+    if (newVal) {
         await nextTick();
-        setTimeout(() => {
-            sendWaReceiptFromModal();
-        }, 500);
+        autoFitA5();
+        if (props.autoSend) {
+            setTimeout(() => {
+                sendWaReceiptFromModal();
+            }, 500);
+        }
     }
 });
+
+watch(() => props.transaction, async () => {
+    if (props.isOpen) {
+        await nextTick();
+        autoFitA5();
+    }
+}, { deep: true });
 
 const sendWaReceiptFromModal = async () => {
     // Buka tab baru kosong lebih dulu secara sinkron agar tidak diblokir oleh Safari Popup Blocker
@@ -900,14 +1002,17 @@ const printReceipt = () => {
         }
     `;
 
-    // 2. Bersihkan judul dokumen sementara agar browser header/footer tidak tercetak
+    // 2. Fit konten secara optimal ke 1 lembar A5 sebelum cetak
+    autoFitA5();
+
+    // 3. Bersihkan judul dokumen sementara agar browser header/footer tidak tercetak
     const originalTitle = document.title;
     document.title = ' ';
 
-    // 3. Panggil window.print()
+    // 4. Panggil window.print()
     window.print();
 
-    // 4. Kembalikan judul dokumen
+    // 5. Kembalikan judul dokumen
     setTimeout(() => {
         document.title = originalTitle;
     }, 1000);
@@ -1377,6 +1482,10 @@ const processedReceiptItems = computed(() => {
     color: #0f172a !important;
     box-shadow: none !important;
 }
+
+.nota-spacer {
+    min-height: 8px;
+}
 </style>
 
 <style>
@@ -1395,12 +1504,12 @@ const processedReceiptItems = computed(() => {
     html,
     body {
         width: 148mm !important;
-        height: auto !important;
-        min-height: 0 !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -1416,310 +1525,184 @@ const processedReceiptItems = computed(() => {
         top: 0 !important;
         width: 148mm !important;
         max-width: 148mm !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: none !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
         margin: 0 !important;
         padding: 0 !important;
-        overflow: visible !important;
+        overflow: hidden !important;
         box-sizing: border-box !important;
         background: white !important;
-        z-index: 9999999 !important;
-        flex: none !important;
-        transform: none !important;
-        border: 0 !important;
-        outline: 0 !important;
-    }
-
-    /* A5 NOTA PAPER CONTAINER: Clean, centered, fits naturally on 1 sheet of paper */
-    .nota-paper {
         border: none !important;
         box-shadow: none !important;
-        padding: 3.5mm 5mm 3mm 5mm !important;
-        margin: 0 auto !important;
-        color: #0f172a !important;
-        background: white !important;
-        border-radius: 0 !important;
-        box-sizing: border-box !important;
-        width: 148mm !important;
-        max-width: 148mm !important;
-        height: auto !important;
-        min-height: 0 !important;
-        max-height: 205mm !important;
-        overflow: visible !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
+        z-index: 9999999 !important;
         transform: none !important;
     }
 
-    /* Natural vertical flow: NO giant gaps, elements flow in unified professional hierarchy */
-    .nota-paper > .relative.z-10 {
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-start !important;
-        height: auto !important;
-        max-height: none !important;
+    /* A5 NOTA PAGE CONTAINER: 148mm x 210mm, padding 6mm, zero scroll, 1 page strict */
+    .nota-paper,
+    .nota-page {
+        display: block !important;
+        position: relative !important;
+        width: 148mm !important;
+        max-width: 148mm !important;
+        height: 210mm !important;
+        max-height: 210mm !important;
+        padding: 6mm !important;
+        margin: 0 !important;
         box-sizing: border-box !important;
-        gap: 0 !important;
+        overflow: hidden !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        background: white !important;
+        border: none !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        color: #0f172a !important;
     }
 
-    /* Watermark in background */
-    .nota-paper .opacity-\[0\.08\] img {
+    /* Watermark: background layer only, zero layout displacement */
+    .watermark-container {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        overflow: hidden !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .watermark-container img {
         width: 200px !important;
         height: 200px !important;
-        transform: scale(1) !important;
+        max-width: 200px !important;
+        max-height: 200px !important;
+        object-fit: contain !important;
+        opacity: 0.04 !important;
+        pointer-events: none !important;
+        transform: none !important;
     }
 
     /* Corner Accents */
-    .nota-paper > div.absolute.top-0 {
+    .corner-accent-tl,
+    .corner-accent-tr {
         width: 3.25rem !important;
         height: 3.25rem !important;
         z-index: 20 !important;
     }
-    .nota-paper > div.absolute svg {
+    .corner-accent-tl svg,
+    .corner-accent-tr svg {
         width: 100% !important;
         height: 100% !important;
-        transform: none !important;
     }
 
-    /* Header Section (Logo, Branch, Address, Socials) */
-    .nota-paper .relative.z-10 > div:first-child {
-        margin-top: 0.25rem !important;
-        margin-bottom: 0.25rem !important;
-        padding-left: 0.4rem !important;
-        padding-right: 0.4rem !important;
-        gap: 0.5rem !important;
-    }
-    .nota-paper .relative.z-10 > div:first-child img {
-        width: 2.65rem !important;
-        height: 2.65rem !important;
-        max-height: 2.65rem !important;
-        object-fit: contain !important;
-    }
-    .nota-paper .relative.z-10 > div:first-child .text-2xl {
-        font-size: 1.15rem !important;
-        line-height: 1.15 !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .relative.z-10 > div:first-child .text-\[10px\] {
-        font-size: 8px !important;
-        line-height: 1.15 !important;
-        margin-top: 2px !important;
-    }
-    .nota-paper .relative.z-10 > div:first-child .text-\[9px\] {
-        font-size: 7.5px !important;
-        margin-top: 2px !important;
-    }
-
-    /* Middle Segment Separator Line */
-    .nota-paper .relative.w-full.h-px {
-        margin-top: 0.18rem !important;
-        margin-bottom: 0.18rem !important;
-    }
-
-    /* Invoice Type Title ("BUKTI TRANSAKSI") */
-    .nota-paper .text-center.mb-5.mt-2 {
-        margin-top: 0.18rem !important;
-        margin-bottom: 0.25rem !important;
-    }
-    .nota-paper .text-3xl {
-        font-size: 1.1rem !important;
-        line-height: 1.15 !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .text-\[10px\] {
-        font-size: 8px !important;
-        font-weight: 900 !important;
-    }
-
-    /* Metadata Info Grid */
-    .nota-paper .grid.grid-cols-3,
-    .nota-paper .metadata-grid {
-        display: grid !important;
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        padding: 0.3rem 0.45rem !important;
-        margin-bottom: 0.25rem !important;
-        border-radius: 6px !important;
-        background-color: #ffffff !important;
-        background: white !important;
-        border-color: #e5e7eb !important;
-    }
-    .nota-paper .grid.grid-cols-3 .w-7.h-7,
-    .nota-paper .metadata-grid .w-7.h-7 {
-        width: 1.35rem !important;
-        height: 1.35rem !important;
-    }
-    .nota-paper .grid.grid-cols-3 svg,
-    .nota-paper .metadata-grid svg {
-        width: 0.7rem !important;
-        height: 0.7rem !important;
-    }
-    .nota-paper .grid.grid-cols-3 .gap-4,
-    .nota-paper .metadata-grid .gap-4 {
-        gap: 0.25rem !important;
-    }
-    .nota-paper .grid.grid-cols-3 .text-\[7px\],
-    .nota-paper .metadata-grid .text-\[7px\] {
-        font-size: 6.5px !important;
-        margin-bottom: 1px !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .grid.grid-cols-3 .text-\[10px\],
-    .nota-paper .grid.grid-cols-3 .text-\[11px\],
-    .nota-paper .metadata-grid .text-\[10px\],
-    .nota-paper .metadata-grid .text-\[11px\] {
-        font-size: 8.5px !important;
-        line-height: 1.15 !important;
-        font-weight: 900 !important;
-    }
-
-    /* Items Table */
-    .nota-paper .items-table-wrapper,
-    .nota-paper .rounded-xl.overflow-hidden.border.border-neutral-200.mb-6 {
-        margin-bottom: 0.25rem !important;
-        border-radius: 6px !important;
-        overflow: visible !important;
-        background-color: #ffffff !important;
-        background: white !important;
-        border-color: #e5e7eb !important;
-    }
-    .nota-paper table {
-        font-size: 8.5px !important;
-        border-collapse: collapse !important;
-    }
-    .nota-paper th {
-        background-color: #0a0a0a !important;
-        color: #ffffff !important;
-        padding: 3.5px 5px !important;
-        font-size: 8px !important;
-        font-weight: 900 !important;
-        border-color: #0a0a0a !important;
-    }
-    .nota-paper td {
-        padding: 3.5px 5px !important;
-        font-size: 8.5px !important;
-        border-color: #e5e7eb !important;
-    }
-    .nota-paper td .text-\[10px\],
-    .nota-paper td .text-\[11px\],
-    .nota-paper td .text-\[12px\] {
-        font-size: 8.5px !important;
-        line-height: 1.2 !important;
-    }
-
-    /* Split Section (Notes & Warranty / Breakdown & Grand Total) */
-    .nota-paper .split-section,
-    .nota-paper .flex.flex-col.md\:flex-row.gap-6.mb-6.mt-2 {
+    /* Inner flex column: 100% height of printable area (198mm) */
+    .nota-inner {
         display: flex !important;
-        flex-direction: row !important;
-        gap: 0.45rem !important;
-        margin-top: 0.18rem !important;
-        margin-bottom: 0.25rem !important;
-        align-items: flex-start !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+        z-index: 1 !important;
+        transform-origin: top left !important;
     }
-    .nota-paper .mb-5.relative {
-        margin-bottom: 0.2rem !important;
+
+    /* Measurement state: collapse height and spacers to accurately calculate minimum needed height */
+    .nota-inner.is-measuring {
+        height: auto !important;
     }
-    .nota-paper .notes-box {
-        padding: 0.3rem 0.45rem !important;
-        min-height: 28px !important;
-        max-height: 48px !important;
-        overflow: hidden !important;
-        font-size: 8px !important;
-        line-height: 1.25 !important;
-        border-radius: 6px !important;
-        background-color: #ffffff !important;
-        background: white !important;
-        border-color: #e5e7eb !important;
+    .nota-inner.is-measuring .nota-spacer {
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+        height: 2mm !important;
+        min-height: 2mm !important;
     }
-    .nota-paper .flex-1 .mb-4 {
-        margin-bottom: 0 !important;
+
+    /* Flexible spacers: naturally distribute excess space evenly between sections */
+    .nota-spacer {
+        flex: 1 1 0 !important;
+        min-height: 2mm !important;
     }
-    .nota-paper .flex-1 .mb-4 span.text-\[10px\] {
-        font-size: 7.5px !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .flex-1 .mb-4 ul,
-    .nota-paper .flex-1 .mb-4 div.text-\[9px\] {
-        font-size: 7px !important;
-        line-height: 1.25 !important;
-        margin-top: 2px !important;
-    }
-    .nota-paper .w-full.md\:w-\[260px\] {
-        width: 60mm !important;
+
+    /* Logical sections shrink-0 so they don't get squashed unproportionately */
+    .header-section,
+    .metadata-section,
+    .items-table-section,
+    .summary-section,
+    .signature-section {
         flex-shrink: 0 !important;
     }
-    .nota-paper .bg-neutral-50\/80.rounded-xl.border {
-        padding: 0.3rem 0.45rem !important;
-        margin-bottom: 0.2rem !important;
+
+    /* Items table styling in print */
+    .items-table-wrapper {
         border-radius: 6px !important;
-        gap: 0.12rem !important;
-        background-color: #ffffff !important;
-        background: white !important;
+        overflow: visible !important;
         border-color: #e5e7eb !important;
+        background: white !important;
     }
-    .nota-paper .bg-neutral-50\/80.rounded-xl.border span {
-        font-size: 8px !important;
+    .items-table-wrapper table {
+        border-collapse: collapse !important;
+        width: 100% !important;
     }
-    .nota-paper .bg-neutral-50\/80.rounded-xl.border .text-sm {
-        font-size: 9px !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 {
-        height: 36px !important;
-        border-radius: 6px !important;
-        background-color: #dc2626 !important;
-        background: #dc2626 !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 .text-\[8px\] {
-        font-size: 6.5px !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .h-\[60px\].bg-red-600 .text-lg,
-    .nota-paper .h-\[60px\].bg-red-600 .text-xl {
-        font-size: 13.5px !important;
-        font-weight: 900 !important;
-    }
-    .nota-paper .text-\[8px\].text-right.italic {
-        font-size: 7px !important;
-        margin-top: 2px !important;
+    .items-table-wrapper th {
+        background-color: #0a0a0a !important;
+        color: #ffffff !important;
+        border-color: #0a0a0a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
-    /* Signature Area - sits cleanly beneath totals with natural professional spacing */
-    .nota-paper .signature-area {
-        margin-top: 0.45rem !important;
-        margin-bottom: 0.15rem !important;
-        padding: 0.35rem 0.5rem !important;
-        gap: 0.5rem !important;
-        border-radius: 6px !important;
-        background-color: #ffffff !important;
-        background: white !important;
+    /* Notes Box: clear wrapping, no overlap */
+    .notes-box {
+        word-break: break-word !important;
+        background-color: rgba(250, 250, 250, 0.7) !important;
         border-color: #e5e7eb !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
     }
-    .nota-paper .signature-area .mb-12 {
-        margin-bottom: 1.3rem !important;
-        font-size: 7.5px !important;
-        font-weight: 900 !important;
+
+    /* Total box styling */
+    .bg-red-600 {
+        background-color: #dc2626 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
-    .nota-paper .signature-area .border-b {
-        max-width: 110px !important;
-        margin-bottom: 2px !important;
-        border-color: #94a3b8 !important;
+
+    /* Tight mode: only applied when scale <= 0.75 for heavy item counts */
+    .nota-inner.is-tight .nota-spacer {
+        min-height: 1mm !important;
+        height: 1mm !important;
     }
-    .nota-paper .signature-area .text-\[11px\] {
-        font-size: 8.5px !important;
-        font-weight: 900 !important;
+    .nota-inner.is-tight th,
+    .nota-inner.is-tight td {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        font-size: 8px !important;
+        line-height: 1.15 !important;
+    }
+    .nota-inner.is-tight .notes-box {
+        padding: 3px 5px !important;
+        font-size: 8px !important;
+        min-height: 24px !important;
+    }
+    .nota-inner.is-tight .signature-section .mb-10 {
+        margin-bottom: 1.25rem !important;
     }
 
     .print\:hidden {
         display: none !important;
     }
 
-    /* COMPLETE ARTIFACT ELIMINATION: Strips all halos/shadows */
+    /* Clean shadow/halo stripping */
     #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper *,
     .nota-paper,
