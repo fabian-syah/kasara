@@ -28,10 +28,10 @@
 
                     <!-- Nota Content -->
                     <div id="receipt-content"
-                        class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white">
+                        class="flex-1 overflow-y-auto p-2 sm:p-6 print:p-0 bg-gray-100/50 dark:bg-surface-900/50 print:bg-white flex justify-center items-start">
                         <div v-if="transaction"
                             ref="notaPaperRef"
-                            class="nota-paper nota-page w-full sm:max-w-[650px] mx-auto bg-white p-3 sm:p-6 rounded-2xl text-neutral-900 font-sans text-sm shadow-xl print:shadow-none print:max-w-full print:mx-0 relative overflow-hidden select-none">
+                            class="nota-paper nota-page mx-auto bg-white rounded-2xl text-neutral-900 font-sans shadow-xl print:shadow-none relative overflow-hidden select-none">
 
                             <!-- ===== DYNAMIC CORNER ACCENTS (Mockup Style) ===== -->
                             <div class="corner-accent-tl absolute top-0 left-0 w-16 h-16 pointer-events-none overflow-hidden z-20">
@@ -61,27 +61,27 @@
                                         <!-- Store Logo -->
                                         <div class="shrink-0">
                                             <img src="/images/ps.png" alt="PSTORE"
-                                                class="w-14 h-14 sm:w-16 sm:h-16 object-contain" />
+                                                class="w-14 h-14 sm:w-16 sm:h-16 object-contain header-logo" />
                                         </div>
                                         <!-- Branch & Social Info -->
                                         <div class="flex-1">
                                             <div class="flex items-baseline gap-1.5 flex-wrap">
                                                 <span
-                                                    class="text-xl sm:text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
+                                                    class="header-title-store text-xl sm:text-2xl font-black text-red-600 uppercase tracking-tight leading-none">PSTORE</span>
                                                 <span
-                                                    class="text-xl sm:text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
+                                                    class="header-title-branch text-xl sm:text-2xl font-black text-neutral-900 uppercase tracking-tight leading-none">
                                                     {{ (transaction.branch_name || transaction.branch?.name ||
                                                         authStore.userBranch?.name || 'CABANG').toUpperCase().replace('PSTORE ',
                                                             '').replace('PSTORE', '') }}
                                                 </span>
                                             </div>
-                                            <div class="text-[10px] font-bold text-neutral-700 mt-1 leading-tight">
+                                            <div class="header-address text-[10px] font-bold text-neutral-700 mt-1 leading-tight">
                                                 {{ displayAddress }}
                                             </div>
 
                                             <!-- Social Bar -->
                                             <div
-                                                class="flex items-center gap-x-3 gap-y-1 mt-1 text-[9px] font-extrabold text-neutral-800 flex-wrap">
+                                                class="header-social flex items-center gap-x-3 gap-y-1 mt-1 text-[9px] font-extrabold text-neutral-800 flex-wrap">
                                                 <span class="flex items-center gap-1">
                                                     <svg class="w-2.5 h-2.5 text-red-600 fill-current" viewBox="0 0 24 24">
                                                         <path
@@ -110,8 +110,8 @@
                                     </div>
 
                                     <!-- Thick Middle Segment Separator Line -->
-                                    <div class="relative w-full h-px bg-neutral-200 mb-1 mt-1 flex justify-center">
-                                        <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
+                                    <div class="header-sep-line relative w-full h-px bg-neutral-200 mb-1 mt-1 flex justify-center">
+                                        <div class="header-sep-badge absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
                                     </div>
                                 </div>
 
@@ -121,11 +121,11 @@
                                 <!-- 2. TITLE SECTION (Judul Nota) -->
                                 <div class="nota-section title-section shrink-0 text-center">
                                     <h2
-                                        class="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
+                                        class="title-main text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
                                         {{ receiptTitle }}
                                     </h2>
                                     <div
-                                        class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                                        class="title-sub flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
                                         <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
                                         <span>BUKTI TRANSAKSI</span>
                                         <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
@@ -140,11 +140,11 @@
                                     <div
                                         class="metadata-grid grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-x-0 print:grid-cols-3 print:gap-x-0 bg-white/60 backdrop-blur-[2px] rounded-xl p-3 border border-neutral-200">
                                     <!-- Column 1: No Nota & Tanggal -->
-                                    <div class="flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
+                                    <div class="metadata-col-1 flex flex-col gap-4 pr-4 border-r border-dashed border-neutral-300">
                                         <!-- No Nota -->
                                         <div class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
@@ -152,10 +152,10 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     No. Nota</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
                                                     {{ transaction.order_no || transaction.receipt_id || transaction.invoice_number || '-' }}</div>
                                             </div>
                                         </div>
@@ -163,7 +163,7 @@
                                         <!-- Tanggal & Waktu -->
                                         <div class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
@@ -171,21 +171,21 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     Tanggal & Waktu</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
                                                     {{ displayDate }}</div>
                                             </div>
                                         </div>
                                     </div>
 
                                     <!-- Column 2: Atas Nama & No HP -->
-                                    <div class="flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
+                                    <div class="metadata-col-2 flex flex-col gap-4 px-4 border-r border-dashed border-neutral-300">
                                         <!-- Atas Nama -->
                                         <div class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
@@ -193,10 +193,10 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     Atas Nama</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
                                                     {{ transaction.customer_name || 'Umum' }}</div>
                                             </div>
                                         </div>
@@ -204,7 +204,7 @@
                                         <!-- No HP -->
                                         <div class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 00-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.72 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
@@ -212,10 +212,10 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     No. HP</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
                                                     {{ displayCustomerPhone }}</div>
                                                 <button v-if="displayCustomerPhone !== '-'"
                                                     @click="sendWaReceiptFromModal" :disabled="isGeneratingPDF"
@@ -228,10 +228,10 @@
                                     </div>
 
                                     <!-- Column 3: Customer Service & No. Resi -->
-                                    <div class="flex flex-col gap-4 pl-4">
+                                    <div class="metadata-col-3 flex flex-col gap-4 pl-4">
                                         <div class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M12 2c-4.97 0-9 4.03-9 9v7c0 1.66 1.34 3 3 3h3v-8H5v-2c0-3.87 3.13-7 7-7s7 3.13 7 7v2h-4v8h3c1.66 0 3-1.34 3-3v-7c0-4.97-4.03-9-9-9z" />
@@ -239,10 +239,10 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     Customer Service</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words">
                                                     {{ transaction.inventory_user_name ||
                                                         transaction.inventory_account_name
                                                         || transaction.sales_account || transaction.sales_name || '-' }}
@@ -253,7 +253,7 @@
                                         <!-- No. Resi (Khusus Pengiriman / Pesanan Online) -->
                                         <div v-if="displayTrackingNo" class="flex items-center gap-2.5">
                                             <div
-                                                class="w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
+                                                class="metadata-icon w-7 h-7 rounded-full border border-neutral-200/60 flex items-center justify-center shrink-0 bg-neutral-50 shadow-sm text-red-600">
                                                 <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                                                     <path
                                                         d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
@@ -261,10 +261,10 @@
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <div
-                                                    class="text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
+                                                    class="metadata-label text-[7px] font-black text-neutral-950 uppercase tracking-widest leading-none mb-0.5">
                                                     No. Resi</div>
                                                 <div
-                                                    class="text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words font-mono">
+                                                    class="metadata-val text-[10px] sm:text-[11px] font-black text-neutral-950 uppercase tracking-tight break-words font-mono">
                                                     {{ displayTrackingNo }}</div>
                                             </div>
                                         </div>
@@ -330,7 +330,7 @@
                                                         <!-- IMEI COLUMN -->
                                                         <td class="py-2 px-3 align-middle text-left">
                                                             <div v-if="!item.is_bundle_header && !item.is_bundle_child"
-                                                                class="text-[10px] font-black font-mono text-neutral-900">
+                                                                class="imei-cell text-[10px] font-black font-mono text-neutral-900">
                                                                 {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei
                                                                 : '-') : '-' }}
                                                             </div>
@@ -339,15 +339,15 @@
                                                         <!-- DESKRIPSI BARANG COLUMN -->
                                                         <td class="py-2 px-3 align-middle">
                                                             <div v-if="item.is_bundle_header"
-                                                                class="font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex flex-col">
+                                                                class="desc-bundle-header font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex flex-col">
                                                                 <span>📦 {{ item.name }}</span>
                                                                 <div v-if="item.sub_items_summary"
-                                                                    class="text-[9px] font-semibold text-neutral-600 mt-0.5 normal-case tracking-normal leading-tight">
+                                                                    class="desc-bundle-summary text-[9px] font-semibold text-neutral-600 mt-0.5 normal-case tracking-normal leading-tight">
                                                                     • {{ item.sub_items_summary }}
                                                                 </div>
                                                             </div>
                                                             <div v-else
-                                                                class="font-bold text-neutral-800 text-[10px] sm:text-[11px] uppercase flex items-start"
+                                                                class="desc-item-name font-bold text-neutral-800 text-[10px] sm:text-[11px] uppercase flex items-start"
                                                                 :class="{ 'pl-4 font-semibold text-[9px]': item.is_bundle_child }">
                                                                 <span v-if="item.is_bundle_child"
                                                                     class="text-neutral-500 mr-1.5 text-[10px] leading-none font-bold mt-0.5">•</span>
@@ -434,7 +434,7 @@
                                             <div class="nota-notes notes-container mb-2">
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span
-                                                        class="inline-block bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
+                                                        class="notes-badge inline-block bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
                                                         Catatan
                                                     </span>
                                                     <div class="h-0.5 flex-1 bg-red-100 rounded-full"></div>
@@ -449,16 +449,16 @@
                                             <div class="nota-terms warranty-container">
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span
-                                                        class="text-[9px] font-black text-red-600 tracking-wider uppercase">Syarat
+                                                        class="warranty-title text-[9px] font-black text-red-600 tracking-wider uppercase">Syarat
                                                         & Ketentuan</span>
                                                     <div class="h-0.5 w-8 bg-red-200 rounded-full"></div>
                                                 </div>
                                                 <div v-if="displayWarranty"
-                                                    class="text-[8px] text-neutral-600 font-bold whitespace-pre-line leading-relaxed">
+                                                    class="warranty-text text-[8px] text-neutral-600 font-bold whitespace-pre-line leading-relaxed">
                                                     {{ displayWarranty }}
                                                 </div>
                                                 <ul v-else
-                                                    class="text-[8px] text-neutral-600 font-bold space-y-0.5 list-disc pl-4 leading-relaxed">
+                                                    class="warranty-list text-[8px] text-neutral-600 font-bold space-y-0.5 list-disc pl-4 leading-relaxed">
                                                     <li>Garansi unit selama 1 bulan terhitung sejak tanggal nota.</li>
                                                     <li>Garansi yang sudah lewat batas tanggal tidak dapat diklaim garansi.</li>
                                                     <li>Segel wajib utuh. Kerusakan akibat human error membatalkan garansi.</li>
@@ -470,26 +470,26 @@
                                         <div class="nota-totals shrink-0">
                                             <!-- Small Subtotal Breakdown -->
                                             <div
-                                                class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-2 space-y-1 text-xs mb-2">
+                                                class="totals-breakdown bg-neutral-50/80 rounded-xl border border-neutral-200 p-2 space-y-1 text-xs mb-2">
                                                 <div class="flex justify-between">
-                                                    <span class="font-bold text-neutral-500 text-[9px]">Sub Total</span>
-                                                    <span class="text-neutral-900 font-bold text-[10px]">
+                                                    <span class="totals-row-label font-bold text-neutral-500 text-[9px]">Sub Total</span>
+                                                    <span class="totals-row-val text-neutral-900 font-bold text-[10px]">
                                                         {{ formatCurrency(Math.abs(transaction.original_price ||
                                                             (Number(transaction.selling_price || 0) +
                                                                 Number(transaction.global_discount_value || 0)))) }}
                                                     </span>
                                                 </div>
                                                 <div v-if="Number(transaction.global_discount_value) > 0 && !hasBundleAbsorbedGlobalDiscount" class="flex justify-between">
-                                                    <span class="font-bold text-neutral-500 text-[9px]">Diskon (Nota)</span>
-                                                    <span class="text-red-600 font-bold text-[10px]">-{{
+                                                    <span class="totals-row-label font-bold text-neutral-500 text-[9px]">Diskon (Nota)</span>
+                                                    <span class="totals-row-val text-red-600 font-bold text-[10px]">-{{
                                                         formatCurrency(transaction.global_discount_value) }}</span>
                                                 </div>
                                                 <div v-for="(payment, idx) in transaction.split_payments_data || []"
                                                     :key="idx"
                                                     class="flex justify-between border-t border-neutral-200/50 pt-1">
-                                                    <span class="font-bold text-neutral-500 text-[9px] uppercase">{{
+                                                    <span class="totals-row-label font-bold text-neutral-500 text-[9px] uppercase">{{
                                                         payment.method_name }}</span>
-                                                    <span class="text-neutral-900 font-bold text-[10px]">{{
+                                                    <span class="totals-row-val text-neutral-900 font-bold text-[10px]">{{
                                                         formatCurrency(payment.amount)
                                                         }}</span>
                                                 </div>
@@ -498,8 +498,8 @@
                                                 <div
                                                     class="border-t border-neutral-300 border-dashed pt-1 flex justify-between">
                                                     <span
-                                                        class="font-black text-red-600 text-[9px] uppercase tracking-wider">Kembalian</span>
-                                                    <span class="text-red-600 font-black text-xs">
+                                                        class="totals-change-label font-black text-red-600 text-[9px] uppercase tracking-wider">Kembalian</span>
+                                                    <span class="totals-change-val text-red-600 font-black text-xs">
                                                         {{ formatCurrency(calculatedChange) }}
                                                     </span>
                                                 </div>
@@ -507,26 +507,26 @@
 
                                             <!-- Exact Slanted Grand Total Header Box -->
                                             <div
-                                                class="flex rounded-xl overflow-hidden shadow-md h-[44px] bg-red-600 w-full relative">
+                                                class="grand-total-box flex rounded-xl overflow-hidden shadow-md h-[44px] bg-red-600 w-full relative">
                                                 <!-- Black Trapezoid Part -->
-                                                <div class="bg-neutral-950 text-white pl-2.5 pr-5 flex flex-col justify-center shrink-0 select-none pointer-events-none"
+                                                <div class="grand-total-trapezoid bg-neutral-950 text-white pl-2.5 pr-5 flex flex-col justify-center shrink-0 select-none pointer-events-none"
                                                     style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
                                                     <div
-                                                        class="text-[7.5px] font-black uppercase tracking-wider leading-none text-white">
+                                                        class="grand-total-trapezoid-text text-[7.5px] font-black uppercase tracking-wider leading-none text-white">
                                                         {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Total' : 'Yang Harus' }}</div>
                                                     <div
-                                                        class="text-[7.5px] font-black uppercase tracking-wider leading-tight text-white">
+                                                        class="grand-total-trapezoid-text text-[7.5px] font-black uppercase tracking-wider leading-tight text-white">
                                                         {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Dikembalikan' : 'Dibayarkan' }}</div>
                                                 </div>
                                                 <!-- Red Total Part -->
-                                                <div class="flex-1 flex items-center justify-end pr-2.5 text-white"
+                                                <div class="grand-total-amount flex-1 flex items-center justify-end pr-2.5 text-white"
                                                     style="z-index: 1;">
-                                                    <span class="text-base sm:text-lg font-black text-white tracking-tight">{{
+                                                    <span class="totals-grand-val text-base sm:text-lg font-black text-white tracking-tight">{{
                                                         formatCurrency(Math.abs(calculatedGrandTotal)) }}</span>
                                                 </div>
                                             </div>
 
-                                            <div class="text-[8px] text-right text-neutral-400 italic mt-1 font-bold">
+                                            <div class="payment-method-footnote text-[8px] text-right text-neutral-400 italic mt-1 font-bold">
                                                 Metode: {{ transaction.split_payments_data?.length > 1 ? 'SPLIT (CAMPURAN)'
                                                     :
                                                     (transaction.payment_method_name || transaction.payment_method || '-') }}
@@ -543,20 +543,20 @@
                                     <div
                                         class="signature-area grid grid-cols-2 text-[10px] gap-4 border border-neutral-100 rounded-xl py-3 bg-white/60 backdrop-blur-[1px]">
                                         <div class="text-center border-r border-neutral-200">
-                                            <div class="text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
+                                            <div class="signature-title text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
                                                 Customer / Pembeli</div>
-                                            <div class="border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
+                                            <div class="signature-line border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
                                             </div>
-                                            <div class="text-[10px] font-black text-neutral-900 uppercase">
+                                            <div class="signature-name text-[10px] font-black text-neutral-900 uppercase">
                                                 {{ transaction.customer_name || 'Umum' }}
                                             </div>
                                         </div>
                                         <div class="text-center">
-                                            <div class="text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
+                                            <div class="signature-title text-[8.5px] font-black text-red-600 uppercase tracking-widest mb-10">
                                                 Hormat Kami</div>
-                                            <div class="border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
+                                            <div class="signature-line border-b border-neutral-400 w-full max-w-[130px] mx-auto mb-1">
                                             </div>
-                                            <div class="text-[10px] font-black text-neutral-900 uppercase">
+                                            <div class="signature-name text-[10px] font-black text-neutral-900 uppercase">
                                                 {{ transaction.inventory_user_name || transaction.inventory_account_name ||
                                                     transaction.sales_account ||
                                                     transaction.sales_name || 'PSTORE' }}
@@ -609,6 +609,21 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- FIT DEBUG OVERLAY (?debugfit=1) -->
+                <div v-if="isDebugFit"
+                    class="fixed bottom-4 left-4 z-[9999999] bg-black/95 text-emerald-400 font-mono text-[10px] p-3 rounded-xl border border-emerald-500/60 shadow-2xl pointer-events-none print:hidden flex flex-col gap-1 min-w-[200px]">
+                    <div class="font-bold text-white border-b border-emerald-500/30 pb-1 mb-0.5 flex justify-between items-center">
+                        <span>FIT DEBUGGER</span>
+                        <span class="text-[9px] text-emerald-300 bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-500/40">?debugfit=1</span>
+                    </div>
+                    <div class="flex justify-between"><span>Zoom:</span> <span class="font-bold text-white">{{ debugInfo.zoom }}</span></div>
+                    <div class="flex justify-between"><span>Avail:</span> <span class="font-bold text-white">{{ debugInfo.avail }}px</span></div>
+                    <div class="flex justify-between"><span>Needed:</span> <span class="font-bold text-white">{{ debugInfo.needed }}px</span></div>
+                    <div class="flex justify-between"><span>DPR:</span> <span class="font-bold text-white">{{ debugInfo.dpr }}</span></div>
+                    <div class="flex justify-between"><span>Fonts:</span> <span class="font-bold text-white">{{ debugInfo.fontStatus }}</span></div>
+                    <div class="flex justify-between"><span>Compact:</span> <span :class="debugInfo.compact ? 'text-amber-400 font-bold' : 'text-neutral-400'">{{ debugInfo.compact ? 'ACTIVE' : 'NO' }}</span></div>
+                </div>
             </div>
         </transition>
     </Teleport>
@@ -647,8 +662,43 @@ const paperSize = ref('A5');
 const notaPaperRef = ref(null);
 const notaContentRef = ref(null);
 
+const isDebugFit = ref(false);
+const debugInfo = ref({
+    zoom: '1.000',
+    avail: 0,
+    needed: 0,
+    dpr: 1,
+    fontStatus: 'unknown',
+    compact: false
+});
+
+const checkDebugFit = () => {
+    if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        isDebugFit.value = urlParams.get('debugfit') === '1';
+    }
+};
+
 let isFitting = false;
 let resizeObserver = null;
+let resizeTimeout = null;
+
+const onFontsLoaded = () => {
+    if (props.isOpen) {
+        fit();
+    }
+};
+
+const updateDebug = (zoom, avail, needed, fontStatus, compact) => {
+    debugInfo.value = {
+        zoom: typeof zoom === 'number' ? zoom.toFixed(3) : String(zoom),
+        avail: Math.round(avail),
+        needed: Math.round(needed),
+        dpr: window.devicePixelRatio || 1,
+        fontStatus: fontStatus || (document.fonts?.status ?? 'ready'),
+        compact: !!compact
+    };
+};
 
 const fit = async () => {
     if (isFitting || !notaPaperRef.value || !notaContentRef.value) return;
@@ -658,49 +708,99 @@ const fit = async () => {
         const page = notaPaperRef.value;
         const content = notaContentRef.value;
 
-        await document.fonts?.ready;
+        // 1. Wait for fonts & images (font self-host readiness)
+        let fontStatus = 'ready';
+        try {
+            if (document.fonts) {
+                await document.fonts.ready;
+                fontStatus = document.fonts.status || 'ready';
+            }
+        } catch {
+            fontStatus = 'error/fallback';
+        }
+
         await Promise.all([...page.querySelectorAll('img')].map(i => i.decode?.().catch(() => {})));
 
+        // 2. Measure available height (A5 210mm - 12mm padding = 198mm)
         const cs = getComputedStyle(page);
-        let avail = page.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        let avail = page.clientHeight - parseFloat(cs.paddingTop || 0) - parseFloat(cs.paddingBottom || 0);
+        // Fallback for standard A5 (210 - 12) * (96 / 25.4) = 748.346px
         const a5AvailablePx = (210 - 12) * (96 / 25.4);
-        if (avail <= 150 || avail > 1200) {
+        if (!avail || avail <= 150 || avail > 1200) {
             avail = a5AvailablePx;
         }
 
-        // reset + matikan spacer saat mengukur
-        content.style.zoom = '1';
-        content.style.minHeight = '0';
-        page.classList.remove('compact');
-        page.classList.add('measuring'); // .measuring .nota-spacer { flex: 0 0 0 !important; min-height: 0 !important; }
-        let needed = content.getBoundingClientRect().height;
-        page.classList.remove('measuring');
-        content.style.minHeight = '';
-
-        if (needed <= avail) {
-            content.style.zoom = '1';
-            return; // muat -> biarkan layout flex apa adanya
-        }
-
-        // shrink iteratif sampai muat, minimum 0.6
-        let scale = Math.max(0.6, (avail / needed) * 0.98);
-        content.style.zoom = String(scale);
-        for (let i = 0; i < 6; i++) {
-            page.classList.add('measuring');
-            const h = content.getBoundingClientRect().height;
+        // 3. Helper to measure required height at scale s
+        const heightAt = (s) => {
+            content.style.zoom = String(s);
+            content.style.minHeight = '0';
+            page.classList.add('measuring'); // collapses .nota-spacer to 0
+            const rectH = content.getBoundingClientRect().height;
+            const scrollH = content.scrollHeight * s;
+            const h = Math.max(rectH, scrollH);
             page.classList.remove('measuring');
-            if (h <= avail || scale <= 0.6) break;
-            scale = Math.max(0.6, scale * (avail / h) * 0.98);
-            content.style.zoom = String(scale);
+            content.style.minHeight = '';
+            return h;
+        };
+
+        page.classList.remove('compact');
+        page.classList.remove('has-shrink');
+
+        // Check if scale 1.00 fits naturally
+        const neededAt1 = heightAt(1);
+        if (neededAt1 <= avail) {
+            content.style.zoom = '1';
+            updateDebug('1.000', avail, neededAt1, fontStatus, false);
+            return; // fits -> let flex spacers distribute the remaining space
         }
 
-        // masih overflow di 0.6 -> mode compact
-        page.classList.add('measuring');
-        const finalH = content.getBoundingClientRect().height;
-        page.classList.remove('measuring');
+        // Needs shrink
+        page.classList.add('has-shrink');
+
+        // 4. Binary search for maximal fitting scale between 0.50 and 1.00 (10 iterations)
+        let lo = 0.50, hi = 1.00;
+        for (let i = 0; i < 10; i++) {
+            const mid = (lo + hi) / 2;
+            if (heightAt(mid) <= avail) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+
+        content.style.zoom = String(lo);
+
+        let finalH = heightAt(lo);
+        let isCompact = false;
         if (finalH > avail) {
             page.classList.add('compact');
+            isCompact = true;
+            let clo = 0.50, chi = 1.00;
+            for (let i = 0; i < 10; i++) {
+                const mid = (clo + chi) / 2;
+                if (heightAt(mid) <= avail) {
+                    clo = mid;
+                } else {
+                    chi = mid;
+                }
+            }
+            lo = clo;
+            content.style.zoom = String(lo);
         }
+
+        // 5. Final verification check: ensure footer does not cut off (max 5 retries, 2% shrink each)
+        const footer = page.querySelector('.nota-footer');
+        if (footer) {
+            for (let retry = 0; retry < 5; retry++) {
+                const pageBottom = page.getBoundingClientRect().bottom;
+                const footerBottom = footer.getBoundingClientRect().bottom;
+                if (footerBottom <= pageBottom + 0.5) break;
+                lo = Math.max(0.45, lo * 0.98);
+                content.style.zoom = String(lo);
+            }
+        }
+
+        updateDebug(lo, avail, finalH, fontStatus, isCompact);
     } finally {
         isFitting = false;
     }
@@ -712,17 +812,23 @@ const resetFit = () => {
     notaContentRef.value.style.minHeight = '';
     notaPaperRef.value.classList.remove('compact');
     notaPaperRef.value.classList.remove('measuring');
+    notaPaperRef.value.classList.remove('has-shrink');
 };
 
 onMounted(() => {
+    checkDebugFit();
     window.addEventListener('beforeprint', fit);
     window.addEventListener('afterprint', resetFit);
+    document.fonts?.addEventListener('loadingdone', onFontsLoaded);
 
     if (window.ResizeObserver && notaContentRef.value) {
         resizeObserver = new ResizeObserver(() => {
-            if (!isFitting && props.isOpen) {
-                fit();
-            }
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (!isFitting && props.isOpen) {
+                    fit();
+                }
+            }, 50);
         });
         resizeObserver.observe(notaContentRef.value);
     }
@@ -731,11 +837,14 @@ onMounted(() => {
 onUnmounted(() => {
     window.removeEventListener('beforeprint', fit);
     window.removeEventListener('afterprint', resetFit);
+    document.fonts?.removeEventListener('loadingdone', onFontsLoaded);
+    if (resizeTimeout) clearTimeout(resizeTimeout);
     resizeObserver?.disconnect();
 });
 
 watch(() => props.isOpen, async (newVal) => {
     if (newVal) {
+        checkDebugFit();
         await nextTick();
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -1471,6 +1580,14 @@ const processedReceiptItems = computed(() => {
 </script>
 
 <style scoped>
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: block;
+    src: local('Inter'), local('Segoe UI'), local('Arial'), sans-serif;
+}
+
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease;
@@ -1481,147 +1598,530 @@ const processedReceiptItems = computed(() => {
     opacity: 0;
 }
 
-/* PSTORE Receipt Paper Styles */
-.nota-paper {
+/* PSTORE Receipt Paper Styles (Screen & Base) */
+.nota-paper,
+.nota-page {
+    display: block !important;
+    position: relative !important;
+    width: 148mm !important;
+    max-width: 148mm !important;
+    min-width: 148mm !important;
+    height: 210mm !important;
+    max-height: 210mm !important;
+    min-height: 210mm !important;
+    padding: 6mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    font-size: 3.2mm !important;
+    line-height: 1.25 !important;
+    -webkit-text-size-adjust: none !important;
+    text-size-adjust: none !important;
     background-color: #ffffff !important;
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1) !important;
     color: #0f172a !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
     font-weight: 600 !important;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
 }
 
-.nota-paper h1,
-.nota-paper h2,
-.nota-paper h3 {
-    color: #e11d48 !important;
+/* Watermark Background */
+.watermark-container {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.watermark-container img {
+    width: 50mm !important;
+    height: 50mm !important;
+    object-fit: contain !important;
+    opacity: 0.04 !important;
+    pointer-events: none !important;
 }
 
-.nota-paper thead tr {
-    background-color: #0a0a0a !important;
+/* Corner Accents */
+.corner-accent-tl,
+.corner-accent-tr {
+    width: 14mm !important;
+    height: 14mm !important;
+    z-index: 20 !important;
+}
+.corner-accent-tl svg,
+.corner-accent-tr svg {
+    width: 100% !important;
+    height: 100% !important;
 }
 
-.nota-paper thead th {
-    background-color: #0a0a0a !important;
-    color: #ffffff !important;
-}
-
-/* Keep explicit text colors override functioning */
-.nota-paper .text-white {
-    color: #ffffff !important;
-}
-
-.nota-paper .text-red-600 {
-    color: #e11d48 !important;
-}
-
-.nota-paper .text-neutral-950 {
-    color: #0a0a0a !important;
-}
-
-.nota-paper .text-emerald-600,
-.nota-paper .text-emerald-700 {
-    color: #059669 !important;
-}
-
-.nota-paper .text-pink-600,
-.nota-paper .text-pink-700 {
-    color: #db2777 !important;
-}
-
-.nota-paper .text-slate-500 {
-    color: #64748b !important;
-}
-
-.nota-paper .text-slate-400 {
-    color: #94a3b8 !important;
-}
-
-.pdf-capture-mode,
-.pdf-capture-mode * {
-    background-color: #ffffff !important;
-    border-color: #e5e7eb !important;
-    color: #0f172a !important;
-    box-shadow: none !important;
-}
-
-.nota-bottom {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 240px;
-    gap: 1rem;
-    align-items: start;
-}
-
-@media (max-width: 640px) {
-    .nota-bottom {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-    .nota-totals {
-        width: 100%;
-    }
-}
-
-.nota-notes,
-.nota-terms {
-    min-width: 0;
-    overflow-wrap: break-word;
-    word-break: normal;
-}
-
-.notes-box {
-    overflow-wrap: break-word;
-    word-break: normal;
-    white-space: pre-wrap;
-}
-
+/* Structure Hierarchy */
 .nota-fit {
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    position: relative;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    position: relative !important;
 }
 
 .nota-content {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-    height: auto;
-    width: 100%;
-    transform-origin: top left;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100% !important;
+    height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    transform-origin: top left !important;
 }
 
-.nota-item-row.nota-bundle-child td {
-    padding-top: 0.8mm;
-    padding-bottom: 0.8mm;
+.nota-content > section,
+.nota-content > header,
+.nota-content > .nota-section {
+    flex: 0 0 auto !important;
 }
 
+/* Spacers */
+.nota-spacer {
+    flex: 1 1 0 !important;
+    min-height: 2mm !important;
+}
+
+.nota-footer {
+    flex: 0 0 auto !important;
+    margin-top: auto !important;
+}
+
+.nota-page:not(.measuring):not(.compact) .nota-footer {
+    margin-top: 0 !important;
+}
+
+.nota-page.has-shrink .nota-spacer {
+    min-height: 0 !important;
+}
+.nota-page.has-shrink .nota-footer {
+    margin-top: auto !important;
+}
+
+/* Measuring State (spacers collapsed to 0 to measure natural content) */
 .nota-page.measuring .nota-spacer {
     flex: 0 0 0 !important;
     min-height: 0 !important;
     height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+.nota-page.measuring .nota-content {
+    min-height: 0 !important;
+    height: auto !important;
 }
 
-.nota-page.compact .nota-item-row th,
-.nota-page.compact .nota-item-row td {
-    padding-block: 0.6mm !important;
-    padding-top: 0.6mm !important;
-    padding-bottom: 0.6mm !important;
-    font-size: 8px !important;
+/* Typography & Dimensions in Absolute Units (mm/pt) */
+.header-logo {
+    width: 14mm !important;
+    height: 14mm !important;
+    object-fit: contain !important;
+}
+.header-title-store {
+    font-size: 5.2mm !important;
+    font-weight: 900 !important;
+    color: #dc2626 !important;
+    line-height: 1 !important;
+    letter-spacing: -0.2mm !important;
+}
+.header-title-branch {
+    font-size: 5.2mm !important;
+    font-weight: 900 !important;
+    color: #171717 !important;
+    line-height: 1 !important;
+    letter-spacing: -0.2mm !important;
+}
+.header-address {
+    font-size: 2.3mm !important;
+    font-weight: 700 !important;
+    color: #404040 !important;
+    line-height: 1.2 !important;
+    margin-top: 1mm !important;
+}
+.header-social {
+    font-size: 2.1mm !important;
+    font-weight: 800 !important;
+    color: #262626 !important;
+    line-height: 1.2 !important;
+    margin-top: 1mm !important;
+    gap: 3mm !important;
+}
+.header-sep-line {
+    position: relative !important;
+    width: 100% !important;
+    height: 0.3mm !important;
+    background-color: #e5e5e5 !important;
+    margin-top: 1.5mm !important;
+    margin-bottom: 1mm !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+.header-sep-badge {
+    position: absolute !important;
+    top: -0.4mm !important;
+    width: 16mm !important;
+    height: 1.1mm !important;
+    background-color: #dc2626 !important;
+    border-radius: 9999px !important;
 }
 
-.nota-page.compact .nota-terms {
+.title-main {
+    font-size: 5.8mm !important;
+    font-weight: 900 !important;
+    color: #0a0a0a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2mm !important;
+    line-height: 1.1 !important;
+}
+.title-sub {
+    font-size: 2.3mm !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.3mm !important;
+    color: #dc2626 !important;
+    margin-top: 0.8mm !important;
+}
+
+.metadata-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0 !important;
+    padding: 2.2mm !important;
+    background-color: rgba(255, 255, 255, 0.6) !important;
+    border: 0.3mm solid #e5e5e5 !important;
+    border-radius: 2.5mm !important;
+}
+.metadata-col-1,
+.metadata-col-2 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2mm !important;
+    padding-right: 2.5mm !important;
+    border-right: 0.3mm dashed #d4d4d4 !important;
+}
+.metadata-col-2 {
+    padding-left: 2.5mm !important;
+}
+.metadata-col-3 {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2mm !important;
+    padding-left: 2.5mm !important;
+}
+.metadata-icon {
+    width: 6.2mm !important;
+    height: 6.2mm !important;
+    border-radius: 9999px !important;
+    border: 0.3mm solid #e5e5e5 !important;
+    background-color: #fafafa !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    color: #dc2626 !important;
+}
+.metadata-icon svg {
+    width: 3.2mm !important;
+    height: 3.2mm !important;
+}
+.metadata-label {
+    font-size: 1.8mm !important;
+    font-weight: 900 !important;
+    color: #0a0a0a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2mm !important;
+    line-height: 1 !important;
+    margin-bottom: 0.5mm !important;
+}
+.metadata-val {
+    font-size: 2.4mm !important;
+    font-weight: 900 !important;
+    color: #0a0a0a !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+}
+
+/* Items Table */
+.items-table-wrapper {
+    border-radius: 2mm !important;
+    border: 0.3mm solid #e5e5e5 !important;
+    background: white !important;
+    overflow: visible !important;
+}
+.items-table-wrapper table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+.items-table-wrapper th {
+    background-color: #0a0a0a !important;
+    color: #ffffff !important;
+    font-size: 2.3mm !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15mm !important;
+    padding: 1.8mm 2mm !important;
+    line-height: 1.2 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.items-table-wrapper td {
+    padding: 1.6mm 2mm !important;
+    font-size: 2.4mm !important;
+    line-height: 1.25 !important;
+    vertical-align: middle !important;
+}
+.items-table-wrapper .imei-cell {
+    font-size: 2.3mm !important;
+    font-weight: 900 !important;
+    font-family: monospace !important;
+}
+.items-table-wrapper .desc-bundle-header {
+    font-size: 2.6mm !important;
+    font-weight: 900 !important;
+    color: #0a0a0a !important;
+}
+.items-table-wrapper .desc-bundle-summary {
+    font-size: 2.0mm !important;
+    font-weight: 600 !important;
+    color: #525252 !important;
     line-height: 1.2 !important;
 }
+.items-table-wrapper .desc-item-name {
+    font-size: 2.4mm !important;
+    font-weight: 700 !important;
+    color: #262626 !important;
+}
+.nota-item-row.nota-bundle-child td {
+    padding-top: 0.8mm !important;
+    padding-bottom: 0.8mm !important;
+    font-size: 2.1mm !important;
+}
 
+/* Bottom 2-Column Grid (Consistent everywhere, NO collapse) */
+.nota-bottom {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 62mm !important;
+    column-gap: 3mm !important;
+    row-gap: 0 !important;
+    align-items: start !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+.nota-left-col {
+    min-width: 0 !important;
+    width: 100% !important;
+}
+.nota-notes,
+.nota-terms {
+    min-width: 0 !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+}
+.notes-badge {
+    background-color: #dc2626 !important;
+    color: white !important;
+    font-size: 1.9mm !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15mm !important;
+    padding: 0.4mm 1.8mm !important;
+    border-radius: 0.8mm !important;
+    display: inline-block !important;
+}
+.notes-box {
+    background-color: rgba(250, 250, 250, 0.7) !important;
+    border: 0.3mm solid #e5e5e5 !important;
+    border-radius: 1.5mm !important;
+    padding: 1.6mm 2mm !important;
+    font-size: 2.1mm !important;
+    font-weight: 700 !important;
+    color: #262626 !important;
+    line-height: 1.25 !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+    white-space: pre-wrap !important;
+}
+.warranty-title {
+    font-size: 2.1mm !important;
+    font-weight: 900 !important;
+    color: #dc2626 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15mm !important;
+}
+.warranty-text,
+.warranty-list {
+    font-size: 1.9mm !important;
+    color: #525252 !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+}
+
+.nota-totals {
+    width: 62mm !important;
+    min-width: 62mm !important;
+    max-width: 62mm !important;
+    box-sizing: border-box !important;
+}
+.totals-breakdown {
+    background-color: rgba(250, 250, 250, 0.8) !important;
+    border: 0.3mm solid #e5e5e5 !important;
+    border-radius: 2mm !important;
+    padding: 1.8mm !important;
+    margin-bottom: 1.8mm !important;
+}
+.totals-row-label {
+    font-size: 2.1mm !important;
+    font-weight: 700 !important;
+    color: #737373 !important;
+}
+.totals-row-val {
+    font-size: 2.3mm !important;
+    font-weight: 700 !important;
+    color: #171717 !important;
+}
+.totals-change-label {
+    font-size: 2.1mm !important;
+    font-weight: 900 !important;
+    color: #dc2626 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.15mm !important;
+}
+.totals-change-val {
+    font-size: 2.6mm !important;
+    font-weight: 900 !important;
+    color: #dc2626 !important;
+}
+
+.grand-total-box {
+    display: flex !important;
+    height: 10.5mm !important;
+    border-radius: 2mm !important;
+    overflow: hidden !important;
+    background-color: #dc2626 !important;
+    width: 100% !important;
+    position: relative !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.grand-total-trapezoid {
+    background-color: #0a0a0a !important;
+    color: white !important;
+    padding-left: 2mm !important;
+    padding-right: 4mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%) !important;
+    z-index: 2 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+}
+.grand-total-trapezoid-text {
+    font-size: 1.7mm !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.1mm !important;
+    line-height: 1.1 !important;
+    color: white !important;
+}
+.grand-total-amount {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    padding-right: 2.5mm !important;
+    color: white !important;
+    z-index: 1 !important;
+}
+.totals-grand-val {
+    font-size: 3.8mm !important;
+    font-weight: 900 !important;
+    letter-spacing: -0.1mm !important;
+    line-height: 1 !important;
+    color: white !important;
+}
+.payment-method-footnote {
+    font-size: 1.9mm !important;
+    color: #a3a3a3 !important;
+    font-style: italic !important;
+    font-weight: 700 !important;
+    text-align: right !important;
+    margin-top: 0.8mm !important;
+}
+
+/* Signature Area */
+.signature-area {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+    border: 0.3mm solid #f5f5f5 !important;
+    border-radius: 2mm !important;
+    padding: 2.5mm 0 !important;
+    background-color: rgba(255, 255, 255, 0.6) !important;
+}
+.signature-title {
+    font-size: 2.0mm !important;
+    font-weight: 900 !important;
+    color: #dc2626 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2mm !important;
+    margin-bottom: 7.5mm !important;
+}
+.signature-line {
+    border-bottom: 0.3mm solid #a3a3a3 !important;
+    width: 100% !important;
+    max-width: 32mm !important;
+    margin: 0 auto 0.8mm auto !important;
+}
+.signature-name {
+    font-size: 2.4mm !important;
+    font-weight: 900 !important;
+    color: #171717 !important;
+    text-transform: uppercase !important;
+}
+
+/* Compact Mode (when overflow occurs) */
+.nota-page.compact .items-table-wrapper th,
+.nota-page.compact .items-table-wrapper td {
+    padding-top: 0.6mm !important;
+    padding-bottom: 0.6mm !important;
+    padding-left: 1.5mm !important;
+    padding-right: 1.5mm !important;
+    font-size: 2.1mm !important;
+    line-height: 1.15 !important;
+}
+.nota-page.compact .nota-terms {
+    line-height: 1.15 !important;
+    font-size: 1.8mm !important;
+}
 .nota-page.compact .nota-spacer {
     display: none !important;
 }
 
-.nota-spacer {
-    min-height: 8px;
-}
+/* Explicit color helpers */
+.nota-paper .text-white { color: #ffffff !important; }
+.nota-paper .text-red-600 { color: #dc2626 !important; }
+.nota-paper .text-neutral-950 { color: #0a0a0a !important; }
+.nota-paper .text-emerald-600 { color: #059669 !important; }
+.nota-paper .text-emerald-700 { color: #047857 !important; }
 </style>
 
 <style>
@@ -1632,7 +2132,6 @@ const processedReceiptItems = computed(() => {
         margin: 0 !important;
     }
 
-    /* Robustly hide ALL other elements at the root body level except the print wrapper */
     body > :not(#receipt-modal-print-wrapper):not(#transfer-receipt-modal-wrapper) {
         display: none !important;
     }
@@ -1651,7 +2150,6 @@ const processedReceiptItems = computed(() => {
         color-adjust: exact !important;
     }
 
-    /* COMPLETE PARENT RESET: Strict A5 Page Box */
     #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper > div,
     #receipt-content {
@@ -1674,7 +2172,6 @@ const processedReceiptItems = computed(() => {
         transform: none !important;
     }
 
-    /* A5 NOTA PAGE CONTAINER: 148mm x 210mm, padding 6mm, zero scroll, 1 page strict */
     .nota-paper,
     .nota-page {
         display: block !important;
@@ -1687,6 +2184,11 @@ const processedReceiptItems = computed(() => {
         margin: 0 !important;
         box-sizing: border-box !important;
         overflow: hidden !important;
+        font-size: 3.2mm !important;
+        line-height: 1.25 !important;
+        -webkit-text-size-adjust: none !important;
+        text-size-adjust: none !important;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
         page-break-after: avoid !important;
@@ -1701,178 +2203,13 @@ const processedReceiptItems = computed(() => {
         color: #0f172a !important;
     }
 
-    /* Watermark: background layer only, zero layout displacement */
-    .watermark-container {
-        position: absolute !important;
-        inset: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        pointer-events: none !important;
-        z-index: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        overflow: hidden !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .watermark-container img {
-        width: 200px !important;
-        height: 200px !important;
-        max-width: 200px !important;
-        max-height: 200px !important;
-        object-fit: contain !important;
-        opacity: 0.04 !important;
-        pointer-events: none !important;
-        transform: none !important;
-    }
-
-    /* Corner Accents */
-    .corner-accent-tl,
-    .corner-accent-tr {
-        width: 3.25rem !important;
-        height: 3.25rem !important;
-        z-index: 20 !important;
-    }
-    .corner-accent-tl svg,
-    .corner-accent-tr svg {
-        width: 100% !important;
-        height: 100% !important;
-    }
-
-    /* .nota-fit: height: 100%, overflow: hidden */
-    .nota-fit {
-        height: 100% !important;
-        width: 100% !important;
-        overflow: hidden !important;
-        box-sizing: border-box !important;
-        position: relative !important;
-    }
-
-    /* .nota-content: display: flex; flex-direction: column; min-height: 100%; height: auto */
-    .nota-content {
-        display: flex !important;
-        flex-direction: column !important;
-        min-height: 100% !important;
-        height: auto !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-        position: relative !important;
-        transform-origin: top left !important;
-    }
-
-    /* Sections inside .nota-content */
-    .nota-content > section,
-    .nota-content > header,
-    .nota-content > .nota-section {
-        flex: 0 0 auto !important;
-    }
-
-    /* Measuring state */
-    .nota-page.measuring .nota-spacer {
-        flex: 0 0 0 !important;
-        min-height: 0 !important;
-        height: 0 !important;
-    }
-
-    /* Compact state (when overflow occurs) */
-    .nota-page.compact .nota-item-row th,
-    .nota-page.compact .nota-item-row td {
-        padding-block: 0.6mm !important;
-        padding-top: 0.6mm !important;
-        padding-bottom: 0.6mm !important;
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-        font-size: 8px !important;
-        line-height: 1.15 !important;
-    }
-
-    .nota-page.compact .nota-terms {
-        line-height: 1.2 !important;
-        font-size: 7.5px !important;
-    }
-
-    .nota-page.compact .nota-spacer {
-        display: none !important;
-    }
-
-    .nota-item-row.nota-bundle-child td {
-        padding-top: 0.8mm !important;
-        padding-bottom: 0.8mm !important;
-    }
-
-    /* Flexible spacers */
-    .nota-spacer {
-        flex: 1 1 0 !important;
-        min-height: 2mm !important;
-    }
-
-    /* Footer: margin-top: auto when spacers are not flexing, or 0 when spacers distribute */
-    .nota-footer {
-        flex: 0 0 auto !important;
-        margin-top: auto !important;
-    }
-    .nota-page:not(.measuring):not(.compact) .nota-footer {
-        margin-top: 0 !important;
-    }
-    .nota-page.compact .nota-footer {
-        margin-top: auto !important;
-    }
-
-    /* 2-Column Bottom Grid Layout in Print: strict explicit columns */
-    .nota-bottom {
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) 62mm !important;
-        column-gap: 3mm !important;
-        row-gap: 0 !important;
-        align-items: start !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-    .nota-left-col {
-        min-width: 0 !important;
-        width: 100% !important;
-    }
-    .nota-notes,
-    .nota-terms {
-        min-width: 0 !important;
-        overflow-wrap: break-word !important;
-        word-break: normal !important;
-    }
-    .notes-box {
-        overflow-wrap: break-word !important;
-        word-break: normal !important;
-        white-space: pre-wrap !important;
-        background-color: rgba(250, 250, 250, 0.7) !important;
-        border-color: #e5e7eb !important;
-    }
-    .nota-totals {
-        width: 62mm !important;
-        min-width: 62mm !important;
-        max-width: 62mm !important;
-        box-sizing: border-box !important;
-    }
-
-    /* Items table styling in print */
-    .items-table-wrapper {
-        border-radius: 6px !important;
-        overflow: visible !important;
-        border-color: #e5e7eb !important;
-        background: white !important;
-    }
-    .items-table-wrapper table {
-        border-collapse: collapse !important;
-        width: 100% !important;
-    }
     .items-table-wrapper th {
         background-color: #0a0a0a !important;
         color: #ffffff !important;
-        border-color: #0a0a0a !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Total box styling */
     .bg-red-600 {
         background-color: #dc2626 !important;
         -webkit-print-color-adjust: exact !important;
@@ -1883,7 +2220,6 @@ const processedReceiptItems = computed(() => {
         display: none !important;
     }
 
-    /* Clean shadow/halo stripping */
     #receipt-modal-print-wrapper,
     #receipt-modal-print-wrapper *,
     .nota-paper,
