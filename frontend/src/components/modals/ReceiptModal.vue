@@ -53,8 +53,9 @@
                                     class="w-[200px] h-[200px] object-contain opacity-[0.05] pointer-events-none select-none" />
                             </div>
 
-                            <div ref="notaInnerRef" class="nota-inner nota-fit relative z-10 flex flex-col h-full">
-                                <!-- 1. HEADER SECTION (Store Logo, Branch, Socials, Line) -->
+                            <div class="nota-fit relative z-10 w-full h-full overflow-hidden">
+                                <div ref="notaContentRef" class="nota-content flex flex-col min-h-full h-auto w-full">
+                                    <!-- 1. HEADER SECTION (Store Logo, Branch, Socials, Line) -->
                                 <div class="nota-section header-section shrink-0">
                                     <div class="flex items-center gap-4 px-3 sm:px-6 mb-2">
                                         <!-- Store Logo -->
@@ -318,35 +319,38 @@
                                             </thead>
                                             <tbody>
                                                 <template v-if="processedReceiptItems.length > 0">
-                                                    <tr v-for="(item, index) in processedReceiptItems" :key="index" :class="[
-                                                        item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'),
-                                                        item.show_bottom_border ? 'border-b border-neutral-300' : ''
-                                                    ]">
+                                                    <tr v-for="(item, index) in processedReceiptItems" :key="index"
+                                                        class="nota-item-row"
+                                                        :class="[
+                                                            item.is_bundle_child ? 'nota-bundle-child' : '',
+                                                            item.is_bundle_header ? 'bg-blue-50/30 font-bold print:bg-white' : (index % 2 === 1 ? 'bg-neutral-100/80' : 'bg-white/90'),
+                                                            item.show_bottom_border ? 'border-b border-neutral-300' : ''
+                                                        ]">
 
                                                         <!-- IMEI COLUMN -->
                                                         <td class="py-2 px-3 align-middle text-left">
-                                                            <div v-if="!item.is_bundle_header"
-                                                                class="text-[10px] font-black font-mono text-neutral-900"
-                                                                :class="{ 'pl-4': item.is_bundle_child }">
+                                                            <div v-if="!item.is_bundle_header && !item.is_bundle_child"
+                                                                class="text-[10px] font-black font-mono text-neutral-900">
                                                                 {{ item.is_hp ? (item.imei && item.imei !== '-' ? item.imei
                                                                 : '-') : '-' }}
-                                                            </div>
-                                                            <div v-else
-                                                                class="text-[10px] font-bold text-neutral-400 text-center">-
                                                             </div>
                                                         </td>
 
                                                         <!-- DESKRIPSI BARANG COLUMN -->
                                                         <td class="py-2 px-3 align-middle">
                                                             <div v-if="item.is_bundle_header"
-                                                                class="font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex items-center">
+                                                                class="font-black text-neutral-950 text-[11px] sm:text-[12px] uppercase tracking-wide flex flex-col">
                                                                 <span>📦 {{ item.name }}</span>
+                                                                <div v-if="item.sub_items_summary"
+                                                                    class="text-[9px] font-semibold text-neutral-600 mt-0.5 normal-case tracking-normal leading-tight">
+                                                                    • {{ item.sub_items_summary }}
+                                                                </div>
                                                             </div>
                                                             <div v-else
                                                                 class="font-bold text-neutral-800 text-[10px] sm:text-[11px] uppercase flex items-start"
-                                                                :class="{ 'pl-4 font-semibold': item.is_bundle_child }">
+                                                                :class="{ 'pl-4 font-semibold text-[9px]': item.is_bundle_child }">
                                                                 <span v-if="item.is_bundle_child"
-                                                                    class="text-neutral-600 mr-1.5 text-[12px] leading-none font-black mt-0.5">*</span>
+                                                                    class="text-neutral-500 mr-1.5 text-[10px] leading-none font-bold mt-0.5">•</span>
                                                                 <span>
                                                                     <span v-if="item.is_dp_deduction" class="mr-1.5 px-1 py-[1px] rounded bg-emerald-100 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">DP</span>
                                                                     <span v-if="transaction.category === 'pelunasan_dp' && !item.is_dp_deduction && !item.is_bundle_header" class="mr-1.5 px-1 py-[1px] rounded bg-rose-100 text-rose-700 border border-rose-200 text-[8px] font-black uppercase tracking-wider inline-block leading-none align-middle">PELUNASAN</span>
@@ -373,7 +377,6 @@
                                                                 class="text-[10px] sm:text-[11px] font-bold text-neutral-900">
                                                                 {{ formatNumber(Math.abs(item.originalPrice || 0)) }}
                                                             </div>
-                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                         </td>
 
                                                         <!-- DISKON COLUMN -->
@@ -385,7 +388,6 @@
                                                                 </span>
                                                                 <span v-else class="text-neutral-300">-</span>
                                                             </div>
-                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                         </td>
 
                                                         <!-- QTY COLUMN -->
@@ -394,14 +396,12 @@
                                                                 class="text-[10px] sm:text-[11px] font-black text-neutral-900">
                                                                 {{ item.qty || 1 }}
                                                             </div>
-                                                            <div v-else class="text-[10px] font-bold text-neutral-400 text-center">-</div>
                                                         </td>
 
                                                         <!-- JUMLAH COLUMN -->
                                                         <td class="py-2 px-3 align-middle text-right">
-                                                            <div class="text-[10px] sm:text-[11px] font-black text-neutral-900">
-                                                                <span v-if="item.is_bundle_child" class="text-neutral-400">-</span>
-                                                                <span v-else-if="item.is_bundle_header">
+                                                            <div v-if="!item.is_bundle_child" class="text-[10px] sm:text-[11px] font-black text-neutral-900">
+                                                                <span v-if="item.is_bundle_header">
                                                                     {{ formatNumber(Math.abs(item.price)) }}
                                                                 </span>
                                                                 <span v-else>
@@ -564,10 +564,10 @@
                                         </div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
+                </div>
 
                     <!-- LOADING OVERLAY -->
                     <div v-if="isGeneratingPDF"
@@ -645,79 +645,103 @@ const close = () => {
 const isGeneratingPDF = ref(false);
 const paperSize = ref('A5');
 const notaPaperRef = ref(null);
-const notaInnerRef = ref(null);
+const notaContentRef = ref(null);
 
-const autoFitA5 = () => {
-    if (!notaPaperRef.value || !notaInnerRef.value) return;
-    const page = notaPaperRef.value;
-    const inner = notaInnerRef.value;
+let isFitting = false;
+let resizeObserver = null;
 
-    // Reset zoom and classes to get clean unscaled measurement
-    inner.style.zoom = '1';
-    inner.classList.remove('is-tight');
+const fit = async () => {
+    if (isFitting || !notaPaperRef.value || !notaContentRef.value) return;
+    isFitting = true;
 
-    // Available printable height on A5 paper (210mm total - 12mm padding = 198mm)
-    // CSS standard: 1in = 25.4mm = 96px => 1mm = 96 / 25.4 ≈ 3.779527559px
-    // 198mm ≈ 748.346px
-    const a5AvailablePx = (210 - 12) * (96 / 25.4);
-    const computedStyle = window.getComputedStyle(page);
-    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
-    const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
-    let avail = page.clientHeight - paddingTop - paddingBottom;
-    if (avail <= 150 || avail > 1200) {
-        avail = a5AvailablePx;
-    }
+    try {
+        const page = notaPaperRef.value;
+        const content = notaContentRef.value;
 
-    // Measure needed content height with spacers in minimum collapsed condition
-    inner.classList.add('is-measuring');
-    const needed = inner.scrollHeight;
-    inner.classList.remove('is-measuring');
+        await document.fonts?.ready;
+        await Promise.all([...page.querySelectorAll('img')].map(i => i.decode?.().catch(() => {})));
 
-    // Mode 1: Content fits comfortably (< 1 A5 page)
-    // Keep scale = 1.0, let flex spacers distribute the remaining space evenly across sections.
-    if (needed <= avail) {
-        inner.style.zoom = '1';
-        return;
-    }
+        const cs = getComputedStyle(page);
+        let avail = page.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        const a5AvailablePx = (210 - 12) * (96 / 25.4);
+        if (avail <= 150 || avail > 1200) {
+            avail = a5AvailablePx;
+        }
 
-    // Mode 2: Content overflows (> 1 A5 page)
-    // Calculate required scale down to minimum 0.7 to ensure everything fits on 1 sheet.
-    let scale = Math.max(0.7, avail / needed);
-    inner.style.zoom = String(scale);
+        // reset + matikan spacer saat mengukur
+        content.style.zoom = '1';
+        content.style.minHeight = '0';
+        page.classList.remove('compact');
+        page.classList.add('measuring'); // .measuring .nota-spacer { flex: 0 0 0 !important; min-height: 0 !important; }
+        let needed = content.getBoundingClientRect().height;
+        page.classList.remove('measuring');
+        content.style.minHeight = '';
 
-    // If scale reaches 0.75 or still tight, apply .is-tight for compact table row padding and gaps
-    if (scale <= 0.75 || (needed * scale) > avail) {
-        inner.classList.add('is-tight');
+        if (needed <= avail) {
+            content.style.zoom = '1';
+            return; // muat -> biarkan layout flex apa adanya
+        }
 
-        inner.classList.add('is-measuring');
-        const tightNeeded = inner.scrollHeight;
-        inner.classList.remove('is-measuring');
+        // shrink iteratif sampai muat, minimum 0.6
+        let scale = Math.max(0.6, (avail / needed) * 0.98);
+        content.style.zoom = String(scale);
+        for (let i = 0; i < 6; i++) {
+            page.classList.add('measuring');
+            const h = content.getBoundingClientRect().height;
+            page.classList.remove('measuring');
+            if (h <= avail || scale <= 0.6) break;
+            scale = Math.max(0.6, scale * (avail / h) * 0.98);
+            content.style.zoom = String(scale);
+        }
 
-        const tightScale = Math.max(0.7, avail / tightNeeded);
-        inner.style.zoom = String(tightScale);
+        // masih overflow di 0.6 -> mode compact
+        page.classList.add('measuring');
+        const finalH = content.getBoundingClientRect().height;
+        page.classList.remove('measuring');
+        if (finalH > avail) {
+            page.classList.add('compact');
+        }
+    } finally {
+        isFitting = false;
     }
 };
 
 const resetFit = () => {
-    if (!notaInnerRef.value) return;
-    notaInnerRef.value.style.zoom = '1';
-    notaInnerRef.value.classList.remove('is-tight');
+    if (!notaPaperRef.value || !notaContentRef.value) return;
+    notaContentRef.value.style.zoom = '1';
+    notaContentRef.value.style.minHeight = '';
+    notaPaperRef.value.classList.remove('compact');
+    notaPaperRef.value.classList.remove('measuring');
 };
 
 onMounted(() => {
-    window.addEventListener('beforeprint', autoFitA5);
+    window.addEventListener('beforeprint', fit);
     window.addEventListener('afterprint', resetFit);
+
+    if (window.ResizeObserver && notaContentRef.value) {
+        resizeObserver = new ResizeObserver(() => {
+            if (!isFitting && props.isOpen) {
+                fit();
+            }
+        });
+        resizeObserver.observe(notaContentRef.value);
+    }
 });
 
 onUnmounted(() => {
-    window.removeEventListener('beforeprint', autoFitA5);
+    window.removeEventListener('beforeprint', fit);
     window.removeEventListener('afterprint', resetFit);
+    resizeObserver?.disconnect();
 });
 
 watch(() => props.isOpen, async (newVal) => {
     if (newVal) {
         await nextTick();
-        autoFitA5();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                fit();
+            });
+        });
         if (props.autoSend) {
             setTimeout(() => {
                 sendWaReceiptFromModal();
@@ -726,10 +750,14 @@ watch(() => props.isOpen, async (newVal) => {
     }
 });
 
-watch(() => props.transaction, async () => {
+watch(() => [props.transaction, processedReceiptItems.value], async () => {
     if (props.isOpen) {
         await nextTick();
-        autoFitA5();
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                fit();
+            });
+        });
     }
 }, { deep: true });
 
@@ -987,7 +1015,7 @@ const sendWaReceiptFromModal = async () => {
     }
 };
 
-const printReceipt = () => {
+const printReceipt = async () => {
     // 1. Dapatkan atau siapkan style element untuk ukuran halaman cetak A5
     const styleId = 'dynamic-print-page-size';
     let styleEl = document.getElementById(styleId);
@@ -1005,7 +1033,7 @@ const printReceipt = () => {
     `;
 
     // 2. Fit konten secara optimal ke 1 lembar A5 sebelum cetak
-    autoFitA5();
+    await fit();
 
     // 3. Bersihkan judul dokumen sementara agar browser header/footer tidak tercetak
     const originalTitle = document.title;
@@ -1376,32 +1404,64 @@ const processedReceiptItems = computed(() => {
                     absorbed = true;
                 }
 
-                // 4. Push the HEADER ROW which displays the consolidated price
-                newList.push({
-                    is_hp: false,
-                    is_bundle_header: true,
-                    is_bundle_child: false,
-                    name: bundleDisplayName,
-                    price: groupTotal,
-                    originalPrice: groupOriginalTotal,
-                    itemDiscount: groupDiscountTotal,
-                    absorbedGlobalDiscount: absorbed,
-                    qty: 1,
-                    imei: '-',
-                    notes: groupKey,
-                    show_bottom_border: false
-                });
+                // 4. Compact Sub-Items rule: If sub-items > 3, merge into 1 paragraph below bundle name separated by " • "
+                if (groupItems.length > 3) {
+                    const subSummary = groupItems.map((c) => {
+                        let cName = c.name || c.product?.name || '';
+                        return cName
+                            .replace('Tukar Tambah OUT: ', '')
+                            .replace('Tukar Tambah IN: ', '')
+                            .replace('Tukar Unit OUT: ', '')
+                            .replace('Tukar Unit IN: ', '')
+                            .replace('OUT: ', '')
+                            .replace('IN: ', '')
+                            .replace(/paket bundling/gi, '')
+                            .replace('📦 ', '')
+                            .trim();
+                    }).filter(Boolean).join(' • ');
 
-                // 5. Push the INDIVIDUAL COMPONENT ROWS underneath it (with prices hidden)
-                groupItems.forEach((child, childIdx) => {
                     newList.push({
-                        ...child,
-                        is_bundle_header: false,
-                        is_bundle_child: true,
-                        _hidePrice: true,
-                        show_bottom_border: childIdx === groupItems.length - 1
+                        is_hp: false,
+                        is_bundle_header: true,
+                        is_bundle_child: false,
+                        name: bundleDisplayName,
+                        sub_items_summary: subSummary,
+                        price: groupTotal,
+                        originalPrice: groupOriginalTotal,
+                        itemDiscount: groupDiscountTotal,
+                        absorbedGlobalDiscount: absorbed,
+                        qty: 1,
+                        imei: '',
+                        notes: groupKey,
+                        show_bottom_border: true
                     });
-                });
+                } else {
+                    // If sub-items <= 3: keep individual compact child rows
+                    newList.push({
+                        is_hp: false,
+                        is_bundle_header: true,
+                        is_bundle_child: false,
+                        name: bundleDisplayName,
+                        price: groupTotal,
+                        originalPrice: groupOriginalTotal,
+                        itemDiscount: groupDiscountTotal,
+                        absorbedGlobalDiscount: absorbed,
+                        qty: 1,
+                        imei: '',
+                        notes: groupKey,
+                        show_bottom_border: false
+                    });
+
+                    groupItems.forEach((child, childIdx) => {
+                        newList.push({
+                            ...child,
+                            is_bundle_header: false,
+                            is_bundle_child: true,
+                            _hidePrice: true,
+                            show_bottom_border: childIdx === groupItems.length - 1
+                        });
+                    });
+                }
             }
         }
     });
@@ -1514,6 +1574,49 @@ const processedReceiptItems = computed(() => {
     overflow-wrap: break-word;
     word-break: normal;
     white-space: pre-wrap;
+}
+
+.nota-fit {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.nota-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    height: auto;
+    width: 100%;
+    transform-origin: top left;
+}
+
+.nota-item-row.nota-bundle-child td {
+    padding-top: 0.8mm;
+    padding-bottom: 0.8mm;
+}
+
+.nota-page.measuring .nota-spacer {
+    flex: 0 0 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+}
+
+.nota-page.compact .nota-item-row th,
+.nota-page.compact .nota-item-row td {
+    padding-block: 0.6mm !important;
+    padding-top: 0.6mm !important;
+    padding-bottom: 0.6mm !important;
+    font-size: 8px !important;
+}
+
+.nota-page.compact .nota-terms {
+    line-height: 1.2 !important;
+}
+
+.nota-page.compact .nota-spacer {
+    display: none !important;
 }
 
 .nota-spacer {
@@ -1637,57 +1740,83 @@ const processedReceiptItems = computed(() => {
         height: 100% !important;
     }
 
-    /* Inner flex column: 100% height of printable area (198mm) */
-    .nota-inner,
+    /* .nota-fit: height: 100%, overflow: hidden */
     .nota-fit {
+        height: 100% !important;
+        width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        position: relative !important;
+    }
+
+    /* .nota-content: display: flex; flex-direction: column; min-height: 100%; height: auto */
+    .nota-content {
         display: flex !important;
         flex-direction: column !important;
-        height: 100% !important;
+        min-height: 100% !important;
+        height: auto !important;
         width: 100% !important;
         box-sizing: border-box !important;
         position: relative !important;
-        z-index: 1 !important;
         transform-origin: top left !important;
     }
 
-    /* Sections inside .nota-fit / .nota-inner */
-    .nota-fit > section,
-    .nota-fit > header,
-    .nota-fit > .nota-section,
-    .nota-inner > section,
-    .nota-inner > header,
-    .nota-inner > .nota-section {
+    /* Sections inside .nota-content */
+    .nota-content > section,
+    .nota-content > header,
+    .nota-content > .nota-section {
         flex: 0 0 auto !important;
     }
 
-    /* Measurement state: collapse height and spacers to accurately calculate minimum needed height */
-    .nota-inner.is-measuring,
-    .nota-fit.is-measuring {
-        height: auto !important;
-    }
-    .nota-inner.is-measuring .nota-spacer,
-    .nota-fit.is-measuring .nota-spacer {
-        flex-grow: 0 !important;
-        flex-shrink: 0 !important;
-        height: 2mm !important;
-        min-height: 2mm !important;
+    /* Measuring state */
+    .nota-page.measuring .nota-spacer {
+        flex: 0 0 0 !important;
+        min-height: 0 !important;
+        height: 0 !important;
     }
 
-    /* Flexible spacers: naturally distribute excess space evenly between sections */
+    /* Compact state (when overflow occurs) */
+    .nota-page.compact .nota-item-row th,
+    .nota-page.compact .nota-item-row td {
+        padding-block: 0.6mm !important;
+        padding-top: 0.6mm !important;
+        padding-bottom: 0.6mm !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        font-size: 8px !important;
+        line-height: 1.15 !important;
+    }
+
+    .nota-page.compact .nota-terms {
+        line-height: 1.2 !important;
+        font-size: 7.5px !important;
+    }
+
+    .nota-page.compact .nota-spacer {
+        display: none !important;
+    }
+
+    .nota-item-row.nota-bundle-child td {
+        padding-top: 0.8mm !important;
+        padding-bottom: 0.8mm !important;
+    }
+
+    /* Flexible spacers */
     .nota-spacer {
         flex: 1 1 0 !important;
         min-height: 2mm !important;
     }
 
-    /* Footer TTD: fixed at the bottom of the page */
+    /* Footer: margin-top: auto when spacers are not flexing, or 0 when spacers distribute */
     .nota-footer {
         flex: 0 0 auto !important;
-        margin-top: auto;
+        margin-top: auto !important;
     }
-    /* When spacers are active in .nota-fit, distribute space evenly across all spacers so content fills page cleanly */
-    .nota-fit:has(.nota-spacer) .nota-footer,
-    .nota-inner:has(.nota-spacer) .nota-footer {
+    .nota-page:not(.measuring):not(.compact) .nota-footer {
         margin-top: 0 !important;
+    }
+    .nota-page.compact .nota-footer {
+        margin-top: auto !important;
     }
 
     /* 2-Column Bottom Grid Layout in Print: strict explicit columns */
@@ -1748,34 +1877,6 @@ const processedReceiptItems = computed(() => {
         background-color: #dc2626 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-    }
-
-    /* Tight mode: only applied when scale <= 0.75 for heavy item counts */
-    .nota-inner.is-tight .nota-spacer,
-    .nota-fit.is-tight .nota-spacer {
-        min-height: 1mm !important;
-        height: 1mm !important;
-    }
-    .nota-inner.is-tight th,
-    .nota-inner.is-tight td,
-    .nota-fit.is-tight th,
-    .nota-fit.is-tight td {
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
-        padding-left: 3px !important;
-        padding-right: 3px !important;
-        font-size: 8px !important;
-        line-height: 1.15 !important;
-    }
-    .nota-inner.is-tight .notes-box,
-    .nota-fit.is-tight .notes-box {
-        padding: 3px 5px !important;
-        font-size: 8px !important;
-        min-height: 24px !important;
-    }
-    .nota-inner.is-tight .signature-section .mb-10,
-    .nota-fit.is-tight .signature-section .mb-10 {
-        margin-bottom: 1.25rem !important;
     }
 
     .print\:hidden {
