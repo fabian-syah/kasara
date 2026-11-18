@@ -53,8 +53,8 @@
                                     class="w-[200px] h-[200px] object-contain opacity-[0.05] pointer-events-none select-none" />
                             </div>
 
-                            <div ref="notaInnerRef" class="nota-inner relative z-10 flex flex-col h-full">
-                                <!-- 1. HEADER SECTION (Store Logo, Branch, Socials, Line, Title) -->
+                            <div ref="notaInnerRef" class="nota-inner nota-fit relative z-10 flex flex-col h-full">
+                                <!-- 1. HEADER SECTION (Store Logo, Branch, Socials, Line) -->
                                 <div class="nota-section header-section shrink-0">
                                     <div class="flex items-center gap-4 px-3 sm:px-6 mb-2">
                                         <!-- Store Logo -->
@@ -109,26 +109,29 @@
                                     </div>
 
                                     <!-- Thick Middle Segment Separator Line -->
-                                    <div class="relative w-full h-px bg-neutral-200 mb-2 mt-1 flex justify-center">
+                                    <div class="relative w-full h-px bg-neutral-200 mb-1 mt-1 flex justify-center">
                                         <div class="absolute -top-0.5 w-16 h-1 bg-red-600 rounded-full"></div>
-                                    </div>
-
-                                    <!-- Invoice Type Head -->
-                                    <div class="text-center mb-1 mt-1">
-                                        <h2
-                                            class="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
-                                            {{ receiptTitle }}
-                                        </h2>
-                                        <div
-                                            class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
-                                            <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                            <span>BUKTI TRANSAKSI</span>
-                                            <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
-                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Spacer 1: Flexible distribution -->
+                                <div class="nota-spacer"></div>
+
+                                <!-- 2. TITLE SECTION (Judul Nota) -->
+                                <div class="nota-section title-section shrink-0 text-center">
+                                    <h2
+                                        class="text-2xl sm:text-3xl font-black text-neutral-950 uppercase tracking-wide leading-tight">
+                                        {{ receiptTitle }}
+                                    </h2>
+                                    <div
+                                        class="flex items-center justify-center gap-2 text-[10px] font-black tracking-wider text-red-600 mt-0.5">
+                                        <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
+                                        <span>BUKTI TRANSAKSI</span>
+                                        <div class="h-[1.5px] w-5 bg-red-600/30 rounded-full"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Spacer 2: Flexible distribution -->
                                 <div class="nota-spacer"></div>
 
                                 <!-- 2. METADATA INFO GRID (3 Columns, 2 Rows) -->
@@ -424,27 +427,26 @@
 
                                 <!-- 4. SUMMARY & NOTES SECTION (Split Column: Notes/Warranty & Breakdown/Total) -->
                                 <div class="nota-section summary-section shrink-0">
-                                    <div class="split-section flex flex-col md:flex-row gap-4 print:flex-row print:gap-3 items-start">
+                                    <div class="nota-bottom">
                                         <!-- Left Column: Notes & Warranty -->
-                                        <div class="flex-1 w-full min-w-0">
+                                        <div class="nota-left-col min-w-0">
                                             <!-- Catatan Section (Separate Block, Clean Margin, No Overlap) -->
-                                            <div class="notes-container mb-2.5">
+                                            <div class="nota-notes notes-container mb-2">
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span
-                                                        class="inline-block bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded shadow-sm">
+                                                        class="inline-block bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
                                                         Catatan
                                                     </span>
                                                     <div class="h-0.5 flex-1 bg-red-100 rounded-full"></div>
                                                 </div>
                                                 <div
-                                                    class="notes-box bg-neutral-50/60 border border-neutral-200 rounded-lg p-2 text-[9px] font-bold text-neutral-800 break-words whitespace-pre-wrap leading-tight"
-                                                    style="word-break: break-word;">
+                                                    class="notes-box bg-neutral-50/60 border border-neutral-200 rounded-lg p-2 text-[9px] font-bold text-neutral-800 leading-tight">
                                                     {{ transaction.notes || transaction.reason || 'Tidak ada catatan tambahan.' }}
                                                 </div>
                                             </div>
 
                                             <!-- Syarat & Ketentuan (Warranty) -->
-                                            <div class="warranty-container">
+                                            <div class="nota-terms warranty-container">
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span
                                                         class="text-[9px] font-black text-red-600 tracking-wider uppercase">Syarat
@@ -465,10 +467,10 @@
                                         </div>
 
                                         <!-- Right Column: Financial Details & Slanted Total -->
-                                        <div class="w-full md:w-[240px] shrink-0">
+                                        <div class="nota-totals shrink-0">
                                             <!-- Small Subtotal Breakdown -->
                                             <div
-                                                class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-2.5 space-y-1.5 text-xs mb-2">
+                                                class="bg-neutral-50/80 rounded-xl border border-neutral-200 p-2 space-y-1 text-xs mb-2">
                                                 <div class="flex justify-between">
                                                     <span class="font-bold text-neutral-500 text-[9px]">Sub Total</span>
                                                     <span class="text-neutral-900 font-bold text-[10px]">
@@ -505,9 +507,9 @@
 
                                             <!-- Exact Slanted Grand Total Header Box -->
                                             <div
-                                                class="flex rounded-xl overflow-hidden shadow-md h-[48px] bg-red-600 w-full relative">
+                                                class="flex rounded-xl overflow-hidden shadow-md h-[44px] bg-red-600 w-full relative">
                                                 <!-- Black Trapezoid Part -->
-                                                <div class="bg-neutral-950 text-white pl-3 pr-6 flex flex-col justify-center shrink-0 select-none pointer-events-none"
+                                                <div class="bg-neutral-950 text-white pl-2.5 pr-5 flex flex-col justify-center shrink-0 select-none pointer-events-none"
                                                     style="clip-path: polygon(0 0, 100% 0, 82% 100%, 0% 100%); z-index: 2;">
                                                     <div
                                                         class="text-[7.5px] font-black uppercase tracking-wider leading-none text-white">
@@ -517,7 +519,7 @@
                                                         {{ (transaction.category === 'refund' || transaction.category === 'refund_dp') ? 'Dikembalikan' : 'Dibayarkan' }}</div>
                                                 </div>
                                                 <!-- Red Total Part -->
-                                                <div class="flex-1 flex items-center justify-end pr-3 text-white"
+                                                <div class="flex-1 flex items-center justify-end pr-2.5 text-white"
                                                     style="z-index: 1;">
                                                     <span class="text-base sm:text-lg font-black text-white tracking-tight">{{
                                                         formatCurrency(Math.abs(calculatedGrandTotal)) }}</span>
@@ -533,11 +535,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Spacer 4: Flexible distribution -->
+                                <!-- Spacer 5: Flexible distribution -->
                                 <div class="nota-spacer"></div>
 
-                                <!-- 5. SIGNATURE AREA (Clean Bottom Placement) -->
-                                <div class="nota-section signature-section shrink-0">
+                                <!-- 6. SIGNATURE AREA (Clean Bottom Placement) -->
+                                <div class="nota-section signature-section nota-footer shrink-0">
                                     <div
                                         class="signature-area grid grid-cols-2 text-[10px] gap-4 border border-neutral-100 rounded-xl py-3 bg-white/60 backdrop-blur-[1px]">
                                         <div class="text-center border-r border-neutral-200">
@@ -885,9 +887,9 @@ const sendWaReceiptFromModal = async () => {
         .bg-white { background-color: #ffffff !important; }
         .border-neutral-200 { border-color: #e5e7eb !important; border-width: 1px !important; border-style: solid !important; }
         th { background-color: #0a0a0a !important; color: #ffffff !important; }
-        .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 22px !important; margin-bottom: 0 !important; }
-        .flex.flex-col.md\\:flex-row > div:first-child { display: table-cell !important; width: 58% !important; vertical-align: top !important; padding-right: 20px !important; }
-        .flex.flex-col.md\\:flex-row > div:last-child { display: table-cell !important; width: 42% !important; vertical-align: top !important; }
+        .nota-bottom, .flex.flex-col.md\\:flex-row { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 22px !important; margin-bottom: 0 !important; }
+        .nota-bottom > div:first-child, .flex.flex-col.md\\:flex-row > div:first-child { display: table-cell !important; width: 58% !important; vertical-align: top !important; padding-right: 20px !important; }
+        .nota-bottom > div:last-child, .flex.flex-col.md\\:flex-row > div:last-child { display: table-cell !important; width: 42% !important; vertical-align: top !important; }
         .signature-area.grid.grid-cols-2 { display: table !important; width: 100% !important; table-layout: fixed !important; margin-top: 20mm !important; margin-bottom: 0 !important; }
         .signature-area.grid.grid-cols-2 > div { display: table-cell !important; width: 50% !important; vertical-align: top !important; }
         .nota-paper .flex.items-center.gap-5.mb-4.mt-6.px-6 {
@@ -1483,6 +1485,37 @@ const processedReceiptItems = computed(() => {
     box-shadow: none !important;
 }
 
+.nota-bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 1rem;
+    align-items: start;
+}
+
+@media (max-width: 640px) {
+    .nota-bottom {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .nota-totals {
+        width: 100%;
+    }
+}
+
+.nota-notes,
+.nota-terms {
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.notes-box {
+    overflow-wrap: break-word;
+    word-break: normal;
+    white-space: pre-wrap;
+}
+
 .nota-spacer {
     min-height: 8px;
 }
@@ -1605,7 +1638,8 @@ const processedReceiptItems = computed(() => {
     }
 
     /* Inner flex column: 100% height of printable area (198mm) */
-    .nota-inner {
+    .nota-inner,
+    .nota-fit {
         display: flex !important;
         flex-direction: column !important;
         height: 100% !important;
@@ -1616,11 +1650,23 @@ const processedReceiptItems = computed(() => {
         transform-origin: top left !important;
     }
 
+    /* Sections inside .nota-fit / .nota-inner */
+    .nota-fit > section,
+    .nota-fit > header,
+    .nota-fit > .nota-section,
+    .nota-inner > section,
+    .nota-inner > header,
+    .nota-inner > .nota-section {
+        flex: 0 0 auto !important;
+    }
+
     /* Measurement state: collapse height and spacers to accurately calculate minimum needed height */
-    .nota-inner.is-measuring {
+    .nota-inner.is-measuring,
+    .nota-fit.is-measuring {
         height: auto !important;
     }
-    .nota-inner.is-measuring .nota-spacer {
+    .nota-inner.is-measuring .nota-spacer,
+    .nota-fit.is-measuring .nota-spacer {
         flex-grow: 0 !important;
         flex-shrink: 0 !important;
         height: 2mm !important;
@@ -1633,13 +1679,49 @@ const processedReceiptItems = computed(() => {
         min-height: 2mm !important;
     }
 
-    /* Logical sections shrink-0 so they don't get squashed unproportionately */
-    .header-section,
-    .metadata-section,
-    .items-table-section,
-    .summary-section,
-    .signature-section {
-        flex-shrink: 0 !important;
+    /* Footer TTD: fixed at the bottom of the page */
+    .nota-footer {
+        flex: 0 0 auto !important;
+        margin-top: auto;
+    }
+    /* When spacers are active in .nota-fit, distribute space evenly across all spacers so content fills page cleanly */
+    .nota-fit:has(.nota-spacer) .nota-footer,
+    .nota-inner:has(.nota-spacer) .nota-footer {
+        margin-top: 0 !important;
+    }
+
+    /* 2-Column Bottom Grid Layout in Print: strict explicit columns */
+    .nota-bottom {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 62mm !important;
+        column-gap: 3mm !important;
+        row-gap: 0 !important;
+        align-items: start !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .nota-left-col {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+    .nota-notes,
+    .nota-terms {
+        min-width: 0 !important;
+        overflow-wrap: break-word !important;
+        word-break: normal !important;
+    }
+    .notes-box {
+        overflow-wrap: break-word !important;
+        word-break: normal !important;
+        white-space: pre-wrap !important;
+        background-color: rgba(250, 250, 250, 0.7) !important;
+        border-color: #e5e7eb !important;
+    }
+    .nota-totals {
+        width: 62mm !important;
+        min-width: 62mm !important;
+        max-width: 62mm !important;
+        box-sizing: border-box !important;
     }
 
     /* Items table styling in print */
@@ -1661,13 +1743,6 @@ const processedReceiptItems = computed(() => {
         print-color-adjust: exact !important;
     }
 
-    /* Notes Box: clear wrapping, no overlap */
-    .notes-box {
-        word-break: break-word !important;
-        background-color: rgba(250, 250, 250, 0.7) !important;
-        border-color: #e5e7eb !important;
-    }
-
     /* Total box styling */
     .bg-red-600 {
         background-color: #dc2626 !important;
@@ -1676,12 +1751,15 @@ const processedReceiptItems = computed(() => {
     }
 
     /* Tight mode: only applied when scale <= 0.75 for heavy item counts */
-    .nota-inner.is-tight .nota-spacer {
+    .nota-inner.is-tight .nota-spacer,
+    .nota-fit.is-tight .nota-spacer {
         min-height: 1mm !important;
         height: 1mm !important;
     }
     .nota-inner.is-tight th,
-    .nota-inner.is-tight td {
+    .nota-inner.is-tight td,
+    .nota-fit.is-tight th,
+    .nota-fit.is-tight td {
         padding-top: 2px !important;
         padding-bottom: 2px !important;
         padding-left: 3px !important;
@@ -1689,12 +1767,14 @@ const processedReceiptItems = computed(() => {
         font-size: 8px !important;
         line-height: 1.15 !important;
     }
-    .nota-inner.is-tight .notes-box {
+    .nota-inner.is-tight .notes-box,
+    .nota-fit.is-tight .notes-box {
         padding: 3px 5px !important;
         font-size: 8px !important;
         min-height: 24px !important;
     }
-    .nota-inner.is-tight .signature-section .mb-10 {
+    .nota-inner.is-tight .signature-section .mb-10,
+    .nota-fit.is-tight .signature-section .mb-10 {
         margin-bottom: 1.25rem !important;
     }
 
