@@ -1958,6 +1958,13 @@ class ReportController extends Controller
                     $isIncoming = in_array($cat, $incomingAuditCategories) || $isAB;
                     
                     foreach($out->items as $pd) {
+                        // All incoming HP transactions (barang_masuk, pembelian, TT, TU, refund, etc.)
+                        // are already counted in Step 3 via InventoryLog (type='in').
+                        // Skipping them here prevents 2x double counting of HP incoming stock.
+                        if ($isIncoming) {
+                            continue;
+                        }
+
                         $isHpItem = ($pd->product->type ?? ($pd->product->has_imei ? 'hp' : 'non-hp')) === 'hp' || $pd->product->has_imei;
                         $norm = $normalize($pd->product->brand ?? '', $pd->product->name ?? '', $pd->storage, $pd->condition, $isHpItem);
                         $groupKey = $norm['key'];
@@ -1970,18 +1977,11 @@ class ReportController extends Controller
                             ]);
                         }
                         
-                        if ($isIncoming) {
-                            $results[$groupKey]['in_total']++;
-                            if ($isAB) $results[$groupKey]['in_ab']++;
-                            elseif ($cat === 'refund') $results[$groupKey]['in_rf']++;
-                            else $results[$groupKey]['in_manual']++;
-                        } else {
-                            $results[$groupKey]['out_total']++;
-                            $cat = $out->category;
-                            if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
-                            elseif ($cat === 'retur') $results[$groupKey]['out_retur']++;
-                            else $results[$groupKey]['out_keluar']++;
-                        }
+                        $results[$groupKey]['out_total']++;
+                        $cat = $out->category;
+                        if (in_array($cat, $soldCategories)) $results[$groupKey]['out_sold']++;
+                        elseif ($cat === 'retur') $results[$groupKey]['out_retur']++;
+                        else $results[$groupKey]['out_keluar']++;
                     }
 
                     foreach($out->nonHpItems as $nhi) {
@@ -2012,7 +2012,8 @@ class ReportController extends Controller
 
             // 5. Final Calculation: Initial = Final - In + Out
             foreach ($results as $key => $val) {
-                $results[$key]['initial'] = $results[$key]['final'] - $results[$key]['in_total'] + $results[$key]['out_total'];
+                $calcInitial = $results[$key]['final'] - $results[$key]['in_total'] + $results[$key]['out_total'];
+                $results[$key]['initial'] = max(0, $calcInitial);
             }
 
             $hpData = [];
