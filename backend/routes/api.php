@@ -249,6 +249,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/opname/branches', [\App\Http\Controllers\StockOpnameController::class, 'getBranches']);
     Route::get('/inventory/opname/branch-cs/{branchId}', [\App\Http\Controllers\StockOpnameController::class, 'getBranchCsUsers']);
     Route::get('/inventory/opname/pending-items', [\App\Http\Controllers\StockOpnameController::class, 'getPendingItems']);
+    Route::get('/inventory/opname/lookup-imei', [\App\Http\Controllers\StockOpnameController::class, 'lookupImei']);
     Route::post('/inventory/opname/submit', [\App\Http\Controllers\StockOpnameController::class, 'store']);
     Route::get('/inventory/opname/history', [\App\Http\Controllers\StockOpnameController::class, 'history']);
     Route::get('/inventory/opname/history/{id}', [\App\Http\Controllers\StockOpnameController::class, 'show']);

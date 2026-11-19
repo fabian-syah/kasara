@@ -1333,9 +1333,9 @@ watch(() => filters.value.executor_role, () => {
                                     </td>
                                     <td class="py-3 px-3 text-center font-mono font-bold">{{ it.storage || '-' }}</td>
                                     <td class="py-3 px-3 text-center">
-                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-                                            :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary'">
-                                            {{ it.condition || 'second' }}
+                                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                            :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300' : (it.condition === 'ex_ibox' ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300' : 'bg-amber-100 dark:bg-surface-700 text-amber-800 dark:text-amber-300')">
+                                            {{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                         </span>
                                     </td>
                                     <td class="py-3 px-3 text-center">
@@ -1385,7 +1385,7 @@ watch(() => filters.value.executor_role, () => {
                                         <span v-if="it.brand" class="bg-gray-100 dark:bg-surface-700 px-1.5 py-0.5 rounded text-[10px]">{{ it.brand }}</span>
                                         <span class="font-mono">{{ it.storage || '-' }}</span>
                                         <span>•</span>
-                                        <span class="capitalize">{{ it.condition || 'second' }}</span>
+                                        <span>{{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}</span>
                                     </div>
                                 </div>
 
@@ -1968,7 +1968,7 @@ watch(() => filters.value.executor_role, () => {
                                                         class="p-2.5 rounded-xl bg-white dark:bg-surface-800 border border-purple-100 dark:border-purple-900/60 shadow-xs flex items-center justify-between gap-2">
                                                         <div class="space-y-0.5">
                                                             <div class="font-mono font-bold text-xs text-text-primary">{{ it.imei }}</div>
-                                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }} ({{ it.condition || 'second' }})</div>
+                                                            <div class="text-[10px] text-text-secondary">{{ it.product_name }} • {{ it.storage || '-' }} ({{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }})</div>
                                                         </div>
                                                         <div class="flex items-center gap-1 shrink-0">
                                                             <span v-if="it.is_excess" class="text-[10px] font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded">
@@ -2165,9 +2165,9 @@ watch(() => filters.value.executor_role, () => {
                                             </td>
                                             <td class="py-2.5 px-3 text-center font-mono font-semibold">{{ it.storage || '-' }}</td>
                                             <td class="py-2.5 px-3 text-center">
-                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full capitalize"
-                                                    :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800' : 'bg-gray-100 dark:bg-surface-700 text-text-secondary border border-gray-200 dark:border-surface-600'">
-                                                    {{ it.condition || 'second' }}
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                    :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800' : (it.condition === 'ex_ibox' ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800' : 'bg-amber-100 dark:bg-surface-700 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-surface-600')">
+                                                    {{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
                                                 </span>
                                             </td>
                                             <td class="py-2.5 px-3 text-center">
@@ -2226,7 +2226,7 @@ watch(() => filters.value.executor_role, () => {
 
                                     <div class="flex items-center justify-between text-[11px] text-text-secondary">
                                         <span>Kapasitas: <strong class="text-text-primary">{{ it.storage || '-' }}</strong></span>
-                                        <span>Kondisi: <strong class="text-text-primary capitalize">{{ it.condition || 'second' }}</strong></span>
+                                        <span>Kondisi: <strong class="text-text-primary">{{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}</strong></span>
                                     </div>
 
                                     <div v-if="it.notes" class="text-[10px] text-rose-600 dark:text-rose-400 italic">
@@ -2256,6 +2256,7 @@ watch(() => filters.value.executor_role, () => {
                                         <tr>
                                             <th class="py-2.5 px-3 w-10 text-center">No</th>
                                             <th class="py-2.5 px-3">Brand & Tipe</th>
+                                            <th class="py-2.5 px-3 text-center">Kondisi</th>
                                             <th class="py-2.5 px-3 text-center">GB</th>
                                             <th class="py-2.5 px-3 text-center">Sistem</th>
                                             <th class="py-2.5 px-3 text-center">Fisik Ada</th>
@@ -2266,7 +2267,7 @@ watch(() => filters.value.executor_role, () => {
                                     </thead>
                                     <tbody class="divide-y divide-gray-100 dark:divide-surface-700">
                                         <tr v-if="filteredDetailItems.length === 0">
-                                            <td colspan="8" class="py-8 text-center text-text-secondary italic">
+                                            <td colspan="9" class="py-8 text-center text-text-secondary italic">
                                                 Tidak ada item yang cocok dengan pencarian.
                                             </td>
                                         </tr>
@@ -2275,6 +2276,12 @@ watch(() => filters.value.executor_role, () => {
                                             <td class="py-2 px-3">
                                                 <div class="font-bold text-text-primary">{{ it.product_name }}</div>
                                                 <div v-if="it.brand" class="text-[10px] text-text-secondary font-normal">{{ it.brand }}</div>
+                                            </td>
+                                            <td class="py-2 px-3 text-center">
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                    :class="it.condition === 'new' ? 'bg-cyan-100 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-300' : (it.condition === 'ex_ibox' ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-800 dark:text-indigo-300' : 'bg-amber-100 dark:bg-surface-700 text-amber-800 dark:text-amber-300')">
+                                                    {{ it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second') }}
+                                                </span>
                                             </td>
                                             <td class="py-2 px-3 text-center font-mono">{{ it.storage || '-' }}</td>
                                             <td class="py-2 px-3 text-center font-mono">{{ it.system_qty }}</td>

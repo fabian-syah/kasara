@@ -41,6 +41,16 @@ class StockOpnameController extends Controller
         // Ensure executor_role column exists on stock_opnames
         if (Schema::hasTable('stock_opnames')) {
             try {
+                if (DB::getDriverName() === 'pgsql') {
+                    DB::statement('ALTER TABLE stock_opnames ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_type TYPE TEXT');
+                    DB::statement('ALTER TABLE stock_opname_items ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_name TYPE TEXT');
+                    DB::statement('ALTER TABLE stock_opname_excess_items ALTER COLUMN brand TYPE TEXT, ALTER COLUMN product_name TYPE TEXT');
+                }
+            } catch (\Throwable $e) {
+                // Ignore if already text
+            }
+
+            try {
                 if (!Schema::hasColumn('stock_opnames', 'executor_role')) {
                     DB::statement("ALTER TABLE stock_opnames ADD COLUMN IF NOT EXISTS executor_role VARCHAR(30) DEFAULT 'store'");
                     DB::statement("CREATE INDEX IF NOT EXISTS stock_opnames_executor_role_idx ON stock_opnames (executor_role)");
@@ -322,10 +332,12 @@ class StockOpnameController extends Controller
         };
 
         // Brand & Condition matcher helpers
-        $matchesBrand = function ($bName) use (&$selectedBrands) {
+        $cleanBrand = fn($s) => strtolower(trim(preg_replace('/[™®]/u', '', (string)$s)));
+        $matchesBrand = function ($bName) use (&$selectedBrands, $cleanBrand) {
             if (empty($selectedBrands)) return true;
+            $cb = $cleanBrand($bName);
             foreach ($selectedBrands as $sb) {
-                if (strcasecmp($sb, $bName) === 0) return true;
+                if ($cb === $cleanBrand($sb) || strcasecmp($sb, $bName) === 0) return true;
             }
             return false;
         };
@@ -428,14 +440,15 @@ class StockOpnameController extends Controller
                         $sKey = strtoupper(trim($ait->storage ?? ''));
                         $rawAitCond = strtolower(trim((string)($ait->condition ?? '')));
                         if ($rawAitCond) {
-                            $condNorm = ($rawAitCond === 'new' || str_contains($rawAitCond, 'baru')) ? 'new' : 'second';
+                            $condNorm = $normalizeCondition($rawAitCond);
                             $key = $bKey . '|' . $pKey . '|' . $sKey . '|' . $condNorm;
                             $auditedProductNamesByUnit[$key] = true;
                             $auditedMapByUnit[$key] = $ait;
+                        } else {
+                            $legacyKey = $bKey . '|' . $pKey . '|' . $sKey;
+                            $auditedProductNamesByUnit[$legacyKey] = true;
+                            $auditedMapByUnit[$legacyKey] = $ait;
                         }
-                        $legacyKey = $bKey . '|' . $pKey . '|' . $sKey;
-                        $auditedProductNamesByUnit[$legacyKey] = true;
-                        $auditedMapByUnit[$legacyKey] = $ait;
                     }
                     if ($ait->product_id) {
                         $auditedNonHpProductIds[] = $ait->product_id;
@@ -707,8 +720,10 @@ class StockOpnameController extends Controller
                         if (!$matchesCondition($itemCond)) return false;
 
                         $pName = trim($item->product?->name ?? 'Unknown');
+                        $cleanType = fn($t) => strtolower(trim(preg_replace('/[™®]/u', '', (string)$t)));
+                        $cName = $cleanType($pName);
                         foreach ($selectedProductNames as $targetType) {
-                            if (strcasecmp($targetType, $pName) === 0) return true;
+                            if (strcasecmp($targetType, $pName) === 0 || $cleanType($targetType) === $cName) return true;
                         }
                         return false;
                     });
@@ -1596,5 +1611,114 @@ class StockOpnameController extends Controller
                 // Silently ignore if DB update fails
             }
         }
+    }
+
+    /**
+     * Cross-check / Lookup an IMEI across the entire database.
+     * Explains clearly whether the unit is already in the system, its location, status,
+     * or why it was not displayed in the current SO session.
+     */
+    public function lookupImei(Request $request)
+    {
+        $rawImei = (string)$request->input('imei');
+        $imei = strtoupper(trim($rawImei));
+        if (!$imei || strlen($imei) < 4) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Format IMEI minimal 4 karakter.',
+            ], 422);
+        }
+
+        $branchId = (int)$request->input('branch_id');
+
+        $item = ProductDetail::with([
+            'product:id,name,brand,type,category',
+            'placement:id,name',
+            'distributor:id,name'
+        ])
+            ->where(function ($q) use ($imei) {
+                $q->where('imei', $imei)
+                  ->orWhere('imei', 'LIKE', "%{$imei}");
+            })
+            ->first();
+
+        if (!$item) {
+            return response()->json([
+                'success' => true,
+                'found' => false,
+                'message' => 'IMEI ini belum pernah terdaftar di database sistem manapun. Benar-benar unit fisik lebih / belum diinput di web.',
+            ]);
+        }
+
+        $bName = trim($item->product?->brand ?? 'Unknown');
+        $pName = trim($item->product?->name ?? 'Unknown');
+        $storage = trim($item->storage ?? '-');
+        $condition = strtolower(trim((string)($item->condition ?? 'second')));
+        $conditionLabel = match ($condition) {
+            'new' => 'Baru (New)',
+            'ex_ibox' => 'Ex iBox',
+            default => 'Second',
+        };
+
+        $placementName = $item->placement?->name ?? 'Lokasi tidak diketahui';
+        $placementType = $item->placement_type;
+        $isSameBranch = ($placementType === 'branch' && (int)$item->placement_id === $branchId);
+
+        // Check if item was already audited today
+        $cycle = self::getLogicalCycleRange();
+        $isAuditedToday = StockOpnameItem::whereHas('stockOpname', function ($q) use ($cycle) {
+            $q->whereBetween('created_at', [$cycle['start'], $cycle['end']]);
+        })->where('imei', $item->imei)->exists();
+
+        // Build human-friendly explanation of why this IMEI might not have shown up in the user's current SO
+        $reasons = [];
+        if (!$isSameBranch) {
+            $pTypeLabel = match($placementType) {
+                'branch' => 'Cabang',
+                'warehouse' => 'Gudang',
+                'online_shop' => 'Online Shop',
+                default => 'Lokasi',
+            };
+            $reasons[] = "Di sistem tercatat berada di {$pTypeLabel} '{$placementName}', bukan di cabang saat ini.";
+        }
+
+        if (!in_array($item->status, ['available', 'booking', 'returned', 'process'])) {
+            $statusLabel = match($item->status) {
+                'sold' => 'Sudah Terjual',
+                'in_transit' => 'Sedang dalam transfer (belum diklik Terima Transfer)',
+                'service' => 'Sedang diservis',
+                'transfer' => 'Dalam proses transfer',
+                default => $item->status,
+            };
+            $reasons[] = "Status stok di sistem adalah '{$statusLabel}'.";
+        }
+
+        if ($isAuditedToday) {
+            $reasons[] = "Unit ini sudah diaudit (di-SO) pada sesi sebelumnya hari ini.";
+        }
+
+        return response()->json([
+            'success' => true,
+            'found' => true,
+            'item' => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'imei' => $item->imei,
+                'brand' => $bName,
+                'product_name' => $pName,
+                'storage' => $storage,
+                'condition' => $condition,
+                'condition_label' => $conditionLabel,
+                'status' => $item->status,
+                'placement_type' => $placementType,
+                'placement_id' => $item->placement_id,
+                'placement_name' => $placementName,
+                'is_same_branch' => $isSameBranch,
+                'is_audited_today' => $isAuditedToday,
+                'created_at' => $item->created_at ? $item->created_at->format('d M Y H:i') : '-',
+            ],
+            'reasons' => $reasons,
+            'message' => !empty($reasons) ? implode(' ', $reasons) : 'Unit terdaftar di cabang ini dan berstatus aktif.',
+        ]);
     }
 }

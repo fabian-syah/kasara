@@ -6,7 +6,7 @@ import {
     Camera, Upload, Plus, Trash2, AlertTriangle, Building2,
     User, Lock, ShieldCheck, History, ArrowLeft, ChevronDown,
     RefreshCw, Search, Eye, ArrowRight, Shield, UserCheck, Store,
-    Layers, QrCode, Sparkles, Filter, CheckCheck, RotateCcw
+    Layers, QrCode, Sparkles, Filter, CheckCheck, RotateCcw, Loader2
 } from 'lucide-vue-next';
 import axios from '../../api/axios';
 import { useToast } from '../../composables/useToast';
@@ -86,6 +86,71 @@ const newExcess = ref({
     quantity: 1,
     notes: ''
 });
+
+// IMEI Lookup Cross-Check State
+const lookupLoading = ref(false);
+const lookupResult = ref(null);
+const showLookupModal = ref(false);
+
+const checkImeiInSystem = async (inputImei, source = 'modal') => {
+    const raw = String(inputImei || '').trim();
+    if (!raw || raw.length < 4) {
+        toast.warning('Ketik minimal 4 digit IMEI untuk mengecek ke sistem.');
+        return;
+    }
+    lookupLoading.value = true;
+    lookupResult.value = null;
+    try {
+        const res = await axios.get('/inventory/opname/lookup-imei', {
+            params: {
+                imei: raw,
+                branch_id: selectedBranchId.value
+            }
+        });
+        lookupResult.value = res.data;
+        if (source === 'modal' && res.data.found && res.data.item) {
+            // Auto-fill modal fields if empty
+            if (!newExcess.value.product_name) newExcess.value.product_name = res.data.item.product_name;
+            if (!newExcess.value.brand) newExcess.value.brand = res.data.item.brand;
+            if (!newExcess.value.storage && res.data.item.storage !== '-') newExcess.value.storage = res.data.item.storage;
+        } else if (source === 'search') {
+            showLookupModal.value = true;
+        }
+    } catch (err) {
+        console.error('Error lookup IMEI:', err);
+        toast.error('Gagal mengecek IMEI ke database sistem.');
+    } finally {
+        lookupLoading.value = false;
+    }
+};
+
+const adoptLookupItemToOpname = (item) => {
+    if (!item) return;
+    const existing = pendingItems.value.find(p => p.imei && String(p.imei).toUpperCase() === String(item.imei).toUpperCase());
+    if (existing) {
+        existing.is_present = true;
+        toast.success(`Unit IMEI ${item.imei} ditandai ADA di checklist.`);
+    } else {
+        pendingItems.value.unshift({
+            product_detail_id: item.id,
+            product_id: item.product_id,
+            brand: item.brand,
+            product_name: item.product_name,
+            storage: item.storage,
+            condition: item.condition,
+            condition_label: item.condition_label,
+            imei: item.imei,
+            distributor: '-',
+            status: item.status,
+            is_present: true,
+            notes: 'Dimasukkan via Cek Sistem',
+            was_previously_audited: false
+        });
+        toast.success(`Unit ${item.brand} ${item.product_name} (${item.imei}) dimasukkan ke checklist audit.`);
+    }
+    showLookupModal.value = false;
+    showExcessModal.value = false;
+};
 
 // Foto SO & Catatan Umum
 const photoPreviews = ref([]);
@@ -428,7 +493,8 @@ const filteredCsUsers = computed(() => {
 const filteredAvailableTypes = computed(() => {
     let list = availableTypes.value || [];
     if (selectedBrands.value.length > 0) {
-        list = list.filter(t => !t.brand || selectedBrands.value.some(b => b.toLowerCase() === t.brand.toLowerCase()));
+        const cleanB = (s) => String(s || '').toLowerCase().replace(/[™®]/g, '').trim();
+        list = list.filter(t => !t.brand || selectedBrands.value.some(b => cleanB(b) === cleanB(t.brand)));
     }
     if (searchType.value.trim()) {
         const q = searchType.value.toLowerCase().trim();
@@ -2186,7 +2252,7 @@ onUnmounted(() => {
                                 <template v-else-if="categoryType === 'hp'">
                                     SO by Unit •
                                     {{ selectedBrands.length > 0 ? selectedBrands.join(', ') : 'Semua Brand' }}
-                                    ({{ selectedConditions.length > 0 ? selectedConditions.map(c => c === 'new' ? 'Baru' : 'Second').join(', ') : 'Semua Kondisi' }})
+                                    ({{ selectedConditions.length > 0 ? selectedConditions.map(c => c === 'new' ? 'Baru' : (c === 'ex_ibox' ? 'Ex iBox' : 'Second')).join(', ') : 'Semua Kondisi' }})
                                 </template>
                                 <template v-else>
                                     Non-HP • {{ selectedBrands.length > 0 ? selectedBrands.join(', ') : 'Semua Brand' }}
@@ -2378,6 +2444,9 @@ onUnmounted(() => {
                                     <span v-if="it.condition === 'new'" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30">
                                         Baru
                                     </span>
+                                    <span v-else-if="it.condition === 'ex_ibox'" class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                                        Ex iBox
+                                    </span>
                                     <span v-else class="inline-flex px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
                                         Second
                                     </span>
@@ -2464,11 +2533,20 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Cards Container -->
-                    <div v-if="filteredPendingImeis.length === 0" class="py-10 text-center text-text-secondary bg-surface-750/30 rounded-2xl border border-dashed border-surface-700/80">
+                    <div v-if="filteredPendingImeis.length === 0" class="py-10 text-center text-text-secondary bg-surface-750/30 rounded-2xl border border-dashed border-surface-700/80 p-4 space-y-3">
                         <p class="text-xs font-bold">Tidak ada unit IMEI yang cocok dengan filter atau pencarian ini.</p>
-                        <button type="button" @click="filterImeiStatus = 'all'; searchImeiQuery = ''" class="mt-2 text-xs text-primary-400 hover:underline cursor-pointer">
-                            Tampilkan Semua ({{ pendingItems.length }} unit)
-                        </button>
+                        <div v-if="searchImeiQuery.trim().length >= 4" class="pt-1">
+                            <button type="button" @click="checkImeiInSystem(searchImeiQuery, 'search')" :disabled="lookupLoading"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-500/15 text-primary-700 dark:text-emerald-300 border border-primary-500/30 text-xs font-bold hover:bg-primary-500/25 transition-all cursor-pointer">
+                                <Search :size="14" />
+                                <span>{{ lookupLoading ? 'Mengecek Sistem...' : 'Cek Status IMEI "' + searchImeiQuery + '" di Seluruh Sistem' }}</span>
+                            </button>
+                        </div>
+                        <div>
+                            <button type="button" @click="filterImeiStatus = 'all'; searchImeiQuery = ''" class="text-xs text-primary-400 hover:underline cursor-pointer">
+                                Tampilkan Semua ({{ pendingItems.length }} unit)
+                            </button>
+                        </div>
                     </div>
                     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         <div v-for="it in filteredPendingImeis" :key="it.product_detail_id || it.imei"
@@ -2493,7 +2571,7 @@ onUnmounted(() => {
                                         :class="it.condition === 'new' 
                                             ? 'bg-primary-500/15 text-primary-800 dark:text-emerald-300 border border-primary-500/30' 
                                             : (it.condition === 'ex_ibox' 
-                                                ? 'bg-surface-700 text-text-primary border border-surface-600' 
+                                                ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30' 
                                                 : 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30')">
                                         {{ it.condition_label || (it.condition === 'new' ? 'Baru' : (it.condition === 'ex_ibox' ? 'Ex iBox' : 'Second')) }}
                                     </span>
@@ -2738,10 +2816,39 @@ onUnmounted(() => {
                                 class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60" />
                         </div>
                         <div>
-                            <label class="block font-bold text-text-secondary uppercase mb-1">IMEI Unit</label>
-                            <input type="text" v-model="newExcess.imei" placeholder="15 digit IMEI"
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block font-bold text-text-secondary uppercase">IMEI Unit</label>
+                                <button v-if="newExcess.imei && newExcess.imei.trim().length >= 4" type="button"
+                                    @click="checkImeiInSystem(newExcess.imei, 'modal')" :disabled="lookupLoading"
+                                    class="text-[10px] font-bold text-primary-600 dark:text-emerald-400 hover:underline cursor-pointer">
+                                    {{ lookupLoading ? 'Mengecek...' : '🔍 Cek Sistem' }}
+                                </button>
+                            </div>
+                            <input type="text" v-model="newExcess.imei" @blur="newExcess.imei && newExcess.imei.length >= 10 && checkImeiInSystem(newExcess.imei, 'modal')"
+                                placeholder="15 digit IMEI"
                                 class="w-full py-2.5 px-3 bg-surface-800 border border-surface-700 rounded-xl text-sm text-neutral-900 dark:text-white placeholder:text-text-secondary/60 font-mono" />
                         </div>
+                    </div>
+
+                    <!-- Alert Banner if IMEI exists in system -->
+                    <div v-if="lookupResult && lookupResult.found && lookupResult.item" class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs space-y-2">
+                        <div class="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                            <span>⚠️ Unit IMEI ini SUDAH TERDAFTAR di Database Sistem!</span>
+                        </div>
+                        <div class="space-y-0.5 text-[11px] text-text-secondary dark:text-amber-100/80">
+                            <div>• Tipe: <strong class="text-neutral-900 dark:text-white">{{ lookupResult.item.brand }} {{ lookupResult.item.product_name }} ({{ lookupResult.item.storage }})</strong> [{{ lookupResult.item.condition_label }}]</div>
+                            <div>• Lokasi Terdaftar: <strong class="text-neutral-900 dark:text-white">{{ lookupResult.item.placement_name }}</strong> (Status: {{ lookupResult.item.status }})</div>
+                            <div v-if="lookupResult.message" class="italic text-amber-700 dark:text-amber-300 font-medium mt-1">"{{ lookupResult.message }}"</div>
+                        </div>
+                        <div v-if="lookupResult.item.is_same_branch" class="pt-1">
+                            <button type="button" @click="adoptLookupItemToOpname(lookupResult.item)"
+                                class="w-full py-1.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow cursor-pointer transition-colors">
+                                ➕ Masukkan Langsung ke Checklist Audit
+                            </button>
+                        </div>
+                    </div>
+                    <div v-else-if="lookupResult && !lookupResult.found" class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs">
+                        ✅ {{ lookupResult.message }}
                     </div>
 
                     <div v-else>
@@ -2765,6 +2872,74 @@ onUnmounted(() => {
                     <button type="button" @click="addExcessItem"
                         class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-xs shadow-md cursor-pointer">
                         Simpan Barang Lebih
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Hasil Cek Status IMEI Sistem -->
+        <div v-if="showLookupModal" class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div class="bg-surface-800 rounded-3xl max-w-md w-full p-6 border border-surface-700 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-surface-700 pb-3">
+                    <h3 class="text-base font-black text-neutral-900 dark:text-white flex items-center gap-2">
+                        <Search :size="18" class="text-primary-600 dark:text-emerald-400" />
+                        <span>Hasil Pelacakan IMEI Sistem</span>
+                    </h3>
+                    <button @click="showLookupModal = false" class="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-700 transition-colors cursor-pointer">
+                        <X :size="18" />
+                    </button>
+                </div>
+
+                <div v-if="lookupLoading" class="py-8 text-center text-text-secondary space-y-2">
+                    <Loader2 :size="24" class="animate-spin mx-auto text-primary-500" />
+                    <p class="text-xs">Mencari data IMEI di seluruh database...</p>
+                </div>
+
+                <div v-else-if="lookupResult && lookupResult.found && lookupResult.item" class="space-y-3 text-xs">
+                    <div class="p-3.5 rounded-2xl bg-surface-750 border border-surface-700 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-mono font-bold text-sm text-neutral-900 dark:text-white">{{ lookupResult.item.imei }}</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                :class="lookupResult.item.condition === 'new' ? 'bg-primary-500/15 text-primary-700 dark:text-emerald-300' : (lookupResult.item.condition === 'ex_ibox' ? 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300')">
+                                {{ lookupResult.item.condition_label }}
+                            </span>
+                        </div>
+                        <div class="text-sm font-bold text-neutral-900 dark:text-white">
+                            {{ lookupResult.item.brand }} {{ lookupResult.item.product_name }}
+                        </div>
+                        <div class="text-text-secondary text-[11px] flex items-center gap-2">
+                            <span>Storage: {{ lookupResult.item.storage }}</span>
+                            <span>•</span>
+                            <span>Status: <strong class="text-neutral-900 dark:text-white">{{ lookupResult.item.status }}</strong></span>
+                        </div>
+                        <div class="text-[11px] text-text-secondary">
+                            Lokasi Sistem: <strong class="text-neutral-900 dark:text-white">{{ lookupResult.item.placement_name }}</strong>
+                        </div>
+                    </div>
+
+                    <!-- Explanation -->
+                    <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-200 text-xs space-y-1">
+                        <div class="font-bold">Kenapa tidak muncul di checklist saat ini?</div>
+                        <div class="text-[11px] leading-relaxed">{{ lookupResult.message }}</div>
+                    </div>
+
+                    <div v-if="lookupResult.item.is_same_branch" class="pt-1">
+                        <button type="button" @click="adoptLookupItemToOpname(lookupResult.item)"
+                            class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow cursor-pointer transition-colors">
+                            ➕ Masukkan Unit Ini ke Checklist SO Sekarang
+                        </button>
+                    </div>
+                </div>
+
+                <div v-else-if="lookupResult && !lookupResult.found" class="py-6 text-center space-y-2">
+                    <p class="text-xs text-text-secondary font-medium">{{ lookupResult.message }}</p>
+                    <p class="text-[11px] text-text-secondary/70">Silakan catat unit ini pada menu "Barang Lebih".</p>
+                </div>
+
+                <div class="flex items-center justify-end pt-2 border-t border-surface-700">
+                    <button type="button" @click="showLookupModal = false"
+                        class="px-4 py-2 rounded-xl text-xs font-bold text-text-secondary hover:bg-surface-700 hover:text-text-primary cursor-pointer">
+                        Tutup
                     </button>
                 </div>
             </div>
