@@ -291,7 +291,8 @@ const restoreDraft = async () => {
     try {
         selectedBranchId.value = draft.selectedBranchId;
         selectedCsUserId.value = draft.selectedCsUserId;
-        passwordVerified.value = true;
+        passwordVerified.value = false;
+        csPassword.value = '';
         categoryType.value = draft.categoryType || 'hp';
         method.value = draft.method || 'by_unit';
         selectedBrands.value = draft.selectedBrands || [];
@@ -415,10 +416,19 @@ const isCsLogin = computed(() => {
 });
 
 const isStoreAccount = computed(() => {
-    if (isCsLogin.value) return false;
     if (isLeaderOrAudit.value || isPrivilegedRole.value) return false;
-    if (authStore.user?.id && Number(authStore.user.id) === Number(selectedCsUserId.value)) return false;
-    return true;
+    const role = (userRole.value || authStore.user?.role || '').toLowerCase();
+    const hasTokoRole = role === 'toko_offline' ||
+        (typeof authStore.hasRole === 'function' && authStore.hasRole('toko_offline')) ||
+        (Array.isArray(authStore.user?.roles) && authStore.user.roles.some(r => {
+            const name = typeof r === 'string' ? r : (r?.name || '');
+            return name.toLowerCase() === 'toko_offline';
+        }));
+    if (hasTokoRole) return true;
+    if (selectedCsUserId.value && authStore.user?.id && Number(authStore.user.id) !== Number(selectedCsUserId.value)) {
+        return true;
+    }
+    return false;
 });
 
 // Akun leader, audit, super admin, atau CS/inventory otomatis menggunakan akun sendiri tanpa pilihan akun CS
@@ -568,14 +578,14 @@ const fetchCsUsers = async () => {
             const myCs = csUsers.value.find(u => Number(u.id) === Number(myId));
             if (myCs) {
                 selectedCsUserId.value = myCs.id;
-                passwordVerified.value = true;
+                passwordVerified.value = !isStoreAccount.value;
             } else if (!selectedCsUserId.value) {
                 selectedCsUserId.value = csUsers.value[0].id;
                 passwordVerified.value = false;
             }
         } else {
             selectedCsUserId.value = authStore.user?.id || null;
-            passwordVerified.value = true;
+            passwordVerified.value = !isStoreAccount.value;
         }
     } catch (err) {
         console.error('Error fetching CS users:', err);
@@ -732,7 +742,7 @@ const goToStep = (step) => {
         }
         if (!hasCsStep.value) {
             selectedCsUserId.value = authStore.user?.id;
-            passwordVerified.value = true;
+            passwordVerified.value = !isStoreAccount.value;
         } else if (!selectedCsUserId.value) {
             toast.warning('Silakan pilih CS terlebih dahulu.');
             return;
@@ -762,7 +772,7 @@ const proceedFromStep1 = async () => {
     // Akun leader, audit, dan super admin otomatis menggunakan akun pribadi sendiri (lewati langkah pilih CS)
     if (!hasCsStep.value) {
         selectedCsUserId.value = authStore.user?.id;
-        passwordVerified.value = true;
+        passwordVerified.value = !isStoreAccount.value;
         currentStep.value = 3;
         return;
     }
@@ -793,13 +803,13 @@ const handlePasswordSuccess = async (password) => {
             passwordVerified.value = true;
             csPassword.value = password;
             showPasswordModal.value = false;
-            toast.success('Verifikasi CS berhasil! ✅');
+            toast.success('Verifikasi berhasil! ✅');
             await submitOpname();
         } else {
-            passwordModalError.value = res.data?.message || 'Password CS salah.';
+            passwordModalError.value = res.data?.message || 'Password verifikasi salah.';
         }
     } catch (err) {
-        passwordModalError.value = err.response?.data?.message || 'Password verifikasi CS salah.';
+        passwordModalError.value = err.response?.data?.message || 'Password verifikasi salah.';
     } finally {
         verifyingPassword.value = false;
     }
@@ -966,9 +976,11 @@ const goToBranchStep = () => {
 watch(selectedBranchId, () => {
     if (!hasCsStep.value) {
         selectedCsUserId.value = authStore.user?.id || null;
-        passwordVerified.value = true;
+        passwordVerified.value = !isStoreAccount.value;
     } else {
         selectedCsUserId.value = null;
+        passwordVerified.value = false;
+        csPassword.value = '';
         fetchCsUsers();
     }
     selectedBrands.value = [];
@@ -981,7 +993,7 @@ watch(() => authStore.user, (u) => {
     if (u) {
         if (!hasCsStep.value) {
             selectedCsUserId.value = u.id;
-            passwordVerified.value = true;
+            passwordVerified.value = !isStoreAccount.value;
         }
         if (!existingDraft.value && !showDraftModal.value) {
             checkSavedDraft();
@@ -1153,7 +1165,7 @@ const handleVerifyAndSubmit = async () => {
     if (!selectedCsUserId.value) {
         if (!hasCsStep.value && authStore.user?.id) {
             selectedCsUserId.value = authStore.user.id;
-            passwordVerified.value = true;
+            passwordVerified.value = !isStoreAccount.value;
         } else {
             toast.warning('Pilih akun CS penanggung jawab SO.');
             return;
@@ -1171,7 +1183,9 @@ const handleVerifyAndSubmit = async () => {
         }
     }
 
-    if (isStoreAccount.value && !passwordVerified.value) {
+    if (isStoreAccount.value && (!passwordVerified.value || !csPassword.value)) {
+        passwordVerified.value = false;
+        csPassword.value = '';
         passwordModalMode.value = 'password';
         passwordModalError.value = '';
         showPasswordModal.value = true;
@@ -1226,7 +1240,15 @@ const submitOpname = async () => {
         }
     } catch (err) {
         console.error('Error submitting stock opname:', err);
-        toast.error(err.response?.data?.message || 'Gagal menyimpan stok opname.');
+        const errMsg = err.response?.data?.message || 'Gagal menyimpan stok opname.';
+        toast.error(errMsg);
+        if (isStoreAccount.value && (errMsg.toLowerCase().includes('password') || errMsg.toLowerCase().includes('sandi') || errMsg.toLowerCase().includes('verifikasi'))) {
+            passwordVerified.value = false;
+            csPassword.value = '';
+            passwordModalError.value = errMsg;
+            passwordModalMode.value = 'password';
+            showPasswordModal.value = true;
+        }
     } finally {
         submitting.value = false;
     }
@@ -1242,7 +1264,7 @@ onMounted(async () => {
     await fetchBranches();
     if (!hasCsStep.value) {
         selectedCsUserId.value = authStore.user?.id;
-        passwordVerified.value = true;
+        passwordVerified.value = !isStoreAccount.value;
     } else if (selectedBranchId.value) {
         await fetchCsUsers();
     }
@@ -2945,16 +2967,16 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- Modal Verifikasi Password CS (Menggunakan Password Login CS) -->
+        <!-- Modal Verifikasi Password CS (Menggunakan Password Login CS atau Password Akun Toko) -->
         <PasswordModal v-if="showPasswordModal"
             :show="showPasswordModal"
             mode="password"
-            title="Verifikasi Akun CS"
-            :description="'Masukkan Password Login Akun CS (' + (activeCsUser?.name || '') + ') untuk menyelesaikan Stok Opname.'"
+            title="Verifikasi Password Akun Toko / CS"
+            :description="'Masukkan Password Akun CS (' + (activeCsUser?.name || 'CS') + ') atau Password Akun Toko ini untuk menyelesaikan Stok Opname.'"
             :user="activeCsUser"
             :loading="verifyingPassword"
             :error="passwordModalError"
-            @close="showPasswordModal = false; passwordModalError = ''"
+            @close="showPasswordModal = false; passwordModalError = ''; csPassword = ''; passwordVerified = false"
             @success="handlePasswordSuccess" />
 
         <!-- Modal Pemulihan Draf SO -->

@@ -222,24 +222,27 @@ class AuthController extends Controller
             'user_id' => 'nullable|integer|exists:users,id',
         ]);
 
-        $targetUser = $request->user();
+        $currentUser = $request->user();
+        $targetUser = $currentUser;
         $targetId = $request->inventory_user_id ?? $request->user_id;
 
-        if ($targetId && $targetId != $request->user()->id) {
+        if ($targetId && $targetId != $currentUser->id) {
             $found = User::find($targetId);
             if ($found) {
-                if (empty($found->password)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Akun CS (' . $found->name . ') belum memasang password login.',
-                    ], 422);
-                }
                 $targetUser = $found;
             }
         }
 
-        if (!\Illuminate\Support\Facades\Hash::check($request->password, $targetUser->password)) {
-            $accountLabel = ($targetUser->id !== $request->user()->id) ? ' Akun CS (' . $targetUser->name . ')' : '';
+        // Allow either the target user's password (CS) OR current logged-in user's password (Store account)
+        $passwordMatches = false;
+        if (!empty($targetUser->password) && \Illuminate\Support\Facades\Hash::check($request->password, $targetUser->password)) {
+            $passwordMatches = true;
+        } elseif (!empty($currentUser->password) && \Illuminate\Support\Facades\Hash::check($request->password, $currentUser->password)) {
+            $passwordMatches = true;
+        }
+
+        if (!$passwordMatches) {
+            $accountLabel = ($targetUser->id !== $currentUser->id) ? ' Akun CS (' . $targetUser->name . ') atau Akun Toko' : '';
             return response()->json([
                 'success' => false,
                 'message' => 'Password' . $accountLabel . ' salah.',
