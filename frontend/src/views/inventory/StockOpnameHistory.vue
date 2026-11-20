@@ -20,6 +20,7 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const records = ref([]);
 const branchStockTotal = ref(0);
+const branchStockTotals = ref({});
 const collapsedDays = ref({});
 const pagination = ref({
     current_page: 1,
@@ -365,6 +366,7 @@ const fetchHistory = async (page = 1) => {
         const res = await axios.get('/inventory/opname/history', { params });
         records.value = res.data.data || [];
         branchStockTotal.value = res.data.branch_stock_total || 0;
+        branchStockTotals.value = res.data.branch_stock_totals || {};
         pagination.value = {
             current_page: res.data.current_page || 1,
             last_page: res.data.last_page || 1,
@@ -614,17 +616,51 @@ const groupedRecordsByDay = computed(() => {
         .map(g => {
             const isToday = g.date === todayStr;
 
-            // 1. By IMEI calculations
-            let targetImei = g.imei.totalSystem;
-            if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.imei.totalSystem) {
-                targetImei = branchStockTotal.value;
+            // 1. By IMEI calculations (100 / total_unit_imei_toko * unit_sudah_di_SO)
+            const groupBranchIds = [...new Set(g.records.map(r => r.branch_id).filter(Boolean))];
+            let storeImeiTarget = 0;
+            if (filters.value.branch_id && branchStockTotals.value[filters.value.branch_id]) {
+                storeImeiTarget = Number(branchStockTotals.value[filters.value.branch_id]);
+            } else if (groupBranchIds.length === 1 && branchStockTotals.value[groupBranchIds[0]]) {
+                storeImeiTarget = Number(branchStockTotals.value[groupBranchIds[0]]);
+            } else if (groupBranchIds.length > 1) {
+                storeImeiTarget = groupBranchIds.reduce((sum, bId) => sum + Number(branchStockTotals.value[bId] || 0), 0);
+            } else {
+                storeImeiTarget = Number(branchStockTotal.value) || 0;
             }
+
+            // Target IMEI is the store's total physical inventory with IMEI
+            let targetImei = storeImeiTarget > 0 ? storeImeiTarget : g.imei.totalSystem;
+            if (g.imei.totalSystem > targetImei) {
+                targetImei = g.imei.totalSystem;
+            }
+
+            // Hitung unit fisik unik yang di-SO pada hari ini untuk mencegah penghitungan ganda antar-sesi
+            const uniquePhysicalImeis = new Set();
+            g.records.forEach(r => {
+                if (r.method === 'by_imei' && Array.isArray(r.items)) {
+                    r.items.forEach(it => {
+                        if (it.imei && it.imei !== '-' && (it.is_present || Number(it.physical_qty) > 0)) {
+                            uniquePhysicalImeis.add(String(it.imei).toUpperCase().trim());
+                        }
+                    });
+                }
+            });
+            const auditedImeiCount = uniquePhysicalImeis.size > 0 ? uniquePhysicalImeis.size : g.imei.totalPhysical;
+
+            // Rumus progress user: (auditedImeiCount / targetImei) * 100
             let percentImei = 0;
             if (targetImei > 0) {
-                percentImei = Math.min(100, Math.round((g.imei.totalPhysical / targetImei) * 100));
-            } else if (g.imei.totalPhysical > 0) {
+                const rawPercent = (auditedImeiCount / targetImei) * 100;
+                if (rawPercent > 0 && rawPercent < 1) {
+                    percentImei = Math.min(100, Number(rawPercent.toFixed(1)));
+                } else {
+                    percentImei = Math.min(100, Math.round(rawPercent));
+                }
+            } else if (auditedImeiCount > 0) {
                 percentImei = 100;
             }
+
             const hasDiffImei = g.imei.totalMissing > 0 || g.imei.totalExcess > 0;
             let statusLabelImei = '100% Sesuai';
             if (percentImei === 100 && !hasDiffImei) {
@@ -632,7 +668,7 @@ const groupedRecordsByDay = computed(() => {
             } else if (hasDiffImei) {
                 statusLabelImei = `${g.imei.totalMissing > 0 ? g.imei.totalMissing + ' Kurang' : ''}${g.imei.totalExcess > 0 ? ' +' + g.imei.totalExcess + ' Lebih' : ''}`;
             } else if (percentImei < 100) {
-                statusLabelImei = `${g.imei.totalPhysical} / ${targetImei} Unit`;
+                statusLabelImei = `${auditedImeiCount} / ${targetImei} Unit`;
             }
 
             // 2. HP by Unit calculations
@@ -676,8 +712,8 @@ const groupedRecordsByDay = computed(() => {
             // 5. Combined calculations
             const hasDiffCombined = g.totalMissing > 0 || g.totalExcess > 0;
             let effectiveTargetUnits = g.totalSystem;
-            if (isToday && branchStockTotal.value > 0 && branchStockTotal.value > g.totalSystem) {
-                effectiveTargetUnits = branchStockTotal.value;
+            if (storeImeiTarget > 0 && storeImeiTarget > g.totalSystem) {
+                effectiveTargetUnits = storeImeiTarget;
             }
             let percentCombined = 0;
             if (effectiveTargetUnits > 0) {
@@ -702,6 +738,7 @@ const groupedRecordsByDay = computed(() => {
                 relativeBadge: rel.label,
                 imeiStats: {
                     ...g.imei,
+                    totalPhysical: auditedImeiCount,
                     target: targetImei,
                     percent: percentImei,
                     hasDiff: hasDiffImei,

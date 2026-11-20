@@ -1478,18 +1478,33 @@ class StockOpnameController extends Controller
 
         $responseData = $records->toArray();
 
-        // Calculate total physical store inventory for current active branch if requested or user branch
+        // Calculate total physical store inventory per branch and for current active branch
         $targetBranchId = $requestedBranchId && $requestedBranchId !== 'all' ? $requestedBranchId : null;
         if (!$targetBranchId && !empty($user->branch_id)) {
             $targetBranchId = $user->branch_id;
         }
 
-        if ($targetBranchId && Schema::hasTable('product_details')) {
-            $responseData['branch_stock_total'] = ProductDetail::where('placement_type', 'branch')
-                ->where('placement_id', $targetBranchId)
+        $branchStockTotals = [];
+        if (Schema::hasTable('product_details')) {
+            $branchStockTotals = ProductDetail::where('placement_type', 'branch')
                 ->whereIn('status', ['available', 'booking', 'returned', 'process'])
                 ->whereHas('product', fn($q) => $q->where('type', 'hp')->orWhere('has_imei', true))
-                ->count();
+                ->groupBy('placement_id')
+                ->selectRaw('placement_id, count(*) as total')
+                ->pluck('total', 'placement_id')
+                ->toArray();
+        }
+
+        $responseData['branch_stock_totals'] = $branchStockTotals;
+
+        if ($targetBranchId && isset($branchStockTotals[$targetBranchId])) {
+            $responseData['branch_stock_total'] = (int)$branchStockTotals[$targetBranchId];
+        } elseif ($targetBranchId) {
+            $responseData['branch_stock_total'] = 0;
+        } elseif (!empty($branchStockTotals)) {
+            $responseData['branch_stock_total'] = (int)array_sum($branchStockTotals);
+        } else {
+            $responseData['branch_stock_total'] = 0;
         }
 
         return response()->json($responseData);
