@@ -3456,6 +3456,10 @@ class AuditController extends Controller
             'audited_at' => $latestAuditedAt,
             'auditor_name' => $latestAuditorName,
             'audited_by' => $latestAuditorName,
+            'notes' => $stockOut->notes,
+            'stock_out_notes' => $stockOut->notes,
+            'customer_name' => $stockOut->customer_name ?? $stockOut->receiver_name ?? '-',
+            'receipt_id' => $stockOut->receipt_id,
         ]);
     }
 
@@ -3830,8 +3834,12 @@ class AuditController extends Controller
                 'items.distributor', 
                 'nonHpItems.product.brandRelation', 
                 'nonHpItems.distributor', 
-                'user', 
-                'inventoryUser', 
+                'user.branch', 
+                'user.onlineShop', 
+                'inventoryUser.branch', 
+                'inventoryUser.onlineShop', 
+                'branch', 
+                'onlineShop', 
                 'auditAnswers', 
                 'auditProfit.auditor', 
                 'paymentMethod',
@@ -4575,6 +4583,19 @@ class AuditController extends Controller
 
                 $savedNotes = $savedProfit ? ($savedProfit->notes ?? ($savedProfit->items_modal['__notes'] ?? null)) : null;
 
+                $displayNotes = $trx->notes;
+                if ($catLower === 'penjualan_online_toko') {
+                    $locParts = array_filter([$trx->shopee_city, $trx->shopee_province]);
+                    $locStr = !empty($locParts) ? implode(', ', $locParts) : null;
+                    if ($locStr) {
+                        if (!$displayNotes) {
+                            $displayNotes = $locStr;
+                        } elseif (!str_contains($displayNotes, $trx->shopee_city ?? '---') && !str_contains($displayNotes, $trx->shopee_province ?? '---')) {
+                            $displayNotes = $locStr . ' | ' . $displayNotes;
+                        }
+                    }
+                }
+
                 $trxData = [
                     'id' => $trx->id,
                     'date' => $fullTrxDate,
@@ -4582,8 +4603,10 @@ class AuditController extends Controller
                     'created_at' => $trx->created_at?->toDateTimeString(),
                     'updated_at' => $trx->updated_at?->toDateTimeString(),
                     'order_no' => $trx->receipt_id,
+                    'receipt_id' => $trx->receipt_id,
                     'customer_name' => $trx->customer_name ?? $trx->receiver_name ?? '-',
                     'customer_phone' => $trx->customer_phone ?: $trx->customer_wa ?: $trx->shopee_phone ?: '-',
+                    'customer_wa' => $trx->customer_wa ?: $trx->customer_phone ?: '-',
                     'category' => $trx->category,
                     'qty' => count($details),
                     'items' => $details,
@@ -4596,6 +4619,9 @@ class AuditController extends Controller
                     'total_modal_system' => $defaultHargaModal,
                     'total_modal_audit' => $effectiveModalAudit,
                     'is_audited' => $isAudited,
+                    'branch' => $trx->branch ?? $trx->inventoryUser?->branch ?? $trx->user?->branch,
+                    'online_shop' => $trx->onlineShop ?? $trx->inventoryUser?->onlineShop ?? $trx->user?->onlineShop,
+                    'branch_name' => $outletName,
                     'outlet_name' => $outletName,
                     'audit_score' => $auditScore ?? $trx->audit_score,
                     'latest_auditor_name' => $trx->latest_auditor_name,
@@ -4608,10 +4634,25 @@ class AuditController extends Controller
                     'audit_yes' => $yesCount,
                     'previous_dp_amount' => $prevDpAmount,
                     'parent_dp_receipt_id' => $parentDpReceiptId,
+                    'notes' => $displayNotes,
+                    'raw_notes' => $trx->notes,
+                    'reason' => $trx->reason ?? $trx->notes,
+                    'description' => $trx->description ?? $trx->notes,
                     'audit_notes' => $savedNotes,
+                    'sales_name' => $trx->sales_account ?? $trx->inventoryUser?->name ?? $trx->user?->name ?? '-',
+                    'sales_account' => $trx->sales_account,
                     'inventory_account_name' => $trx->inventoryUser->full_name ?? $trx->user->full_name ?? '-',
+                    'payment_method_name' => $trx->paymentMethod->name ?? ($trx->payment_method_name ?? '-'),
                     'split_payments_data' => $processedSplitPayments,
                     'selling_price' => $hargaJual,
+                    'grand_total' => $hargaJual,
+                    'total_discount' => (float) ($trx->total_discount ?? 0),
+                    'global_discount_value' => (float) ($trx->global_discount_value ?? 0),
+                    'original_price' => (float) ($hargaJual + ($trx->total_discount ?? 0)),
+                    'proof_image' => $trx->proof_image ? (str_starts_with($trx->proof_image, 'http') ? $trx->proof_image : asset('storage/' . $trx->proof_image)) : null,
+                    'proof_images' => $trx->proof_images ?? [],
+                    'payment_proof_image' => $trx->payment_proof_image ? (str_starts_with($trx->payment_proof_image, 'http') ? $trx->payment_proof_image : asset('storage/' . $trx->payment_proof_image)) : null,
+                    'payment_proof_images' => $trx->payment_proof_images ? collect($trx->payment_proof_images)->map(fn($img) => str_starts_with($img, 'http') ? $img : asset('storage/' . $img))->toArray() : [],
                 ];
 
                 if (!isset($dailyRecap[$trxDateStr])) {
@@ -4888,6 +4929,10 @@ class AuditController extends Controller
             'audited_at' => $latestAuditedAt,
             'auditor_name' => $latestAuditorName,
             'audited_by' => $latestAuditorName,
+            'notes' => $stockOut->notes,
+            'stock_out_notes' => $stockOut->notes,
+            'customer_name' => $stockOut->customer_name ?? $stockOut->receiver_name ?? '-',
+            'receipt_id' => $stockOut->receipt_id,
         ]);
     }
 
@@ -5576,8 +5621,12 @@ class AuditController extends Controller
                 'items.distributor', 
                 'nonHpItems.product.brandRelation', 
                 'nonHpItems.distributor', 
-                'user', 
-                'inventoryUser', 
+                'user.branch', 
+                'user.onlineShop', 
+                'inventoryUser.branch', 
+                'inventoryUser.onlineShop', 
+                'branch', 
+                'onlineShop', 
                 'auditAnswers', 
                 'auditProfit.auditor', 
                 'parentDp'
@@ -5740,6 +5789,7 @@ class AuditController extends Controller
                 'Nama Auditor',
                 'Waktu Audit',
                 'Catatan Audit Profit',
+                'Catatan Transaksi / Kasir',
                 'DP Awal (Rp)'
             ];
 
@@ -6201,6 +6251,7 @@ class AuditController extends Controller
                         $auditorName,
                         $auditedAtStr,
                         $savedNotes,
+                        $trx->notes ?: '-',
                         (float) $prevDpAmount
                     ];
                 }
@@ -6229,6 +6280,7 @@ class AuditController extends Controller
                 (float) $totalModalAudit,
                 (float) $totalProfitSistem,
                 (float) $totalProfitAudit,
+                '',
                 '',
                 '',
                 '',

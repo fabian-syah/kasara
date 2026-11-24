@@ -251,7 +251,12 @@
                                 </td>
                                 <td class="px-6 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name ||
                                     '-' }}</td>
-                                <td class="px-6 py-4 font-medium">{{ item.customer_name }}</td>
+                                <td class="px-6 py-4 font-medium">
+                                    <div>{{ item.customer_name }}</div>
+                                    <div v-if="item.notes" class="mt-1 text-xs text-text-secondary bg-gray-50 dark:bg-surface-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-surface-600 italic break-words max-w-[220px]" :title="item.notes">
+                                        <span class="font-bold text-amber-600 dark:text-amber-400 not-italic">Ket: </span>{{ item.notes }}
+                                    </div>
+                                </td>
                                 <td class="px-6 py-4 text-text-primary font-medium">
                                     <div>{{ item.customer_phone || '-' }}</div>
                                     <button 
@@ -504,6 +509,17 @@
                             <span>•</span>
                             <span>oleh <strong class="text-text-primary font-bold">{{ checklistData?.auditor_name || checklistData?.audited_by }}</strong></span>
                         </span>
+                    </p>
+                </div>
+
+                <!-- Info Transaksi & Catatan Cabang -->
+                <div v-if="selectedTransaction?.notes || checklistData?.stock_out_notes || checklistData?.notes"
+                    class="mx-6 mt-4 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-xs">
+                    <span class="font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider text-[10px] block mb-1">
+                        Catatan Transaksi / Keterangan Toko:
+                    </span>
+                    <p class="text-neutral-800 dark:text-neutral-200 italic font-medium whitespace-pre-wrap">
+                        {{ selectedTransaction?.notes || checklistData?.stock_out_notes || checklistData?.notes }}
                     </p>
                 </div>
 
@@ -1109,6 +1125,7 @@ const handleCancelSale = (item) => {
 };
 
 const openChecklist = async (item) => {
+    selectedTransaction.value = item
     checklistStockOutId.value = item.id
     showChecklistModal.value = true
     checklistLoading.value = true

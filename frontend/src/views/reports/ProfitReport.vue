@@ -163,7 +163,11 @@
                                     {{ formatDate(item.date) }}</td>
                                 <td class="px-4 py-4 text-text-primary font-medium text-xs">{{ item.order_no
                                     }}</td>
-                                <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
+                                <td class="px-4 py-4 font-medium text-xs">
+                                    <div>{{ item.customer_name || '-' }}</div>
+                                    <div v-if="item.notes" class="mt-1 text-[11px] text-text-secondary bg-gray-50 dark:bg-surface-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-surface-600 italic break-words max-w-[200px]" :title="item.notes">
+                                        <span class="font-bold text-amber-600 dark:text-amber-400 not-italic">Ket: </span>{{ item.notes }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4">
                                     <span

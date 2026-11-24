@@ -341,7 +341,11 @@
                                     <button @click="openScreenshot(item)" class="mt-1.5 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/20 rounded-md transition-colors">Screenshot Nota</button>
                                 </td>
                                 <td class="px-4 py-4 text-xs font-semibold text-text-secondary">{{ item.outlet_name || '-' }}</td>
-                                <td class="px-4 py-4 font-medium text-xs">{{ item.customer_name }}
+                                <td class="px-4 py-4 font-medium text-xs">
+                                    <div>{{ item.customer_name || '-' }}</div>
+                                    <div v-if="item.notes" class="mt-1 text-[11px] text-text-secondary bg-gray-50 dark:bg-surface-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-surface-600 italic break-words max-w-[200px]" :title="item.notes">
+                                        <span class="font-bold text-amber-600 dark:text-amber-400 not-italic">Ket: </span>{{ item.notes }}
+                                    </div>
                                 </td>
                                 <td class="px-4 py-4">
                                     <div class="flex flex-col gap-1.5 items-start">
