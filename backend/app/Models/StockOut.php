@@ -94,6 +94,8 @@ class StockOut extends Model
         'receiver_name',
         'transfer_notes',
         // Kesalahan Input
+        'deletion_category',
+        'correct_data',
         'deletion_reason',
         // Retur
         'retur_officer',

@@ -896,6 +896,8 @@ class StockOutController extends Controller
                 'transfer_notes' => $request->transfer_notes,
 
                 // Kesalahan Input
+                'deletion_category' => $request->deletion_category,
+                'correct_data' => $request->filled('correct_data') ? trim($request->correct_data) : null,
                 'deletion_reason' => $deletionReason,
 
                 // Retur
@@ -2767,6 +2769,8 @@ class StockOutController extends Controller
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->notes,
                         'cancel_reason' => $out->cancel_reason,
+                        'deletion_category' => $out->deletion_category,
+                        'correct_data' => $out->correct_data,
                         'deletion_reason' => $out->deletion_reason,
                         'cancelled_by_name' => $out->cancelledByUser?->name ?? '',
                         'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),
@@ -2840,6 +2844,8 @@ class StockOutController extends Controller
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->cancel_reason ?: $out->notes,
                         'cancel_reason' => $out->cancel_reason,
+                        'deletion_category' => $out->deletion_category,
+                        'correct_data' => $out->correct_data,
                         'deletion_reason' => $out->deletion_reason,
                         'cancelled_by_name' => $out->cancelledByUser?->name ?? '',
                         'processed_by' => $out->cancelledByUser ? ($out->cancelledByUser->name ?? $out->cancelledByUser->username) : ($out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username)),
@@ -2910,6 +2916,8 @@ class StockOutController extends Controller
                         'customer_wa' => $out->customer_wa,
                         'notes' => $out->notes,
                         'cancel_reason' => $out->cancel_reason,
+                        'deletion_category' => $out->deletion_category,
+                        'correct_data' => $out->correct_data,
                         'deletion_reason' => $out->deletion_reason,
                         'cancelled_by_name' => $out->category === 'kesalahan_input' ? ($out->user?->name ?? '') : ($out->cancelledByUser?->name ?? ''),
                         'processed_by' => $out->inventoryUser ? ($out->inventoryUser->full_name ?? $out->inventoryUser->name) : ($out->user?->name ?? $out->user?->username),

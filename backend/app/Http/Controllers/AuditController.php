@@ -6846,6 +6846,8 @@ class AuditController extends Controller
                 'audited_at' => $trx->audited_at,
                 'audit_total' => $totalQuestions,
                 'cancelled_by_name' => $trx->category === 'kesalahan_input' ? ($trx->user?->name ?? '') : ($trx->cancelledByUser?->name ?? ''),
+                'deletion_category' => $trx->deletion_category,
+                'correct_data' => $trx->correct_data,
                 'cancel_reason' => $trx->category === 'kesalahan_input' ? $trx->deletion_reason : $trx->cancel_reason,
                 'detailed_items' => collect()->concat(
                     $trx->items->map(fn($i) => [
