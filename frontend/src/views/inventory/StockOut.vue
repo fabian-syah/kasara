@@ -10,6 +10,11 @@ import PasswordModal from "../../components/modals/PasswordModal.vue";
 import PinModal from "../../components/modals/PinModal.vue";
 import { useAuthStore } from "../../store/auth";
 import {
+    KESALAHAN_INPUT_CATEGORIES,
+    getCorrectDataPlaceholder,
+    formatDeletionReason,
+} from "../../constants/stockOut";
+import {
     Package,
     ArrowRightFromLine,
     Building2,
@@ -107,6 +112,8 @@ const form = ref({
     destination_id: null, // Polymorphic ID
     receiver_name: '',
     transfer_notes: '',
+    deletion_category: '',
+    correct_data: '',
     deletion_reason: '',
     retur_officer: '',
     retur_seal: '',
@@ -509,6 +516,8 @@ function resetForm() {
         destination_id: null,
         receiver_name: '',
         transfer_notes: '',
+        deletion_category: '',
+        correct_data: '',
         deletion_reason: '',
         retur_officer: '',
         retur_seal: '',
@@ -720,7 +729,10 @@ const canSubmit = computed(() => {
         case 'tukar_unit':
             return form.value.customer_name && form.value.customer_phone && form.value.selling_price && form.value.notes;
         case 'kesalahan_input':
-            return form.value.deletion_reason;
+            return Boolean(
+                form.value.deletion_category &&
+                String(form.value.correct_data || '').trim().length > 0
+            );
         case 'retur':
             return form.value.retur_officer && form.value.customer_name && form.value.retur_issue && form.value.customer_phone && form.value.return_destination_id;
         case 'shopee':
@@ -828,6 +840,12 @@ async function submitStockOut() {
                 formData.append(key, form.value[key]);
             }
         });
+
+        if (selectedCategory.value === 'kesalahan_input') {
+            const cleanCorrectData = String(form.value.correct_data || '').trim();
+            formData.set('correct_data', cleanCorrectData);
+            formData.set('deletion_reason', formatDeletionReason(form.value.deletion_category, cleanCorrectData));
+        }
 
         selectedNonHpItems.value.forEach((item, index) => {
             formData.append(`non_hp_items[${index}][product_id]`, item.product_id);
@@ -1126,9 +1144,18 @@ onMounted(() => {
 
                 <div v-if="selectedCategory === 'kesalahan_input'" class="space-y-4">
                     <div>
-                        <label class="label">Alasan Hapus *</label>
-                        <textarea v-model="form.deletion_reason" class="input" rows="4"
-                            placeholder="Jelaskan alasan penghapusan data..."></textarea>
+                        <label for="page-kesalahan-kategori" class="label">Kategori *</label>
+                        <select id="page-kesalahan-kategori" v-model="form.deletion_category" class="input">
+                            <option disabled value="">-- Pilih Kategori --</option>
+                            <option v-for="cat in KESALAHAN_INPUT_CATEGORIES" :key="cat" :value="cat">
+                                {{ cat }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="page-kesalahan-data-benar" class="label">Data yang benar *</label>
+                        <textarea id="page-kesalahan-data-benar" v-model="form.correct_data" class="input" rows="4"
+                            :placeholder="getCorrectDataPlaceholder(form.deletion_category)"></textarea>
                     </div>
                 </div>
 

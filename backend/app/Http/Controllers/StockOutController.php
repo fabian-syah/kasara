@@ -392,7 +392,22 @@ class StockOutController extends Controller
             'transfer_notes' => 'nullable|string',
 
             // Kesalahan Input
-            'deletion_reason' => 'required_if:category,kesalahan_input|nullable|string',
+            'deletion_category' => [
+                'required_if:category,kesalahan_input',
+                'nullable',
+                'string',
+                Rule::in([
+                    'Salah input IMEI',
+                    'Salah input kategori',
+                    'Salah input kapasitas',
+                    'Salah input tipe',
+                    'Salah input distributor',
+                    'Salah input Quantity',
+                    'Kesalahan input lainnya',
+                ]),
+            ],
+            'correct_data' => 'required_if:category,kesalahan_input|nullable|string',
+            'deletion_reason' => 'nullable|string',
 
             // Retur
             'retur_officer' => 'required_if:category,retur|nullable|string|max:255',
@@ -852,6 +867,11 @@ class StockOutController extends Controller
             $destinationType = $request->destination_type;
             $destinationId = $request->destination_id;
 
+            $deletionReason = $request->deletion_reason;
+            if ($request->category === 'kesalahan_input' && $request->filled('deletion_category') && $request->filled('correct_data')) {
+                $deletionReason = '[' . trim($request->deletion_category) . '] Data yang benar: ' . trim($request->correct_data);
+            }
+
             // Membuat record stock out
             $stockOut = StockOut::create([
                 'receipt_id' => StockOut::generateReceiptId(),
@@ -876,7 +896,7 @@ class StockOutController extends Controller
                 'transfer_notes' => $request->transfer_notes,
 
                 // Kesalahan Input
-                'deletion_reason' => $request->deletion_reason,
+                'deletion_reason' => $deletionReason,
 
                 // Retur
                 'retur_officer' => $request->retur_officer,

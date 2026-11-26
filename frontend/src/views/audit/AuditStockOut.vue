@@ -104,15 +104,15 @@
                         <select v-model="filters.category" @change="fetchData"
                             class="w-full appearance-none bg-white dark:!bg-surface-800 border border-gray-200 dark:border-surface-600 rounded-xl px-4 py-2.5 pr-10 text-sm font-medium focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer">
                             <option value="all">Semua Kategori</option>
-                            <option value="penjualan_store">Penjualan Store</option>
-                            <option value="penjualan_online_toko">Penjualan Online Toko</option>
-                            <option value="orderan_online">Orderan Online</option>
-                            <option value="tukar_unit">Tukar Unit</option>
-                            <option value="tukar_tambah">Tukar Tambah</option>
-                            <option value="downgrade">Downgrade</option>
-                            <option value="cancel_penjualan">Cancel Penjualan</option>
                             <option value="kesalahan_input">Kesalahan Input</option>
                             <option value="pindah_cabang">Pindah Cabang</option>
+                            <option value="retur">Retur</option>
+                            <option value="giveaway_customer">Giveaway Customer</option>
+                            <option value="hadiah">Hadiah</option>
+                            <option value="brand_ambassador">Brand Ambassador</option>
+                            <option value="promo">Promo</option>
+                            <option value="inventaris">Inventaris</option>
+                            <option value="event_sponsorship">Event / Sponsorship</option>
                             <option value="rusak">Rusak</option>
                             <option value="mati">Mati</option>
                             <option value="hilang">Hilang</option>
@@ -206,7 +206,7 @@
                             <tr v-else v-for="(item, index) in stockOutRecords.data" :key="item.id"
                                 class="transition-colors group text-text-primary"
                                 :class="[
-                                    (item.category === 'cancel_penjualan' || item.category === 'kesalahan_input')
+                                    item.category === 'kesalahan_input'
                                         ? 'bg-red-50/80 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20' 
                                         : item.audit_score != null 
                                             ? 'bg-emerald-50/80 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20' 
@@ -236,13 +236,13 @@
                                             <AlertTriangle :size="12" class="text-red-500" />
                                             {{ getCategoryLabel(item.category) }}
                                         </span>
-                                        <div v-else-if="item.category === 'cancel_penjualan' || item.category === 'kesalahan_input'" class="flex flex-col gap-1">
+                                        <div v-else-if="item.category === 'kesalahan_input'" class="flex flex-col gap-1">
                                             <span class="inline-flex w-fit px-2.5 py-1 text-[11px] font-bold rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-100 dark:border-red-500/20 whitespace-nowrap">
-                                                {{ item.category === 'cancel_penjualan' ? 'Cancel Penjualan' : 'Kesalahan Input' }}
+                                                Kesalahan Input
                                             </span>
                                             <div v-if="item.updated_at" class="text-[10px] text-red-500/80 font-medium leading-tight">{{ new Date(item.updated_at).toLocaleString('id-ID', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) }}</div>
                                             <div v-if="item.cancelled_by_name" class="text-[10px] text-red-500/80 font-medium leading-tight">Oleh: {{ item.cancelled_by_name }}</div>
-                                            <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[120px] break-words">"{{ item.cancel_reason }}"</div>
+                                            <div v-if="item.cancel_reason" class="text-[10px] text-text-secondary italic leading-tight max-w-[220px] break-words">{{ item.cancel_reason }}</div>
                                         </div>
                                         <span
                                             v-else
@@ -296,9 +296,7 @@
                                 </td>
                                 <!-- Audit Score -->
                                 <td class="px-4 py-4 text-center">
-                                    <span v-if="['penjualan_offline', 'orderan_online'].includes(item.category)"
-                                        class="text-xs text-gray-400">-</span>
-                                    <span v-else-if="item.audit_score == null" class="text-xs text-gray-400">-</span>
+                                    <span v-if="item.audit_score == null" class="text-xs text-gray-400">-</span>
                                     <div v-else class="flex flex-col items-center gap-0.5">
                                         <span v-if="item.audit_score === 100"
                                             class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">100%
@@ -319,13 +317,11 @@
                                             title="Lihat Detail Item">
                                             <Eye :size="16" />
                                         </button>
-                                        <button v-if="!['penjualan_offline', 'orderan_online'].includes(item.category)"
-                                            @click="openChecklist(item)"
+                                        <button @click="openChecklist(item)"
                                             class="p-2 hover:bg-white dark:hover:bg-surface-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:shadow-sm border border-gray-200/50 dark:border-surface-600/50 transition-all shadow-sm"
                                             title="Cek Audit Barang Keluar">
                                             <ClipboardCheck :size="16" />
                                         </button>
-                                        <span v-else class="text-xs text-gray-400 italic">History</span>
                                     </div>
                                 </td>
                             </tr>
@@ -600,8 +596,6 @@ const formatList = (text, max = 1) => {
 
 const getCategoryLabel = (val) => {
     const categories = {
-        'penjualan_offline': 'Penjualan Store',
-        'orderan_online': 'Penjualan Online',
         'pindah_cabang': 'Keluar Pindah Cabang',
         'retur': 'Keluar Retur',
         'kesalahan_input': 'Keluar Salah Input',
@@ -612,7 +606,10 @@ const getCategoryLabel = (val) => {
         'inventaris': 'Keluar Inventaris',
         'event_sponsorship': 'Event / Sponsorship',
         'hilang': 'Hilang / Dicuri',
-        'cancel_penjualan': 'Cancel Penjualan',
+        'rusak': 'Rusak',
+        'mati': 'Mati',
+        'retur_distributor': 'Retur Distributor',
+        'keluar': 'Keluar',
         'balancing': 'Balancing',
     };
     return categories[val] || val;

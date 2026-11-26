@@ -11,6 +11,12 @@ import {
     Loader2, ScanBarcode, User, ArrowRightLeft, AlertTriangle, RotateCcw, LogOut, Plus, Shield
 } from "lucide-vue-next";
 import PasswordModal from "../modals/PasswordModal.vue";
+import { useEscapeKey } from "../../composables/useEscapeKey";
+import {
+    KESALAHAN_INPUT_CATEGORIES,
+    getCorrectDataPlaceholder,
+    formatDeletionReason,
+} from "../../constants/stockOut";
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -38,6 +44,8 @@ const stockOutForm = ref({
     destination_branch_id: null,
     receiver_name: '',
     transfer_notes: '',
+    deletion_category: '',
+    correct_data: '',
     deletion_reason: '',
     retur_officer: '',
     retur_seal: '',
@@ -385,6 +393,20 @@ function onUnmountedLogic() {
 }
 onUnmounted(onUnmountedLogic);
 
+useEscapeKey(() => {
+    if (isScanning.value) {
+        stopScanner();
+        return;
+    }
+    if (showPasswordModal.value) {
+        showPasswordModal.value = false;
+        return;
+    }
+    if (props.show) {
+        emit('close');
+    }
+});
+
 // Stock Out Categories
 const stockOutCategories = ref([
     { id: 'orderan_online', name: 'Orderan Online', icon: 'ShoppingBag', color: 'orange', role: 'toko_online' },
@@ -488,6 +510,8 @@ function resetStockOutForm() {
         sub_category: '',
         receiver_name: '',
         transfer_notes: '',
+        deletion_category: '',
+        correct_data: '',
         deletion_reason: '',
         retur_officer: '',
         retur_seal: '',
@@ -582,7 +606,10 @@ const canSubmitStockOut = computed(() => {
         case 'tukar_unit':
             return stockOutForm.value.customer_name && stockOutForm.value.customer_phone && stockOutForm.value.notes && stockOutForm.value.selling_price && stockOutForm.value.incoming_product_type_id && stockOutForm.value.incoming_cost_price && stockOutForm.value.incoming_condition;
         case 'kesalahan_input':
-            return stockOutForm.value.deletion_reason.length >= 5;
+            return Boolean(
+                stockOutForm.value.deletion_category &&
+                String(stockOutForm.value.correct_data || '').trim().length > 0
+            );
         case 'retur':
             return stockOutForm.value.retur_officer && stockOutForm.value.retur_issue &&
                 stockOutForm.value.customer_name && stockOutForm.value.customer_phone;
@@ -711,6 +738,11 @@ async function submitStockOut(pin = null) {
             formData.append('missing_category', stockOutForm.value.missing_category);
             formData.append('person_in_charge', stockOutForm.value.person_in_charge);
             formData.append('loss_chronology', stockOutForm.value.loss_chronology);
+        } else if (selectedStockOutCategory.value === 'kesalahan_input') {
+            const cleanCorrectData = String(stockOutForm.value.correct_data || '').trim();
+            formData.append('deletion_category', stockOutForm.value.deletion_category);
+            formData.append('correct_data', cleanCorrectData);
+            formData.append('deletion_reason', formatDeletionReason(stockOutForm.value.deletion_category, cleanCorrectData));
         } else {
             Object.keys(stockOutForm.value).forEach(key => {
                 if (key !== 'proof_image' && stockOutForm.value[key] !== null && stockOutForm.value[key] !== '') {
@@ -1050,7 +1082,7 @@ async function submitStockOut(pin = null) {
                                         <div class="flex items-center gap-2">
                                             <span class="text-primary-400 font-bold text-xs">{{ idx + 1 }}.</span>
                                             <div>
-                                                <p class="font-medium text-sm text-white">{{ item.product?.name }}</p>
+                                                <p class="font-medium text-sm text-text-primary">{{ item.product?.name }}</p>
                                                 <p class="text-[10px] text-text-secondary">{{ item.product?.brand }}</p>
                                             </div>
                                         </div>
@@ -1068,9 +1100,25 @@ async function submitStockOut(pin = null) {
                                 </div>
                             </div>
                         </div>
-                        <div>
-                            <label class="label">Alasan Hapus *</label>
-                            <textarea v-model="stockOutForm.deletion_reason" class="input" rows="4"></textarea>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="modal-kesalahan-kategori" class="block text-sm font-semibold text-text-primary mb-2">
+                                    Kategori *
+                                </label>
+                                <select id="modal-kesalahan-kategori" v-model="stockOutForm.deletion_category" class="input">
+                                    <option disabled value="">-- Pilih Kategori --</option>
+                                    <option v-for="cat in KESALAHAN_INPUT_CATEGORIES" :key="cat" :value="cat">
+                                        {{ cat }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="modal-kesalahan-data-benar" class="block text-sm font-semibold text-text-primary mb-2">
+                                    Data yang benar *
+                                </label>
+                                <textarea id="modal-kesalahan-data-benar" v-model="stockOutForm.correct_data" class="input" rows="4"
+                                    :placeholder="getCorrectDataPlaceholder(stockOutForm.deletion_category)"></textarea>
+                            </div>
                         </div>
                     </template>
 

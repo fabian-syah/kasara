@@ -6645,36 +6645,28 @@ class AuditController extends Controller
         $requestedDistributorId = $request->distributor_id;
 
         $categories = [
-            'penjualan_offline',
-            'orderan_online',
             'pindah_cabang',
             'retur',
             'kesalahan_input',
             'giveaway_customer',
-            'shopee',
-            'penjualan_store',
             'bundling',
-            'tukar_unit',
-            'tukar_tambah',
-            'downgrade',
             'hadiah',
             'brand_ambassador',
             'promo',
             'inventaris',
             'event_sponsorship',
             'hilang',
-            'cancel_penjualan',
+            'keluar',
+            'rusak',
+            'mati',
+            'retur_distributor',
         ];
 
         $query = StockOut::with(['items.product.brandRelation', 'nonHpItems.product.brandRelation', 'user', 'inventoryUser', 'auditAnswers.auditor', 'destination', 'cancelledByUser'])
             ->whereIn('category', $categories)
             ->whereBetween('reporting_date', [$startDate, $endDate])
             ->when($request->category && $request->category !== 'all', function ($q) use ($request) {
-                if ($request->category === 'orderan_online') {
-                    $q->whereIn('category', ['shopee', 'orderan_online']);
-                } else {
-                    $q->where('category', $request->category);
-                }
+                $q->where('category', $request->category);
             });
 
         // Filter by location
